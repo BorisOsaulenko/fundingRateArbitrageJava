@@ -36,8 +36,8 @@ public class PrivateResponses {
 		return 0.0;
 	}
 
-	private static Instant parseInstant(JsonNode node, String... fields) {
-		for (String field : fields) {
+	private static Instant parseInstant(JsonNode node) {
+		for (String field : new String[]{"execTime", "time"}) {
 			JsonNode val = node.get(field);
 			if (val != null && !val.isNull()) {
 				String text = val.asText();
@@ -219,7 +219,7 @@ public class PrivateResponses {
 				double fee = parseDouble(item, "execFee", "fee");
 				String feeCoin = item.path("feeCurrency").asText();
 				Double feeValue = "USDT".equalsIgnoreCase(feeCoin) ? fee : null;
-				Instant ts = parseInstant(item, "execTime", "time");
+				Instant ts = parseInstant(item);
 				fills.add(new PartialFill(orderId, symbol, qty, price, feeValue, ts));
 			}
 			return fills;

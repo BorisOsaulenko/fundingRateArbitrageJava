@@ -7,7 +7,7 @@ import com.boris.fundingarbitrage.model.contract.PriceLevel;
 import java.time.Instant;
 
 public class PublicResponses {
-	public record Contract(
+	private record Contract(
 					String symbol,
 					String sizeMultiplier,
 					String minTradeNum,
@@ -17,7 +17,7 @@ public class PublicResponses {
 	) {}
 
 	public record ContractsResponse(String code, String msg, long requestTime, Contract[] data) {
-		public boolean symbolExists(String symbol) {
+		public boolean existsSymbol(String symbol) {
 			if (data == null) return false;
 			for (Contract contract : data) {
 				if (symbol.equalsIgnoreCase(contract.symbol())) return true;
@@ -25,7 +25,7 @@ public class PublicResponses {
 			return false;
 		}
 
-		public Double lotSize(String symbol) {
+		public Double lotSizeSymbol(String symbol) {
 			if (data == null) return null;
 			for (Contract contract : data) {
 				if (symbol.equalsIgnoreCase(contract.symbol())) {
@@ -37,7 +37,7 @@ public class PublicResponses {
 			return null;
 		}
 
-		public Integer maxLeverage(String symbol) {
+		public Integer maxLeverageSymbol(String symbol) {
 			if (data == null) return null;
 			for (Contract contract : data) {
 				if (symbol.equalsIgnoreCase(contract.symbol())) {
@@ -47,7 +47,7 @@ public class PublicResponses {
 			return null;
 		}
 
-		public double makerFeeRate(String symbol) {
+		public double makerFeeRateSymbol(String symbol) {
 			if (data == null) return 0.0;
 			for (Contract contract : data) {
 				if (symbol.equalsIgnoreCase(contract.symbol())) {
@@ -57,7 +57,7 @@ public class PublicResponses {
 			return 0.0;
 		}
 
-		public double takerFeeRate(String symbol) {
+		public double takerFeeRateSymbol(String symbol) {
 			if (data == null) return 0.0;
 			for (Contract contract : data) {
 				if (symbol.equalsIgnoreCase(contract.symbol())) {
@@ -68,7 +68,7 @@ public class PublicResponses {
 		}
 	}
 
-	public record Ticker(
+	private record Ticker(
 					String symbol,
 					String bidPr,
 					String askPr,
@@ -108,7 +108,7 @@ public class PublicResponses {
 		}
 	}
 
-	public record FundingRateEntry(String symbol, String fundingRate, String nextUpdate) {}
+	private record FundingRateEntry(String symbol, String fundingRate, String nextUpdate) {}
 
 	public record FundingRateResponse(
 					String code, String msg, long requestTime, FundingRateEntry[] data

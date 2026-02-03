@@ -41,8 +41,8 @@ public class BinancePublicHttpClient extends PublicHttpClient {
 	@Override
 	public CompletableFuture<Double> getLotSizeSymbol(String symbol) {
 		return processRequest(
-						PublicEndpoints.lotSizeRequest(symbol),
-						PublicResponses.LotSizeResponse.class,
+						PublicEndpoints.lotSizeRequestSymbol(symbol),
+						PublicResponses.LotSizeResponseSymbol.class,
 						(resp) -> resp.get(symbol)
 		);
 	}
@@ -50,16 +50,16 @@ public class BinancePublicHttpClient extends PublicHttpClient {
 	@Override
 	public CompletableFuture<Double> getTradingVolume24hSymbol(String symbol) {
 		return processRequest(
-						PublicEndpoints.tradingVolume24hRequest(symbol),
-						PublicResponses.TradingVolume24hResponse.class,
-						PublicResponses.TradingVolume24hResponse::get
+						PublicEndpoints.tradingVolume24hRequestSymbol(symbol),
+						PublicResponses.TradingVolume24hResponseSymbol.class,
+						PublicResponses.TradingVolume24hResponseSymbol::get
 		);
 	}
 
 	@Override
 	public CompletableFuture<Double> getTradingVolume1hSymbol(String symbol) {
 		return processRequest(
-						PublicEndpoints.tradingVolume1hRequest(symbol),
+						PublicEndpoints.tradingVolume1hRequestSymbol(symbol),
 						PublicResponses.TradingVolume1hResponse.class,
 						PublicResponses.TradingVolume1hResponse::get
 		);
@@ -68,26 +68,26 @@ public class BinancePublicHttpClient extends PublicHttpClient {
 	@Override
 	public CompletableFuture<BookTicker> getBookTickerSymbol(String symbol) {
 		return processRequest(
-						PublicEndpoints.bookTickerRequest(symbol),
-						PublicResponses.BookTickerResponse.class,
-						PublicResponses.BookTickerResponse::get
+						PublicEndpoints.bookTickerRequestSymbol(symbol),
+						PublicResponses.BookTickerResponseSymbol.class,
+						PublicResponses.BookTickerResponseSymbol::get
 		);
 	}
 
 	@Override
 	public CompletableFuture<FundingRate> getFundingRateSymbol(String symbol) {
 		return processRequest(
-						PublicEndpoints.fundingRateRequest(symbol),
-						PublicResponses.FundingRateResponse.class,
-						PublicResponses.FundingRateResponse::get
+						PublicEndpoints.fundingRateRequestSymbol(symbol),
+						PublicResponses.FundingRateResponseSymbol.class,
+						PublicResponses.FundingRateResponseSymbol::get
 		);
 	}
 
 	@Override
 	public CompletableFuture<Boolean> checkExistsSymbol(String symbol) {
 		return processRequest(
-						PublicEndpoints.checkSymbolExistsRequest(symbol),
-						PublicResponses.CheckSymbolExistsResponse.class,
+						PublicEndpoints.checkSymbolExistsRequestSymbol(symbol),
+						PublicResponses.CheckExistsSymbolResponse.class,
 						(resp) -> resp.get(symbol)
 		);
 	}

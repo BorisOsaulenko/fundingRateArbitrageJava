@@ -14,7 +14,7 @@ public class PublicResponses {
 
 	private record SymbolInfo(String symbol, Filter[] filters) {}
 
-	public record CheckSymbolExistsResponse(SymbolInfo[] symbols) {
+	public record CheckExistsSymbolResponse(SymbolInfo[] symbols) {
 		public boolean get(String symbol) {
 			if (symbols == null) return false;
 
@@ -27,7 +27,7 @@ public class PublicResponses {
 		}
 	}
 
-	public record FundingRateResponse(
+	public record FundingRateResponseSymbol(
 					String symbol, double lastFundingRate, long nextFundingTime, long time
 	) {
 		public FundingRate get() {
@@ -39,7 +39,7 @@ public class PublicResponses {
 		}
 	}
 
-	public record BookTickerResponse(
+	public record BookTickerResponseSymbol(
 					String symbol, double bidPrice, double askPrice, double bidQty, double askQty, long time
 	) {
 		public BookTicker get() {
@@ -51,7 +51,7 @@ public class PublicResponses {
 		}
 	}
 
-	public record LotSizeResponse(SymbolInfo[] symbols) {
+	public record LotSizeResponseSymbol(SymbolInfo[] symbols) {
 		public Double get(String symbol) {
 			if (symbols == null) return null;
 
@@ -68,7 +68,7 @@ public class PublicResponses {
 		}
 	}
 
-	public record TradingVolume24hResponse(String symbol, double volume) {
+	public record TradingVolume24hResponseSymbol(String symbol, double volume) {
 		public double get() {
 			return volume;
 		}

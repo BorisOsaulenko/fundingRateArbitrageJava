@@ -5,23 +5,25 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="b9df00b4-30ed-4e30-b4d9-bb2bc91a4ba3" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/src/test/java/exchange/impl/bybit/BybitPrivateRestTest.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/test/java/exchange/impl/bybit/BybitPublicRestTest.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/test/java/exchange/impl/bybit/BybitPublicWsTest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/exchange/PublicWsDisconnectionTest.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/App.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/App.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/binance/privaterest/BinancePrivateHttpClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/binance/privaterest/BinancePrivateHttpClient.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/binance/privaterest/PrivateEndpoints.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/binance/privaterest/PrivateEndpoints.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/binance/privaterest/PrivateResponses.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/binance/privaterest/PrivateResponses.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bitget/BitgetSignatures.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/binance/privatews/BinancePrivateMessageHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/binance/privatews/BinancePrivateMessageHandler.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/binance/publicrest/BinancePublicHttpClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/binance/publicrest/BinancePublicHttpClient.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/binance/publicrest/PublicEndpoints.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/binance/publicrest/PublicEndpoints.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/binance/publicrest/PublicResponses.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/binance/publicrest/PublicResponses.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bitget/privaterest/BitgetPrivateHttpClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bitget/privaterest/BitgetPrivateHttpClient.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bitget/privatews/BitgetPrivateWsClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bitget/privatews/BitgetPrivateWsClient.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/publicws/PublicWsClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/publicws/PublicWsClient.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/model/assetops/FuturesOrder.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/model/assetops/FuturesOrder.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/util/cryptography/Signers.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/util/cryptography/Signers.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/com/boris/fundingarbitrage/util/coinvector/CoinVector.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/com/boris/fundingarbitrage/util/coinvector/CoinVector.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/exchange/PrivateRestTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/exchange/PrivateRestTest.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/exchange/PublicWsTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/exchange/PublicWsTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bitget/privaterest/PrivateEndpoints.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bitget/privaterest/PrivateEndpoints.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bitget/publicrest/BitgetPublicHttpClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bitget/publicrest/BitgetPublicHttpClient.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bitget/publicrest/PublicEndpoints.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bitget/publicrest/PublicEndpoints.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bitget/publicrest/PublicResponses.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bitget/publicrest/PublicResponses.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bitget/publicws/BitgetPublicWsClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bitget/publicws/BitgetPublicWsClient.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bybit/privaterest/BybitPrivateHttpClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bybit/privaterest/BybitPrivateHttpClient.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bybit/privaterest/PrivateEndpoints.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bybit/privaterest/PrivateEndpoints.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bybit/privaterest/PrivateResponses.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bybit/privaterest/PrivateResponses.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bybit/publicrest/BybitPublicHttpClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bybit/publicrest/BybitPublicHttpClient.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bybit/publicrest/PublicEndpoints.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bybit/publicrest/PublicEndpoints.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bybit/publicrest/PublicResponses.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bybit/publicrest/PublicResponses.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/privatehttp/PrivateHttpClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/privatehttp/PrivateHttpClient.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -105,8 +107,11 @@
     "Gradle.PublicRest.executor": "Run",
     "Gradle.PublicRest.getLotSize.executor": "Run",
     "Gradle.PublicRestTest.executor": "Run",
+    "JUnit.BinancePrivateRestTest and 2 more.executor": "Run",
     "JUnit.BinancePrivateRestTest.executor": "Run",
+    "JUnit.BinancePublicRestTest and 2 more.executor": "Run",
     "JUnit.BinancePublicRestTest.executor": "Run",
+    "JUnit.BinancePublicWsTest and 2 more.executor": "Run",
     "JUnit.BinancePublicWsTest.executor": "Run",
     "JUnit.BitgetPrivateRestTest.executor": "Run",
     "JUnit.BitgetPublicRestTest.executor": "Run",
@@ -134,7 +139,7 @@
     "SHELLCHECK.PATH": "/Users/borisosaulenko/Library/Application Support/JetBrains/IntelliJIdea2025.3/plugins/Shell Script/shellcheck",
     "code.cleanup.on.save": "true",
     "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
-    "git-widget-placeholder": "Bybit",
+    "git-widget-placeholder": "cleanup",
     "junie.onboarding.icon.badge.shown": "true",
     "kotlin-language-version-configured": "true",
     "project.structure.last.edited": "Modules",
@@ -153,7 +158,7 @@
   }
 }]]></component>
   <component name="RecapUselessUpdatesCounter">
-    <option name="suspendCountdown" value="3" />
+    <option name="suspendCountdown" value="2" />
   </component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
@@ -166,31 +171,7 @@
       <recent name="com.boris.fundingarbitrage" />
     </key>
   </component>
-  <component name="RunManager" selected="Application.App">
-    <configuration name="App" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
-      <option name="MAIN_CLASS_NAME" value="com.boris.fundingarbitrage.App" />
-      <module name="FundingArbitrage.main" />
-      <extension name="coverage">
-        <pattern>
-          <option name="PATTERN" value="com.boris.fundingarbitrage.*" />
-          <option name="ENABLED" value="true" />
-        </pattern>
-      </extension>
-      <extension name="net.ashald.envfile">
-        <option name="IS_ENABLED" value="true" />
-        <option name="IS_SUBST" value="false" />
-        <option name="IS_PATH_MACRO_SUPPORTED" value="false" />
-        <option name="IS_IGNORE_MISSING_FILES" value="false" />
-        <option name="IS_ENABLE_EXPERIMENTAL_INTEGRATIONS" value="false" />
-        <ENTRIES>
-          <ENTRY IS_ENABLED="true" PARSER="runconfig" IS_EXECUTABLE="false" />
-          <ENTRY IS_ENABLED="true" PARSER="env" IS_EXECUTABLE="false" PATH="$USER_HOME$/Documents/Finances/env" />
-        </ENTRIES>
-      </extension>
-      <method v="2">
-        <option name="Make" enabled="true" />
-      </method>
-    </configuration>
+  <component name="RunManager" selected="JUnit.BinancePublicWsTest and 2 more">
     <configuration name="FundingArbitrage" type="GradleRunConfiguration" factoryName="Gradle" nameIsGenerated="true">
       <ExternalSystemSettings>
         <option name="executionName" />
@@ -214,11 +195,11 @@
       <GradleCoverageDisabled>false</GradleCoverageDisabled>
       <method v="2" />
     </configuration>
-    <configuration name="BitgetPublicWsTest" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+    <configuration name="BinancePrivateRestTest and 2 more" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
       <module name="FundingArbitrage.test" />
       <extension name="coverage">
         <pattern>
-          <option name="PATTERN" value="exchange.impl.bitget.*" />
+          <option name="PATTERN" value="exchange.*" />
           <option name="ENABLED" value="true" />
         </pattern>
       </extension>
@@ -233,19 +214,24 @@
           <ENTRY IS_ENABLED="true" PARSER="env" IS_EXECUTABLE="false" PATH="$USER_HOME$/Documents/Finances/env" />
         </ENTRIES>
       </extension>
-      <option name="PACKAGE_NAME" value="exchange.impl.bitget" />
-      <option name="MAIN_CLASS_NAME" value="exchange.impl.bitget.BitgetPublicWsTest" />
+      <option name="PACKAGE_NAME" value="exchange" />
+      <option name="MAIN_CLASS_NAME" value="exchange.PrivateRestTest" />
       <option name="METHOD_NAME" value="" />
-      <option name="TEST_OBJECT" value="class" />
+      <option name="TEST_OBJECT" value="pattern" />
+      <patterns>
+        <pattern testClass="exchange.impl.binance.BinancePrivateRestTest" />
+        <pattern testClass="exchange.impl.bitget.BitgetPrivateRestTest" />
+        <pattern testClass="exchange.impl.bybit.BybitPrivateRestTest" />
+      </patterns>
       <method v="2">
         <option name="Make" enabled="true" />
       </method>
     </configuration>
-    <configuration name="BybitPrivateRestTest" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+    <configuration name="BinancePublicRestTest and 2 more" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
       <module name="FundingArbitrage.test" />
       <extension name="coverage">
         <pattern>
-          <option name="PATTERN" value="exchange.impl.bybit.*" />
+          <option name="PATTERN" value="exchange.*" />
           <option name="ENABLED" value="true" />
         </pattern>
       </extension>
@@ -260,10 +246,47 @@
           <ENTRY IS_ENABLED="true" PARSER="env" IS_EXECUTABLE="false" PATH="$USER_HOME$/Documents/Finances/env" />
         </ENTRIES>
       </extension>
-      <option name="PACKAGE_NAME" value="exchange.impl.bybit" />
-      <option name="MAIN_CLASS_NAME" value="exchange.impl.bybit.BybitPrivateRestTest" />
+      <option name="PACKAGE_NAME" value="exchange" />
+      <option name="MAIN_CLASS_NAME" value="exchange.PublicRestTest" />
       <option name="METHOD_NAME" value="" />
-      <option name="TEST_OBJECT" value="class" />
+      <option name="TEST_OBJECT" value="pattern" />
+      <patterns>
+        <pattern testClass="exchange.impl.binance.BinancePublicRestTest" />
+        <pattern testClass="exchange.impl.bitget.BitgetPublicRestTest" />
+        <pattern testClass="exchange.impl.bybit.BybitPublicRestTest" />
+      </patterns>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="BinancePublicWsTest and 2 more" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="FundingArbitrage.test" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="exchange.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <extension name="net.ashald.envfile">
+        <option name="IS_ENABLED" value="true" />
+        <option name="IS_SUBST" value="false" />
+        <option name="IS_PATH_MACRO_SUPPORTED" value="false" />
+        <option name="IS_IGNORE_MISSING_FILES" value="false" />
+        <option name="IS_ENABLE_EXPERIMENTAL_INTEGRATIONS" value="false" />
+        <ENTRIES>
+          <ENTRY IS_ENABLED="true" PARSER="runconfig" IS_EXECUTABLE="false" />
+          <ENTRY IS_ENABLED="true" PARSER="env" IS_EXECUTABLE="false" PATH="$USER_HOME$/Documents/Finances/env" />
+        </ENTRIES>
+      </extension>
+      <option name="PACKAGE_NAME" value="exchange" />
+      <option name="MAIN_CLASS_NAME" value="exchange.PublicWsTest" />
+      <option name="METHOD_NAME" value="" />
+      <option name="TEST_OBJECT" value="pattern" />
+      <patterns>
+        <pattern testClass="exchange.impl.binance.BinancePublicWsTest" />
+        <pattern testClass="exchange.impl.bitget.BitgetPublicWsTest" />
+        <pattern testClass="exchange.impl.bybit.BybitPublicWsTest" />
+      </patterns>
       <method v="2">
         <option name="Make" enabled="true" />
       </method>
@@ -352,21 +375,21 @@
       </method>
     </configuration>
     <list>
-      <item itemvalue="Application.App" />
       <item itemvalue="Gradle.FundingArbitrage" />
       <item itemvalue="Java Scratch.ScratchTyrusWs" />
+      <item itemvalue="JUnit.BinancePrivateRestTest and 2 more" />
+      <item itemvalue="JUnit.BinancePublicRestTest and 2 more" />
+      <item itemvalue="JUnit.BinancePublicWsTest and 2 more" />
       <item itemvalue="JUnit.BybitPublicRestTest" />
       <item itemvalue="JUnit.BybitPublicWsTest" />
-      <item itemvalue="JUnit.BitgetPublicWsTest" />
-      <item itemvalue="JUnit.BybitPrivateRestTest" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="JUnit.BinancePublicWsTest and 2 more" />
+        <item itemvalue="JUnit.BinancePublicRestTest and 2 more" />
+        <item itemvalue="JUnit.BinancePrivateRestTest and 2 more" />
         <item itemvalue="JUnit.BybitPublicWsTest" />
         <item itemvalue="JUnit.BybitPublicRestTest" />
-        <item itemvalue="JUnit.BybitPrivateRestTest" />
-        <item itemvalue="Application.App" />
-        <item itemvalue="JUnit.BitgetPublicWsTest" />
       </list>
     </recent_temporary>
   </component>

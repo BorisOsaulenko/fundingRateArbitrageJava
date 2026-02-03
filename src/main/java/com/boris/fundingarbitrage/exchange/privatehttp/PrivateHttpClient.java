@@ -45,7 +45,10 @@ public abstract class PrivateHttpClient {
 
 	public abstract CompletableFuture<Void> withdrawUsdt(Withdrawal withdrawal);
 
-	protected abstract CompletableFuture<String> placeFuturesOrderSymbol(FuturesOrder futuresOrder); // returns orderId
+	protected abstract CompletableFuture<String> placeFuturesOrderSymbol(
+					String symbol,
+					FuturesOrder futuresOrder
+	); // returns orderId
 
 	protected abstract CompletableFuture<List<PartialFill>> getOrderRecordSymbol(
 					String orderId,
@@ -79,22 +82,8 @@ public abstract class PrivateHttpClient {
 		return withSymbol(coin, (symbol) -> setMarginModeSymbol(symbol, marginMode));
 	}
 
-	public CompletableFuture<String> placeFuturesOrder(FuturesOrder futuresOrder) {
-		return withSymbol(
-						futuresOrder.coin(), (symbol) -> {
-							FuturesOrder modifiedOrder = new FuturesOrder(
-											symbol,
-											futuresOrder.orderSide(),
-											futuresOrder.tradeSide(),
-											futuresOrder.baseAssetQty(),
-											futuresOrder.contractQty(),
-											futuresOrder.leverage(),
-											futuresOrder.marginMode()
-							);
-
-							return placeFuturesOrderSymbol(modifiedOrder);
-						}
-		);
+	public CompletableFuture<String> placeFuturesOrder(String coin, FuturesOrder futuresOrder) {
+		return withSymbol(coin, (symbol) -> placeFuturesOrderSymbol(symbol, futuresOrder));
 	}
 
 	public CompletableFuture<List<PartialFill>> getOrderRecord(

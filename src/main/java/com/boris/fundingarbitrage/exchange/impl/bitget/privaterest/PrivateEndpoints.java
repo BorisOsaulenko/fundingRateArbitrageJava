@@ -1,14 +1,7 @@
 package com.boris.fundingarbitrage.exchange.impl.bitget.privaterest;
 
 import com.boris.fundingarbitrage.ObjectMapperSingleton;
-import com.boris.fundingarbitrage.model.assetops.FuturesOrder;
-import com.boris.fundingarbitrage.model.assetops.InternalTransfer;
-import com.boris.fundingarbitrage.model.assetops.InternalAccount;
-import com.boris.fundingarbitrage.model.assetops.MarginMode;
-import com.boris.fundingarbitrage.model.assetops.TradeSide;
-import com.boris.fundingarbitrage.model.assetops.OrderSide;
-import com.boris.fundingarbitrage.model.assetops.SupportedChain;
-import com.boris.fundingarbitrage.model.assetops.Withdrawal;
+import com.boris.fundingarbitrage.model.assetops.*;
 import lombok.NonNull;
 import lombok.SneakyThrows;
 import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
@@ -34,16 +27,19 @@ public class PrivateEndpoints {
 	}
 
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest tradingFeesRequest(String symbol) {
+	public static @NonNull SimpleHttpRequest tradingFeesRequestSymbol(String symbol) {
 		URI uri = new URIBuilder(baseUrl)
-				.setPath("/api/v2/mix/market/contracts")
-				.addParameter("productType", productType)
-				.addParameter("symbol", symbol)
-				.build();
+						.setPath("/api/v2/mix/market/contracts")
+						.addParameter("productType", productType)
+						.addParameter("symbol", symbol)
+						.build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
-	public static @NonNull SimpleHttpRequest changeLeverageRequest(String symbol, int leverage) {
+	public static @NonNull SimpleHttpRequest changeLeverageRequestSymbol(
+					String symbol,
+					int leverage
+	) {
 		Map<String, Object> body = new HashMap<>();
 		body.put("symbol", symbol);
 		body.put("productType", productType);
@@ -52,7 +48,10 @@ public class PrivateEndpoints {
 		return postJson("/api/v2/mix/account/set-leverage", body);
 	}
 
-	public static @NonNull SimpleHttpRequest setMarginModeRequest(String symbol, MarginMode marginMode) {
+	public static @NonNull SimpleHttpRequest setMarginModeRequestSymbol(
+					String symbol,
+					MarginMode marginMode
+	) {
 		Map<String, Object> body = new HashMap<>();
 		body.put("symbol", symbol);
 		body.put("productType", productType);
@@ -64,48 +63,48 @@ public class PrivateEndpoints {
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest spotUsdtBalanceRequest() {
 		URI uri = new URIBuilder(baseUrl)
-				.setPath("/api/v2/account/all-account-balance")
-				.addParameter("coin", "USDT")
-				.build();
+						.setPath("/api/v2/account/all-account-balance")
+						.addParameter("coin", "USDT")
+						.build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest futuresUsdtBalanceRequest() {
 		URI uri = new URIBuilder(baseUrl)
-				.setPath("/api/v2/mix/account/accounts")
-				.addParameter("productType", productType)
-				.addParameter("marginCoin", marginCoin)
-				.build();
+						.setPath("/api/v2/mix/account/accounts")
+						.addParameter("productType", productType)
+						.addParameter("marginCoin", marginCoin)
+						.build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest maxLeverageRequest(String symbol) {
+	public static @NonNull SimpleHttpRequest maxLeverageRequestSymbol(String symbol) {
 		URI uri = new URIBuilder(baseUrl)
-				.setPath("/api/v2/mix/market/contracts")
-				.addParameter("productType", productType)
-				.addParameter("symbol", symbol)
-				.build();
+						.setPath("/api/v2/mix/market/contracts")
+						.addParameter("productType", productType)
+						.addParameter("symbol", symbol)
+						.build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest supportedChainsRequest() {
 		URI uri = new URIBuilder(baseUrl)
-				.setPath("/api/v2/spot/public/coins")
-				.addParameter("coin", "USDT")
-				.build();
+						.setPath("/api/v2/spot/public/coins")
+						.addParameter("coin", "USDT")
+						.build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest usdtWalletAddressRequest(SupportedChain chain) {
 		URI uri = new URIBuilder(baseUrl)
-				.setPath("/api/v2/spot/wallet/deposit-address")
-				.addParameter("coin", "USDT")
-				.addParameter("chain", ChainsMap.get().get(chain))
-				.build();
+						.setPath("/api/v2/spot/wallet/deposit-address")
+						.addParameter("coin", "USDT")
+						.addParameter("chain", ChainsMap.get().get(chain))
+						.build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
@@ -129,9 +128,12 @@ public class PrivateEndpoints {
 		throw new IllegalArgumentException("Unsupported order side combination");
 	}
 
-	public static @NonNull SimpleHttpRequest placeFuturesOrderRequest(FuturesOrder futuresOrder) {
+	public static @NonNull SimpleHttpRequest placeFuturesOrderRequestSymbol(
+					String symbol,
+					FuturesOrder futuresOrder
+	) {
 		Map<String, Object> body = new HashMap<>();
-		body.put("symbol", futuresOrder.coin());
+		body.put("symbol", symbol);
 		body.put("productType", productType);
 		body.put("marginMode", futuresOrder.marginMode() == MarginMode.CROSS ? "crossed" : "isolated");
 		body.put("marginCoin", marginCoin);
@@ -142,13 +144,17 @@ public class PrivateEndpoints {
 	}
 
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest orderRecordRequest(String orderId, String symbol, TradeSide tradeSide) {
+	public static @NonNull SimpleHttpRequest orderRecordRequestSymbol(
+					String orderId,
+					String symbol,
+					TradeSide tradeSide
+	) {
 		URI uri = new URIBuilder(baseUrl)
-				.setPath("/api/v2/mix/order/fills")
-				.addParameter("productType", productType)
-				.addParameter("symbol", symbol)
-				.addParameter("orderId", orderId)
-				.build();
+						.setPath("/api/v2/mix/order/fills")
+						.addParameter("productType", productType)
+						.addParameter("symbol", symbol)
+						.addParameter("orderId", orderId)
+						.build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 

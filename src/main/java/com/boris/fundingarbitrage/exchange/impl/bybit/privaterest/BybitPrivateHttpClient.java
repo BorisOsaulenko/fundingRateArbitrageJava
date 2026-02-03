@@ -164,9 +164,12 @@ public class BybitPrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
-	protected CompletableFuture<String> placeFuturesOrderSymbol(FuturesOrder futuresOrder) {
+	protected CompletableFuture<String> placeFuturesOrderSymbol(
+					String symbol,
+					FuturesOrder futuresOrder
+	) {
 		return processRequest(
-						PrivateEndpoints.placeFuturesOrderRequest(futuresOrder),
+						PrivateEndpoints.placeFuturesOrderRequest(symbol, futuresOrder),
 						PrivateResponses.PlaceFuturesOrderResponse.class,
 						PrivateResponses.PlaceFuturesOrderResponse::orderId
 		);

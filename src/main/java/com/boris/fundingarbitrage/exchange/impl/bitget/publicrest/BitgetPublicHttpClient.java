@@ -42,16 +42,16 @@ public class BitgetPublicHttpClient extends PublicHttpClient {
 	@Override
 	protected CompletableFuture<Double> getLotSizeSymbol(String symbol) {
 		return processRequest(
-						PublicEndpoints.contractsRequest(symbol),
+						PublicEndpoints.contractsRequestSymbol(symbol),
 						PublicResponses.ContractsResponse.class,
-						(resp) -> resp.lotSize(symbol)
+						(resp) -> resp.lotSizeSymbol(symbol)
 		);
 	}
 
 	@Override
 	protected CompletableFuture<BookTicker> getBookTickerSymbol(String symbol) {
 		return processRequest(
-						PublicEndpoints.tickerRequest(symbol),
+						PublicEndpoints.tickerRequestSymbol(symbol),
 						PublicResponses.TickerResponse.class,
 						PublicResponses.TickerResponse::bookTicker
 		);
@@ -60,7 +60,7 @@ public class BitgetPublicHttpClient extends PublicHttpClient {
 	@Override
 	protected CompletableFuture<FundingRate> getFundingRateSymbol(String symbol) {
 		return processRequest(
-						PublicEndpoints.fundingRateRequest(symbol),
+						PublicEndpoints.fundingRateRequestSymbol(symbol),
 						PublicResponses.FundingRateResponse.class,
 						PublicResponses.FundingRateResponse::get
 		);
@@ -69,7 +69,7 @@ public class BitgetPublicHttpClient extends PublicHttpClient {
 	@Override
 	protected CompletableFuture<Double> getTradingVolume24hSymbol(String symbol) {
 		return processRequest(
-						PublicEndpoints.tickerRequest(symbol),
+						PublicEndpoints.tickerRequestSymbol(symbol),
 						PublicResponses.TickerResponse.class,
 						PublicResponses.TickerResponse::volume24h
 		);
@@ -78,7 +78,7 @@ public class BitgetPublicHttpClient extends PublicHttpClient {
 	@Override
 	protected CompletableFuture<Double> getTradingVolume1hSymbol(String symbol) {
 		return processRequest(
-						PublicEndpoints.candles1hRequest(symbol),
+						PublicEndpoints.candles1hRequestSymbol(symbol),
 						PublicResponses.CandlesResponse.class,
 						PublicResponses.CandlesResponse::volume1h
 		);
@@ -86,7 +86,7 @@ public class BitgetPublicHttpClient extends PublicHttpClient {
 
 	@Override
 	protected CompletableFuture<Boolean> checkExistsSymbol(String symbol) {
-		SimpleHttpRequest request = PublicEndpoints.contractsRequest(symbol);
+		SimpleHttpRequest request = PublicEndpoints.contractsRequestSymbol(symbol);
 		return this.client.sendNoCodeCheck(request).thenApply((response) -> {
 			try {
 				String body = response.getBodyText();
@@ -97,7 +97,7 @@ public class BitgetPublicHttpClient extends PublicHttpClient {
 									body,
 									PublicResponses.ContractsResponse.class
 					);
-					return resp.symbolExists(symbol);
+					return resp.existsSymbol(symbol);
 				}
 
 				// Bitget returns HTTP 400 with specific error code when symbol does not exist

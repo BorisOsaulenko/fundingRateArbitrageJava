@@ -16,6 +16,7 @@ import java.time.Instant;
 
 public class BinancePrivateMessageHandler implements PrivateMessageHandler {
 	private final ObjectMapper mapper = ObjectMapperSingleton.getInstance();
+	
 	private final JsonParsingFunction<DepositPatch> parseDepositInternal = (message) -> {
 		DepositMessage depositMessage = mapper.readValue(message, DepositMessage.class);
 		var eventData = depositMessage.event();

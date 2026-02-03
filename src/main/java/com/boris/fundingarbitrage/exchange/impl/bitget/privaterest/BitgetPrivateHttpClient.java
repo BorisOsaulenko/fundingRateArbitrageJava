@@ -83,7 +83,7 @@ public class BitgetPrivateHttpClient extends PrivateHttpClient {
 	@Override
 	protected CompletableFuture<Fees> getTradingFeesSymbol(String symbol) {
 		return processRequest(
-						PrivateEndpoints.tradingFeesRequest(symbol),
+						PrivateEndpoints.tradingFeesRequestSymbol(symbol),
 						PrivateResponses.TradingFeesResponse.class,
 						(resp) -> resp.getFees(symbol)
 		);
@@ -92,7 +92,7 @@ public class BitgetPrivateHttpClient extends PrivateHttpClient {
 	@Override
 	protected CompletableFuture<Void> changeLeverageSymbol(String symbol, int leverage) {
 		return processRequest(
-						PrivateEndpoints.changeLeverageRequest(symbol, leverage),
+						PrivateEndpoints.changeLeverageRequestSymbol(symbol, leverage),
 						PrivateResponses.ChangeLeverageResponse.class,
 						(resp) -> null
 		);
@@ -101,7 +101,7 @@ public class BitgetPrivateHttpClient extends PrivateHttpClient {
 	@Override
 	protected CompletableFuture<Void> setMarginModeSymbol(String symbol, MarginMode marginMode) {
 		return processRequest(
-						PrivateEndpoints.setMarginModeRequest(symbol, marginMode),
+						PrivateEndpoints.setMarginModeRequestSymbol(symbol, marginMode),
 						PrivateResponses.SetMarginModeResponse.class,
 						(resp) -> null
 		);
@@ -128,7 +128,7 @@ public class BitgetPrivateHttpClient extends PrivateHttpClient {
 	@Override
 	protected CompletableFuture<Integer> getMaxLeverageSymbol(String symbol) {
 		return processRequest(
-						PrivateEndpoints.maxLeverageRequest(symbol),
+						PrivateEndpoints.maxLeverageRequestSymbol(symbol),
 						PrivateResponses.MaxLeverageResponse.class,
 						PrivateResponses.MaxLeverageResponse::get
 		);
@@ -162,9 +162,12 @@ public class BitgetPrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
-	protected CompletableFuture<String> placeFuturesOrderSymbol(FuturesOrder futuresOrder) {
+	protected CompletableFuture<String> placeFuturesOrderSymbol(
+					String symbol,
+					FuturesOrder futuresOrder
+	) {
 		return processRequest(
-						PrivateEndpoints.placeFuturesOrderRequest(futuresOrder),
+						PrivateEndpoints.placeFuturesOrderRequestSymbol(symbol, futuresOrder),
 						PrivateResponses.PlaceFuturesOrderResponse.class,
 						PrivateResponses.PlaceFuturesOrderResponse::orderId
 		);
@@ -177,7 +180,7 @@ public class BitgetPrivateHttpClient extends PrivateHttpClient {
 					TradeSide tradeSide
 	) {
 		return processRequest(
-						PrivateEndpoints.orderRecordRequest(orderId, symbol, tradeSide),
+						PrivateEndpoints.orderRecordRequestSymbol(orderId, symbol, tradeSide),
 						PrivateResponses.GetOrderRecordResponse.class,
 						PrivateResponses.GetOrderRecordResponse::get
 		);

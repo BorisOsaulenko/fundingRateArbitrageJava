@@ -11,7 +11,7 @@ public class PublicEndpoints {
 	private static final String futuresBaseUrl = "https://fapi.binance.com";
 
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest checkSymbolExistsRequest(String symbol) {
+	public static @NonNull SimpleHttpRequest checkSymbolExistsRequestSymbol(String symbol) {
 		URI uri = new URIBuilder(futuresBaseUrl)
 						.setPath("/fapi/v1/exchangeInfo")
 						.addParameter("symbol", symbol)
@@ -20,7 +20,7 @@ public class PublicEndpoints {
 	}
 
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest fundingRateRequest(String symbol) {
+	public static @NonNull SimpleHttpRequest fundingRateRequestSymbol(String symbol) {
 		URI uri = new URIBuilder(futuresBaseUrl)
 						.setPath("/fapi/v1/premiumIndex")
 						.addParameter("symbol", symbol)
@@ -29,7 +29,7 @@ public class PublicEndpoints {
 	}
 
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest bookTickerRequest(String symbol) {
+	public static @NonNull SimpleHttpRequest bookTickerRequestSymbol(String symbol) {
 		URI uri = new URIBuilder(futuresBaseUrl)
 						.setPath("/fapi/v1/ticker/bookTicker")
 						.addParameter("symbol", symbol)
@@ -38,7 +38,7 @@ public class PublicEndpoints {
 	}
 
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest lotSizeRequest(String symbol) {
+	public static @NonNull SimpleHttpRequest lotSizeRequestSymbol(String symbol) {
 		URI uri = new URIBuilder(futuresBaseUrl)
 						.setPath("/fapi/v1/exchangeInfo")
 						.addParameter("symbol", symbol)
@@ -47,7 +47,7 @@ public class PublicEndpoints {
 	}
 
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest tradingVolume24hRequest(String symbol) {
+	public static @NonNull SimpleHttpRequest tradingVolume24hRequestSymbol(String symbol) {
 		URI uri = new URIBuilder(futuresBaseUrl)
 						.setPath("/fapi/v1/ticker/24hr")
 						.addParameter("symbol", symbol)
@@ -56,7 +56,7 @@ public class PublicEndpoints {
 	}
 
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest tradingVolume1hRequest(String symbol) {
+	public static @NonNull SimpleHttpRequest tradingVolume1hRequestSymbol(String symbol) {
 		URI url = new URIBuilder(futuresBaseUrl)
 						.setPath("/fapi/v1/klines")
 						.addParameter("symbol", symbol)

@@ -125,10 +125,13 @@ public class PrivateEndpoints {
 		throw new IllegalArgumentException("Unsupported order side combination");
 	}
 
-	public static @NonNull SimpleHttpRequest placeFuturesOrderRequest(FuturesOrder futuresOrder) {
+	public static @NonNull SimpleHttpRequest placeFuturesOrderRequest(
+					String symbol,
+					FuturesOrder futuresOrder
+	) {
 		Map<String, Object> body = new HashMap<>();
 		body.put("category", category);
-		body.put("symbol", futuresOrder.coin());
+		body.put("symbol", symbol);
 		body.put("side", mapSide(futuresOrder.orderSide(), futuresOrder.tradeSide()));
 		body.put("orderType", "Market");
 		body.put("qty", String.valueOf(futuresOrder.baseAssetQty()));

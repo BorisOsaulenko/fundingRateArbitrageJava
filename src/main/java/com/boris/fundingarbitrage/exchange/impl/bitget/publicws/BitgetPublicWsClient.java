@@ -16,49 +16,49 @@ public class BitgetPublicWsClient extends PublicWsClient {
 		super(context, endpoint, messageHandler);
 	}
 
-	private void sendSubscribeFrame(String[] symbols, String channel) {
+	private void sendSubscribeFrame(String[] symbols) {
 		WsRequest.Arg[] args = new WsRequest.Arg[symbols.length];
 		for (int i = 0; i < symbols.length; i++) {
-			args[i] = new WsRequest.Arg(instType, channel, symbols[i]);
+			args[i] = new WsRequest.Arg(instType, BitgetPublicWsClient.tickerChannel, symbols[i]);
 		}
 		this.prettyWsClient.sendObject(new WsRequest("subscribe", args));
 	}
 
-	private void sendUnsubscribeFrame(String[] symbols, String channel) {
+	private void sendUnsubscribeFrame(String[] symbols) {
 		WsRequest.Arg[] args = new WsRequest.Arg[symbols.length];
 		for (int i = 0; i < symbols.length; i++) {
-			args[i] = new WsRequest.Arg(instType, channel, symbols[i]);
+			args[i] = new WsRequest.Arg(instType, BitgetPublicWsClient.tickerChannel, symbols[i]);
 		}
 		this.prettyWsClient.sendObject(new WsRequest("unsubscribe", args));
 	}
 
 	@Override
 	protected void sendSubscribeFundingRateFrame(String[] symbols) {
-		sendSubscribeFrame(symbols, tickerChannel);
+		sendSubscribeFrame(symbols);
 	}
 
 	@Override
 	protected void sendUnsubscribeFundingRateFrame(String[] symbols) {
-		sendUnsubscribeFrame(symbols, tickerChannel);
+		sendUnsubscribeFrame(symbols);
 	}
 
 	@Override
 	protected void sendSubscribeBookTickerFrame(String[] symbols) {
-		sendSubscribeFrame(symbols, tickerChannel);
+		sendSubscribeFrame(symbols);
 	}
 
 	@Override
 	protected void sendUnsubscribeBookTickerFrame(String[] symbols) {
-		sendUnsubscribeFrame(symbols, tickerChannel);
+		sendUnsubscribeFrame(symbols);
 	}
 
 	@Override
 	protected void sendSubscribeMarkPriceFrame(String[] symbols) {
-		sendSubscribeFrame(symbols, tickerChannel);
+		sendSubscribeFrame(symbols);
 	}
 
 	@Override
 	protected void sendUnsubscribeMarkPriceFrame(String[] symbols) {
-		sendUnsubscribeFrame(symbols, tickerChannel);
+		sendUnsubscribeFrame(symbols);
 	}
 }

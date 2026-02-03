@@ -42,16 +42,16 @@ public class BybitPublicHttpClient extends PublicHttpClient {
 	@Override
 	protected CompletableFuture<Double> getLotSizeSymbol(String symbol) {
 		return processRequest(
-						PublicEndpoints.instrumentsInfoRequest(symbol),
+						PublicEndpoints.instrumentsInfoRequestSymbol(symbol),
 						PublicResponses.InstrumentsInfoResponse.class,
-						(resp) -> resp.lotSize(symbol)
+						(resp) -> resp.lotSizeSymbol(symbol)
 		);
 	}
 
 	@Override
 	protected CompletableFuture<BookTicker> getBookTickerSymbol(String symbol) {
 		return processRequest(
-						PublicEndpoints.tickersRequest(symbol),
+						PublicEndpoints.tickersRequestSymbol(symbol),
 						PublicResponses.TickersResponse.class,
 						PublicResponses.TickersResponse::bookTicker
 		);
@@ -60,7 +60,7 @@ public class BybitPublicHttpClient extends PublicHttpClient {
 	@Override
 	protected CompletableFuture<FundingRate> getFundingRateSymbol(String symbol) {
 		return processRequest(
-						PublicEndpoints.tickersRequest(symbol),
+						PublicEndpoints.tickersRequestSymbol(symbol),
 						PublicResponses.TickersResponse.class,
 						PublicResponses.TickersResponse::fundingRate
 		);
@@ -69,7 +69,7 @@ public class BybitPublicHttpClient extends PublicHttpClient {
 	@Override
 	protected CompletableFuture<Double> getTradingVolume24hSymbol(String symbol) {
 		return processRequest(
-						PublicEndpoints.tickersRequest(symbol),
+						PublicEndpoints.tickersRequestSymbol(symbol),
 						PublicResponses.TickersResponse.class,
 						PublicResponses.TickersResponse::volume24h
 		);
@@ -78,7 +78,7 @@ public class BybitPublicHttpClient extends PublicHttpClient {
 	@Override
 	protected CompletableFuture<Double> getTradingVolume1hSymbol(String symbol) {
 		return processRequest(
-						PublicEndpoints.kline1hRequest(symbol),
+						PublicEndpoints.kline1hRequestSymbol(symbol),
 						PublicResponses.KlineResponse.class,
 						PublicResponses.KlineResponse::volume1h
 		);
@@ -86,7 +86,7 @@ public class BybitPublicHttpClient extends PublicHttpClient {
 
 	@Override
 	protected CompletableFuture<Boolean> checkExistsSymbol(String symbol) {
-		SimpleHttpRequest request = PublicEndpoints.instrumentsInfoRequest(symbol);
+		SimpleHttpRequest request = PublicEndpoints.instrumentsInfoRequestSymbol(symbol);
 		return this.client.sendNoCodeCheck(request).thenApply((response) -> {
 			try {
 				String body = response.getBodyText();
