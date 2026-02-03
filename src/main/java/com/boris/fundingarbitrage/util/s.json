@@ -1,0 +1,87 @@
+[
+  {
+    "symbol": "SOLUSDT",
+    "brackets": [
+      {
+        "bracket": 1,
+        "initialLeverage": 100,
+        "notionalCap": 50000,
+        "notionalFloor": 0,
+        "maintMarginRatio": 0.005,
+        "cum": 0.0
+      },
+      {
+        "bracket": 2,
+        "initialLeverage": 75,
+        "notionalCap": 400000,
+        "notionalFloor": 50000,
+        "maintMarginRatio": 0.0065,
+        "cum": 75.0
+      },
+      {
+        "bracket": 3,
+        "initialLeverage": 50,
+        "notionalCap": 1000000,
+        "notionalFloor": 400000,
+        "maintMarginRatio": 0.01,
+        "cum": 1475.0
+      },
+      {
+        "bracket": 4,
+        "initialLeverage": 25,
+        "notionalCap": 4000000,
+        "notionalFloor": 1000000,
+        "maintMarginRatio": 0.02,
+        "cum": 11475.0
+      },
+      {
+        "bracket": 5,
+        "initialLeverage": 20,
+        "notionalCap": 8000000,
+        "notionalFloor": 4000000,
+        "maintMarginRatio": 0.025,
+        "cum": 31475.0
+      },
+      {
+        "bracket": 6,
+        "initialLeverage": 10,
+        "notionalCap": 40000000,
+        "notionalFloor": 8000000,
+        "maintMarginRatio": 0.05,
+        "cum": 231475.0
+      },
+      {
+        "bracket": 7,
+        "initialLeverage": 5,
+        "notionalCap": 80000000,
+        "notionalFloor": 40000000,
+        "maintMarginRatio": 0.1,
+        "cum": 2231475.0
+      },
+      {
+        "bracket": 8,
+        "initialLeverage": 4,
+        "notionalCap": 100000000,
+        "notionalFloor": 80000000,
+        "maintMarginRatio": 0.125,
+        "cum": 4231475.0
+      },
+      {
+        "bracket": 9,
+        "initialLeverage": 2,
+        "notionalCap": 200000000,
+        "notionalFloor": 100000000,
+        "maintMarginRatio": 0.25,
+        "cum": 16731475.0
+      },
+      {
+        "bracket": 10,
+        "initialLeverage": 1,
+        "notionalCap": 400000000,
+        "notionalFloor": 200000000,
+        "maintMarginRatio": 0.5,
+        "cum": 66731475.0
+      }
+    ]
+  }
+]
