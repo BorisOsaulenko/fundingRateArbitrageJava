@@ -3,13 +3,13 @@ package com.boris.fundingarbitrage.exchange.impl.bitget.privaterest;
 import com.boris.fundingarbitrage.ObjectMapperSingleton;
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.ExchangeCredentials;
-import com.boris.fundingarbitrage.exchange.impl.bitget.BitgetSignatures;
 import com.boris.fundingarbitrage.exchange.privatehttp.PrivateHttpClient;
 import com.boris.fundingarbitrage.model.assetops.*;
 import com.boris.fundingarbitrage.model.contract.Fees;
 import com.boris.fundingarbitrage.model.contract.PartialFill;
 import com.boris.fundingarbitrage.model.exchange.ExchangeChains;
 import com.boris.fundingarbitrage.model.exchange.WalletAddress;
+import com.boris.fundingarbitrage.util.cryptography.Signers;
 import com.boris.fundingarbitrage.util.https.PrettyHttpClient;
 import com.boris.fundingarbitrage.util.logger.Logger;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -45,10 +45,7 @@ public class BitgetPrivateHttpClient extends PrivateHttpClient {
 			if (query != null && !query.isEmpty()) payload.append("?").append(query);
 			payload.append(body);
 
-			String signature = BitgetSignatures.signHmacSha256Base64(
-							payload.toString(),
-							credentials.apiSecret()
-			);
+			String signature = Signers.signHmacSha256Base64(payload.toString(), credentials.apiSecret());
 
 			request.setHeader("ACCESS-KEY", credentials.apiKey());
 			request.setHeader("ACCESS-SIGN", signature);

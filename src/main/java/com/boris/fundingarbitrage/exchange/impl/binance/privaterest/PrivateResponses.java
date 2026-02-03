@@ -9,14 +9,13 @@ import com.boris.fundingarbitrage.model.exchange.WalletAddress;
 import com.boris.fundingarbitrage.model.exchange.WithdrawChain;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonFormat;
-import com.fasterxml.jackson.annotation.JsonValue;
 
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
 public class PrivateResponses {
-	public record TradingFeesResponse(
+	public record TradingFeesResponseSymbol(
 					String symbol, double makerCommissionRate, double takerCommissionRate
 	) {
 		Fees getFees() {
@@ -30,7 +29,7 @@ public class PrivateResponses {
 		}
 	}
 
-	public record ChangeLeverageResponse(double leverage, String symbol) {}
+	public record ChangeLeverageResponseSymbol(String symbol, double leverage) {}
 
 	public record SetMarginModeResponse(Integer code, String msg) {
 		public SetMarginModeResponse(Integer code, String msg) {
@@ -45,7 +44,8 @@ public class PrivateResponses {
 
 	private record SpotBalanceItem(String asset, String free) {}
 
-	public record SpotUsdtBalanceResponse(@JsonValue SpotBalanceItem[] balances) {
+	@JsonFormat(shape = JsonFormat.Shape.ARRAY)
+	public record SpotUsdtBalanceResponse(SpotBalanceItem[] balances) {
 		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
 		public SpotUsdtBalanceResponse {}
 
@@ -62,11 +62,10 @@ public class PrivateResponses {
 
 	private record FuturesBalanceItem(String asset, String balance) {}
 
-	public record FuturesUsdtBalanceResponse(@JsonValue FuturesBalanceItem[] assets) {
+	@JsonFormat(shape = JsonFormat.Shape.ARRAY)
+	public record FuturesUsdtBalanceResponse(FuturesBalanceItem[] assets) {
 		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
-		public FuturesUsdtBalanceResponse(FuturesBalanceItem[] assets) {
-			this.assets = assets;
-		}
+		public FuturesUsdtBalanceResponse {}
 
 		public double get() {
 			for (FuturesBalanceItem item : assets) {
@@ -105,7 +104,7 @@ public class PrivateResponses {
 					boolean withdrawTag
 	) {}
 
-	public record CoinInfo(String coin, NetworkListItem[] networkList) {}
+	private record CoinInfo(String coin, NetworkListItem[] networkList) {}
 
 	@JsonFormat(shape = JsonFormat.Shape.ARRAY)
 	public record SupportedChainsResponse(CoinInfo[] chains) {

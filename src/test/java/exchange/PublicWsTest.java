@@ -8,15 +8,20 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 @Tag("integration")
 public abstract class PublicWsTest {
 	private static final String[] COINS = {"SOL"};
-	private static final Duration WAIT_TIMEOUT = Duration.ofSeconds(10);
+	private static final Duration WAIT_TIMEOUT = Duration.ofSeconds(180);
 	private static final int MIN_MESSAGES_PER_STREAM = 3;
 	private final CoinVector<Integer> bookTickerMessageCounts = new CoinVector<>();
 	private final CoinVector<Integer> fundingRateMessageCounts = new CoinVector<>();
 	private final CoinVector<Integer> markPriceMessageCounts = new CoinVector<>();
+
+	private CompletableFuture<Void> waitingFuture;
+
 
 	protected abstract PublicWsClient publicWsClient();
 
@@ -28,23 +33,38 @@ public abstract class PublicWsTest {
 		}
 	}
 
+	private void checkMessages() {
+		if (bookTickerMessageCounts
+						.filter((Integer value) -> value < MIN_MESSAGES_PER_STREAM)
+						.isEmpty() && fundingRateMessageCounts
+						.filter((Integer value) -> value < MIN_MESSAGES_PER_STREAM)
+						.isEmpty() && markPriceMessageCounts
+						.filter((Integer value) -> value < MIN_MESSAGES_PER_STREAM)
+						.isEmpty()) {
+			this.waitingFuture.complete(null);
+		}
+	}
+
 	private void subscribeToStreams() {
 		publicWsClient().subscribeBookTicker(
-						COINS,
-						(patch) -> bookTickerMessageCounts.merge(patch.coin(), 1, Integer::sum)
-
+						COINS, (patch) -> {
+							bookTickerMessageCounts.merge(patch.coin(), 1, Integer::sum);
+							checkMessages();
+						}
 		);
 
 		publicWsClient().subscribeFundingRates(
-						COINS,
-						(patch) -> fundingRateMessageCounts.merge(patch.coin(), 1, Integer::sum)
-
+						COINS, (patch) -> {
+							fundingRateMessageCounts.merge(patch.coin(), 1, Integer::sum);
+							checkMessages();
+						}
 		);
 
 		publicWsClient().subscribeMarkPrice(
-						COINS,
-						(patch) -> markPriceMessageCounts.merge(patch.coin(), 1, Integer::sum)
-
+						COINS, (patch) -> {
+							markPriceMessageCounts.merge(patch.coin(), 1, Integer::sum);
+							checkMessages();
+						}
 		);
 	}
 
@@ -52,7 +72,10 @@ public abstract class PublicWsTest {
 	public void testPublicWsClientSubscriptions() throws Exception {
 		initializeMessageCounts();
 		subscribeToStreams();
-		Thread.sleep(WAIT_TIMEOUT.toMillis());
+
+		waitingFuture = new CompletableFuture<>();
+		waitingFuture.completeOnTimeout(null, WAIT_TIMEOUT.toSeconds(), TimeUnit.SECONDS);
+		waitingFuture.get();
 
 		boolean allStreamsReceived = true;
 

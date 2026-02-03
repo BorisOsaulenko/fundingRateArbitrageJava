@@ -20,7 +20,7 @@ class CoinVector<T> : MutableMap<String, T> by mutableMapOf() {
             }
         }
     }
-    
+
     operator fun <T : Number> CoinVector<T>.plus(other: CoinVector<T>): CoinVector<Double> {
         val result = CoinVector<Double>()
         this.ensureSameKeys(other)
@@ -92,10 +92,20 @@ class CoinVector<T> : MutableMap<String, T> by mutableMapOf() {
         return result
     }
 
-    fun filter(predicate: (T, String) -> Boolean, filteredOutCb: (T, String) -> Unit = { _, _ -> }): CoinVector<T> {
+    fun filter(predicate: (T, String) -> Boolean): CoinVector<T> {
         return CoinVector<T>().apply {
             for ((key, value) in this@CoinVector) {
                 if (predicate(value, key)) {
+                    this[key] = value
+                }
+            }
+        }
+    }
+
+    fun filter(predicate: (T) -> Boolean): CoinVector<T> {
+        return CoinVector<T>().apply {
+            for ((key, value) in this@CoinVector) {
+                if (predicate(value)) {
                     this[key] = value
                 }
             }

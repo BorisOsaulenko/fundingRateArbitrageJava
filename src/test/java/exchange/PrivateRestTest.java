@@ -8,6 +8,7 @@ import com.boris.fundingarbitrage.model.assetops.SupportedChain;
 import com.boris.fundingarbitrage.model.contract.Fees;
 import com.boris.fundingarbitrage.model.exchange.ExchangeChains;
 import com.boris.fundingarbitrage.model.exchange.WalletAddress;
+import com.boris.fundingarbitrage.util.logger.Logger;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -93,6 +94,7 @@ public abstract class PrivateRestTest {
 		WalletAddress address = privateRest()
 						.getUsdtWalletAddress(SupportedChain.ERC)
 						.get(); // ERC is everywhere
+		Logger.getInstance().log(address.address());
 		assertNotNull(address, "Wallet address should not be null");
 		assertEquals(
 						SupportedChain.ERC,

@@ -2,10 +2,10 @@ package com.boris.fundingarbitrage.exchange.impl.bitget.privatews;
 
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.ExchangeCredentials;
-import com.boris.fundingarbitrage.exchange.impl.bitget.BitgetSignatures;
 import com.boris.fundingarbitrage.exchange.impl.bitget.privatews.pojos.LoginRequest;
 import com.boris.fundingarbitrage.exchange.impl.bitget.privatews.pojos.WsRequest;
 import com.boris.fundingarbitrage.exchange.privatews.PrivateWsClient;
+import com.boris.fundingarbitrage.util.cryptography.Signers;
 
 import java.net.URI;
 
@@ -24,12 +24,12 @@ public class BitgetPrivateWsClient extends PrivateWsClient {
 	protected void sendAuthenticationFrame() {
 		String timestamp = String.valueOf(System.currentTimeMillis());
 		String payload = timestamp + "GET" + "/user/verify";
-		String sign = BitgetSignatures.signHmacSha256Base64(payload, credentials.apiSecret());
+		String sign = Signers.signHmacSha256Base64(payload, credentials.apiSecret());
 		LoginRequest.LoginArg arg = new LoginRequest.LoginArg(
-					credentials.apiKey(),
-					credentials.passphrase(),
-					timestamp,
-					sign
+						credentials.apiKey(),
+						credentials.passphrase(),
+						timestamp,
+						sign
 		);
 		this.prettyWsClient.sendObject(new LoginRequest("login", new LoginRequest.LoginArg[]{arg}));
 	}

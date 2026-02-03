@@ -4,7 +4,6 @@ import com.boris.fundingarbitrage.model.Validations;
 import lombok.NonNull;
 
 public record FuturesOrder(
-				@NonNull String coin,
 				@NonNull OrderSide orderSide,
 				@NonNull TradeSide tradeSide,
 				double baseAssetQty,

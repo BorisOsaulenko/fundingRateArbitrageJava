@@ -13,7 +13,7 @@ public class PrivateEndpoints {
 	private static final String spotBaseUrl = "https://api.binance.com";
 
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest tradingFeesRequest(String symbol) {
+	public static @NonNull SimpleHttpRequest tradingFeesRequestSymbol(String symbol) {
 		URI uri = new URIBuilder(futuresBaseUrl)
 						.setPath("/fapi/v1/commissionRate")
 						.addParameter("symbol", symbol)
@@ -22,7 +22,10 @@ public class PrivateEndpoints {
 	}
 
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest changeLeverageRequest(String symbol, int leverage) {
+	public static @NonNull SimpleHttpRequest changeLeverageRequestSymbol(
+					String symbol,
+					int leverage
+	) {
 		URI uri = new URIBuilder(futuresBaseUrl)
 						.setPath("/fapi/v1/leverage")
 						.addParameter("symbol", symbol)
@@ -33,7 +36,7 @@ public class PrivateEndpoints {
 	}
 
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest setMarginModeRequest(
+	public static @NonNull SimpleHttpRequest setMarginModeRequestSymbol(
 					String symbol,
 					MarginMode marginMode
 	) {
@@ -63,7 +66,7 @@ public class PrivateEndpoints {
 	}
 
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest maxLeverageRequest(String symbol) {
+	public static @NonNull SimpleHttpRequest maxLeverageRequestSymbol(String symbol) {
 		URI uri = new URIBuilder(futuresBaseUrl)
 						.setPath("/fapi/v1/leverageBracket")
 						.addParameter("symbol", symbol)
@@ -106,10 +109,13 @@ public class PrivateEndpoints {
 	}
 
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest placeFuturesOrderRequest(FuturesOrder futuresOrder) {
+	public static @NonNull SimpleHttpRequest placeFuturesOrderRequestSymbol(
+					String symbol,
+					FuturesOrder futuresOrder
+	) {
 		URIBuilder uriBuilder = new URIBuilder(futuresBaseUrl)
 						.setPath("/fapi/v1/order")
-						.addParameter("symbol", futuresOrder.coin())
+						.addParameter("symbol", symbol)
 						.addParameter("side", futuresOrder.tradeSide().toString())
 						.addParameter("type", "MARKET")
 						.addParameter("quantity", String.valueOf(futuresOrder.baseAssetQty()));
@@ -119,7 +125,7 @@ public class PrivateEndpoints {
 	}
 
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest orderRecordRequest(
+	public static @NonNull SimpleHttpRequest orderRecordRequestSymbol(
 					String orderId,
 					String symbol,
 					TradeSide tradeSide

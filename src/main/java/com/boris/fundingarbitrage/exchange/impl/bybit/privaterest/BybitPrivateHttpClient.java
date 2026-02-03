@@ -1,4 +1,4 @@
-package com.boris.fundingarbitrage.exchange.impl.binance.privaterest;
+package com.boris.fundingarbitrage.exchange.impl.bybit.privaterest;
 
 import com.boris.fundingarbitrage.ObjectMapperSingleton;
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
@@ -10,24 +10,22 @@ import com.boris.fundingarbitrage.model.contract.PartialFill;
 import com.boris.fundingarbitrage.model.exchange.ExchangeChains;
 import com.boris.fundingarbitrage.model.exchange.WalletAddress;
 import com.boris.fundingarbitrage.util.cryptography.Signers;
-import com.boris.fundingarbitrage.util.https.Helpers;
 import com.boris.fundingarbitrage.util.https.PrettyHttpClient;
 import com.boris.fundingarbitrage.util.logger.Logger;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
-import org.apache.hc.core5.net.URIBuilder;
 
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
-public class BinancePrivateHttpClient extends PrivateHttpClient {
+public class BybitPrivateHttpClient extends PrivateHttpClient {
+	private static final String recvWindow = "5000";
 	private final ObjectMapper mapper = ObjectMapperSingleton.getInstance();
 	private final ExchangeCredentials credentials;
 
-	public BinancePrivateHttpClient(ExchangeContext context) {
+	public BybitPrivateHttpClient(ExchangeContext context) {
 		super(context, PrettyHttpClient.getINSTANCE());
 		this.credentials = context.getCredentialsOrThrow();
 	}
@@ -35,20 +33,33 @@ public class BinancePrivateHttpClient extends PrivateHttpClient {
 	@Override
 	protected SimpleHttpRequest signRequest(SimpleHttpRequest request) {
 		try {
-			URI withCredentials = new URIBuilder(request.getUri())
-							.addParameter("recvWindow", "5000")
-							.addParameter("timestamp", String.valueOf(System.currentTimeMillis()))
-							.build();
-			URI sortedParamsUri = Helpers.sortParamsAlphabetically(withCredentials);
-			String payload = sortedParamsUri.getRawQuery();
-			String signature = Signers.signEd25519(payload, credentials.privateKey());
-			URI signedUri = new URIBuilder(sortedParamsUri).addParameter("signature", signature).build();
-			SimpleHttpRequest signedRequest = new SimpleHttpRequest(request.getMethod(), signedUri);
-			signedRequest.setHeader("X-MBX-APIKEY", credentials.apiKey());
-			return signedRequest;
-		} catch (URISyntaxException ex) {
-			Logger.getInstance().error("Error parsing URI for signing: " + ex.getMessage());
-			throw new RuntimeException("Failed to sign request", ex);
+			String timestamp = String.valueOf(System.currentTimeMillis());
+			String method = request.getMethod().toUpperCase();
+			URI uri = request.getUri();
+			String query = uri.getRawQuery();
+			String body = request.getBodyText();
+			if (body == null) body = "";
+
+			StringBuilder payload = new StringBuilder();
+			payload.append(timestamp).append(credentials.apiKey()).append(recvWindow);
+			if ("GET".equals(method)) {
+				payload.append(query == null ? "" : query);
+			} else {
+				payload.append(body);
+			}
+
+			String signature = Signers.signHmacSha256Hex(payload.toString(), credentials.apiSecret());
+
+			request.setHeader("X-BAPI-API-KEY", credentials.apiKey());
+			request.setHeader("X-BAPI-SIGN", signature);
+			request.setHeader("X-BAPI-TIMESTAMP", timestamp);
+			request.setHeader("X-BAPI-RECV-WINDOW", recvWindow);
+			request.setHeader("Content-Type", "application/json");
+
+			return request;
+		} catch (Exception e) {
+			Logger.getInstance().error(e.getMessage());
+			throw new RuntimeException(e);
 		}
 	}
 
@@ -59,13 +70,13 @@ public class BinancePrivateHttpClient extends PrivateHttpClient {
 	) {
 		SimpleHttpRequest signedRequest = signRequest(request);
 		return this.client.sendNoCodeCheck(signedRequest).thenApply((response) -> {
-			try { // No code check because -4046: "No need to change margin type."
+			try {
 				T responseObj = mapper.readValue(response.getBodyText(), responseClass);
 				return parser.apply(responseObj);
 			} catch (Exception e) {
 				Logger
 								.getInstance()
-								.error(String.format("Error parsing public rest response: %s", e.getMessage()));
+								.error(String.format("Error parsing private rest response: %s", e.getMessage()));
 				throw new RuntimeException("Failed to process request", e);
 			}
 		});
@@ -74,27 +85,27 @@ public class BinancePrivateHttpClient extends PrivateHttpClient {
 	@Override
 	protected CompletableFuture<Fees> getTradingFeesSymbol(String symbol) {
 		return processRequest(
-						PrivateEndpoints.tradingFeesRequestSymbol(symbol),
-						PrivateResponses.TradingFeesResponseSymbol.class,
-						PrivateResponses.TradingFeesResponseSymbol::getFees
+						PrivateEndpoints.tradingFeesRequest(symbol),
+						PrivateResponses.TradingFeesResponse.class,
+						(resp) -> resp.getFees(symbol)
 		);
 	}
 
 	@Override
 	protected CompletableFuture<Void> changeLeverageSymbol(String symbol, int leverage) {
 		return processRequest(
-						PrivateEndpoints.changeLeverageRequestSymbol(symbol, leverage),
-						PrivateResponses.ChangeLeverageResponseSymbol.class,
-						(resp) -> null
+						PrivateEndpoints.changeLeverageRequest(symbol, leverage),
+						PrivateResponses.ChangeLeverageResponse.class,
+						(_) -> null
 		);
 	}
 
 	@Override
 	protected CompletableFuture<Void> setMarginModeSymbol(String symbol, MarginMode marginMode) {
 		return processRequest(
-						PrivateEndpoints.setMarginModeRequestSymbol(symbol, marginMode),
+						PrivateEndpoints.setMarginModeRequest(symbol, marginMode),
 						PrivateResponses.SetMarginModeResponse.class,
-						(_) -> null
+						(resp) -> null
 		);
 	}
 
@@ -119,7 +130,7 @@ public class BinancePrivateHttpClient extends PrivateHttpClient {
 	@Override
 	protected CompletableFuture<Integer> getMaxLeverageSymbol(String symbol) {
 		return processRequest(
-						PrivateEndpoints.maxLeverageRequestSymbol(symbol),
+						PrivateEndpoints.maxLeverageRequest(symbol),
 						PrivateResponses.MaxLeverageResponse.class,
 						PrivateResponses.MaxLeverageResponse::get
 		);
@@ -153,14 +164,11 @@ public class BinancePrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
-	protected CompletableFuture<String> placeFuturesOrderSymbol(
-					String symbol,
-					FuturesOrder futuresOrder
-	) {
+	protected CompletableFuture<String> placeFuturesOrderSymbol(FuturesOrder futuresOrder) {
 		return processRequest(
-						PrivateEndpoints.placeFuturesOrderRequestSymbol(symbol, futuresOrder),
+						PrivateEndpoints.placeFuturesOrderRequest(futuresOrder),
 						PrivateResponses.PlaceFuturesOrderResponse.class,
-						(resp) -> String.valueOf(resp.orderId())
+						PrivateResponses.PlaceFuturesOrderResponse::orderId
 		);
 	}
 
@@ -171,7 +179,7 @@ public class BinancePrivateHttpClient extends PrivateHttpClient {
 					TradeSide tradeSide
 	) {
 		return processRequest(
-						PrivateEndpoints.orderRecordRequestSymbol(orderId, symbol, tradeSide),
+						PrivateEndpoints.orderRecordRequest(orderId, symbol, tradeSide),
 						PrivateResponses.GetOrderRecordResponse.class,
 						PrivateResponses.GetOrderRecordResponse::get
 		);

@@ -1,16 +1,17 @@
 package com.boris.fundingarbitrage;
 
-import com.boris.fundingarbitrage.exchange.impl.binance.BinanceExchange;
+import com.boris.fundingarbitrage.exchange.impl.bybit.BybitExchange;
+import com.boris.fundingarbitrage.util.logger.Logger;
 
 class App {
 	static void main(String[] args) throws Exception {
-		BinanceExchange exchange = new BinanceExchange();
-		exchange.publicWsClient.subscribeBookTicker(
-						"SOL", patch -> {
-							System.out.println("Book Ticker Patch: " + patch);
+		BybitExchange bybitExchange = new BybitExchange();
+		bybitExchange.publicWsClient.subscribeFundingRates(
+						"ZIL", (rate) -> {
+							Logger.getInstance().log(rate.toString());
 						}
 		);
 
-		Thread.sleep(10000);
+		Thread.sleep(90000);
 	}
 }

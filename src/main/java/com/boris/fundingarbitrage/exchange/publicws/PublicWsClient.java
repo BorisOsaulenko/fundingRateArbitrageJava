@@ -90,8 +90,8 @@ public abstract class PublicWsClient {
 		subscribe(coins, fundingRateHandlers, handler, this::sendSubscribeFundingRateFrame);
 	}
 
-	public final void subscribeFundingRates(String coins, Consumer<FundingRatePatch> handler) {
-		subscribeFundingRates(new String[]{coins}, handler);
+	public final void subscribeFundingRates(String coin, Consumer<FundingRatePatch> handler) {
+		subscribeFundingRates(new String[]{coin}, handler);
 	}
 
 	public final void unsubscribeFundingRates(String[] coins) {
