@@ -85,7 +85,7 @@ public class PrivateEndpoints {
 		URI uri = new URIBuilder(spotBaseUrl)
 						.setPath("/sapi/v1/capital/deposit/address")
 						.addParameter("coin", "USDT")
-						.addParameter("network", ChainsMap.get().get(chain))
+						.addParameter("network", ChainsMap.get(chain))
 						.build();
 		return new SimpleHttpRequest("GET", uri);
 	}
@@ -95,7 +95,7 @@ public class PrivateEndpoints {
 		URIBuilder uriBuilder = new URIBuilder(spotBaseUrl)
 						.setPath("/sapi/v1/capital/withdraw/apply")
 						.addParameter("coin", "USDT")
-						.addParameter("network", ChainsMap.get().get(withdrawal.address().chain()))
+						.addParameter("network", ChainsMap.get(withdrawal.address().chain()))
 						.addParameter("address", withdrawal.address().address())
 						.addParameter("amount", String.valueOf(withdrawal.amount()));
 

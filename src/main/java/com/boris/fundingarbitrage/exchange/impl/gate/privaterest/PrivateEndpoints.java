@@ -1,4 +1,4 @@
-package com.boris.fundingarbitrage.exchange.impl.bitget.privaterest;
+package com.boris.fundingarbitrage.exchange.impl.gate.privaterest;
 
 import com.boris.fundingarbitrage.ObjectMapperSingleton;
 import com.boris.fundingarbitrage.model.assetops.*;
@@ -13,9 +13,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class PrivateEndpoints {
-	private static final String baseUrl = "https://api.bitget.com";
-	private static final String productType = "USDT-FUTURES";
-	private static final String marginCoin = "USDT";
+	private static final String baseUrl = "https://api.gateio.ws";
+	private static final String settle = "usdt";
 
 	@SneakyThrows
 	private static SimpleHttpRequest postJson(String path, Object body) {
@@ -29,23 +28,22 @@ public class PrivateEndpoints {
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest tradingFeesRequestSymbol(String symbol) {
 		URI uri = new URIBuilder(baseUrl)
-						.setPath("/api/v2/mix/market/contracts")
-						.addParameter("productType", productType)
-						.addParameter("symbol", symbol)
+						.setPath("/api/v4/wallet/fee")
+						.addParameter("settle", settle)
 						.build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
+	@SneakyThrows
 	public static @NonNull SimpleHttpRequest changeLeverageRequestSymbol(
 					String symbol,
 					int leverage
 	) {
-		Map<String, Object> body = new HashMap<>();
-		body.put("symbol", symbol);
-		body.put("productType", productType);
-		body.put("marginCoin", marginCoin);
-		body.put("leverage", leverage);
-		return postJson("/api/v2/mix/account/set-leverage", body);
+		URI uri = new URIBuilder(baseUrl)
+						.setPath("/api/v4/futures/" + settle + "/positions/" + symbol + "/leverage")
+						.addParameter("leverage", String.valueOf(leverage))
+						.build();
+		return new SimpleHttpRequest("POST", uri);
 	}
 
 	public static @NonNull SimpleHttpRequest setMarginModeRequestSymbol(
@@ -53,38 +51,30 @@ public class PrivateEndpoints {
 					MarginMode marginMode
 	) {
 		Map<String, Object> body = new HashMap<>();
-		body.put("symbol", symbol);
-		body.put("productType", productType);
-		body.put("marginCoin", marginCoin);
-		body.put("marginMode", marginMode == MarginMode.CROSS ? "crossed" : "isolated");
-		return postJson("/api/v2/mix/account/set-margin-mode", body);
+		body.put("contract", symbol);
+		body.put("mode", marginMode == MarginMode.CROSS ? "cross" : "isolated");
+		return postJson("/api/v4/futures/" + settle + "/positions/cross_mode", body);
 	}
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest spotUsdtBalanceRequest() {
 		URI uri = new URIBuilder(baseUrl)
-						.setPath("/api/v2/account/all-account-balance")
-						.addParameter("coin", "USDT")
+						.setPath("/api/v4/spot/accounts")
+						.addParameter("currency", "USDT")
 						.build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest futuresUsdtBalanceRequest() {
-		URI uri = new URIBuilder(baseUrl)
-						.setPath("/api/v2/mix/account/accounts")
-						.addParameter("productType", productType)
-						.addParameter("marginCoin", marginCoin)
-						.build();
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v4/futures/" + settle + "/accounts").build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest maxLeverageRequestSymbol(String symbol) {
 		URI uri = new URIBuilder(baseUrl)
-						.setPath("/api/v2/mix/market/contracts")
-						.addParameter("productType", productType)
-						.addParameter("symbol", symbol)
+						.setPath("/api/v4/futures/" + settle + "/contracts/" + symbol)
 						.build();
 		return new SimpleHttpRequest("GET", uri);
 	}
@@ -92,8 +82,8 @@ public class PrivateEndpoints {
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest supportedChainsRequest() {
 		URI uri = new URIBuilder(baseUrl)
-						.setPath("/api/v2/spot/public/coins")
-						.addParameter("coin", "USDT")
+						.setPath("/api/v4/wallet/currency_chains")
+						.addParameter("currency", "USDT")
 						.build();
 		return new SimpleHttpRequest("GET", uri);
 	}
@@ -101,8 +91,8 @@ public class PrivateEndpoints {
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest usdtWalletAddressRequest(SupportedChain chain) {
 		URI uri = new URIBuilder(baseUrl)
-						.setPath("/api/v2/spot/wallet/deposit-address")
-						.addParameter("coin", "USDT")
+						.setPath("/api/v4/wallet/deposit_address")
+						.addParameter("currency", "USDT")
 						.addParameter("chain", ChainsMap.get(chain))
 						.build();
 		return new SimpleHttpRequest("GET", uri);
@@ -110,22 +100,21 @@ public class PrivateEndpoints {
 
 	public static @NonNull SimpleHttpRequest withdrawUsdtRequest(Withdrawal withdrawal) {
 		Map<String, Object> body = new HashMap<>();
-		body.put("coin", "USDT");
-		body.put("chain", ChainsMap.get(withdrawal.address().chain()));
+		body.put("currency", "USDT");
 		body.put("address", withdrawal.address().address());
 		body.put("amount", String.valueOf(withdrawal.amount()));
-		if (withdrawal.address().memo() != null && !withdrawal.address().memo().isEmpty()) {
-			body.put("tag", withdrawal.address().memo());
+		body.put("chain", ChainsMap.get(withdrawal.address().chain()));
+		String memo = withdrawal.address().memo();
+		if (memo != null && !memo.isEmpty()) {
+			body.put("memo", memo);
 		}
-		return postJson("/api/v2/spot/wallet/withdrawal", body);
+		return postJson("/api/v4/withdrawals", body);
 	}
 
-	private static String mapOrderSide(OrderSide orderSide, TradeSide tradeSide) {
-		if (orderSide == OrderSide.LONG && tradeSide == TradeSide.OPEN) return "open_long";
-		if (orderSide == OrderSide.LONG && tradeSide == TradeSide.CLOSE) return "close_long";
-		if (orderSide == OrderSide.SHORT && tradeSide == TradeSide.OPEN) return "open_short";
-		if (orderSide == OrderSide.SHORT && tradeSide == TradeSide.CLOSE) return "close_short";
-		throw new IllegalArgumentException("Unsupported order side combination");
+	private static int signedContractQty(FuturesOrder futuresOrder) {
+		int qty = futuresOrder.contractQty();
+		if (futuresOrder.orderSide() == OrderSide.SHORT) return -Math.abs(qty);
+		return Math.abs(qty);
 	}
 
 	public static @NonNull SimpleHttpRequest placeFuturesOrderRequestSymbol(
@@ -133,14 +122,14 @@ public class PrivateEndpoints {
 					FuturesOrder futuresOrder
 	) {
 		Map<String, Object> body = new HashMap<>();
-		body.put("symbol", symbol);
-		body.put("productType", productType);
-		body.put("marginMode", futuresOrder.marginMode() == MarginMode.CROSS ? "crossed" : "isolated");
-		body.put("marginCoin", marginCoin);
-		body.put("size", String.valueOf(futuresOrder.contractQty()));
-		body.put("side", mapOrderSide(futuresOrder.orderSide(), futuresOrder.tradeSide()));
-		body.put("orderType", "market");
-		return postJson("/api/v2/mix/order/place-order", body);
+		body.put("contract", symbol);
+		body.put("size", signedContractQty(futuresOrder));
+		body.put("price", "0");
+		body.put("tif", "ioc");
+		if (futuresOrder.tradeSide() == TradeSide.CLOSE) {
+			body.put("reduce_only", true);
+		}
+		return postJson("/api/v4/futures/" + settle + "/orders", body);
 	}
 
 	@SneakyThrows
@@ -150,30 +139,38 @@ public class PrivateEndpoints {
 					TradeSide tradeSide
 	) {
 		URI uri = new URIBuilder(baseUrl)
-						.setPath("/api/v2/mix/order/fills")
-						.addParameter("productType", productType)
-						.addParameter("symbol", symbol)
-						.addParameter("orderId", orderId)
+						.setPath("/api/v4/futures/" + settle + "/my_trades")
+						.addParameter("contract", symbol)
+						.addParameter("order", orderId)
 						.build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
-	private static String getInternalTransferType(InternalTransfer transfer) {
+	private static String mapTransferType(InternalTransfer transfer, boolean from) {
 		if (transfer.from() == InternalAccount.SPOT && transfer.to() == InternalAccount.FUTURES) {
-			return "spot";
+			return from ? "spot" : "futures";
 		} else if (transfer.from() == InternalAccount.FUTURES && transfer.to() == InternalAccount.SPOT) {
-			return "usdt_futures";
-		} else {
-			throw new IllegalArgumentException("Unsupported internal transfer type");
+			return from ? "futures" : "spot";
 		}
+		throw new IllegalArgumentException("Unsupported internal transfer type");
 	}
 
 	public static @NonNull SimpleHttpRequest internalTransferRequest(InternalTransfer internalTransfer) {
 		Map<String, Object> body = new HashMap<>();
-		body.put("coin", "USDT");
+		body.put("currency", "USDT");
 		body.put("amount", String.valueOf(internalTransfer.amount()));
-		body.put("fromType", getInternalTransferType(internalTransfer));
-		body.put("toType", internalTransfer.from() == InternalAccount.SPOT ? "usdt_futures" : "spot");
-		return postJson("/api/v2/spot/wallet/transfer", body);
+		body.put("from", mapTransferType(internalTransfer, true));
+		body.put("to", mapTransferType(internalTransfer, false));
+		body.put("settle", settle);
+		return postJson("/api/v4/wallet/transfers", body);
+	}
+
+	@SneakyThrows
+	public static @NonNull SimpleHttpRequest withdrawalFeesRequest() {
+		URI uri = new URIBuilder(baseUrl)
+						.setPath("/api/v4/wallet/withdraw_status")
+						.addParameter("currency", "USDT")
+						.build();
+		return new SimpleHttpRequest("GET", uri);
 	}
 }

@@ -9,16 +9,16 @@ import com.boris.fundingarbitrage.exchange.impl.bybit.publicws.BybitPublicWsClie
 
 public class BybitExchange extends BaseExchange {
 	private static final BybitContext context = new BybitContext();
-
+	private static final BybitPrivateWsClient privateWs = new BybitPrivateWsClient(context);
+	private static final BybitPublicHttpClient publicHttp = new BybitPublicHttpClient(context);
 	private static final BybitPublicMessageHandler publicMessageHandler = new BybitPublicMessageHandler(
-					context);
+					context,
+					publicHttp
+	);
 	private static final BybitPublicWsClient publicWs = new BybitPublicWsClient(
 					context,
 					publicMessageHandler
 	);
-
-	private static final BybitPrivateWsClient privateWs = new BybitPrivateWsClient(context);
-	private static final BybitPublicHttpClient publicHttp = new BybitPublicHttpClient(context);
 	private static final BybitPrivateHttpClient privateHttp = new BybitPrivateHttpClient(context);
 
 	public BybitExchange() {

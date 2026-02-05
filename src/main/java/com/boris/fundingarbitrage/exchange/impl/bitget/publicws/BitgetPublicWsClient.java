@@ -2,17 +2,16 @@ package com.boris.fundingarbitrage.exchange.impl.bitget.publicws;
 
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.impl.bitget.publicws.pojos.WsRequest;
-import com.boris.fundingarbitrage.exchange.publicws.PublicMessageHandler;
 import com.boris.fundingarbitrage.exchange.publicws.PublicWsClient;
 
 import java.net.URI;
 
-public class BitgetPublicWsClient extends PublicWsClient {
+public class BitgetPublicWsClient extends PublicWsClient<BitgetPublicMessageHandler> {
 	private static final URI endpoint = URI.create("wss://ws.bitget.com/v2/ws/public");
 	private static final String instType = "USDT-FUTURES";
 	private static final String tickerChannel = "ticker";
 
-	public BitgetPublicWsClient(ExchangeContext context, PublicMessageHandler messageHandler) {
+	public BitgetPublicWsClient(ExchangeContext context, BitgetPublicMessageHandler messageHandler) {
 		super(context, endpoint, messageHandler);
 	}
 

@@ -14,6 +14,38 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class PrivateResponses {
+	private static double parseDouble(JsonNode node, String... fields) {
+		for (String field : fields) {
+			JsonNode val = node.get(field);
+			if (val != null && !val.isNull()) {
+				String text = val.asText();
+				if (text != null && !text.isEmpty()) {
+					try {
+						return Double.parseDouble(text);
+					} catch (NumberFormatException ignored) {
+					}
+				}
+			}
+		}
+		return 0.0;
+	}
+
+	private static Instant parseInstant(JsonNode node, String... fields) {
+		for (String field : fields) {
+			JsonNode val = node.get(field);
+			if (val != null && !val.isNull()) {
+				String text = val.asText();
+				if (text != null && !text.isEmpty()) {
+					try {
+						return Instant.ofEpochMilli(Long.parseLong(text));
+					} catch (NumberFormatException ignored) {
+					}
+				}
+			}
+		}
+		return Instant.now();
+	}
+
 	public record TradingFeesResponse(String code, String msg, long requestTime, JsonNode data) {
 		public Fees getFees(String symbol) {
 			if (data == null || !data.isArray()) return new Fees(0, 0, 0, 0, Instant.now());
@@ -66,13 +98,24 @@ public class PrivateResponses {
 		}
 	}
 
-	public record FuturesUsdtBalanceResponse(String code, String msg, long requestTime, JsonNode data) {
+	public record FuturesUsdtBalanceResponse(
+					String code,
+					String msg,
+					long requestTime,
+					JsonNode data
+	) {
 		public double get() {
 			if (data == null || !data.isArray()) return 0.0;
 			for (JsonNode account : data) {
 				String marginCoin = account.path("marginCoin").asText();
 				if (!"USDT".equalsIgnoreCase(marginCoin)) continue;
-				return parseDouble(account, "available", "availableBalance", "availableEquity", "maxAvailable");
+				return parseDouble(
+								account,
+								"available",
+								"availableBalance",
+								"availableEquity",
+								"maxAvailable"
+				);
 			}
 			return 0.0;
 		}
@@ -105,11 +148,15 @@ public class PrivateResponses {
 				for (JsonNode chain : chains) {
 					String chainName = chain.path("chain").asText();
 					if (chainName == null || chainName.isEmpty()) chainName = chain.path("network").asText();
-					SupportedChain mapped = ChainsMap.fromChainName(chainName);
+					SupportedChain mapped = ChainsMap.getInverse(chainName);
 					if (mapped == null) continue;
 
-					boolean depositEnable = chain.path("rechargeable").asBoolean(chain.path("depositEnable").asBoolean(false));
-					boolean withdrawEnable = chain.path("withdrawable").asBoolean(chain.path("withdrawEnable").asBoolean(false));
+					boolean depositEnable = chain
+									.path("rechargeable")
+									.asBoolean(chain.path("depositEnable").asBoolean(false));
+					boolean withdrawEnable = chain
+									.path("withdrawable")
+									.asBoolean(chain.path("withdrawEnable").asBoolean(false));
 
 					if (depositEnable) builder.addDepositableChain(mapped);
 					if (withdrawEnable) {
@@ -126,7 +173,12 @@ public class PrivateResponses {
 		}
 	}
 
-	public record UsdtWalletAddressResponse(String code, String msg, long requestTime, JsonNode data) {
+	public record UsdtWalletAddressResponse(
+					String code,
+					String msg,
+					long requestTime,
+					JsonNode data
+	) {
 		public WalletAddress get(SupportedChain chain) {
 			String address = data.path("address").asText();
 			String tag = data.path("tag").asText(null);
@@ -137,7 +189,12 @@ public class PrivateResponses {
 
 	public record WithdrawUsdtResponse(String code, String msg, long requestTime, JsonNode data) {}
 
-	public record PlaceFuturesOrderResponse(String code, String msg, long requestTime, JsonNode data) {
+	public record PlaceFuturesOrderResponse(
+					String code,
+					String msg,
+					long requestTime,
+					JsonNode data
+	) {
 		public String orderId() {
 			String id = data.path("orderId").asText();
 			if (id == null || id.isEmpty()) id = data.path("orderIdStr").asText();
@@ -165,37 +222,10 @@ public class PrivateResponses {
 		}
 	}
 
-	public record InternalTransferResponse(String code, String msg, long requestTime, JsonNode data) {}
-
-	private static double parseDouble(JsonNode node, String... fields) {
-		for (String field : fields) {
-			JsonNode val = node.get(field);
-			if (val != null && !val.isNull()) {
-				String text = val.asText();
-				if (text != null && !text.isEmpty()) {
-					try {
-						return Double.parseDouble(text);
-					} catch (NumberFormatException ignored) {
-					}
-				}
-			}
-		}
-		return 0.0;
-	}
-
-	private static Instant parseInstant(JsonNode node, String... fields) {
-		for (String field : fields) {
-			JsonNode val = node.get(field);
-			if (val != null && !val.isNull()) {
-				String text = val.asText();
-				if (text != null && !text.isEmpty()) {
-					try {
-						return Instant.ofEpochMilli(Long.parseLong(text));
-					} catch (NumberFormatException ignored) {
-					}
-				}
-			}
-		}
-		return Instant.now();
-	}
+	public record InternalTransferResponse(
+					String code,
+					String msg,
+					long requestTime,
+					JsonNode data
+	) {}
 }

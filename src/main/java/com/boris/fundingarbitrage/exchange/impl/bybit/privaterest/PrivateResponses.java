@@ -76,8 +76,9 @@ public class PrivateResponses {
 
 	public record ChangeLeverageResponse(int retCode, String retMsg) {
 		public ChangeLeverageResponse {
-			if (retCode != 0 && retCode != 110043)
+			if (retCode != 0 && retCode != 110043) {
 				throw new RuntimeException(String.format("Invalid response code %d, %s", retCode, retMsg));
+			}
 		}
 	}
 
@@ -131,8 +132,9 @@ public class PrivateResponses {
 			JsonNode leverageFilter = list.get(0).get("leverageFilter");
 			if (leverageFilter == null) throw new IllegalStateException("Leverage info not found");
 			String maxLeverage = leverageFilter.path("maxLeverage").asText();
-			if (maxLeverage == null || maxLeverage.isEmpty())
+			if (maxLeverage == null || maxLeverage.isEmpty()) {
 				throw new IllegalStateException("Leverage info not found");
+			}
 			return (int) Math.round(Double.parseDouble(maxLeverage));
 		}
 	}
@@ -149,7 +151,7 @@ public class PrivateResponses {
 				if (chains == null || !chains.isArray()) continue;
 				for (JsonNode chain : chains) {
 					String chainName = chain.path("chain").asText();
-					SupportedChain mapped = ChainsMap.fromChainName(chainName);
+					SupportedChain mapped = ChainsMap.getInverse(chainName);
 					if (mapped == null) continue;
 					boolean depositEnable = "1".equals(chain.path("chainDeposit").asText()) || hasValue(
 									chain,

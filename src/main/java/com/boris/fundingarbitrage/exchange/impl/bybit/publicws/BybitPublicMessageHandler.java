@@ -2,6 +2,7 @@ package com.boris.fundingarbitrage.exchange.impl.bybit.publicws;
 
 import com.boris.fundingarbitrage.ObjectMapperSingleton;
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
+import com.boris.fundingarbitrage.exchange.publichttp.PublicHttpClient;
 import com.boris.fundingarbitrage.exchange.publicws.PublicMessageHandler;
 import com.boris.fundingarbitrage.model.contract.PriceLevel;
 import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
@@ -17,11 +18,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.time.Instant;
 
-public class BybitPublicMessageHandler implements PublicMessageHandler {
+public class BybitPublicMessageHandler extends PublicMessageHandler {
 	private final ExchangeContext context;
 	private final ObjectMapper mapper = ObjectMapperSingleton.getInstance();
 
-	public BybitPublicMessageHandler(ExchangeContext context) {
+	public BybitPublicMessageHandler(ExchangeContext context, PublicHttpClient publicHttpClient) {
+		super(publicHttpClient);
 		this.context = context;
 	}
 
@@ -58,8 +60,9 @@ public class BybitPublicMessageHandler implements PublicMessageHandler {
 		String coin = context.getSymbolInverse(symbol);
 		String fundingRate = data.path("fundingRate").asText();
 		String nextFunding = data.path("nextFundingTime").asText();
-		if ((fundingRate == null || fundingRate.isEmpty()) && (nextFunding == null || nextFunding.isEmpty()))
+		if ((fundingRate == null || fundingRate.isEmpty()) && (nextFunding == null || nextFunding.isEmpty())) {
 			return null;
+		}
 
 		return new FundingRatePatch(
 						coin,

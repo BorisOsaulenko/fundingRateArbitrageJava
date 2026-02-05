@@ -9,16 +9,16 @@ import com.boris.fundingarbitrage.exchange.impl.bitget.publicws.BitgetPublicWsCl
 
 public class BitgetExchange extends BaseExchange {
 	private static final BitgetContext context = new BitgetContext();
-
+	private static final BitgetPrivateWsClient privateWs = new BitgetPrivateWsClient(context);
+	private static final BitgetPublicHttpClient publicHttp = new BitgetPublicHttpClient(context);
 	private static final BitgetPublicMessageHandler publicMessageHandler = new BitgetPublicMessageHandler(
-					context);
+					context,
+					publicHttp
+	);
 	private static final BitgetPublicWsClient publicWs = new BitgetPublicWsClient(
 					context,
 					publicMessageHandler
 	);
-
-	private static final BitgetPrivateWsClient privateWs = new BitgetPrivateWsClient(context);
-	private static final BitgetPublicHttpClient publicHttp = new BitgetPublicHttpClient(context);
 	private static final BitgetPrivateHttpClient privateHttp = new BitgetPrivateHttpClient(context);
 
 	public BitgetExchange() {

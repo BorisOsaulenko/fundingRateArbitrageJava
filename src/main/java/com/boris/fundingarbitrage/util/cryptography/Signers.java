@@ -5,6 +5,7 @@ import com.boris.fundingarbitrage.util.logger.Logger;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.security.PrivateKey;
 import java.security.Signature;
 import java.util.Base64;
@@ -47,6 +48,36 @@ public class Signers {
 		} catch (Exception e) {
 			Logger.getInstance().error("Failed to sign payload with HmacSHA256: " + e.getMessage());
 			throw new RuntimeException("Failed to sign payload", e);
+		}
+	}
+
+	public static String signHmacSha512Hex(String payload, String secret) {
+		try {
+			Mac mac = Mac.getInstance("HmacSHA512");
+			mac.init(new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA512"));
+			byte[] signData = mac.doFinal(payload.getBytes(StandardCharsets.UTF_8));
+			StringBuilder sb = new StringBuilder(signData.length * 2);
+			for (byte b : signData) {
+				sb.append(String.format("%02x", b));
+			}
+			return sb.toString();
+		} catch (Exception e) {
+			Logger.getInstance().error("Failed to sign payload with HmacSHA512: " + e.getMessage());
+			throw new RuntimeException("Failed to sign payload", e);
+		}
+	}
+
+	public static String signSha512Hex(String data) {
+		try {
+			MessageDigest digest = MessageDigest.getInstance("SHA-512");
+			byte[] hash = digest.digest(data.getBytes(StandardCharsets.UTF_8));
+			StringBuilder sb = new StringBuilder(hash.length * 2);
+			for (byte b : hash) {
+				sb.append(String.format("%02x", b));
+			}
+			return sb.toString();
+		} catch (Exception e) {
+			throw new RuntimeException("Failed to hash payload", e);
 		}
 	}
 }

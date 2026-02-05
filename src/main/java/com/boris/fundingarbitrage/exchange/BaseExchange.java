@@ -7,19 +7,20 @@ import com.boris.fundingarbitrage.exchange.publicws.PublicWsClient;
 import org.jetbrains.annotations.NotNull;
 
 public abstract class BaseExchange {
-    public final PublicWsClient publicWsClient;
-    public final PrivateWsClient privateWsClient;
-    public final PublicHttpClient publicHttpClient;
-    public final PrivateHttpClient privateHttpClient;
+	public final PublicWsClient publicWsClient;
+	public final PrivateWsClient privateWsClient;
+	public final PublicHttpClient publicHttpClient;
+	public final PrivateHttpClient privateHttpClient;
 
-    public BaseExchange(
-            @NotNull PublicWsClient publicWsClient,
-            @NotNull PrivateWsClient privateWsClient,
-            @NotNull PublicHttpClient publicHttpClient,
-            @NotNull PrivateHttpClient privateHttpClient) {
-        this.publicWsClient = publicWsClient;
-        this.privateWsClient = privateWsClient;
-        this.publicHttpClient = publicHttpClient;
-        this.privateHttpClient = privateHttpClient;
-    }
+	public BaseExchange(
+					@NotNull PublicWsClient publicWsClient,
+					@NotNull PrivateWsClient privateWsClient,
+					@NotNull PublicHttpClient publicHttpClient,
+					@NotNull PrivateHttpClient privateHttpClient
+	) {
+		this.publicWsClient = publicWsClient;
+		this.privateWsClient = privateWsClient;
+		this.publicHttpClient = publicHttpClient;
+		this.privateHttpClient = privateHttpClient;
+	}
 }

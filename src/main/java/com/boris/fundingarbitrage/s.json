@@ -1,0 +1,29 @@
+{
+  "time": 1770235784,
+  "time_ms": 1770235784849,
+  "channel": "futures.tickers",
+  "event": "update",
+  "result": [
+    {
+      "contract": "SOL_USDT",
+      "last": "93.77",
+      "change_percentage": "-4.7924",
+      "total_size": "11554032",
+      "volume_24h": "19413358",
+      "volume_24h_base": "19413358",
+      "volume_24h_quote": "1820390578",
+      "volume_24h_settle": "1820390578",
+      "mark_price": "93.78",
+      "funding_rate": "-0.000319",
+      "funding_rate_indicative": "-0.000319",
+      "index_price": "93.80",
+      "quanto_base_rate": "",
+      "low_24h": "89.88",
+      "high_24h": "102.06",
+      "price_type": "last",
+      "change_from": "24h",
+      "change_price": "-4.72",
+      "t": 1770235784683
+    }
+  ]
+}

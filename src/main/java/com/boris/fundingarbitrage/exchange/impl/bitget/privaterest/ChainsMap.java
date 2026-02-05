@@ -24,19 +24,14 @@ public final class ChainsMap {
 
 	private static void register(SupportedChain chain, String name) {
 		forward.put(chain, name);
-		inverse.put(normalize(name), chain);
+		inverse.put(name, chain);
 	}
 
-	public static Map<SupportedChain, String> get() {
-		return forward;
+	public static String get(SupportedChain chain) {
+		return forward.get(chain);
 	}
 
-	public static SupportedChain fromChainName(String chainName) {
-		if (chainName == null) return null;
-		return inverse.get(normalize(chainName));
-	}
-
-	private static String normalize(String chainName) {
-		return chainName.replace("-", "").replace("_", "").replace(" ", "").toUpperCase();
+	public static SupportedChain getInverse(String chainName) {
+		return inverse.get(chainName);
 	}
 }

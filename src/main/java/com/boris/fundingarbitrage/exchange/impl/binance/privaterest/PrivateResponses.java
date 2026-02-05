@@ -117,7 +117,7 @@ public class PrivateResponses {
 			for (CoinInfo coinInfo : chains) {
 				if (coinInfo.coin.equals("USDT")) {
 					for (NetworkListItem network : coinInfo.networkList) {
-						SupportedChain chain = ChainsMap.getInverse().get(network.network);
+						SupportedChain chain = ChainsMap.getInverse(network.network);
 						if (chain == null) continue;
 
 						if (network.depositEnable) builder.addDepositableChain(chain);

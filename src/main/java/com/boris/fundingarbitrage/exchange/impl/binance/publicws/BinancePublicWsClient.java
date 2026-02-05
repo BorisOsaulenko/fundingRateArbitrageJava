@@ -3,7 +3,6 @@ package com.boris.fundingarbitrage.exchange.impl.binance.publicws;
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.impl.binance.publicws.pojos.SubscribePOJO;
 import com.boris.fundingarbitrage.exchange.impl.binance.publicws.pojos.UnsubscribePOJO;
-import com.boris.fundingarbitrage.exchange.publicws.PublicMessageHandler;
 import com.boris.fundingarbitrage.exchange.publicws.PublicWsClient;
 import org.jetbrains.annotations.NotNull;
 
@@ -12,11 +11,14 @@ import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
-public class BinancePublicWsClient extends PublicWsClient {
+public class BinancePublicWsClient extends PublicWsClient<BinancePublicMessageHandler> {
 	private static final URI endpoint = URI.create("wss://fstream.binance.com/ws");
 	private static final AtomicInteger NEXT_ID = new AtomicInteger(1);
 
-	public BinancePublicWsClient(ExchangeContext context, PublicMessageHandler messageHandler) {
+	public BinancePublicWsClient(
+					ExchangeContext context,
+					BinancePublicMessageHandler messageHandler
+	) {
 		super(context, endpoint, messageHandler);
 	}
 

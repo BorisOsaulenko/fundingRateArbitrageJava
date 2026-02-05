@@ -10,15 +10,16 @@ import com.boris.fundingarbitrage.exchange.impl.binance.publicws.BinancePublicWs
 public class BinanceExchange extends BaseExchange {
 	private static final BinanceContext context = new BinanceContext();
 
+	private static final BinancePrivateWsClient privateWs = new BinancePrivateWsClient(context);
+	private static final BinancePublicHttpClient publicHttp = new BinancePublicHttpClient(context);
 	private static final BinancePublicMessageHandler publicMessageHandler = new BinancePublicMessageHandler(
-					context);
+					context,
+					publicHttp
+	);
 	private static final BinancePublicWsClient publicWs = new BinancePublicWsClient(
 					context,
 					publicMessageHandler
 	);
-
-	private static final BinancePrivateWsClient privateWs = new BinancePrivateWsClient(context);
-	private static final BinancePublicHttpClient publicHttp = new BinancePublicHttpClient(context);
 	private static final BinancePrivateHttpClient privateHttp = new BinancePrivateHttpClient(context);
 
 	public BinanceExchange() {

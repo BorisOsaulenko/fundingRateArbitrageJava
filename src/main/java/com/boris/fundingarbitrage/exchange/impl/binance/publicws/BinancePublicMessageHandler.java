@@ -5,6 +5,7 @@ import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.impl.binance.publicws.pojos.BookTickerMessage;
 import com.boris.fundingarbitrage.exchange.impl.binance.publicws.pojos.FundingRateMessage;
 import com.boris.fundingarbitrage.exchange.impl.binance.publicws.pojos.MarkPriceMessage;
+import com.boris.fundingarbitrage.exchange.publichttp.PublicHttpClient;
 import com.boris.fundingarbitrage.exchange.publicws.PublicMessageHandler;
 import com.boris.fundingarbitrage.model.contract.PriceLevel;
 import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
@@ -19,11 +20,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.time.Instant;
 
-public class BinancePublicMessageHandler implements PublicMessageHandler {
+public class BinancePublicMessageHandler extends PublicMessageHandler {
 	private final ExchangeContext context;
 	private final ObjectMapper jsonMapper = ObjectMapperSingleton.getInstance();
 
-	public BinancePublicMessageHandler(ExchangeContext exchangeContext) {
+	public BinancePublicMessageHandler(
+					ExchangeContext exchangeContext,
+					PublicHttpClient publicHttpClient
+	) {
+		super(publicHttpClient);
 		this.context = exchangeContext;
 	}
 
@@ -60,7 +65,7 @@ public class BinancePublicMessageHandler implements PublicMessageHandler {
 						Double.parseDouble(bookTickerMessage.A())
 		);
 		String coin = context.getSymbolInverse(bookTickerMessage.s());
-		
+
 		return new BookTickerPatch(coin, bestBid, bestAsk, Instant.ofEpochMilli(bookTickerMessage.E()));
 	}
 

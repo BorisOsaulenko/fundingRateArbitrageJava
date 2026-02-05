@@ -2,30 +2,31 @@ package com.boris.fundingarbitrage.exchange.impl.bybit.publicws;
 
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.impl.bybit.publicws.pojos.WsRequest;
-import com.boris.fundingarbitrage.exchange.publicws.PublicMessageHandler;
 import com.boris.fundingarbitrage.exchange.publicws.PublicWsClient;
 
 import java.net.URI;
 import java.util.Arrays;
 
-public class BybitPublicWsClient extends PublicWsClient {
+public class BybitPublicWsClient extends PublicWsClient<BybitPublicMessageHandler> {
 	private static final URI endpoint = URI.create("wss://stream.bybit.com/v5/public/linear");
 
-	public BybitPublicWsClient(ExchangeContext context, PublicMessageHandler messageHandler) {
+	public BybitPublicWsClient(ExchangeContext context, BybitPublicMessageHandler messageHandler) {
 		super(context, endpoint, messageHandler);
 	}
 
 	private void sendSubscribeFrame(String[] symbols) {
-		String[] topics = Arrays.stream(symbols)
-				.map(symbol -> "tickers." + symbol)
-				.toArray(String[]::new);
+		String[] topics = Arrays
+						.stream(symbols)
+						.map(symbol -> "tickers." + symbol)
+						.toArray(String[]::new);
 		this.prettyWsClient.sendObject(new WsRequest("subscribe", topics));
 	}
 
 	private void sendUnsubscribeFrame(String[] symbols) {
-		String[] topics = Arrays.stream(symbols)
-				.map(symbol -> "tickers." + symbol)
-				.toArray(String[]::new);
+		String[] topics = Arrays
+						.stream(symbols)
+						.map(symbol -> "tickers." + symbol)
+						.toArray(String[]::new);
 		this.prettyWsClient.sendObject(new WsRequest("unsubscribe", topics));
 	}
 

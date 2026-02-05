@@ -1,5 +1,6 @@
 package exchange;
 
+import com.boris.fundingarbitrage.exchange.publicws.PublicMessageHandler;
 import com.boris.fundingarbitrage.exchange.publicws.PublicWsClient;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import com.boris.fundingarbitrage.util.logger.Logger;
@@ -12,7 +13,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 @Tag("integration")
-public abstract class PublicWsTest {
+public abstract class PublicWsTest<T extends PublicMessageHandler> {
 	private static final String[] COINS = {"SOL"};
 	private static final Duration WAIT_TIMEOUT = Duration.ofSeconds(180);
 	private static final int MIN_MESSAGES_PER_STREAM = 3;
@@ -22,8 +23,7 @@ public abstract class PublicWsTest {
 
 	private CompletableFuture<Void> waitingFuture;
 
-
-	protected abstract PublicWsClient publicWsClient();
+	protected abstract PublicWsClient<T> publicWsClient();
 
 	private void initializeMessageCounts() {
 		for (String coin : COINS) {

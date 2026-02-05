@@ -98,7 +98,7 @@ public class PrivateEndpoints {
 		URI uri = new URIBuilder(baseUrl)
 						.setPath("/v5/asset/deposit/query-address")
 						.addParameter("coin", "USDT")
-						.addParameter("chainType", ChainsMap.get().get(chain))
+						.addParameter("chainType", ChainsMap.get(chain))
 						.build();
 		return new SimpleHttpRequest("GET", uri);
 	}
@@ -108,7 +108,7 @@ public class PrivateEndpoints {
 		body.put("timestamp", System.currentTimeMillis());
 		body.put("accountType", "FUND");
 		body.put("coin", "USDT");
-		body.put("chain", ChainsMap.get().get(withdrawal.address().chain()));
+		body.put("chain", ChainsMap.get(withdrawal.address().chain()));
 		body.put("address", withdrawal.address().address());
 		body.put("amount", String.valueOf(withdrawal.amount()));
 		if (withdrawal.address().memo() != null && !withdrawal.address().memo().isEmpty()) {

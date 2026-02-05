@@ -17,19 +17,15 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
-public abstract class PublicWsClient {
+public abstract class PublicWsClient<T extends PublicMessageHandler> {
 	protected final PrettyWsClient prettyWsClient; // protected for custom tweaks in subclasses
 	protected final ExchangeContext exchangeContext;
+	protected final T messageHandler;
 	private final CoinVector<Set<Consumer<FundingRatePatch>>> fundingRateHandlers = new CoinVector<>();
 	private final CoinVector<Set<Consumer<BookTickerPatch>>> bookTickerHandlers = new CoinVector<>();
 	private final CoinVector<Set<Consumer<MarkPricePatch>>> markPriceHandlers = new CoinVector<>();
-	private final PublicMessageHandler messageHandler;
 
-	protected PublicWsClient(
-					ExchangeContext context,
-					URI endpoint,
-					PublicMessageHandler messageHandler
-	) {
+	protected PublicWsClient(ExchangeContext context, URI endpoint, T messageHandler) {
 		this.exchangeContext = context;
 		this.messageHandler = messageHandler;
 		this.prettyWsClient = new PrettyWsClientBuilder(endpoint, this::handleMessage).build();
