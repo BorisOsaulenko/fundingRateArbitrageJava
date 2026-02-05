@@ -1,7 +1,5 @@
 package exchange;
 
-import com.boris.fundingarbitrage.exchange.ExchangeContext;
-import com.boris.fundingarbitrage.exchange.impl.binance.BinanceContext;
 import com.boris.fundingarbitrage.exchange.privatehttp.PrivateHttpClient;
 import com.boris.fundingarbitrage.model.assetops.MarginMode;
 import com.boris.fundingarbitrage.model.assetops.SupportedChain;
@@ -13,21 +11,37 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 public abstract class PrivateRestTest {
+	private static final long REQUEST_TIMEOUT_SECONDS = 8;
+	private static final double MAX_ABS_FEE = 0.02;
 	private final String testCoin = "SOL";
 	private final Duration timestampTolerance = Duration.ofSeconds(2);
-	private final ExchangeContext context = new BinanceContext();
+
+	private static <T> T getWithTimeout(CompletableFuture<T> future) throws Exception {
+		return future.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+	}
+
+	private static void assertFinite(double value, String message) {
+		assertTrue(Double.isFinite(value), message);
+	}
 
 	protected abstract PrivateHttpClient privateRest();
 
 	@Test
-	public void getTradingFees() throws Exception {
-		Fees fees = privateRest().getTradingFees(testCoin).get();
+	public void getTradingFeesTest() throws Exception {
+		Fees fees = getWithTimeout(privateRest().getTradingFees(testCoin));
+		assertNotNull(fees, "Fees should not be null");
+		assertFinite(fees.openTaker(), "Open taker fee should be finite");
+		assertFinite(fees.closeTaker(), "Close taker fee should be finite");
 		assertTrue(fees.openTaker() >= 0, "Open taker fee should be non-negative");
 		assertTrue(fees.closeTaker() >= 0, "Open maker fee should be non-negative");
+		assertTrue(fees.openTaker() < MAX_ABS_FEE, "Open taker fee should be < " + MAX_ABS_FEE);
+		assertTrue(fees.closeTaker() < MAX_ABS_FEE, "Close taker fee should be < " + MAX_ABS_FEE);
 
 		Instant now = Instant.now();
 		assertTrue(
@@ -39,19 +53,21 @@ public abstract class PrivateRestTest {
 	}
 
 	@Test
-	public void getSpotUsdtBalance() throws Exception {
-		double spotBalance = privateRest().getSpotUsdtBalance().get();
+	public void getSpotUsdtBalanceTest() throws Exception {
+		double spotBalance = getWithTimeout(privateRest().getSpotUsdtBalance());
+		assertFinite(spotBalance, "Spot USDT balance should be finite");
 		assertTrue(spotBalance >= 0, "Spot USDT balance should be non-negative");
 	}
 
 	@Test
-	public void getFuturesUsdtBalance() throws Exception {
-		double futuresBalance = privateRest().getFuturesUsdtBalance().get();
+	public void getFuturesUsdtBalanceTest() throws Exception {
+		double futuresBalance = getWithTimeout(privateRest().getFuturesUsdtBalance());
+		assertFinite(futuresBalance, "Futures USDT balance should be finite");
 		assertTrue(futuresBalance >= 0, "Futures USDT balance should be non-negative");
 	}
 
 	@Test
-	public void changeLeverage() throws Exception {
+	public void changeLeverageTest() throws Exception {
 		int leverage = 2;
 		assertTimeout(
 						Duration.ofSeconds(5),
@@ -61,7 +77,7 @@ public abstract class PrivateRestTest {
 	}
 
 	@Test
-	public void setMarginMode() throws Exception {
+	public void setMarginModeTest() throws Exception {
 		MarginMode marginMode = MarginMode.ISOLATED;
 		assertTimeout(
 						Duration.ofSeconds(5),
@@ -71,14 +87,17 @@ public abstract class PrivateRestTest {
 	}
 
 	@Test
-	public void getMaxLeverage() throws Exception {
-		int maxLeverage = privateRest().getMaxLeverage(testCoin).get();
+	public void getMaxLeverageTest() throws Exception {
+		int maxLeverage = getWithTimeout(privateRest().getMaxLeverage(testCoin));
 		assertTrue(maxLeverage >= 1, "Max leverage should be at least 1");
 	}
 
 	@Test
-	public void getSupportedChains() throws Exception {
-		ExchangeChains chains = privateRest().getSupportedChains().get();
+	public void getSupportedChainsTest() throws Exception {
+		ExchangeChains chains = getWithTimeout(privateRest().getSupportedChains());
+		assertNotNull(chains, "Exchange chains should not be null");
+		assertNotNull(chains.depositableChains(), "Depositable chains should not be null");
+		assertNotNull(chains.withdrawableChains(), "Withdrawable chains should not be null");
 		assertFalse(
 						chains.depositableChains().isEmpty(),
 						"There should be at least one depositable chain"
@@ -90,18 +109,16 @@ public abstract class PrivateRestTest {
 	}
 
 	@Test
-	public void getUsdtWalletAddress() throws Exception {
-		WalletAddress address = privateRest()
-						.getUsdtWalletAddress(SupportedChain.ERC)
-						.get(); // ERC is everywhere
-		Logger.getInstance().log(address.address());
+	public void getUsdtWalletAddressTest() throws Exception {
+		WalletAddress address = getWithTimeout(privateRest().getUsdtWalletAddress(SupportedChain.ERC)); // ERC is everywhere
 		assertNotNull(address, "Wallet address should not be null");
 		assertEquals(
 						SupportedChain.ERC,
 						address.chain(),
 						"Wallet address chain should match requested chain"
 		);
-		assertNotNull(address.address(), "Wallet address should not be null");
+		assertNotNull(address.address(), "Wallet address string should not be null");
+		Logger.getInstance().log(address.address());
 		assertTrue(address.address().length() > 15, "Wallet address should have a valid length");
 	}
 }

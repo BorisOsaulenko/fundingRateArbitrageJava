@@ -125,10 +125,9 @@ public class GatePublicMessageHandler extends PublicMessageHandler {
 		try {
 			return parser.apply(message);
 		} catch (JsonParseException | JsonMappingException ex) {
-			Logger.getInstance().log(ex.getMessage());
 			return null;
 		} catch (Exception ex) {
-			Logger.getInstance().log(ex.getMessage());
+			Logger.getInstance().error(ex.getMessage());
 			return null;
 		}
 	}
@@ -138,7 +137,6 @@ public class GatePublicMessageHandler extends PublicMessageHandler {
 		CompletableFuture<FundingRate> future = this.publicHttpClient
 						.getFundingRate(coin)
 						.thenApply((fr) -> {
-							Logger.getInstance().log(fr.toString());
 							updatingFundingRateVector.put(coin, false);
 							settlementVector.put(coin, fr.settlement());
 							return fr;
@@ -156,7 +154,6 @@ public class GatePublicMessageHandler extends PublicMessageHandler {
 							String coin = fundingRate.coin();
 
 							Instant settlement = settlementVector.get(coin);
-//							Logger.getInstance().log(coin + " " + settlement + " " + fundingRate);
 							if (settlement == null) return null;
 
 							boolean updating = updatingFundingRateVector.get(coin);
@@ -179,7 +176,6 @@ public class GatePublicMessageHandler extends PublicMessageHandler {
 
 	@Override
 	public BookTickerPatch parseBookTickerMessageSymbol(String message) {
-		Logger.getInstance().log(message);
 		return parseErrorHandled(this::parseBookTickerInternal, message);
 	}
 

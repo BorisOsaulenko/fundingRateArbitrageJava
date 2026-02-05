@@ -13,40 +13,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class PrivateResponses {
-	private static double parseDouble(JsonNode node, String... fields) {
-		for (String field : fields) {
-			JsonNode val = node.get(field);
-			if (val != null && !val.isNull()) {
-				String text = val.asText();
-				if (text != null && !text.isEmpty()) {
-					try {
-						return Double.parseDouble(text);
-					} catch (NumberFormatException ignored) {
-					}
-				}
-			}
-		}
-		return 0.0;
-	}
-
-	private static Instant parseInstant(JsonNode node, String... fields) {
-		for (String field : fields) {
-			JsonNode val = node.get(field);
-			if (val != null && !val.isNull()) {
-				String text = val.asText();
-				if (text != null && !text.isEmpty()) {
-					try {
-						long ts = Long.parseLong(text);
-						if (ts > 10_000_000_000L) return Instant.ofEpochMilli(ts);
-						return Instant.ofEpochSecond(ts);
-					} catch (NumberFormatException ignored) {
-					}
-				}
-			}
-		}
-		return Instant.now();
-	}
-
 	public record TradingFeesResponse(
 					String currency,
 					String taker_fee,
@@ -83,13 +49,15 @@ public class PrivateResponses {
 		public SpotUsdtBalanceResponse {}
 
 		public double get() {
-			if (node == null || !node.isArray()) return 0.0;
+			if (node == null || !node.isArray()) {
+				throw new IllegalStateException("Balance info not found");
+			}
 			for (JsonNode item : node) {
 				String currency = item.path("currency").asText();
 				if (!"USDT".equalsIgnoreCase(currency)) continue;
-				return parseDouble(item, "available", "available_balance", "balance");
+				return Double.parseDouble(item.path("available").asText());
 			}
-			return 0.0;
+			throw new IllegalStateException("USDT balance info not found");
 		}
 	}
 
@@ -98,8 +66,10 @@ public class PrivateResponses {
 		public FuturesUsdtBalanceResponse {}
 
 		public double get() {
-			if (node == null || !node.isObject()) return 0.0;
-			return parseDouble(node, "available", "available_balance", "balance");
+			if (node == null || !node.isObject()) {
+				throw new IllegalStateException("Balance info not found");
+			}
+			return Double.parseDouble(node.path("available").asText());
 		}
 	}
 
@@ -170,12 +140,11 @@ public class PrivateResponses {
 				String orderId = item.path("order_id").asText();
 				if (orderId == null || orderId.isEmpty()) continue;
 				String symbol = item.path("contract").asText();
-				double size = parseDouble(item, "size");
-				double price = parseDouble(item, "price");
-				double fee = parseDouble(item, "fee");
-				Double feeValue = fee > 0 ? fee : null;
-				Instant ts = parseInstant(item, "create_time_ms", "create_time");
-				result.add(new PartialFill(orderId, symbol, Math.abs(size), price, feeValue, ts));
+				double size = Double.parseDouble(item.path("size").asText());
+				double price = Double.parseDouble(item.path("price").asText());
+				double fee = Double.parseDouble(item.path("fee").asText());
+				Instant ts = Instant.ofEpochSecond((item.path("create_time").asLong()));
+				result.add(new PartialFill(orderId, symbol, Math.abs(size), price, fee, ts));
 			}
 			return result;
 		}
@@ -187,7 +156,7 @@ public class PrivateResponses {
 	public record WithdrawalFeeResponse(JsonNode node) {
 		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
 		public WithdrawalFeeResponse {}
-		
+
 		public double getMinWithdraw() {
 			if (node == null || !node.isArray()) {
 				throw new IllegalStateException("Withdrawal fees info not found");

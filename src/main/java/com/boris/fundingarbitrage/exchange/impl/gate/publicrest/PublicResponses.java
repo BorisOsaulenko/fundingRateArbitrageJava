@@ -10,36 +10,14 @@ import com.fasterxml.jackson.databind.JsonNode;
 import java.time.Instant;
 
 public class PublicResponses {
-	private static Instant parseEpoch(String value, long fallbackSeconds) {
-		if (value == null || value.isEmpty()) return Instant.ofEpochSecond(fallbackSeconds);
-		try {
-			long ts = Long.parseLong(value);
-			if (ts > 10_000_000_000L) {
-				return Instant.ofEpochMilli(ts);
-			}
-			return Instant.ofEpochSecond(ts);
-		} catch (NumberFormatException ex) {
-			return Instant.ofEpochSecond(fallbackSeconds);
-		}
-	}
-
-	private static double parseDouble(JsonNode node, String field) {
-		if (node == null) return 0.0;
-		JsonNode val = node.get(field);
-		if (val == null || val.isNull()) return 0.0;
-		String text = val.asText();
-		if (text == null || text.isEmpty()) return 0.0;
-		return Double.parseDouble(text);
-	}
-
 	public record ContractResponse(
-				String name,
-				String order_size_min,
-				String leverage_max,
-				String maker_fee_rate,
-				String taker_fee_rate,
-				String funding_rate,
-				String funding_next_apply
+					String name,
+					String order_size_min,
+					String leverage_max,
+					String maker_fee_rate,
+					String taker_fee_rate,
+					String funding_rate,
+					long funding_next_apply
 	) {
 		public Double lotSize() {
 			if (order_size_min == null || order_size_min.isEmpty()) return null;
@@ -54,7 +32,7 @@ public class PublicResponses {
 		public FundingRate fundingRate() {
 			if (funding_rate == null || funding_rate.isEmpty()) return null;
 			long now = Instant.now().getEpochSecond();
-			Instant next = parseEpoch(funding_next_apply, now);
+			Instant next = Instant.ofEpochSecond(funding_next_apply);
 			return new FundingRate(Double.parseDouble(funding_rate), next, Instant.ofEpochSecond(now));
 		}
 
@@ -83,10 +61,8 @@ public class PublicResponses {
 
 		public double volume24h() {
 			JsonNode item = first();
-			if (item == null) return 0.0;
-			double base = parseDouble(item, "volume_24h_base");
-			if (base > 0) return base;
-			return parseDouble(item, "volume_24h");
+			if (item == null) throw new IllegalStateException("Invalid ticker response");
+			return Double.parseDouble(item.get("volume_24h_quote").asText());
 		}
 	}
 
@@ -94,33 +70,32 @@ public class PublicResponses {
 		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
 		public OrderBookResponse {}
 
-		private PriceLevel parseBest(JsonNode levels, boolean bid) {
-			if (levels == null || !levels.isArray() || levels.isEmpty()) return null;
+		private PriceLevel parseBest(JsonNode levels) {
+			if (levels == null || !levels.isArray() || levels.isEmpty()) {
+				throw new IllegalStateException("Invalid price level response");
+			}
 			JsonNode best = levels.get(0);
 			if (best == null) return null;
-			String price;
-			String size;
-			if (best.isArray()) {
-				price = best.size() > 0 ? best.get(0).asText() : null;
-				size = best.size() > 1 ? best.get(1).asText() : null;
-			} else {
-				price = best.path("p").asText();
-				size = best.path("s").asText();
-				if ((price == null || price.isEmpty()) && bid) price = best.path("price").asText();
-				if ((size == null || size.isEmpty()) && bid) size = best.path("size").asText();
+
+			String price = best.path("p").asText();
+			String size = best.path("s").asText();
+
+			if (price == null || price.isEmpty()) {
+				throw new IllegalStateException("Invalid price response");
 			}
-			if (price == null || price.isEmpty()) return null;
-			if (size == null || size.isEmpty()) size = "0";
+			if (size == null || size.isEmpty()) throw new IllegalStateException("Invalid size response");
 			return new PriceLevel(Double.parseDouble(price), Double.parseDouble(size));
 		}
 
 		public BookTicker bookTicker() {
 			if (node == null || !node.isObject()) return null;
-			PriceLevel bid = parseBest(node.get("bids"), true);
-			PriceLevel ask = parseBest(node.get("asks"), false);
-			if (bid == null || ask == null) return null;
-			long t = node.path("t").asLong(Instant.now().getEpochSecond());
-			Instant ts = t > 10_000_000_000L ? Instant.ofEpochMilli(t) : Instant.ofEpochSecond(t);
+			PriceLevel bid = parseBest(node.get("bids"));
+			PriceLevel ask = parseBest(node.get("asks"));
+			if (bid == null || ask == null) {
+				throw new IllegalStateException("Invalid order book response");
+			}
+			long t = node.path("current").asLong();
+			Instant ts = Instant.ofEpochSecond(t);
 			return new BookTicker(bid, ask, ts);
 		}
 	}
@@ -131,18 +106,17 @@ public class PublicResponses {
 		public CandlesticksResponse {}
 
 		public double volume1h() {
-			if (node == null || !node.isArray() || node.isEmpty()) return 0.0;
+			if (node == null || !node.isArray() || node.isEmpty()) {
+				throw new IllegalStateException("Invalid candlestick response");
+			}
 			JsonNode first = node.get(0);
 			if (first == null) return 0.0;
-			if (first.isObject()) {
-				return parseDouble(first, "v");
+
+			String volume = first.path("sum").asText();
+			if (volume == null || volume.isEmpty()) {
+				throw new IllegalStateException("Invalid volume response");
 			}
-			if (first.isArray()) {
-				if (first.size() > 1) {
-					return Double.parseDouble(first.get(1).asText());
-				}
-			}
-			return 0.0;
+			return Double.parseDouble(volume);
 		}
 	}
 }

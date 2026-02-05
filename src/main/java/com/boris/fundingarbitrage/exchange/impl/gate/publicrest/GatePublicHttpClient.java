@@ -26,10 +26,8 @@ public class GatePublicHttpClient extends PublicHttpClient {
 					Class<T> responseClass,
 					Function<T, U> parser
 	) {
-		Logger.getInstance().log(request.toString());
 		return this.client.send(request).thenApply((response) -> {
 			try {
-				Logger.getInstance().log(response.toString());
 				T responseObj = mapper.readValue(response.getBodyText(), responseClass);
 				return parser.apply(responseObj);
 			} catch (Exception e) {

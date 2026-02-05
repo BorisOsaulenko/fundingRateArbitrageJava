@@ -63,11 +63,8 @@ public class GatePrivateHttpClient extends PrivateHttpClient {
 					Function<T, U> parser
 	) {
 		SimpleHttpRequest signedRequest = signRequest(request);
-		Logger.getInstance().log(request.toString());
-
 		return this.client.sendNoCodeCheck(signedRequest).thenApply((response) -> {
 			try {
-				Logger.getInstance().log(response.getBodyText());
 				T responseObj = mapper.readValue(response.getBodyText(), responseClass);
 				return parser.apply(responseObj);
 			} catch (Exception e) {
@@ -143,18 +140,15 @@ public class GatePrivateHttpClient extends PrivateHttpClient {
 
 		return chainsFuture.thenCombine(
 						withdrawalFeesFuture, (chainsResp, feesResp) -> {
-							Logger.getInstance().log(chainsResp.getBodyText());
-							Logger.getInstance().log(feesResp.getBodyText());
 							ExchangeChainsBuilder builder = new ExchangeChainsBuilder();
 
 							try {
-								PrivateResponses.SupportedChainsResponse chainsResponse = mapper.readValue(
-												chainsFuture.join().getBodyText(),
+								PrivateResponses.SupportedChainsResponse chainsResponse = mapper.readValue(chainsResp.getBodyText(),
 												PrivateResponses.SupportedChainsResponse.class
 								);
 
 								PrivateResponses.WithdrawalFeeResponse feeResponse = mapper.readValue(
-												withdrawalFeesFuture.join().getBodyText(),
+												feesResp.getBodyText(),
 												PrivateResponses.WithdrawalFeeResponse.class
 								);
 
@@ -194,7 +188,7 @@ public class GatePrivateHttpClient extends PrivateHttpClient {
 		return processRequest(
 						PrivateEndpoints.withdrawUsdtRequest(withdrawal),
 						PrivateResponses.WithdrawUsdtResponse.class,
-						(resp) -> null
+						(_) -> null
 		);
 	}
 
