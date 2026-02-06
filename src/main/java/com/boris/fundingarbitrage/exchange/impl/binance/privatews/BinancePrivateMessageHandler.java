@@ -16,7 +16,7 @@ import java.time.Instant;
 
 public class BinancePrivateMessageHandler implements PrivateMessageHandler {
 	private final ObjectMapper mapper = ObjectMapperSingleton.getInstance();
-	
+
 	private final JsonParsingFunction<DepositPatch> parseDepositInternal = (message) -> {
 		DepositMessage depositMessage = mapper.readValue(message, DepositMessage.class);
 		var eventData = depositMessage.event();
@@ -46,7 +46,7 @@ public class BinancePrivateMessageHandler implements PrivateMessageHandler {
 		try {
 			return parser.apply(message);
 		} catch (JsonParseException | JsonMappingException ex) {
-			Logger.getInstance().log(ex.getMessage());
+			Logger.log(ex.getMessage());
 			return null; // Not a BookTicker message
 		} catch (Exception ex) {
 			return null;

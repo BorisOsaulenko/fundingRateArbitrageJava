@@ -18,7 +18,7 @@ public class Signers {
 			sig.update(payload.getBytes(StandardCharsets.US_ASCII));
 			return Base64.getEncoder().encodeToString(sig.sign());
 		} catch (Exception e) {
-			Logger.getInstance().error(String.format("Error while signing Ed25519: %s", e.getMessage()));
+			Logger.error(String.format("Error while signing Ed25519: %s", e.getMessage()));
 			throw new RuntimeException("Failed to sign payload with Ed25519", e);
 		}
 	}
@@ -34,7 +34,7 @@ public class Signers {
 			}
 			return sb.toString();
 		} catch (Exception e) {
-			Logger.getInstance().error("Failed to sign payload with HmacSHA256: " + e.getMessage());
+			Logger.error("Failed to sign payload with HmacSHA256: " + e.getMessage());
 			throw new RuntimeException("Failed to sign payload", e);
 		}
 	}
@@ -46,7 +46,7 @@ public class Signers {
 			byte[] signData = mac.doFinal(payload.getBytes(StandardCharsets.UTF_8));
 			return Base64.getEncoder().encodeToString(signData);
 		} catch (Exception e) {
-			Logger.getInstance().error("Failed to sign payload with HmacSHA256: " + e.getMessage());
+			Logger.error("Failed to sign payload with HmacSHA256: " + e.getMessage());
 			throw new RuntimeException("Failed to sign payload", e);
 		}
 	}
@@ -62,7 +62,7 @@ public class Signers {
 			}
 			return sb.toString();
 		} catch (Exception e) {
-			Logger.getInstance().error("Failed to sign payload with HmacSHA512: " + e.getMessage());
+			Logger.error("Failed to sign payload with HmacSHA512: " + e.getMessage());
 			throw new RuntimeException("Failed to sign payload", e);
 		}
 	}

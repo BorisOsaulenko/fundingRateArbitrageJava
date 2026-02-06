@@ -146,28 +146,26 @@ public abstract class PublicWsTest<T extends PublicMessageHandler> {
 
 		if (!allStreamsReceived) {
 			Logger
-							.getInstance()
 							.error("Did not receive minimum messages for all streams within timeout. Counts: ");
 		} else if (!allFieldsPresent) {
 			Logger
-							.getInstance()
 							.error("Did not receive complete patch fields for all streams within timeout.");
 		} else {
 			publicWsClient().close();
 			return;
 		}
 
-		Logger.getInstance().log("Book Ticker: ");
-		Logger.getInstance().logCoinVector(bookTickerMessageCounts);
-		Logger.getInstance().logCoinVector(latestBookTickerPatches);
+		Logger.log("Book Ticker: ");
+		Logger.logCoinVector(bookTickerMessageCounts);
+		Logger.logCoinVector(latestBookTickerPatches);
 
-		Logger.getInstance().log("Funding Rate: ");
-		Logger.getInstance().logCoinVector(fundingRateMessageCounts);
-		Logger.getInstance().logCoinVector(latestFundingRatePatches);
+		Logger.log("Funding Rate: ");
+		Logger.logCoinVector(fundingRateMessageCounts);
+		Logger.logCoinVector(latestFundingRatePatches);
 
-		Logger.getInstance().log("Mark Price: ");
-		Logger.getInstance().logCoinVector(markPriceMessageCounts);
-		Logger.getInstance().logCoinVector(latestMarkPricePatches);
+		Logger.log("Mark Price: ");
+		Logger.logCoinVector(markPriceMessageCounts);
+		Logger.logCoinVector(latestMarkPricePatches);
 		throw new Exception(
 						"Test failed due to insufficient messages or incomplete patch data. See logs for details.");
 	}

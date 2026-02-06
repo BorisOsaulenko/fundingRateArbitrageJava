@@ -63,7 +63,7 @@ public class PrettyHttpClient {
 						body
 		);
 
-		Logger.getInstance().warn(msg);
+		Logger.warn(msg);
 	}
 
 	private FutureCallback<SimpleHttpResponse> getCallback(
@@ -86,14 +86,13 @@ public class PrettyHttpClient {
 			public void failed(Exception ex) {
 				// Transport failure: no status/body exists here.
 				Logger
-								.getInstance()
 								.warn("Request failed (transport). " + req.getMethod() + " " + safeUri(req) + " | " + ex);
 				cf.completeExceptionally(ex);
 			}
 
 			@Override
 			public void cancelled() {
-				Logger.getInstance().warn("Request cancelled. " + req.getMethod() + " " + safeUri(req));
+				Logger.warn("Request cancelled. " + req.getMethod() + " " + safeUri(req));
 				cf.cancel(true);
 			}
 		};
@@ -117,7 +116,7 @@ public class PrettyHttpClient {
 		try {
 			client.close();
 		} catch (Exception e) {
-			Logger.getInstance().error("Failed to close HTTP client: " + e.getMessage());
+			Logger.error("Failed to close HTTP client: " + e.getMessage());
 		}
 	}
 }

@@ -58,7 +58,7 @@ public class BybitPrivateHttpClient extends PrivateHttpClient {
 
 			return request;
 		} catch (Exception e) {
-			Logger.getInstance().error(e.getMessage());
+			Logger.error(e.getMessage());
 			throw new RuntimeException(e);
 		}
 	}
@@ -74,9 +74,7 @@ public class BybitPrivateHttpClient extends PrivateHttpClient {
 				T responseObj = mapper.readValue(response.getBodyText(), responseClass);
 				return parser.apply(responseObj);
 			} catch (Exception e) {
-				Logger
-								.getInstance()
-								.error(String.format("Error parsing private rest response: %s", e.getMessage()));
+				Logger.error(String.format("Error parsing private rest response: %s", e.getMessage()));
 				throw new RuntimeException("Failed to process request", e);
 			}
 		});

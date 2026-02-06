@@ -8,7 +8,7 @@ class App {
 		BybitExchange exchange = new BybitExchange();
 		exchange.publicWsClient.subscribeFundingRates(
 						"SOL", (_) -> {
-							Logger.getInstance().log("Received funding rate update for SOL");
+							Logger.log("Received funding rate update for SOL");
 						}
 		);
 

@@ -10,15 +10,15 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 
-public class Logger implements ILogger {
+public class Logger {
+	private static BufferedWriter writer;
 	private static Logger INSTANCE = new Logger(null);
 	private static boolean initCalled = false;
-	private final BufferedWriter writer;
 
 	private Logger(Path logFilePath) {
 		if (logFilePath != null) {
 			try {
-				this.writer = Files.newBufferedWriter(
+				writer = Files.newBufferedWriter(
 								logFilePath,
 								StandardCharsets.UTF_8,
 								StandardOpenOption.CREATE,
@@ -29,11 +29,11 @@ public class Logger implements ILogger {
 				throw new UncheckedIOException("Failed to open log file: " + logFilePath, e);
 			}
 		} else {
-			this.writer = null;
+			writer = null;
 		}
 	}
 
-	public static void instantiate(Path logFilePath) {
+	public static void init(Path logFilePath) {
 		if (initCalled) {
 			throw new IllegalStateException("Logger constructor called more than once");
 		}
@@ -45,68 +45,53 @@ public class Logger implements ILogger {
 		return INSTANCE;
 	}
 
-	public synchronized void closeLogFile() {
-		if (this.writer == null) return;
-
-		try {
-			this.writer.close();
-		} catch (IOException e) {
-			throw new UncheckedIOException("Failed to close log file", e);
-		}
-	}
-
-	private void writeLine(String line) {
-		if (this.writer == null) {
+	private static void writeLine(String line) {
+		if (writer == null) {
 			System.out.println(line);
 			return;
 		}
 
 		try {
-			this.writer.write(line);
-			this.writer.newLine();
+			writer.write(line);
+			writer.newLine();
 		} catch (IOException e) {
 			throw new UncheckedIOException("Failed writing log line to file", e);
 		}
 	}
 
-	private String getLogPrefix(String type) {
+	private static String getLogPrefix(String type) {
 		return String.format("[%s] [%s] ", Thread.currentThread().getName(), type);
 	}
 
-	@Override
-	public void log(String message) {
+	public static void log(String message) {
 		writeLine(getLogPrefix("INFO") + message);
 	}
 
-	@Override
-	public void warn(String message) {
+	public static void warn(String message) {
 		writeLine(getLogPrefix("WARN") + message);
 	}
 
-	@Override
-	public void error(String message) {
+	public static void error(String message) {
 		writeLine(getLogPrefix("ERROR") + message);
 	}
-	
-	public void debug(String message) {
+
+	public static void debug(String message) {
 		String line = getLogPrefix("Debug") + message;
-		if (this.writer == null) {
+		if (writer == null) {
 			System.err.println(line);
 			System.err.flush();
 			return;
 		}
 		try {
-			this.writer.write(line);
-			this.writer.newLine();
-			this.writer.flush(); // force write-through
+			writer.write(line);
+			writer.newLine();
+			writer.flush(); // force write-through
 		} catch (IOException e) {
 			throw new UncheckedIOException("Failed writing critical log line", e);
 		}
 	}
 
-
-	@Override
-	public <T> void logCoinVector(CoinVector<T> coinVector) {
+	public static <T> void logCoinVector(CoinVector<T> coinVector) {
 		if (coinVector == null) {
 			writeLine(getLogPrefix("INFO") + "(CoinVector) <null>");
 			return;
@@ -149,5 +134,15 @@ public class Logger implements ILogger {
 		}
 
 		writeLine(border);
+	}
+
+	public synchronized void closeLogFile() {
+		if (writer == null) return;
+
+		try {
+			writer.close();
+		} catch (IOException e) {
+			throw new UncheckedIOException("Failed to close log file", e);
+		}
 	}
 }

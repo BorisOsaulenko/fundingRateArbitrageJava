@@ -22,7 +22,7 @@ public class ParseEncryptedPEMUtil {
 		try {
 			return loadEncryptedPkcs8PrivateKey(pemContent, passphrase.toCharArray());
 		} catch (Exception e) {
-			Logger.getInstance().error(e.getMessage());
+			Logger.error(e.getMessage());
 			throw new RuntimeException("Failed to parse encrypted PEM private key", e);
 		}
 	}

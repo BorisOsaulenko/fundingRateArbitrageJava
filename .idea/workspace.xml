@@ -7,9 +7,32 @@
     <list default="true" id="b9df00b4-30ed-4e30-b4d9-bb2bc91a4ba3" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/App.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/App.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/binance/privaterest/BinancePrivateHttpClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/binance/privaterest/BinancePrivateHttpClient.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/binance/privatews/BinancePrivateMessageHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/binance/privatews/BinancePrivateMessageHandler.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/binance/publicws/BinancePublicMessageHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/binance/publicws/BinancePublicMessageHandler.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bitget/privaterest/BitgetPrivateHttpClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bitget/privaterest/BitgetPrivateHttpClient.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bitget/privatews/BitgetPrivateMessageHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bitget/privatews/BitgetPrivateMessageHandler.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bitget/publicws/BitgetPublicMessageHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bitget/publicws/BitgetPublicMessageHandler.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bybit/publicrest/PublicResponses.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bybit/publicrest/PublicResponses.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bybit/privaterest/BybitPrivateHttpClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bybit/privaterest/BybitPrivateHttpClient.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bybit/privaterest/PrivateResponses.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bybit/privaterest/PrivateResponses.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bybit/privatews/BybitPrivateMessageHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bybit/privatews/BybitPrivateMessageHandler.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bybit/publicws/BybitPublicMessageHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bybit/publicws/BybitPublicMessageHandler.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/gate/privaterest/GatePrivateHttpClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/gate/privaterest/GatePrivateHttpClient.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/gate/privatews/GatePrivateMessageHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/gate/privatews/GatePrivateMessageHandler.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/gate/publicws/GatePublicMessageHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/gate/publicws/GatePublicMessageHandler.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/model/Validations.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/model/Validations.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/model/exchange/WithdrawChain.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/model/exchange/WithdrawChain.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/s.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/util/ParseEncryptedPEMUtil.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/util/ParseEncryptedPEMUtil.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/util/cryptography/Signers.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/util/cryptography/Signers.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/util/https/PrettyHttpClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/util/https/PrettyHttpClient.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/util/logger/ILogger.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/util/logger/Logger.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/util/logger/Logger.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/util/s.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/util/wss/prettyclient/PrettyWsClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/util/wss/prettyclient/PrettyWsClient.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/util/wss/prettyclient/PrettyWsEndpoint.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/util/wss/prettyclient/PrettyWsEndpoint.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/util/wss/prettyclient/PrettyWsReconnectHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/util/wss/prettyclient/PrettyWsReconnectHandler.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/exchange/PrivateRestTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/exchange/PrivateRestTest.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/test/java/exchange/PublicWsTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/exchange/PublicWsTest.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -168,7 +191,7 @@
       <recent name="com.boris.fundingarbitrage" />
     </key>
   </component>
-  <component name="RunManager" selected="JUnit.BybitPublicWsTest">
+  <component name="RunManager" selected="JUnit.BinancePrivateRestTest and 3 more">
     <configuration name="App" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
       <option name="MAIN_CLASS_NAME" value="com.boris.fundingarbitrage.App" />
       <module name="FundingArbitrage.main" />
@@ -216,6 +239,66 @@
       <GradleCoverageDisabled>false</GradleCoverageDisabled>
       <method v="2" />
     </configuration>
+    <configuration name="BinancePrivateRestTest and 3 more" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="FundingArbitrage.test" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="exchange.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <extension name="net.ashald.envfile">
+        <option name="IS_ENABLED" value="true" />
+        <option name="IS_SUBST" value="false" />
+        <option name="IS_PATH_MACRO_SUPPORTED" value="false" />
+        <option name="IS_IGNORE_MISSING_FILES" value="false" />
+        <option name="IS_ENABLE_EXPERIMENTAL_INTEGRATIONS" value="false" />
+        <ENTRIES>
+          <ENTRY IS_ENABLED="true" PARSER="runconfig" IS_EXECUTABLE="false" />
+          <ENTRY IS_ENABLED="true" PARSER="env" IS_EXECUTABLE="false" PATH="$USER_HOME$/Documents/Finances/env" />
+        </ENTRIES>
+      </extension>
+      <option name="PACKAGE_NAME" value="exchange" />
+      <option name="MAIN_CLASS_NAME" value="exchange.PrivateRestTest" />
+      <option name="METHOD_NAME" value="" />
+      <option name="TEST_OBJECT" value="pattern" />
+      <patterns>
+        <pattern testClass="exchange.impl.binance.BinancePrivateRestTest" />
+        <pattern testClass="exchange.impl.bitget.BitgetPrivateRestTest" />
+        <pattern testClass="exchange.impl.bybit.BybitPrivateRestTest" />
+        <pattern testClass="exchange.impl.gate.GatePrivateRestTest" />
+      </patterns>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="BitgetPublicWsTest" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="FundingArbitrage.test" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="exchange.impl.bitget.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <extension name="net.ashald.envfile">
+        <option name="IS_ENABLED" value="true" />
+        <option name="IS_SUBST" value="false" />
+        <option name="IS_PATH_MACRO_SUPPORTED" value="false" />
+        <option name="IS_IGNORE_MISSING_FILES" value="false" />
+        <option name="IS_ENABLE_EXPERIMENTAL_INTEGRATIONS" value="false" />
+        <ENTRIES>
+          <ENTRY IS_ENABLED="true" PARSER="runconfig" IS_EXECUTABLE="false" />
+          <ENTRY IS_ENABLED="true" PARSER="env" IS_EXECUTABLE="false" PATH="$USER_HOME$/Documents/Finances/env" />
+        </ENTRIES>
+      </extension>
+      <option name="PACKAGE_NAME" value="exchange.impl.bitget" />
+      <option name="MAIN_CLASS_NAME" value="exchange.impl.bitget.BitgetPublicWsTest" />
+      <option name="METHOD_NAME" value="" />
+      <option name="TEST_OBJECT" value="class" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="BybitPublicWsTest" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
       <module name="FundingArbitrage.test" />
       <extension name="coverage">
@@ -237,60 +320,6 @@
       </extension>
       <option name="PACKAGE_NAME" value="exchange.impl.bybit" />
       <option name="MAIN_CLASS_NAME" value="exchange.impl.bybit.BybitPublicWsTest" />
-      <option name="METHOD_NAME" value="" />
-      <option name="TEST_OBJECT" value="class" />
-      <method v="2">
-        <option name="Make" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="GatePrivateRestTest" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
-      <module name="FundingArbitrage.test" />
-      <extension name="coverage">
-        <pattern>
-          <option name="PATTERN" value="exchange.impl.gate.*" />
-          <option name="ENABLED" value="true" />
-        </pattern>
-      </extension>
-      <extension name="net.ashald.envfile">
-        <option name="IS_ENABLED" value="true" />
-        <option name="IS_SUBST" value="false" />
-        <option name="IS_PATH_MACRO_SUPPORTED" value="false" />
-        <option name="IS_IGNORE_MISSING_FILES" value="false" />
-        <option name="IS_ENABLE_EXPERIMENTAL_INTEGRATIONS" value="false" />
-        <ENTRIES>
-          <ENTRY IS_ENABLED="true" PARSER="runconfig" IS_EXECUTABLE="false" />
-          <ENTRY IS_ENABLED="true" PARSER="env" IS_EXECUTABLE="false" PATH="$USER_HOME$/Documents/Finances/env" />
-        </ENTRIES>
-      </extension>
-      <option name="PACKAGE_NAME" value="exchange.impl.gate" />
-      <option name="MAIN_CLASS_NAME" value="exchange.impl.gate.GatePrivateRestTest" />
-      <option name="METHOD_NAME" value="" />
-      <option name="TEST_OBJECT" value="class" />
-      <method v="2">
-        <option name="Make" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="GatePublicRestTest" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
-      <module name="FundingArbitrage.test" />
-      <extension name="coverage">
-        <pattern>
-          <option name="PATTERN" value="exchange.impl.gate.*" />
-          <option name="ENABLED" value="true" />
-        </pattern>
-      </extension>
-      <extension name="net.ashald.envfile">
-        <option name="IS_ENABLED" value="true" />
-        <option name="IS_SUBST" value="false" />
-        <option name="IS_PATH_MACRO_SUPPORTED" value="false" />
-        <option name="IS_IGNORE_MISSING_FILES" value="false" />
-        <option name="IS_ENABLE_EXPERIMENTAL_INTEGRATIONS" value="false" />
-        <ENTRIES>
-          <ENTRY IS_ENABLED="true" PARSER="runconfig" IS_EXECUTABLE="false" />
-          <ENTRY IS_ENABLED="true" PARSER="env" IS_EXECUTABLE="false" PATH="$USER_HOME$/Documents/Finances/env" />
-        </ENTRIES>
-      </extension>
-      <option name="PACKAGE_NAME" value="exchange.impl.gate" />
-      <option name="MAIN_CLASS_NAME" value="exchange.impl.gate.GatePublicRestTest" />
       <option name="METHOD_NAME" value="" />
       <option name="TEST_OBJECT" value="class" />
       <method v="2">
@@ -357,18 +386,18 @@
       <item itemvalue="Application.App" />
       <item itemvalue="Gradle.FundingArbitrage" />
       <item itemvalue="Java Scratch.ScratchTyrusWs" />
+      <item itemvalue="JUnit.BinancePrivateRestTest and 3 more" />
+      <item itemvalue="JUnit.BitgetPublicWsTest" />
       <item itemvalue="JUnit.BybitPublicWsTest" />
-      <item itemvalue="JUnit.GatePrivateRestTest" />
-      <item itemvalue="JUnit.GatePublicRestTest" />
       <item itemvalue="JUnit.GatePublicWsTest" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="JUnit.BinancePrivateRestTest and 3 more" />
+        <item itemvalue="JUnit.BitgetPublicWsTest" />
         <item itemvalue="JUnit.BybitPublicWsTest" />
         <item itemvalue="Application.App" />
         <item itemvalue="JUnit.GatePublicWsTest" />
-        <item itemvalue="JUnit.GatePublicRestTest" />
-        <item itemvalue="JUnit.GatePrivateRestTest" />
       </list>
     </recent_temporary>
   </component>

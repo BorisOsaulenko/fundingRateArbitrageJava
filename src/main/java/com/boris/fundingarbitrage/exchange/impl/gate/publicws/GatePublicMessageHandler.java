@@ -127,7 +127,7 @@ public class GatePublicMessageHandler extends PublicMessageHandler {
 		} catch (JsonParseException | JsonMappingException ex) {
 			return null;
 		} catch (Exception ex) {
-			Logger.getInstance().error(ex.getMessage());
+			Logger.error(ex.getMessage());
 			return null;
 		}
 	}

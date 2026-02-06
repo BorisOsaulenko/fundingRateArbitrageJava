@@ -55,7 +55,9 @@ public class GatePrivateMessageHandler implements PrivateMessageHandler {
 		JsonNode root = mapper.readTree(message);
 		String channel = root.path("channel").asText();
 		String event = root.path("event").asText();
-		if (!"futures.balances".equalsIgnoreCase(channel) || !"update".equalsIgnoreCase(event)) return null;
+		if (!"futures.balances".equalsIgnoreCase(channel) || !"update".equalsIgnoreCase(event)) {
+			return null;
+		}
 		JsonNode result = root.get("result");
 		if (result == null || !result.isArray() || result.isEmpty()) return null;
 		JsonNode entry = result.get(0);
@@ -71,7 +73,9 @@ public class GatePrivateMessageHandler implements PrivateMessageHandler {
 		JsonNode root = mapper.readTree(message);
 		String channel = root.path("channel").asText();
 		String event = root.path("event").asText();
-		if (!"futures.usertrades".equalsIgnoreCase(channel) || !"update".equalsIgnoreCase(event)) return null;
+		if (!"futures.usertrades".equalsIgnoreCase(channel) || !"update".equalsIgnoreCase(event)) {
+			return null;
+		}
 		JsonNode result = root.get("result");
 		if (result == null || !result.isArray() || result.isEmpty()) return null;
 		JsonNode entry = result.get(0);
@@ -90,7 +94,7 @@ public class GatePrivateMessageHandler implements PrivateMessageHandler {
 		try {
 			return parser.apply(message);
 		} catch (JsonParseException | JsonMappingException ex) {
-			Logger.getInstance().log(ex.getMessage());
+			Logger.log(ex.getMessage());
 			return null;
 		} catch (Exception ex) {
 			return null;

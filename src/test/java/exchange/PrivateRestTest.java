@@ -118,7 +118,7 @@ public abstract class PrivateRestTest {
 						"Wallet address chain should match requested chain"
 		);
 		assertNotNull(address.address(), "Wallet address string should not be null");
-		Logger.getInstance().log(address.address());
+		Logger.log(address.address());
 		assertTrue(address.address().length() > 15, "Wallet address should have a valid length");
 	}
 }

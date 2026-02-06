@@ -56,7 +56,7 @@ public class BitgetPrivateHttpClient extends PrivateHttpClient {
 			return request;
 
 		} catch (Exception e) {
-			Logger.getInstance().error("Error signing uri for bitget private rest.");
+			Logger.error("Error signing uri for bitget private rest.");
 			throw new RuntimeException(e);
 		}
 	}
@@ -73,7 +73,6 @@ public class BitgetPrivateHttpClient extends PrivateHttpClient {
 				return parser.apply(responseObj);
 			} catch (Exception e) {
 				Logger
-								.getInstance()
 								.error(String.format("Error parsing private rest response: %s", e.getMessage()));
 				throw new RuntimeException("Failed to process request", e);
 			}

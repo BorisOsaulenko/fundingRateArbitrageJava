@@ -93,7 +93,7 @@ public class BitgetPrivateMessageHandler implements PrivateMessageHandler {
 		try {
 			return parser.apply(message);
 		} catch (JsonParseException | JsonMappingException ex) {
-			Logger.getInstance().log(ex.getMessage());
+			Logger.log(ex.getMessage());
 			return null;
 		} catch (Exception ex) {
 			return null;

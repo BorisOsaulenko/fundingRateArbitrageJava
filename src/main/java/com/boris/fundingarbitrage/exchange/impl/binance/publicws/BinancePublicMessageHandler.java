@@ -88,7 +88,7 @@ public class BinancePublicMessageHandler extends PublicMessageHandler {
 		try {
 			return parser.apply(message);
 		} catch (JsonParseException | JsonMappingException ex) {
-			Logger.getInstance().log(ex.getMessage());
+			Logger.log(ex.getMessage());
 			return null; // Not a BookTicker message
 		} catch (Exception ex) {
 			return null;

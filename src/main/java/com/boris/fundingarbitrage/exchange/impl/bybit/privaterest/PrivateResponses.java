@@ -111,10 +111,14 @@ public class PrivateResponses {
 
 	public record SupportedChainsResponse(int retCode, String retMsg, long time, JsonNode result) {
 		public ExchangeChains get() {
+			if (result == null) throw new IllegalStateException("Supported chains info not found");
 			ensureCode(retCode, retMsg);
 			ExchangeChainsBuilder builder = new ExchangeChainsBuilder();
-			JsonNode rows = result == null ? null : result.get("rows");
-			if (rows == null || !rows.isArray()) return builder.build();
+			JsonNode rows = result.get("rows");
+			if (rows == null || !rows.isArray()) {
+				throw new IllegalStateException("Supported chains info not found");
+			}
+
 			for (JsonNode coin : rows) {
 				if (!"USDT".equalsIgnoreCase(coin.path("coin").asText())) continue;
 				JsonNode chains = coin.get("chains");
@@ -129,7 +133,7 @@ public class PrivateResponses {
 					if (withdrawEnable) {
 						double fee = Double.parseDouble(chain.path("withdrawFee").asText());
 						double min = Double.parseDouble(chain.path("withdrawMin").asText());
-						if (fee > 0 && min > 0) {
+						if (fee >= 0 && min >= 0) {
 							builder.addWithdrawableChain(new WithdrawChain(mapped, fee, min));
 						} else {
 							throw new IllegalStateException("Invalid withdraw fee/min for chain: " + chainName);
@@ -138,11 +142,11 @@ public class PrivateResponses {
 				}
 				return builder.build();
 			}
-			return builder.build();
+			throw new IllegalStateException("USDT info not found in supported chains response");
 		}
 	}
 
-	private record WalletItem(String chainType, String addressDeposit, String tagDeposit) {}
+	private record WalletItem(String chain, String addressDeposit, String tagDeposit) {}
 
 	private record WalletResult(String coin, WalletItem[] chains) {}
 
@@ -152,7 +156,7 @@ public class PrivateResponses {
 		public WalletAddress get(SupportedChain chain) {
 			ensureCode(retCode, retMsg);
 			for (WalletItem item : result.chains) {
-				String chainName = item.chainType;
+				String chainName = item.chain;
 				SupportedChain mapped = ChainsMap.getInverse(chainName);
 				if (mapped == chain) {
 					String address = item.addressDeposit;
