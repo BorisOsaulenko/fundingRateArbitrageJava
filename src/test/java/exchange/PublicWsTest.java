@@ -168,5 +168,7 @@ public abstract class PublicWsTest<T extends PublicMessageHandler> {
 		Logger.getInstance().log("Mark Price: ");
 		Logger.getInstance().logCoinVector(markPriceMessageCounts);
 		Logger.getInstance().logCoinVector(latestMarkPricePatches);
+		throw new Exception(
+						"Test failed due to insufficient messages or incomplete patch data. See logs for details.");
 	}
 }

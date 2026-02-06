@@ -38,25 +38,20 @@ public class BitgetPublicMessageHandler extends PublicMessageHandler {
 		return data.get(0);
 	}
 
-	private String resolveSymbol(JsonNode dataNode, JsonNode rootArg) {
-		String symbol = dataNode.path("instId").asText();
-		if (symbol == null || symbol.isEmpty()) {
-			symbol = rootArg.path("instId").asText();
-		}
-		return symbol;
-	}
-
 	private Instant parseTimestamp(JsonNode dataNode) {
 		String ts = dataNode.path("ts").asText();
-		if (ts == null || ts.isEmpty()) return Instant.now();
 		return Instant.ofEpochMilli(Long.parseLong(ts));
 	}
 
 	private FundingRatePatch parseFundingRateInternal(String message) throws JsonProcessingException {
 		JsonNode root = mapper.readTree(message);
+		String symbol = root.get("arg").path("instId").asText();
+		String channel = root.get("arg").path("channel").asText();
+		if (!"ticker".equalsIgnoreCase(channel)) return null;
+
 		JsonNode data = parseDataNode(message);
 		if (data == null) return null;
-		String symbol = resolveSymbol(data, root.get("arg"));
+
 		String coin = context.getSymbolInverse(symbol);
 		String fundingRateStr = data.path("fundingRate").asText();
 		String nextFundingTime = data.path("nextFundingTime").asText();
@@ -73,9 +68,13 @@ public class BitgetPublicMessageHandler extends PublicMessageHandler {
 
 	private MarkPricePatch parseMarkPriceInternal(String message) throws JsonProcessingException {
 		JsonNode root = mapper.readTree(message);
+		String symbol = root.get("arg").path("instId").asText();
+		String channel = root.get("arg").path("channel").asText();
+		if (!"ticker".equalsIgnoreCase(channel)) return null;
+
 		JsonNode data = parseDataNode(message);
 		if (data == null) return null;
-		String symbol = resolveSymbol(data, root.get("arg"));
+
 		String coin = context.getSymbolInverse(symbol);
 		String markPrice = data.path("markPrice").asText();
 		if (markPrice == null || markPrice.isEmpty()) return null;
@@ -84,9 +83,13 @@ public class BitgetPublicMessageHandler extends PublicMessageHandler {
 
 	private BookTickerPatch parseBookTickerInternal(String message) throws JsonProcessingException {
 		JsonNode root = mapper.readTree(message);
+		String symbol = root.get("arg").path("instId").asText();
+		String channel = root.get("arg").path("channel").asText();
+		if (!"ticker".equalsIgnoreCase(channel)) return null;
+
 		JsonNode data = parseDataNode(message);
 		if (data == null) return null;
-		String symbol = resolveSymbol(data, root.get("arg"));
+
 		String coin = context.getSymbolInverse(symbol);
 		String bidPr = data.path("bidPr").asText();
 		String bidSz = data.path("bidSz").asText();

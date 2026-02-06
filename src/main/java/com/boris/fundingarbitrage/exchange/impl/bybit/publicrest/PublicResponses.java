@@ -31,20 +31,6 @@ public class PublicResponses {
 			}
 			return null;
 		}
-
-		public Integer maxLeverageSymbol(String symbol) {
-			JsonNode list = result == null ? null : result.get("list");
-			if (list == null || !list.isArray()) return null;
-			for (JsonNode item : list) {
-				if (!symbol.equalsIgnoreCase(item.path("symbol").asText())) continue;
-				JsonNode leverageFilter = item.get("leverageFilter");
-				if (leverageFilter == null) return null;
-				String maxLeverage = leverageFilter.path("maxLeverage").asText();
-				if (maxLeverage == null || maxLeverage.isEmpty()) return null;
-				return (int) Math.round(Double.parseDouble(maxLeverage));
-			}
-			return null;
-		}
 	}
 
 	public record TickersResponse(int retCode, String retMsg, long time, JsonNode result) {
@@ -61,8 +47,9 @@ public class PublicResponses {
 			String bidSize = item.path("bid1Size").asText();
 			String askPrice = item.path("ask1Price").asText();
 			String askSize = item.path("ask1Size").asText();
-			if (bidPrice == null || bidPrice.isEmpty() || askPrice == null || askPrice.isEmpty())
+			if (bidPrice == null || bidPrice.isEmpty() || askPrice == null || askPrice.isEmpty()) {
 				return null;
+			}
 			PriceLevel bid = new PriceLevel(Double.parseDouble(bidPrice), Double.parseDouble(bidSize));
 			PriceLevel ask = new PriceLevel(Double.parseDouble(askPrice), Double.parseDouble(askSize));
 			return new BookTicker(bid, ask, Instant.ofEpochMilli(time));
@@ -73,8 +60,9 @@ public class PublicResponses {
 			if (item == null) return null;
 			String rate = item.path("fundingRate").asText();
 			String nextFunding = item.path("nextFundingTime").asText();
-			if (rate == null || rate.isEmpty() || nextFunding == null || nextFunding.isEmpty())
+			if (rate == null || rate.isEmpty() || nextFunding == null || nextFunding.isEmpty()) {
 				return null;
+			}
 			return new FundingRate(
 							Double.parseDouble(rate),
 							Instant.ofEpochMilli(Long.parseLong(nextFunding)),

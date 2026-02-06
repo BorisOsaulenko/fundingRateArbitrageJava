@@ -1,17 +1,17 @@
 package com.boris.fundingarbitrage;
 
-import com.boris.fundingarbitrage.exchange.impl.gate.GateExchange;
+import com.boris.fundingarbitrage.exchange.impl.bybit.BybitExchange;
 import com.boris.fundingarbitrage.util.logger.Logger;
 
 class App {
 	static void main(String[] args) throws Exception {
-		GateExchange gateExchange = new GateExchange();
-		gateExchange.publicWsClient.subscribeFundingRates(
-						"SOL", data -> {
-							Logger.getInstance().log("Mark Price Update: " + data);
+		BybitExchange exchange = new BybitExchange();
+		exchange.publicWsClient.subscribeFundingRates(
+						"SOL", (_) -> {
+							Logger.getInstance().log("Received funding rate update for SOL");
 						}
 		);
 
-		Thread.sleep(60000); // Keep the application running for 1 minute to receive messages
+		Thread.sleep(80000); // Keep the application running for 1 minute to receive messages
 	}
 }

@@ -27,10 +27,6 @@ public class BybitPublicMessageHandler extends PublicMessageHandler {
 		this.context = context;
 	}
 
-	private boolean isNullOrWhiteSpace(String str) {
-		return str == null || str.trim().isEmpty();
-	}
-
 	private JsonNode parseDataNode(String message) throws JsonProcessingException {
 		JsonNode root = mapper.readTree(message);
 		JsonNode topic = root.get("topic");
@@ -41,34 +37,31 @@ public class BybitPublicMessageHandler extends PublicMessageHandler {
 		return data;
 	}
 
-	private String resolveSymbol(JsonNode dataNode) {
-		return dataNode.path("symbol").asText();
-	}
-
-	private Instant parseTimestamp(JsonNode root, JsonNode data) {
-		String ts = data.path("ts").asText();
-		if (ts == null || ts.isEmpty()) ts = root.path("ts").asText();
-		if (ts == null || ts.isEmpty()) return Instant.now();
-		return Instant.ofEpochMilli(Long.parseLong(ts));
+	private Instant parseTimestamp(JsonNode root) {
+		long ts = root.path("ts").asLong();
+		return Instant.ofEpochMilli(ts);
 	}
 
 	private FundingRatePatch parseFundingRateInternal(String message) throws JsonProcessingException {
 		JsonNode root = mapper.readTree(message);
 		JsonNode data = parseDataNode(message);
 		if (data == null) return null;
-		String symbol = resolveSymbol(data);
+		String symbol = data.path("symbol").asText();
 		String coin = context.getSymbolInverse(symbol);
 		String fundingRate = data.path("fundingRate").asText();
 		String nextFunding = data.path("nextFundingTime").asText();
-		if ((fundingRate == null || fundingRate.isEmpty()) && (nextFunding == null || nextFunding.isEmpty())) {
+
+		boolean fundingProvided = fundingRate != null && !fundingRate.isEmpty();
+		boolean nextFundingProvided = nextFunding != null && !nextFunding.isEmpty();
+		if (!fundingProvided && !nextFundingProvided) {
 			return null;
 		}
 
 		return new FundingRatePatch(
 						coin,
-						isNullOrWhiteSpace(fundingRate) ? null : Double.parseDouble(fundingRate),
-						isNullOrWhiteSpace(nextFunding) ? null : Instant.ofEpochMilli(Long.parseLong(nextFunding)),
-						parseTimestamp(root, data)
+						fundingProvided ? Double.parseDouble(fundingRate) : null,
+						nextFundingProvided ? Instant.ofEpochMilli(Long.parseLong(nextFunding)) : null,
+						parseTimestamp(root)
 		);
 	}
 
@@ -76,18 +69,18 @@ public class BybitPublicMessageHandler extends PublicMessageHandler {
 		JsonNode root = mapper.readTree(message);
 		JsonNode data = parseDataNode(message);
 		if (data == null) return null;
-		String symbol = resolveSymbol(data);
+		String symbol = data.path("symbol").asText();
 		String coin = context.getSymbolInverse(symbol);
 		String markPrice = data.path("markPrice").asText();
 		if (markPrice == null || markPrice.isEmpty()) return null;
-		return new MarkPricePatch(coin, Double.parseDouble(markPrice), parseTimestamp(root, data));
+		return new MarkPricePatch(coin, Double.parseDouble(markPrice), parseTimestamp(root));
 	}
 
 	private BookTickerPatch parseBookTickerInternal(String message) throws JsonProcessingException {
 		JsonNode root = mapper.readTree(message);
 		JsonNode data = parseDataNode(message);
 		if (data == null) return null;
-		String symbol = resolveSymbol(data);
+		String symbol = data.path("symbol").asText();
 		String coin = context.getSymbolInverse(symbol);
 		String bidPr = data.path("bid1Price").asText();
 		String bidSz = data.path("bid1Size").asText();
@@ -96,7 +89,7 @@ public class BybitPublicMessageHandler extends PublicMessageHandler {
 		if (bidPr == null || bidPr.isEmpty() || askPr == null || askPr.isEmpty()) return null;
 		PriceLevel bestBid = new PriceLevel(Double.parseDouble(bidPr), Double.parseDouble(bidSz));
 		PriceLevel bestAsk = new PriceLevel(Double.parseDouble(askPr), Double.parseDouble(askSz));
-		return new BookTickerPatch(coin, bestBid, bestAsk, parseTimestamp(root, data));
+		return new BookTickerPatch(coin, bestBid, bestAsk, parseTimestamp(root));
 	}
 
 	private <T> T parseErrorHandled(JsonParsingFunction<T> parser, String message) {
