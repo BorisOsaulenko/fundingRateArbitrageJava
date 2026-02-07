@@ -22,7 +22,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.concurrent.CompletableFuture;
 
-public class KucoinPublicMessageHandler extends PublicMessageHandler {
+public class KucoinPublicMessageHandler implements PublicMessageHandler {
 	private static final String TICKER_TOPIC = "/contractMarket/tickerV2";
 	private static final String INSTRUMENT_TOPIC = "/contract/instrument";
 	private final ExchangeContext context;
@@ -72,12 +72,7 @@ public class KucoinPublicMessageHandler extends PublicMessageHandler {
 		Instant timestamp = KucoinJson.toInstantMillisOrNanos(ts);
 		String coin = context.getSymbolInverse(symbol);
 
-		return new BookTickerPatch(
-						coin,
-						new PriceLevel(bidPrice, bidSize),
-						new PriceLevel(askPrice, askSize),
-						timestamp
-		);
+		return new BookTickerPatch(coin, new PriceLevel(bidPrice, bidSize), new PriceLevel(askPrice, askSize), timestamp);
 	}
 
 	private MarkPricePatch parseMarkPriceInternal(String message) throws JsonProcessingException {

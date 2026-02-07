@@ -11,14 +11,11 @@ import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
-public class BinancePublicWsClient extends PublicWsClient<BinancePublicMessageHandler> {
+public class BinancePublicWsClient extends PublicWsClient {
 	private static final URI endpoint = URI.create("wss://fstream.binance.com/ws");
 	private static final AtomicInteger NEXT_ID = new AtomicInteger(1);
 
-	public BinancePublicWsClient(
-					ExchangeContext context,
-					BinancePublicMessageHandler messageHandler
-	) {
+	public BinancePublicWsClient(ExchangeContext context, BinancePublicMessageHandler messageHandler) {
 		super(context, endpoint, messageHandler);
 	}
 

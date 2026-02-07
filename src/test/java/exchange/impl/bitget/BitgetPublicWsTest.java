@@ -8,18 +8,14 @@ import com.boris.fundingarbitrage.exchange.impl.bitget.publicws.BitgetPublicWsCl
 import com.boris.fundingarbitrage.exchange.publicws.PublicWsClient;
 import exchange.PublicWsTest;
 
-public class BitgetPublicWsTest extends PublicWsTest<BitgetPublicMessageHandler> {
+public class BitgetPublicWsTest extends PublicWsTest {
 	private static final ExchangeContext context = new BitgetContext();
 	private static final BitgetPublicHttpClient client = new BitgetPublicHttpClient(context);
-	private static final BitgetPublicMessageHandler messageHandler = new BitgetPublicMessageHandler(context,
-					client
-	);
-	private static final PublicWsClient<BitgetPublicMessageHandler> publicWsClient = new BitgetPublicWsClient(context,
-					messageHandler
-	);
+	private static final BitgetPublicMessageHandler messageHandler = new BitgetPublicMessageHandler(context, client);
+	private static final PublicWsClient publicWsClient = new BitgetPublicWsClient(context, messageHandler);
 
 	@Override
-	protected PublicWsClient<BitgetPublicMessageHandler> publicWsClient() {
+	protected PublicWsClient publicWsClient() {
 		return publicWsClient;
 	}
 }

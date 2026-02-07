@@ -1,6 +1,7 @@
 package com.boris.fundingarbitrage.exchange.publicws;
 
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
+import com.boris.fundingarbitrage.exchange.publichttp.PublicHttpClient;
 import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
 import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
 import com.boris.fundingarbitrage.model.websocket.patch.GenericPublicWsPatch;
@@ -17,25 +18,34 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
-public abstract class PublicWsClient<T extends PublicMessageHandler> {
+public abstract class PublicWsClient {
 	protected final PrettyWsClient prettyWsClient; // protected for custom tweaks in subclasses
 	protected final ExchangeContext exchangeContext;
-	protected final T messageHandler;
-	private final CoinVector<Set<Consumer<FundingRatePatch>>> fundingRateHandlers = new CoinVector<>();
-	private final CoinVector<Set<Consumer<BookTickerPatch>>> bookTickerHandlers = new CoinVector<>();
-	private final CoinVector<Set<Consumer<MarkPricePatch>>> markPriceHandlers = new CoinVector<>();
+	protected final PublicMessageHandler messageHandler;
+	protected final PublicHttpClient publicHttpClient;
+	protected final CoinVector<Set<Consumer<FundingRatePatch>>> fundingRateHandlers = new CoinVector<>();
+	protected final CoinVector<Set<Consumer<BookTickerPatch>>> bookTickerHandlers = new CoinVector<>();
+	protected final CoinVector<Set<Consumer<MarkPricePatch>>> markPriceHandlers = new CoinVector<>();
 
-	protected PublicWsClient(ExchangeContext context, URI endpoint, T messageHandler) {
+	protected PublicWsClient(
+					ExchangeContext context,
+					URI endpoint,
+					PublicMessageHandler messageHandler,
+					PublicHttpClient publicHttp
+	) {
 		this.exchangeContext = context;
 		this.messageHandler = messageHandler;
+		this.publicHttpClient = publicHttp;
 		this.prettyWsClient = new PrettyWsClientBuilder(endpoint, this::handleMessage).build();
 	}
 
-	protected PublicWsClient(PublicWsClient<T> client) {
+	protected PublicWsClient(PublicWsClient client) {
 		this.exchangeContext = client.exchangeContext;
 		this.messageHandler = client.messageHandler;
 		this.prettyWsClient = client.prettyWsClient;
+		this.publicHttpClient = client.publicHttpClient;
 	}
 
 	public void close() {
@@ -89,17 +99,11 @@ public abstract class PublicWsClient<T extends PublicMessageHandler> {
 		if (!removedSymbols.isEmpty()) unsubscribeAction.accept(removedSymbols.toArray(new String[0]));
 	}
 
-	public final void subscribeFundingRates(
-					String[] coins,
-					Consumer<@NonNull FundingRatePatch> handler
-	) {
+	public final void subscribeFundingRates(String[] coins, Consumer<@NonNull FundingRatePatch> handler) {
 		subscribe(coins, fundingRateHandlers, handler, this::sendSubscribeFundingRateFrame);
 	}
 
-	public final void subscribeFundingRates(
-					String coin,
-					Consumer<@NonNull FundingRatePatch> handler
-	) {
+	public final void subscribeFundingRates(String coin, Consumer<@NonNull FundingRatePatch> handler) {
 		subscribeFundingRates(new String[]{coin}, handler);
 	}
 
@@ -111,10 +115,7 @@ public abstract class PublicWsClient<T extends PublicMessageHandler> {
 		unsubscribeFundingRates(new String[]{coin});
 	}
 
-	public final void subscribeBookTicker(
-					String[] coins,
-					Consumer<@NonNull BookTickerPatch> handler
-	) {
+	public final void subscribeBookTicker(String[] coins, Consumer<@NonNull BookTickerPatch> handler) {
 		subscribe(coins, bookTickerHandlers, handler, this::sendSubscribeBookTickerFrame);
 	}
 
@@ -146,9 +147,9 @@ public abstract class PublicWsClient<T extends PublicMessageHandler> {
 		unsubscribeMarkPrice(new String[]{coin});
 	}
 
-	private <R extends GenericPublicWsPatch> void dispatchPatchToHandlers(
+	protected <R extends GenericPublicWsPatch> void dispatchPatchToHandlers(
 					R patch,
-					Map<String, Set<Consumer<R>>> handlersMap
+					CoinVector<Set<Consumer<R>>> handlersMap
 	) {
 		if (patch == null) return;
 
@@ -160,22 +161,46 @@ public abstract class PublicWsClient<T extends PublicMessageHandler> {
 		}
 	}
 
-	private void handleMessage(String message) {
-		dispatchPatchToHandlers(
-						messageHandler.parseBookTickerMessageSymbol(message),
-						bookTickerHandlers
-		);
-		dispatchPatchToHandlers(messageHandler.parseMarkPriceMessageSymbol(message), markPriceHandlers);
-		dispatchPatchToHandlers(
-						messageHandler.parseFundingRateMessageSymbol(message),
-						fundingRateHandlers
-		);
+	protected void handleBookTickerPatch(@NonNull BookTickerPatch patch) {
+		dispatchPatchToHandlers(patch, bookTickerHandlers);
+	}
 
+	protected void handleMarkPricePatch(@NonNull MarkPricePatch patch) {
+		dispatchPatchToHandlers(patch, markPriceHandlers);
+	}
+
+	protected void handleFundingRatePatch(@NonNull FundingRatePatch patch) {
+		dispatchPatchToHandlers(patch, fundingRateHandlers);
+	}
+
+	protected void handlePingMessage(String message) {
 		String pingResponse = messageHandler.getResponseToPingMessage(message);
 		if (pingResponse != null) {
 			this.prettyWsClient.sendMessage(pingResponse);
 		}
 	}
+
+	private <T extends GenericPublicWsPatch> boolean tryHandle(
+					String message,
+					Function<String, T> parser,
+					Consumer<T> handler
+	) {
+		T patch = parser.apply(message);
+		if (patch == null) return false;
+		handler.accept(patch);
+		return true;
+	}
+
+	private void handleMessage(String message) {
+		if (message == null || message.isEmpty()) return;
+
+		if (tryHandle(message, messageHandler::parseBookTickerMessageSymbol, this::handleBookTickerPatch)) return;
+		if (tryHandle(message, messageHandler::parseMarkPriceMessageSymbol, this::handleMarkPricePatch)) return;
+		if (tryHandle(message, messageHandler::parseFundingRateMessageSymbol, this::handleFundingRatePatch)) return;
+
+		handlePingMessage(message);
+	}
+
 
 	public void unsubscribeSymbol(String symbol) {
 		unsubscribeBookTicker(symbol);

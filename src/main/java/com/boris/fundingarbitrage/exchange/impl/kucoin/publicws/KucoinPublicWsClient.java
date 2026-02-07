@@ -4,7 +4,7 @@ import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.impl.kucoin.KucoinWsTokenProvider;
 import com.boris.fundingarbitrage.exchange.impl.kucoin.ws.pojos.WsRequest;
 import com.boris.fundingarbitrage.exchange.publicws.PublicWsClient;
-import com.boris.fundingarbitrage.util.wss.publicmessagehandler.FundingSettlementViaRest;
+import com.boris.fundingarbitrage.util.wss.publicws.FundingSettlementViaRest;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -12,7 +12,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-public class KucoinPublicWsClient extends PublicWsClient<FundingSettlementViaRest<KucoinPublicMessageHandler>> {
+public class KucoinPublicWsClient extends PublicWsClient {
 	private final ScheduledExecutorService pingExecutor = Executors.newSingleThreadScheduledExecutor();
 
 	public KucoinPublicWsClient(ExchangeContext context, KucoinPublicMessageHandler messageHandler) {

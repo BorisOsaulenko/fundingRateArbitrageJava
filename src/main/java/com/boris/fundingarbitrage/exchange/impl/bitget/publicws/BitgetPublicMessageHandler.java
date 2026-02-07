@@ -18,7 +18,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.time.Instant;
 
-public class BitgetPublicMessageHandler extends PublicMessageHandler {
+public class BitgetPublicMessageHandler implements PublicMessageHandler {
 	private final ExchangeContext context;
 	private final ObjectMapper mapper = ObjectMapperSingleton.getInstance();
 

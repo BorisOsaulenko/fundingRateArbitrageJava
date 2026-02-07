@@ -8,18 +8,17 @@ import com.boris.fundingarbitrage.exchange.impl.bybit.publicws.BybitPublicWsClie
 import com.boris.fundingarbitrage.exchange.publicws.PublicWsClient;
 import exchange.PublicWsTest;
 
-public class BybitPublicWsTest extends PublicWsTest<BybitPublicMessageHandler> {
+public class BybitPublicWsTest extends PublicWsTest {
 	private static final ExchangeContext context = new BybitContext();
 	private static final BybitPublicHttpClient publicHttpClient = new BybitPublicHttpClient(context);
-	private static final BybitPublicMessageHandler messageHandler = new BybitPublicMessageHandler(context,
+	private static final BybitPublicMessageHandler messageHandler = new BybitPublicMessageHandler(
+					context,
 					publicHttpClient
 	);
-	private static final PublicWsClient<BybitPublicMessageHandler> publicClient = new BybitPublicWsClient(context,
-					messageHandler
-	);
+	private static final PublicWsClient publicClient = new BybitPublicWsClient(context, messageHandler);
 
 	@Override
-	protected PublicWsClient<BybitPublicMessageHandler> publicWsClient() {
+	protected PublicWsClient publicWsClient() {
 		return publicClient;
 	}
 }

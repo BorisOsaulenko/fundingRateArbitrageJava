@@ -1,6 +1,5 @@
 package exchange;
 
-import com.boris.fundingarbitrage.exchange.publicws.PublicMessageHandler;
 import com.boris.fundingarbitrage.exchange.publicws.PublicWsClient;
 import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
 import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
@@ -16,7 +15,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 @Tag("integration")
-public abstract class PublicWsTest<T extends PublicMessageHandler> {
+public abstract class PublicWsTest {
 	private static final String[] COINS = {"SOL"};
 	private static final Duration WAIT_TIMEOUT = Duration.ofSeconds(180);
 	private static final int MIN_MESSAGES_PER_STREAM = 3;
@@ -29,7 +28,7 @@ public abstract class PublicWsTest<T extends PublicMessageHandler> {
 
 	private CompletableFuture<Void> waitingFuture;
 
-	protected abstract PublicWsClient<T> publicWsClient();
+	protected abstract PublicWsClient publicWsClient();
 
 	private void initializeMessageCounts() {
 		for (String coin : COINS) {
@@ -44,9 +43,7 @@ public abstract class PublicWsTest<T extends PublicMessageHandler> {
 						.filter((Integer value) -> value < MIN_MESSAGES_PER_STREAM)
 						.isEmpty() && fundingRateMessageCounts
 						.filter((Integer value) -> value < MIN_MESSAGES_PER_STREAM)
-						.isEmpty() && markPriceMessageCounts
-						.filter((Integer value) -> value < MIN_MESSAGES_PER_STREAM)
-						.isEmpty()) {
+						.isEmpty() && markPriceMessageCounts.filter((Integer value) -> value < MIN_MESSAGES_PER_STREAM).isEmpty()) {
 			this.waitingFuture.complete(null);
 		}
 	}
@@ -145,11 +142,9 @@ public abstract class PublicWsTest<T extends PublicMessageHandler> {
 		}
 
 		if (!allStreamsReceived) {
-			Logger
-							.error("Did not receive minimum messages for all streams within timeout. Counts: ");
+			Logger.error("Did not receive minimum messages for all streams within timeout. Counts: ");
 		} else if (!allFieldsPresent) {
-			Logger
-							.error("Did not receive complete patch fields for all streams within timeout.");
+			Logger.error("Did not receive complete patch fields for all streams within timeout.");
 		} else {
 			publicWsClient().close();
 			return;
@@ -166,7 +161,6 @@ public abstract class PublicWsTest<T extends PublicMessageHandler> {
 		Logger.log("Mark Price: ");
 		Logger.logCoinVector(markPriceMessageCounts);
 		Logger.logCoinVector(latestMarkPricePatches);
-		throw new Exception(
-						"Test failed due to insufficient messages or incomplete patch data. See logs for details.");
+		throw new Exception("Test failed due to insufficient messages or incomplete patch data. See logs for details.");
 	}
 }

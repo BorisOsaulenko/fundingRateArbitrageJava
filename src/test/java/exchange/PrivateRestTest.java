@@ -46,9 +46,7 @@ public abstract class PrivateRestTest {
 		Instant now = Instant.now();
 		assertTrue(
 						Duration.between(fees.timestamp(), now).compareTo(timestampTolerance) < 0,
-						"Fees timestamp should be recent. Difference: " + Duration
-										.between(fees.timestamp(), now)
-										.toMillis() + " ms"
+						"Fees timestamp should be recent. Difference: " + Duration.between(fees.timestamp(), now).toMillis() + " ms"
 		);
 	}
 
@@ -78,7 +76,7 @@ public abstract class PrivateRestTest {
 
 	@Test
 	public void setMarginModeTest() throws Exception {
-		MarginMode marginMode = MarginMode.ISOLATED;
+		MarginMode marginMode = MarginMode.CROSS;
 		assertTimeout(
 						Duration.ofSeconds(5),
 						() -> privateRest().setMarginMode(testCoin, marginMode).get(),
@@ -98,25 +96,15 @@ public abstract class PrivateRestTest {
 		assertNotNull(chains, "Exchange chains should not be null");
 		assertNotNull(chains.depositableChains(), "Depositable chains should not be null");
 		assertNotNull(chains.withdrawableChains(), "Withdrawable chains should not be null");
-		assertFalse(
-						chains.depositableChains().isEmpty(),
-						"There should be at least one depositable chain"
-		);
-		assertFalse(
-						chains.withdrawableChains().isEmpty(),
-						"There should be at least one withdrawable chain"
-		);
+		assertFalse(chains.depositableChains().isEmpty(), "There should be at least one depositable chain");
+		assertFalse(chains.withdrawableChains().isEmpty(), "There should be at least one withdrawable chain");
 	}
 
 	@Test
 	public void getUsdtWalletAddressTest() throws Exception {
 		WalletAddress address = getWithTimeout(privateRest().getUsdtWalletAddress(SupportedChain.ERC)); // ERC is everywhere
 		assertNotNull(address, "Wallet address should not be null");
-		assertEquals(
-						SupportedChain.ERC,
-						address.chain(),
-						"Wallet address chain should match requested chain"
-		);
+		assertEquals(SupportedChain.ERC, address.chain(), "Wallet address chain should match requested chain");
 		assertNotNull(address.address(), "Wallet address string should not be null");
 		Logger.log(address.address());
 		assertTrue(address.address().length() > 15, "Wallet address should have a valid length");

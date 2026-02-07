@@ -20,14 +20,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.time.Instant;
 
-public class BinancePublicMessageHandler extends PublicMessageHandler {
+public class BinancePublicMessageHandler implements PublicMessageHandler {
 	private final ExchangeContext context;
 	private final ObjectMapper jsonMapper = ObjectMapperSingleton.getInstance();
 
-	public BinancePublicMessageHandler(
-					ExchangeContext exchangeContext,
-					PublicHttpClient publicHttpClient
-	) {
+	public BinancePublicMessageHandler(ExchangeContext exchangeContext, PublicHttpClient publicHttpClient) {
 		super(publicHttpClient);
 		this.context = exchangeContext;
 	}

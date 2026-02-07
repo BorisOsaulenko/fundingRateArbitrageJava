@@ -3,11 +3,11 @@ package com.boris.fundingarbitrage.exchange.impl.gate.publicws;
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.impl.gate.publicws.pojos.WsRequest;
 import com.boris.fundingarbitrage.exchange.publicws.PublicWsClient;
-import com.boris.fundingarbitrage.util.wss.publicmessagehandler.FundingSettlementViaRest;
+import com.boris.fundingarbitrage.util.wss.publicws.FundingSettlementViaRest;
 
 import java.net.URI;
 
-public class GatePublicWsClient extends PublicWsClient<FundingSettlementViaRest<GatePublicMessageHandler>> {
+public class GatePublicWsClient extends PublicWsClient {
 	private static final URI endpoint = URI.create("wss://fx-ws.gateio.ws/v4/ws/usdt");
 	private final ExchangeContext context;
 
@@ -28,10 +28,6 @@ public class GatePublicWsClient extends PublicWsClient<FundingSettlementViaRest<
 	@Override
 	protected void sendSubscribeFundingRateFrame(String[] symbols) {
 		sendSubscribeFrame("futures.tickers", symbols);
-		for (String symbol : symbols) {
-			String coin = context.getSymbolInverse(symbol);
-			this.messageHandler.updateFundingSettlementForCoin(coin);
-		}
 	}
 
 	@Override

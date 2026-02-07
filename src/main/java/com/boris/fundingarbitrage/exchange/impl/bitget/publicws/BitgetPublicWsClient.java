@@ -6,7 +6,7 @@ import com.boris.fundingarbitrage.exchange.publicws.PublicWsClient;
 
 import java.net.URI;
 
-public class BitgetPublicWsClient extends PublicWsClient<BitgetPublicMessageHandler> {
+public class BitgetPublicWsClient extends PublicWsClient {
 	private static final URI endpoint = URI.create("wss://ws.bitget.com/v2/ws/public");
 	private static final String instType = "USDT-FUTURES";
 	private static final String tickerChannel = "ticker";

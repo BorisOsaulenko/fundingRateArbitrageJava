@@ -5,16 +5,28 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="b9df00b4-30ed-4e30-b4d9-bb2bc91a4ba3" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/util/wss/publicmessagehandler/FundingSettlementViaRest.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/test/java/exchange/impl/kucoin/KucoinPrivateRestTest.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/test/java/exchange/impl/kucoin/KucoinPublicRestTest.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/test/java/exchange/impl/kucoin/KucoinPublicWsTest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/util/wss/publicws/FullFundingViaRest.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/App.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/App.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/binance/publicws/BinancePublicMessageHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/binance/publicws/BinancePublicMessageHandler.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/binance/publicws/BinancePublicWsClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/binance/publicws/BinancePublicWsClient.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bitget/publicws/BitgetPublicMessageHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bitget/publicws/BitgetPublicMessageHandler.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bitget/publicws/BitgetPublicWsClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bitget/publicws/BitgetPublicWsClient.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bybit/publicws/BybitPublicMessageHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bybit/publicws/BybitPublicMessageHandler.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bybit/publicws/BybitPublicWsClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bybit/publicws/BybitPublicWsClient.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/gate/publicws/GatePublicMessageHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/gate/publicws/GatePublicMessageHandler.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/gate/publicws/GatePublicWsClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/gate/publicws/GatePublicWsClient.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/kucoin/publicws/KucoinPublicMessageHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/kucoin/publicws/KucoinPublicMessageHandler.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/kucoin/publicws/KucoinPublicWsClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/kucoin/publicws/KucoinPublicWsClient.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/publicws/PublicMessageHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/publicws/PublicMessageHandler.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/publicws/PublicWsClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/publicws/PublicWsClient.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/util/wss/publicmessagehandler/FundingSettlementViaRest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/util/wss/publicws/FundingSettlementViaRest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/exchange/PrivateRestTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/exchange/PrivateRestTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/exchange/PublicWsTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/exchange/PublicWsTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/exchange/impl/binance/BinancePublicWsTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/exchange/impl/binance/BinancePublicWsTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/exchange/impl/bitget/BitgetPublicWsTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/exchange/impl/bitget/BitgetPublicWsTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/exchange/impl/bybit/BybitPublicWsTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/exchange/impl/bybit/BybitPublicWsTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/exchange/impl/gate/GatePublicWsTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/exchange/impl/gate/GatePublicWsTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/exchange/impl/kucoin/KucoinPublicWsTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/exchange/impl/kucoin/KucoinPublicWsTest.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -94,76 +106,79 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ASKED_SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
-    &quot;Gradle.Build FundingArbitrage.executor&quot;: &quot;Run&quot;,
-    &quot;Gradle.Download Sources.executor&quot;: &quot;Run&quot;,
-    &quot;Gradle.FundingArbitrage [:com.boris.fundingarbitrage.App.main()].executor&quot;: &quot;Run&quot;,
-    &quot;Gradle.PrivateRestTest.executor&quot;: &quot;Run&quot;,
-    &quot;Gradle.PublicRest.executor&quot;: &quot;Run&quot;,
-    &quot;Gradle.PublicRest.getLotSize.executor&quot;: &quot;Run&quot;,
-    &quot;Gradle.PublicRestTest.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.BinancePrivateRestTest and 2 more.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.BinancePrivateRestTest and 3 more.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.BinancePrivateRestTest.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.BinancePublicRestTest and 2 more.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.BinancePublicRestTest and 3 more.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.BinancePublicRestTest.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.BinancePublicWsTest and 2 more.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.BinancePublicWsTest and 3 more.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.BinancePublicWsTest.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.BitgetPrivateRestTest.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.BitgetPublicRestTest.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.BitgetPublicWsTest.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.BybitPrivateRestTest.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.BybitPublicRestTest.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.BybitPublicWsTest.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.GatePrivateRestTest.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.GatePublicRestTest.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.GatePublicRestTest.getTradingVolume24h.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.GatePublicWsTest.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.KucoinPrivateRestTest.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.KucoinPublicRestTest.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.KucoinPublicWsTest.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.PrivateRestTest.changeLeverage.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.PrivateRestTest.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.PrivateRestTest.getTradingFees.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.PrivateRestTest.setMarginMode.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.PublicRestTest.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.PublicWsClientTest.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.PublicWsClientTest.testPublicWsClientSubscriptions.executor&quot;: &quot;Run&quot;,
-    &quot;Java Scratch.Scratch.executor&quot;: &quot;Run&quot;,
-    &quot;Java Scratch.ScratchTyrusWs.executor&quot;: &quot;Run&quot;,
-    &quot;Java Scratch.SimpleGetExample.executor&quot;: &quot;Run&quot;,
-    &quot;Java Scratch.com.boris.fundingarbitrage.util.logger.SimpleGetExample.executor&quot;: &quot;Run&quot;,
-    &quot;Java Scratch.com.example.httpclient.SimpleGetExample.executor&quot;: &quot;Run&quot;,
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.MCP Project settings loaded&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;SHELLCHECK.PATH&quot;: &quot;/Users/borisosaulenko/Library/Application Support/JetBrains/IntelliJIdea2025.3/plugins/Shell Script/shellcheck&quot;,
-    &quot;code.cleanup.on.save&quot;: &quot;true&quot;,
-    &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;kucoin&quot;,
-    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
-    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
-    &quot;project.structure.last.edited&quot;: &quot;Modules&quot;,
-    &quot;project.structure.proportion&quot;: &quot;0.0&quot;,
-    &quot;project.structure.side.proportion&quot;: &quot;0.2&quot;,
-    &quot;rearrange.code.on.save&quot;: &quot;true&quot;,
-    &quot;run.code.analysis.last.selected.profile&quot;: &quot;pProject Default&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.sourceCode.JAVA&quot;,
-    &quot;settings.editor.splitter.proportion&quot;: &quot;0.2029187&quot;,
-    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "Gradle.Build FundingArbitrage.executor": "Run",
+    "Gradle.Download Sources.executor": "Run",
+    "Gradle.FundingArbitrage [:com.boris.fundingarbitrage.App.main()].executor": "Run",
+    "Gradle.PrivateRestTest.executor": "Run",
+    "Gradle.PublicRest.executor": "Run",
+    "Gradle.PublicRest.getLotSize.executor": "Run",
+    "Gradle.PublicRestTest.executor": "Run",
+    "JUnit.BinancePrivateRestTest and 2 more.executor": "Run",
+    "JUnit.BinancePrivateRestTest and 3 more.executor": "Run",
+    "JUnit.BinancePrivateRestTest and 4 more.executor": "Run",
+    "JUnit.BinancePrivateRestTest.executor": "Run",
+    "JUnit.BinancePublicRestTest and 2 more.executor": "Run",
+    "JUnit.BinancePublicRestTest and 3 more.executor": "Run",
+    "JUnit.BinancePublicRestTest and 4 more.executor": "Run",
+    "JUnit.BinancePublicRestTest.executor": "Run",
+    "JUnit.BinancePublicWsTest and 2 more.executor": "Run",
+    "JUnit.BinancePublicWsTest and 3 more.executor": "Run",
+    "JUnit.BinancePublicWsTest and 4 more.executor": "Run",
+    "JUnit.BinancePublicWsTest.executor": "Run",
+    "JUnit.BitgetPrivateRestTest.executor": "Run",
+    "JUnit.BitgetPublicRestTest.executor": "Run",
+    "JUnit.BitgetPublicWsTest.executor": "Run",
+    "JUnit.BybitPrivateRestTest.executor": "Run",
+    "JUnit.BybitPublicRestTest.executor": "Run",
+    "JUnit.BybitPublicWsTest.executor": "Run",
+    "JUnit.GatePrivateRestTest.executor": "Run",
+    "JUnit.GatePublicRestTest.executor": "Run",
+    "JUnit.GatePublicRestTest.getTradingVolume24h.executor": "Run",
+    "JUnit.GatePublicWsTest.executor": "Run",
+    "JUnit.KucoinPrivateRestTest.executor": "Run",
+    "JUnit.KucoinPublicRestTest.executor": "Run",
+    "JUnit.KucoinPublicWsTest.executor": "Run",
+    "JUnit.PrivateRestTest.changeLeverage.executor": "Run",
+    "JUnit.PrivateRestTest.executor": "Run",
+    "JUnit.PrivateRestTest.getTradingFees.executor": "Run",
+    "JUnit.PrivateRestTest.setMarginMode.executor": "Run",
+    "JUnit.PublicRestTest.executor": "Run",
+    "JUnit.PublicWsClientTest.executor": "Run",
+    "JUnit.PublicWsClientTest.testPublicWsClientSubscriptions.executor": "Run",
+    "Java Scratch.Scratch.executor": "Run",
+    "Java Scratch.ScratchTyrusWs.executor": "Run",
+    "Java Scratch.SimpleGetExample.executor": "Run",
+    "Java Scratch.com.boris.fundingarbitrage.util.logger.SimpleGetExample.executor": "Run",
+    "Java Scratch.com.example.httpclient.SimpleGetExample.executor": "Run",
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.MCP Project settings loaded": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "SHELLCHECK.PATH": "/Users/borisosaulenko/Library/Application Support/JetBrains/IntelliJIdea2025.3/plugins/Shell Script/shellcheck",
+    "code.cleanup.on.save": "true",
+    "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
+    "git-widget-placeholder": "cleanup",
+    "junie.onboarding.icon.badge.shown": "true",
+    "kotlin-language-version-configured": "true",
+    "project.structure.last.edited": "Modules",
+    "project.structure.proportion": "0.0",
+    "project.structure.side.proportion": "0.2",
+    "rearrange.code.on.save": "true",
+    "run.code.analysis.last.selected.profile": "pProject Default",
+    "settings.editor.selected.configurable": "preferences.sourceCode.JAVA",
+    "settings.editor.splitter.proportion": "0.2029187",
+    "to.speed.mode.migration.done": "true"
   },
-  &quot;keyToStringList&quot;: {
-    &quot;com.intellij.ide.scratch.ScratchImplUtil$2/New Scratch File&quot;: [
-      &quot;JAVA&quot;
+  "keyToStringList": {
+    "com.intellij.ide.scratch.ScratchImplUtil$2/New Scratch File": [
+      "JAVA"
     ]
   }
-}</component>
+}]]></component>
   <component name="RecapUselessUpdatesCounter">
     <option name="suspendCountdown" value="0" />
   </component>
@@ -173,36 +188,15 @@
       <recent name="$PROJECT_DIR$/src" />
       <recent name="$PROJECT_DIR$/config/checkstyle" />
     </key>
+    <key name="ExtractSuperBase.RECENT_KEYS">
+      <recent name="com.boris.fundingarbitrage.exchange.publicws" />
+    </key>
     <key name="K2MoveDeclarationsDialog.RECENT_PACKAGE_KEY">
       <recent name="com.boris.fundingarbitrage.coinvector" />
       <recent name="com.boris.fundingarbitrage" />
     </key>
   </component>
-  <component name="RunManager" selected="JUnit.KucoinPublicWsTest">
-    <configuration name="App" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
-      <option name="MAIN_CLASS_NAME" value="com.boris.fundingarbitrage.App" />
-      <module name="FundingArbitrage.main" />
-      <extension name="coverage">
-        <pattern>
-          <option name="PATTERN" value="com.boris.fundingarbitrage.*" />
-          <option name="ENABLED" value="true" />
-        </pattern>
-      </extension>
-      <extension name="net.ashald.envfile">
-        <option name="IS_ENABLED" value="true" />
-        <option name="IS_SUBST" value="false" />
-        <option name="IS_PATH_MACRO_SUPPORTED" value="false" />
-        <option name="IS_IGNORE_MISSING_FILES" value="false" />
-        <option name="IS_ENABLE_EXPERIMENTAL_INTEGRATIONS" value="false" />
-        <ENTRIES>
-          <ENTRY IS_ENABLED="true" PARSER="runconfig" IS_EXECUTABLE="false" />
-          <ENTRY IS_ENABLED="true" PARSER="env" IS_EXECUTABLE="false" PATH="$USER_HOME$/Documents/Finances/env" />
-        </ENTRIES>
-      </extension>
-      <method v="2">
-        <option name="Make" enabled="true" />
-      </method>
-    </configuration>
+  <component name="RunManager" selected="JUnit.BinancePublicWsTest and 4 more">
     <configuration name="FundingArbitrage" type="GradleRunConfiguration" factoryName="Gradle" nameIsGenerated="true">
       <ExternalSystemSettings>
         <option name="executionName" />
@@ -226,7 +220,7 @@
       <GradleCoverageDisabled>false</GradleCoverageDisabled>
       <method v="2" />
     </configuration>
-    <configuration name="BinancePrivateRestTest and 3 more" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+    <configuration name="BinancePrivateRestTest and 4 more" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
       <module name="FundingArbitrage.test" />
       <extension name="coverage">
         <pattern>
@@ -254,16 +248,17 @@
         <pattern testClass="exchange.impl.bitget.BitgetPrivateRestTest" />
         <pattern testClass="exchange.impl.bybit.BybitPrivateRestTest" />
         <pattern testClass="exchange.impl.gate.GatePrivateRestTest" />
+        <pattern testClass="exchange.impl.kucoin.KucoinPrivateRestTest" />
       </patterns>
       <method v="2">
         <option name="Make" enabled="true" />
       </method>
     </configuration>
-    <configuration name="KucoinPrivateRestTest" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+    <configuration name="BinancePublicRestTest and 4 more" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
       <module name="FundingArbitrage.test" />
       <extension name="coverage">
         <pattern>
-          <option name="PATTERN" value="exchange.impl.kucoin.*" />
+          <option name="PATTERN" value="exchange.*" />
           <option name="ENABLED" value="true" />
         </pattern>
       </extension>
@@ -278,10 +273,51 @@
           <ENTRY IS_ENABLED="true" PARSER="env" IS_EXECUTABLE="false" PATH="$USER_HOME$/Documents/Finances/env" />
         </ENTRIES>
       </extension>
-      <option name="PACKAGE_NAME" value="exchange.impl.kucoin" />
-      <option name="MAIN_CLASS_NAME" value="exchange.impl.kucoin.KucoinPrivateRestTest" />
+      <option name="PACKAGE_NAME" value="exchange" />
+      <option name="MAIN_CLASS_NAME" value="exchange.PublicRestTest" />
       <option name="METHOD_NAME" value="" />
-      <option name="TEST_OBJECT" value="class" />
+      <option name="TEST_OBJECT" value="pattern" />
+      <patterns>
+        <pattern testClass="exchange.impl.binance.BinancePublicRestTest" />
+        <pattern testClass="exchange.impl.bitget.BitgetPublicRestTest" />
+        <pattern testClass="exchange.impl.bybit.BybitPublicRestTest" />
+        <pattern testClass="exchange.impl.gate.GatePublicRestTest" />
+        <pattern testClass="exchange.impl.kucoin.KucoinPublicRestTest" />
+      </patterns>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="BinancePublicWsTest and 4 more" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="FundingArbitrage.test" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="exchange.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <extension name="net.ashald.envfile">
+        <option name="IS_ENABLED" value="true" />
+        <option name="IS_SUBST" value="false" />
+        <option name="IS_PATH_MACRO_SUPPORTED" value="false" />
+        <option name="IS_IGNORE_MISSING_FILES" value="false" />
+        <option name="IS_ENABLE_EXPERIMENTAL_INTEGRATIONS" value="false" />
+        <ENTRIES>
+          <ENTRY IS_ENABLED="true" PARSER="runconfig" IS_EXECUTABLE="false" />
+          <ENTRY IS_ENABLED="true" PARSER="env" IS_EXECUTABLE="false" PATH="$USER_HOME$/Documents/Finances/env" />
+        </ENTRIES>
+      </extension>
+      <option name="PACKAGE_NAME" value="exchange" />
+      <option name="MAIN_CLASS_NAME" value="exchange.PublicWsTest" />
+      <option name="METHOD_NAME" value="" />
+      <option name="TEST_OBJECT" value="pattern" />
+      <patterns>
+        <pattern testClass="exchange.impl.binance.BinancePublicWsTest" />
+        <pattern testClass="exchange.impl.bitget.BitgetPublicWsTest" />
+        <pattern testClass="exchange.impl.bybit.BybitPublicWsTest" />
+        <pattern testClass="exchange.impl.gate.GatePublicWsTest" />
+        <pattern testClass="exchange.impl.kucoin.KucoinPublicWsTest" />
+      </patterns>
       <method v="2">
         <option name="Make" enabled="true" />
       </method>
@@ -370,21 +406,21 @@
       </method>
     </configuration>
     <list>
-      <item itemvalue="Application.App" />
       <item itemvalue="Gradle.FundingArbitrage" />
       <item itemvalue="Java Scratch.ScratchTyrusWs" />
-      <item itemvalue="JUnit.BinancePrivateRestTest and 3 more" />
-      <item itemvalue="JUnit.KucoinPrivateRestTest" />
+      <item itemvalue="JUnit.BinancePrivateRestTest and 4 more" />
+      <item itemvalue="JUnit.BinancePublicRestTest and 4 more" />
+      <item itemvalue="JUnit.BinancePublicWsTest and 4 more" />
       <item itemvalue="JUnit.KucoinPublicRestTest" />
       <item itemvalue="JUnit.KucoinPublicWsTest" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="JUnit.BinancePublicWsTest and 4 more" />
+        <item itemvalue="JUnit.BinancePublicRestTest and 4 more" />
+        <item itemvalue="JUnit.BinancePrivateRestTest and 4 more" />
+        <item itemvalue="JUnit.BinancePrivateRestTest and 4 more" />
         <item itemvalue="JUnit.KucoinPublicWsTest" />
-        <item itemvalue="Application.App" />
-        <item itemvalue="JUnit.KucoinPrivateRestTest" />
-        <item itemvalue="JUnit.KucoinPublicRestTest" />
-        <item itemvalue="JUnit.BinancePrivateRestTest and 3 more" />
       </list>
     </recent_temporary>
   </component>

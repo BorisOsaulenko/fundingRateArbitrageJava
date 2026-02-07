@@ -19,7 +19,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.Arrays;
 
-public class GatePublicMessageHandler extends PublicMessageHandler {
+public class GatePublicMessageHandler implements PublicMessageHandler {
 	private final ExchangeContext context;
 	private final ObjectMapper mapper = ObjectMapperSingleton.getInstance();
 
