@@ -11,11 +11,8 @@ import exchange.PublicWsTest;
 public class GatePublicWsTest extends PublicWsTest {
 	private static final ExchangeContext context = new GateContext();
 	private static final GatePublicHttpClient publicHttpClient = new GatePublicHttpClient(context);
-	private static final GatePublicMessageHandler messageHandler = new GatePublicMessageHandler(
-					context,
-					publicHttpClient
-	);
-	private static final PublicWsClient client = new GatePublicWsClient(context, messageHandler);
+	private static final GatePublicMessageHandler messageHandler = new GatePublicMessageHandler(context);
+	private static final PublicWsClient client = new GatePublicWsClient(context, messageHandler, publicHttpClient);
 
 	@Override
 	protected PublicWsClient publicWsClient() {

@@ -11,11 +11,8 @@ import exchange.PublicWsTest;
 public class BybitPublicWsTest extends PublicWsTest {
 	private static final ExchangeContext context = new BybitContext();
 	private static final BybitPublicHttpClient publicHttpClient = new BybitPublicHttpClient(context);
-	private static final BybitPublicMessageHandler messageHandler = new BybitPublicMessageHandler(
-					context,
-					publicHttpClient
-	);
-	private static final PublicWsClient publicClient = new BybitPublicWsClient(context, messageHandler);
+	private static final BybitPublicMessageHandler messageHandler = new BybitPublicMessageHandler(context);
+	private static final PublicWsClient publicClient = new BybitPublicWsClient(context, messageHandler, publicHttpClient);
 
 	@Override
 	protected PublicWsClient publicWsClient() {

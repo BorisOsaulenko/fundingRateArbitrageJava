@@ -1,15 +1,15 @@
-package com.boris.fundingarbitrage.exchange.impl.kucoin;
+package com.boris.fundingarbitrage.util.json;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
 import java.time.Instant;
 
-public final class KucoinJson {
-	private KucoinJson() {}
+public final class Json {
+	private Json() {}
 
-	public static void requireCodeOk(String code, String msg) {
-		if (!"200000".equals(code)) {
-			throw new IllegalStateException("KuCoin API error: " + code + (msg == null ? "" : (" " + msg)));
+	public static void requireCodeOk(String code, String expected, String msg) {
+		if (!expected.equals(code)) {
+			throw new IllegalStateException("Error code: " + code + ", message: " + msg);
 		}
 	}
 

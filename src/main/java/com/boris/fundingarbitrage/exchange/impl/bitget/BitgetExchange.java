@@ -11,13 +11,11 @@ public class BitgetExchange extends BaseExchange {
 	private static final BitgetContext context = new BitgetContext();
 	private static final BitgetPrivateWsClient privateWs = new BitgetPrivateWsClient(context);
 	private static final BitgetPublicHttpClient publicHttp = new BitgetPublicHttpClient(context);
-	private static final BitgetPublicMessageHandler publicMessageHandler = new BitgetPublicMessageHandler(
-					context,
-					publicHttp
-	);
+	private static final BitgetPublicMessageHandler publicMessageHandler = new BitgetPublicMessageHandler(context);
 	private static final BitgetPublicWsClient publicWs = new BitgetPublicWsClient(
 					context,
-					publicMessageHandler
+					publicMessageHandler,
+					publicHttp
 	);
 	private static final BitgetPrivateHttpClient privateHttp = new BitgetPrivateHttpClient(context);
 

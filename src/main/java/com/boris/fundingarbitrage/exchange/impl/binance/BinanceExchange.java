@@ -12,13 +12,11 @@ public class BinanceExchange extends BaseExchange {
 
 	private static final BinancePrivateWsClient privateWs = new BinancePrivateWsClient(context);
 	private static final BinancePublicHttpClient publicHttp = new BinancePublicHttpClient(context);
-	private static final BinancePublicMessageHandler publicMessageHandler = new BinancePublicMessageHandler(
-					context,
-					publicHttp
-	);
+	private static final BinancePublicMessageHandler publicMessageHandler = new BinancePublicMessageHandler(context);
 	private static final BinancePublicWsClient publicWs = new BinancePublicWsClient(
 					context,
-					publicMessageHandler
+					publicMessageHandler,
+					publicHttp
 	);
 	private static final BinancePrivateHttpClient privateHttp = new BinancePrivateHttpClient(context);
 

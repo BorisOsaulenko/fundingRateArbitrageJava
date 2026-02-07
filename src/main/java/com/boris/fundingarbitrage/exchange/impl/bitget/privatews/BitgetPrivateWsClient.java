@@ -17,11 +17,11 @@ public class BitgetPrivateWsClient extends PrivateWsClient {
 
 	public BitgetPrivateWsClient(ExchangeContext context) {
 		super(context, endpoint, messageHandler);
-		this.credentials = context.getCredentialsOrThrow();
+		this.credentials = context.credentials;
 	}
 
 	@Override
-	protected void sendAuthenticationFrame() {
+	protected String getAuthenticationFrame() {
 		String timestamp = String.valueOf(System.currentTimeMillis());
 		String payload = timestamp + "GET" + "/user/verify";
 		String sign = Signers.signHmacSha256Base64(payload, credentials.apiSecret());
@@ -31,36 +31,36 @@ public class BitgetPrivateWsClient extends PrivateWsClient {
 						timestamp,
 						sign
 		);
-		this.prettyWsClient.sendObject(new LoginRequest("login", new LoginRequest.LoginArg[]{arg}));
+		return new LoginRequest("login", new LoginRequest.LoginArg[]{arg}).toJson();
 	}
 
-	private void sendSubscribeFrame(String channel) {
+	private String getSubscribeFrame(String channel) {
 		WsRequest.Arg arg = new WsRequest.Arg(instType, channel, null);
-		this.prettyWsClient.sendObject(new WsRequest("subscribe", new WsRequest.Arg[]{arg}));
+		return new WsRequest("subscribe", new WsRequest.Arg[]{arg}).toJson();
 	}
 
-	private void sendUnsubscribeFrame(String channel) {
+	private String getUnsubscribeFrame(String channel) {
 		WsRequest.Arg arg = new WsRequest.Arg(instType, channel, null);
-		this.prettyWsClient.sendObject(new WsRequest("unsubscribe", new WsRequest.Arg[]{arg}));
+		return new WsRequest("unsubscribe", new WsRequest.Arg[]{arg}).toJson();
 	}
 
 	@Override
-	protected void sendSubscribeDepositFrame() {
-		sendSubscribeFrame("account");
+	protected String getSubscribeDepositFrame() {
+		return getSubscribeFrame("account");
 	}
 
 	@Override
-	protected void sendUnsubscribeDepositFrame() {
-		sendUnsubscribeFrame("account");
+	protected String getUnsubscribeDepositFrame() {
+		return getUnsubscribeFrame("account");
 	}
 
 	@Override
-	protected void sendSubscribePartialFillsFrame() {
-		sendSubscribeFrame("fill");
+	protected String getSubscribePartialFillsFrame() {
+		return getSubscribeFrame("fill");
 	}
 
 	@Override
-	protected void sendUnsubscribePartialFillsFrame() {
-		sendUnsubscribeFrame("fill");
+	protected String getUnsubscribePartialFillsFrame() {
+		return getUnsubscribeFrame("fill");
 	}
 }

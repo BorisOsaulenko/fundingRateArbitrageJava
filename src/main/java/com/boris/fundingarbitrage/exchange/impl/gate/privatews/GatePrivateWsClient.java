@@ -16,13 +16,14 @@ public class GatePrivateWsClient extends PrivateWsClient {
 
 	public GatePrivateWsClient(GateContext context) {
 		super(context, endpoint, messageHandler);
-		this.credentials = context.getCredentialsOrThrow();
+		this.credentials = context.credentials;
 		this.userId = context.getUserId();
 	}
 
 	@Override
-	protected void sendAuthenticationFrame() {
+	protected String getAuthenticationFrame() {
 		// Gate uses per-request authentication fields instead of a login frame.
+		return null;
 	}
 
 	private WsRequest.Auth buildAuth(String channel, String event, long time) {
@@ -31,35 +32,35 @@ public class GatePrivateWsClient extends PrivateWsClient {
 		return new WsRequest.Auth("api_key", credentials.apiKey(), signature, time);
 	}
 
-	private void sendSubscribeFrame(String channel, String[] payload) {
+	private String getSubscribeFrame(String channel, String[] payload) {
 		long time = System.currentTimeMillis() / 1000;
 		WsRequest.Auth auth = buildAuth(channel, "subscribe", time);
-		this.prettyWsClient.sendObject(new WsRequest(time, channel, "subscribe", payload, auth));
+		return new WsRequest(time, channel, "subscribe", payload, auth).toJson();
 	}
 
-	private void sendUnsubscribeFrame(String channel, String[] payload) {
+	private String getUnsubscribeFrame(String channel, String[] payload) {
 		long time = System.currentTimeMillis() / 1000;
 		WsRequest.Auth auth = buildAuth(channel, "unsubscribe", time);
-		this.prettyWsClient.sendObject(new WsRequest(time, channel, "unsubscribe", payload, auth));
+		return new WsRequest(time, channel, "unsubscribe", payload, auth).toJson();
 	}
 
 	@Override
-	protected void sendSubscribeDepositFrame() {
-		sendSubscribeFrame("futures.balances", new String[]{userId});
+	protected String getSubscribeDepositFrame() {
+		return getSubscribeFrame("futures.balances", new String[]{userId});
 	}
 
 	@Override
-	protected void sendUnsubscribeDepositFrame() {
-		sendUnsubscribeFrame("futures.balances", new String[]{userId});
+	protected String getUnsubscribeDepositFrame() {
+		return getUnsubscribeFrame("futures.balances", new String[]{userId});
 	}
 
 	@Override
-	protected void sendSubscribePartialFillsFrame() {
-		sendSubscribeFrame("futures.usertrades", new String[]{userId});
+	protected String getSubscribePartialFillsFrame() {
+		return getSubscribeFrame("futures.usertrades", new String[]{userId});
 	}
 
 	@Override
-	protected void sendUnsubscribePartialFillsFrame() {
-		sendUnsubscribeFrame("futures.usertrades", new String[]{userId});
+	protected String getUnsubscribePartialFillsFrame() {
+		return getUnsubscribeFrame("futures.usertrades", new String[]{userId});
 	}
 }

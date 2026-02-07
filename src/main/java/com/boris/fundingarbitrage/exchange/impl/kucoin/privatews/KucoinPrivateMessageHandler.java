@@ -1,11 +1,11 @@
 package com.boris.fundingarbitrage.exchange.impl.kucoin.privatews;
 
 import com.boris.fundingarbitrage.ObjectMapperSingleton;
-import com.boris.fundingarbitrage.exchange.impl.kucoin.KucoinJson;
 import com.boris.fundingarbitrage.exchange.privatews.PrivateMessageHandler;
 import com.boris.fundingarbitrage.model.contract.PartialFill;
 import com.boris.fundingarbitrage.model.websocket.patch.DepositPatch;
 import com.boris.fundingarbitrage.util.JsonParsingFunction;
+import com.boris.fundingarbitrage.util.json.Json;
 import com.boris.fundingarbitrage.util.logger.Logger;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -72,7 +72,7 @@ public class KucoinPrivateMessageHandler implements PrivateMessageHandler {
 		double size = Double.parseDouble(matchSizeText);
 		double price = Double.parseDouble(matchPriceText);
 		long ts = Long.parseLong(tsText);
-		Instant timestamp = KucoinJson.toInstantMillisOrNanos(ts);
+		Instant timestamp = Json.toInstantMillisOrNanos(ts);
 		return new PartialFill(orderId, symbol, size, price, null, timestamp);
 	}
 

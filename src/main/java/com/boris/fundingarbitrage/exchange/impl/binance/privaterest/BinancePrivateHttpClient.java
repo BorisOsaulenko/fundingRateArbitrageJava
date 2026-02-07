@@ -29,7 +29,7 @@ public class BinancePrivateHttpClient extends PrivateHttpClient {
 
 	public BinancePrivateHttpClient(ExchangeContext context) {
 		super(context, PrettyHttpClient.getINSTANCE());
-		this.credentials = context.getCredentialsOrThrow();
+		this.credentials = context.credentials;
 	}
 
 	@Override
@@ -151,10 +151,7 @@ public class BinancePrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
-	protected CompletableFuture<String> placeFuturesOrderSymbol(
-					String symbol,
-					FuturesOrder futuresOrder
-	) {
+	protected CompletableFuture<String> placeFuturesOrderSymbol(String symbol, FuturesOrder futuresOrder) {
 		return processRequest(
 						PrivateEndpoints.placeFuturesOrderRequestSymbol(symbol, futuresOrder),
 						PrivateResponses.PlaceFuturesOrderResponse.class,

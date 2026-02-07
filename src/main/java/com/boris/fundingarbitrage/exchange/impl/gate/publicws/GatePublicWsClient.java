@@ -1,59 +1,58 @@
 package com.boris.fundingarbitrage.exchange.impl.gate.publicws;
 
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
+import com.boris.fundingarbitrage.exchange.impl.gate.publicrest.GatePublicHttpClient;
 import com.boris.fundingarbitrage.exchange.impl.gate.publicws.pojos.WsRequest;
-import com.boris.fundingarbitrage.exchange.publicws.PublicWsClient;
 import com.boris.fundingarbitrage.util.wss.publicws.FundingSettlementViaRest;
 
 import java.net.URI;
 
-public class GatePublicWsClient extends PublicWsClient {
+public class GatePublicWsClient extends FundingSettlementViaRest {
 	private static final URI endpoint = URI.create("wss://fx-ws.gateio.ws/v4/ws/usdt");
-	private final ExchangeContext context;
 
-	public GatePublicWsClient(ExchangeContext context, GatePublicMessageHandler messageHandler) {
-		var gateMessageHandler = new FundingSettlementViaRest<>(messageHandler);
-		super(context, endpoint, gateMessageHandler);
-		this.context = context;
+	public GatePublicWsClient(
+					ExchangeContext context,
+					GatePublicMessageHandler messageHandler,
+					GatePublicHttpClient publicHttp
+	) {
+		super(context, endpoint, messageHandler, publicHttp);
 	}
 
-	private void sendSubscribeFrame(String channel, String[] symbols) {
-		this.prettyWsClient.sendObject(new WsRequest(channel, "subscribe", symbols));
+	private String getSubscribeFrame(String channel, String[] symbols) {
+		return new WsRequest(channel, "subscribe", symbols).toJson();
 	}
 
-	private void sendUnsubscribeFrame(String channel, String[] symbols) {
-		this.prettyWsClient.sendObject(new WsRequest(channel, "unsubscribe", symbols));
-	}
-
-	@Override
-	protected void sendSubscribeFundingRateFrame(String[] symbols) {
-		sendSubscribeFrame("futures.tickers", symbols);
+	private String getUnsubscribeFrame(String channel, String[] symbols) {
+		return new WsRequest(channel, "unsubscribe", symbols).toJson();
 	}
 
 	@Override
-	protected void sendUnsubscribeFundingRateFrame(String[] symbols) {
-		sendUnsubscribeFrame("futures.tickers", symbols);
+	protected String getSubscribeFundingRateFrame(String[] symbols) {
+		return getSubscribeFrame("futures.tickers", symbols);
 	}
 
 	@Override
-	protected void sendSubscribeBookTickerFrame(String[] symbols) {
-		sendSubscribeFrame("futures.book_ticker", symbols);
+	protected String getUnsubscribeFundingRateFrame(String[] symbols) {
+		return getUnsubscribeFrame("futures.tickers", symbols);
 	}
 
 	@Override
-	protected void sendUnsubscribeBookTickerFrame(String[] symbols) {
-		sendUnsubscribeFrame("futures.book_ticker", symbols);
+	protected String getSubscribeBookTickerFrame(String[] symbols) {
+		return getSubscribeFrame("futures.book_ticker", symbols);
 	}
 
 	@Override
-	protected void sendSubscribeMarkPriceFrame(String[] symbols) {
-		sendSubscribeFrame("futures.tickers", symbols);
+	protected String getUnsubscribeBookTickerFrame(String[] symbols) {
+		return getUnsubscribeFrame("futures.book_ticker", symbols);
 	}
 
 	@Override
-	protected void sendUnsubscribeMarkPriceFrame(String[] symbols) {
-		sendUnsubscribeFrame("futures.tickers", symbols);
+	protected String getSubscribeMarkPriceFrame(String[] symbols) {
+		return getSubscribeFrame("futures.tickers", symbols);
 	}
 
-
+	@Override
+	protected String getUnsubscribeMarkPriceFrame(String[] symbols) {
+		return getUnsubscribeFrame("futures.tickers", symbols);
+	}
 }

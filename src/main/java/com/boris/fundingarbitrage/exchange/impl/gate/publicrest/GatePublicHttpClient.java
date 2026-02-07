@@ -31,9 +31,7 @@ public class GatePublicHttpClient extends PublicHttpClient {
 				T responseObj = mapper.readValue(response.getBodyText(), responseClass);
 				return parser.apply(responseObj);
 			} catch (Exception e) {
-				Logger
-								.getInstance()
-								.error(String.format("Error parsing public rest response: %s", e.getMessage()));
+				Logger.error(String.format("Error parsing public rest response: %s", e.getMessage()));
 				throw new RuntimeException("Failed to process request", e);
 			}
 		});
@@ -101,9 +99,7 @@ public class GatePublicHttpClient extends PublicHttpClient {
 								response.getBodyText()
 				));
 			} catch (Exception e) {
-				Logger
-								.getInstance()
-								.error(String.format("Error parsing public rest response: %s", e.getMessage()));
+				Logger.error(String.format("Error parsing public rest response: %s", e.getMessage()));
 				throw new RuntimeException("Failed to process request", e);
 			}
 		});

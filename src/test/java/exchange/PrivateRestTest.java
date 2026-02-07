@@ -6,7 +6,6 @@ import com.boris.fundingarbitrage.model.assetops.SupportedChain;
 import com.boris.fundingarbitrage.model.contract.Fees;
 import com.boris.fundingarbitrage.model.exchange.ExchangeChains;
 import com.boris.fundingarbitrage.model.exchange.WalletAddress;
-import com.boris.fundingarbitrage.util.logger.Logger;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -106,7 +105,6 @@ public abstract class PrivateRestTest {
 		assertNotNull(address, "Wallet address should not be null");
 		assertEquals(SupportedChain.ERC, address.chain(), "Wallet address chain should match requested chain");
 		assertNotNull(address.address(), "Wallet address string should not be null");
-		Logger.log(address.address());
 		assertTrue(address.address().length() > 15, "Wallet address should have a valid length");
 	}
 }

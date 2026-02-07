@@ -1,17 +1,26 @@
 package com.boris.fundingarbitrage.exchange.impl.binance.publicws.pojos;
 
+import com.boris.fundingarbitrage.ObjectMapperSingleton;
 import com.boris.fundingarbitrage.exchange.impl.binance.publicws.BinancePublicWsClient;
+import lombok.SneakyThrows;
 
-public class SubscribePOJO {
-	public String method = "SUBSCRIBE";
-	public String[] params;
-	public int id = BinancePublicWsClient.getNextId();
-
+public record SubscribePOJO(String method, String[] params, int id) {
 	public SubscribePOJO(String[] params) {
+		this("SUBSCRIBE", params, BinancePublicWsClient.getNextId());
+	}
+
+	public SubscribePOJO {
 		if (params == null || params.length == 0) {
 			throw new IllegalArgumentException("Params cannot be null or empty");
 		}
 
-		this.params = params;
+		if (method == null || method.isBlank()) {
+			method = "SUBSCRIBE";
+		}
+	}
+
+	@SneakyThrows
+	public String toJson() {
+		return ObjectMapperSingleton.getInstance().writeValueAsString(this);
 	}
 }

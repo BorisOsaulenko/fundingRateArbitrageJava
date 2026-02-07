@@ -1,6 +1,7 @@
 package com.boris.fundingarbitrage.exchange.impl.bybit.publicws;
 
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
+import com.boris.fundingarbitrage.exchange.impl.bybit.publicrest.BybitPublicHttpClient;
 import com.boris.fundingarbitrage.exchange.impl.bybit.publicws.pojos.WsRequest;
 import com.boris.fundingarbitrage.exchange.publicws.PublicWsClient;
 
@@ -10,45 +11,51 @@ import java.util.Arrays;
 public class BybitPublicWsClient extends PublicWsClient {
 	private static final URI endpoint = URI.create("wss://stream.bybit.com/v5/public/linear");
 
-	public BybitPublicWsClient(ExchangeContext context, BybitPublicMessageHandler messageHandler) {
-		super(context, endpoint, messageHandler);
+	public BybitPublicWsClient(
+					ExchangeContext context,
+					BybitPublicMessageHandler messageHandler,
+					BybitPublicHttpClient publicHttp
+	) {
+		super(context, endpoint, messageHandler, publicHttp);
 	}
 
-	private void sendSubscribeFrame(String[] symbols) {
+	private String getSubscribeFrame(String[] symbols) {
 		String[] topics = Arrays.stream(symbols).map(symbol -> "tickers." + symbol).toArray(String[]::new);
-		this.prettyWsClient.sendObject(new WsRequest("subscribe", topics));
+		return new WsRequest("subscribe", topics).toJson();
 	}
 
-	private void sendUnsubscribeFrame(String[] symbols) {
+	private String getUnsubscribeFrame(String[] symbols) {
 		String[] topics = Arrays.stream(symbols).map(symbol -> "tickers." + symbol).toArray(String[]::new);
-		this.prettyWsClient.sendObject(new WsRequest("unsubscribe", topics));
+		return new WsRequest("unsubscribe", topics).toJson();
 	}
 
 	@Override
-	protected void sendSubscribeFundingRateFrame(String[] symbols) {
-		sendSubscribeFrame(symbols);
+	protected String getSubscribeFundingRateFrame(String[] symbols) {
+		return getSubscribeFrame(symbols);
 	}
 
 	@Override
-	protected void sendUnsubscribeFundingRateFrame(String[] symbols) {
-		sendUnsubscribeFrame(symbols);
+	protected String getUnsubscribeFundingRateFrame(String[] symbols) {
+		return getUnsubscribeFrame(symbols);
 	}
 
 	@Override
-	protected void sendSubscribeBookTickerFrame(String[] symbols) {
-		sendSubscribeFrame(symbols);
+	protected String getSubscribeBookTickerFrame(String[] symbols) {
+		return getSubscribeFrame(symbols);
 	}
 
 	@Override
-	protected void sendUnsubscribeBookTickerFrame(String[] symbols) {
-		sendUnsubscribeFrame(symbols);
+	protected String getUnsubscribeBookTickerFrame(String[] symbols) {
+		return getUnsubscribeFrame(symbols);
 	}
 
 	@Override
-	protected void sendSubscribeMarkPriceFrame(String[] symbols) {
-		sendSubscribeFrame(symbols);
+	protected String getSubscribeMarkPriceFrame(String[] symbols) {
+		return getSubscribeFrame(symbols);
 	}
 
 	@Override
-	protected void sendUnsubscribeMarkPriceFrame(String[] symbols) {sendUnsubscribeFrame(symbols);}
+	protected String getUnsubscribeMarkPriceFrame(String[] symbols) {
+		return getUnsubscribeFrame(symbols);
+	}
 }

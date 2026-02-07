@@ -11,8 +11,8 @@ import exchange.PublicWsTest;
 public class BitgetPublicWsTest extends PublicWsTest {
 	private static final ExchangeContext context = new BitgetContext();
 	private static final BitgetPublicHttpClient client = new BitgetPublicHttpClient(context);
-	private static final BitgetPublicMessageHandler messageHandler = new BitgetPublicMessageHandler(context, client);
-	private static final PublicWsClient publicWsClient = new BitgetPublicWsClient(context, messageHandler);
+	private static final BitgetPublicMessageHandler messageHandler = new BitgetPublicMessageHandler(context);
+	private static final PublicWsClient publicWsClient = new BitgetPublicWsClient(context, messageHandler, client);
 
 	@Override
 	protected PublicWsClient publicWsClient() {

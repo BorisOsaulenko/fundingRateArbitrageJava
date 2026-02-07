@@ -2,7 +2,6 @@ package com.boris.fundingarbitrage.exchange.impl.gate.publicws;
 
 import com.boris.fundingarbitrage.ObjectMapperSingleton;
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
-import com.boris.fundingarbitrage.exchange.publichttp.PublicHttpClient;
 import com.boris.fundingarbitrage.exchange.publicws.PublicMessageHandler;
 import com.boris.fundingarbitrage.model.contract.PriceLevel;
 import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
@@ -23,8 +22,7 @@ public class GatePublicMessageHandler implements PublicMessageHandler {
 	private final ExchangeContext context;
 	private final ObjectMapper mapper = ObjectMapperSingleton.getInstance();
 
-	public GatePublicMessageHandler(ExchangeContext context, PublicHttpClient publicHttpClient) {
-		super(publicHttpClient);
+	public GatePublicMessageHandler(ExchangeContext context) {
 		this.context = context;
 	}
 
@@ -37,7 +35,7 @@ public class GatePublicMessageHandler implements PublicMessageHandler {
 		String channel = root.path("channel").asText();
 		String event = root.path("event").asText();
 		long time = root.path("time").asLong();
-
+		
 		if (!"futures.tickers".equalsIgnoreCase(channel) || !"update".equalsIgnoreCase(event)) {
 			return null;
 		}

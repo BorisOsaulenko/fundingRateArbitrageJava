@@ -11,14 +11,8 @@ public class GateExchange extends BaseExchange {
 	private static final GateContext context = new GateContext();
 	private static final GatePrivateWsClient privateWs = new GatePrivateWsClient(context);
 	private static final GatePublicHttpClient publicHttp = new GatePublicHttpClient(context);
-	private static final GatePublicMessageHandler publicMessageHandler = new GatePublicMessageHandler(
-					context,
-					publicHttp
-	);
-	private static final GatePublicWsClient publicWs = new GatePublicWsClient(
-					context,
-					publicMessageHandler
-	);
+	private static final GatePublicMessageHandler publicMessageHandler = new GatePublicMessageHandler(context);
+	private static final GatePublicWsClient publicWs = new GatePublicWsClient(context, publicMessageHandler, publicHttp);
 	private static final GatePrivateHttpClient privateHttp = new GatePrivateHttpClient(context);
 
 	public GateExchange() {

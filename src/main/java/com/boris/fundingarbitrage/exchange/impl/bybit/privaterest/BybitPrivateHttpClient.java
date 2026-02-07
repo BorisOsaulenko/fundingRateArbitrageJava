@@ -27,7 +27,7 @@ public class BybitPrivateHttpClient extends PrivateHttpClient {
 
 	public BybitPrivateHttpClient(ExchangeContext context) {
 		super(context, PrettyHttpClient.getINSTANCE());
-		this.credentials = context.getCredentialsOrThrow();
+		this.credentials = context.credentials;
 	}
 
 	@Override
@@ -162,10 +162,7 @@ public class BybitPrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
-	protected CompletableFuture<String> placeFuturesOrderSymbol(
-					String symbol,
-					FuturesOrder futuresOrder
-	) {
+	protected CompletableFuture<String> placeFuturesOrderSymbol(String symbol, FuturesOrder futuresOrder) {
 		return processRequest(
 						PrivateEndpoints.placeFuturesOrderRequest(symbol, futuresOrder),
 						PrivateResponses.PlaceFuturesOrderResponse.class,

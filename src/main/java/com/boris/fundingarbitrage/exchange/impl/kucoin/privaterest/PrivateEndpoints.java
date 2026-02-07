@@ -30,9 +30,7 @@ public final class PrivateEndpoints {
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest tradingFeesRequestSymbol(String symbol) {
-		URI uri = new URIBuilder(baseUrlFutures)
-					.setPath("/api/v1/contracts/" + symbol)
-					.build();
+		URI uri = new URIBuilder(baseUrlFutures).setPath("/api/v1/contracts/" + symbol).build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
@@ -43,10 +41,7 @@ public final class PrivateEndpoints {
 		return postJson(baseUrlFutures, "/api/v2/changeCrossUserLeverage", body);
 	}
 
-	public static @NonNull SimpleHttpRequest setMarginModeRequestSymbol(
-					String symbol,
-					MarginMode marginMode
-	) {
+	public static @NonNull SimpleHttpRequest setMarginModeRequestSymbol(String symbol, MarginMode marginMode) {
 		Map<String, Object> body = new HashMap<>();
 		body.put("symbol", symbol);
 		body.put("marginMode", marginMode == MarginMode.CROSS ? "CROSS" : "ISOLATED");
@@ -56,35 +51,31 @@ public final class PrivateEndpoints {
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest spotUsdtBalanceRequest() {
 		URI uri = new URIBuilder(baseUrlSpot)
-					.setPath("/api/v1/accounts")
-					.addParameter("currency", "USDT")
-					.addParameter("type", "main")
-					.build();
+						.setPath("/api/v1/accounts")
+						.addParameter("currency", "USDT")
+						.addParameter("type", "main")
+						.build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest futuresUsdtBalanceRequest() {
 		URI uri = new URIBuilder(baseUrlFutures)
-					.setPath("/api/v1/account-overview")
-					.addParameter("currency", "USDT")
-					.build();
+						.setPath("/api/v1/account-overview")
+						.addParameter("currency", "USDT")
+						.build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest maxLeverageRequestSymbol(String symbol) {
-		URI uri = new URIBuilder(baseUrlFutures)
-					.setPath("/api/v1/contracts/" + symbol)
-					.build();
+		URI uri = new URIBuilder(baseUrlFutures).setPath("/api/v1/contracts/" + symbol).build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest supportedChainsRequest() {
-		URI uri = new URIBuilder(baseUrlSpot)
-					.setPath("/api/v3/currencies/USDT")
-					.build();
+		URI uri = new URIBuilder(baseUrlSpot).setPath("/api/v3/currencies/USDT").build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
@@ -123,10 +114,7 @@ public final class PrivateEndpoints {
 		return tradeSide == TradeSide.CLOSE;
 	}
 
-	public static @NonNull SimpleHttpRequest placeFuturesOrderRequestSymbol(
-					String symbol,
-					FuturesOrder futuresOrder
-	) {
+	public static @NonNull SimpleHttpRequest placeFuturesOrderRequestSymbol(String symbol, FuturesOrder futuresOrder) {
 		Map<String, Object> body = new HashMap<>();
 		body.put("clientOid", UUID.randomUUID().toString());
 		body.put("symbol", symbol);
@@ -147,10 +135,10 @@ public final class PrivateEndpoints {
 					TradeSide tradeSide
 	) {
 		URI uri = new URIBuilder(baseUrlFutures)
-					.setPath("/api/v1/fills")
-					.addParameter("orderId", orderId)
-					.addParameter("symbol", symbol)
-					.build();
+						.setPath("/api/v1/fills")
+						.addParameter("orderId", orderId)
+						.addParameter("symbol", symbol)
+						.build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
@@ -178,5 +166,11 @@ public final class PrivateEndpoints {
 			throw new IllegalArgumentException("Unsupported chain: " + chain);
 		}
 		return chainId;
+	}
+
+	@SneakyThrows
+	public static @NonNull SimpleHttpRequest privateWsToken() {
+		URI uri = new URIBuilder(baseUrlFutures).setPath("/api/v1/bullet-private").build();
+		return new SimpleHttpRequest("POST", uri);
 	}
 }

@@ -4,6 +4,7 @@ import com.boris.fundingarbitrage.ObjectMapperSingleton;
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.ExchangeCredentials;
 import com.boris.fundingarbitrage.exchange.impl.kucoin.KucoinAuth;
+import com.boris.fundingarbitrage.exchange.impl.kucoin.publicrest.PublicEndpoints;
 import com.boris.fundingarbitrage.exchange.privatehttp.PrivateHttpClient;
 import com.boris.fundingarbitrage.model.assetops.*;
 import com.boris.fundingarbitrage.model.contract.Fees;
@@ -11,11 +12,15 @@ import com.boris.fundingarbitrage.model.contract.PartialFill;
 import com.boris.fundingarbitrage.model.exchange.ExchangeChains;
 import com.boris.fundingarbitrage.model.exchange.WalletAddress;
 import com.boris.fundingarbitrage.util.https.PrettyHttpClient;
+import com.boris.fundingarbitrage.util.json.Json;
 import com.boris.fundingarbitrage.util.logger.Logger;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
 
+import java.net.URI;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
@@ -25,7 +30,7 @@ public class KucoinPrivateHttpClient extends PrivateHttpClient {
 
 	public KucoinPrivateHttpClient(ExchangeContext context) {
 		super(context, PrettyHttpClient.getINSTANCE());
-		this.credentials = context.getCredentialsOrThrow();
+		this.credentials = context.credentials;
 	}
 
 	@Override
@@ -53,90 +58,90 @@ public class KucoinPrivateHttpClient extends PrivateHttpClient {
 	@Override
 	protected CompletableFuture<Fees> getTradingFeesSymbol(String symbol) {
 		return processRequest(
-					PrivateEndpoints.tradingFeesRequestSymbol(symbol),
-					PrivateResponses.TradingFeesResponse.class,
-					PrivateResponses.TradingFeesResponse::getFees
+						PrivateEndpoints.tradingFeesRequestSymbol(symbol),
+						PrivateResponses.TradingFeesResponse.class,
+						PrivateResponses.TradingFeesResponse::getFees
 		);
 	}
 
 	@Override
 	protected CompletableFuture<Void> changeLeverageSymbol(String symbol, int leverage) {
 		return processRequest(
-					PrivateEndpoints.changeLeverageRequestSymbol(symbol, leverage),
-					PrivateResponses.ChangeLeverageResponse.class,
-					(_) -> null
+						PrivateEndpoints.changeLeverageRequestSymbol(symbol, leverage),
+						PrivateResponses.ChangeLeverageResponse.class,
+						(_) -> null
 		);
 	}
 
 	@Override
 	protected CompletableFuture<Void> setMarginModeSymbol(String symbol, MarginMode marginMode) {
 		return processRequest(
-					PrivateEndpoints.setMarginModeRequestSymbol(symbol, marginMode),
-					PrivateResponses.SetMarginModeResponse.class,
-					(_) -> null
+						PrivateEndpoints.setMarginModeRequestSymbol(symbol, marginMode),
+						PrivateResponses.SetMarginModeResponse.class,
+						(_) -> null
 		);
 	}
 
 	@Override
 	public CompletableFuture<Double> getSpotUsdtBalance() {
 		return processRequest(
-					PrivateEndpoints.spotUsdtBalanceRequest(),
-					PrivateResponses.SpotUsdtBalanceResponse.class,
-					PrivateResponses.SpotUsdtBalanceResponse::get
+						PrivateEndpoints.spotUsdtBalanceRequest(),
+						PrivateResponses.SpotUsdtBalanceResponse.class,
+						PrivateResponses.SpotUsdtBalanceResponse::get
 		);
 	}
 
 	@Override
 	public CompletableFuture<Double> getFuturesUsdtBalance() {
 		return processRequest(
-					PrivateEndpoints.futuresUsdtBalanceRequest(),
-					PrivateResponses.FuturesUsdtBalanceResponse.class,
-					PrivateResponses.FuturesUsdtBalanceResponse::get
+						PrivateEndpoints.futuresUsdtBalanceRequest(),
+						PrivateResponses.FuturesUsdtBalanceResponse.class,
+						PrivateResponses.FuturesUsdtBalanceResponse::get
 		);
 	}
 
 	@Override
 	protected CompletableFuture<Integer> getMaxLeverageSymbol(String symbol) {
 		return processRequest(
-					PrivateEndpoints.maxLeverageRequestSymbol(symbol),
-					PrivateResponses.MaxLeverageResponse.class,
-					PrivateResponses.MaxLeverageResponse::get
+						PrivateEndpoints.maxLeverageRequestSymbol(symbol),
+						PrivateResponses.MaxLeverageResponse.class,
+						PrivateResponses.MaxLeverageResponse::get
 		);
 	}
 
 	@Override
 	public CompletableFuture<ExchangeChains> getSupportedChains() {
 		return processRequest(
-					PrivateEndpoints.supportedChainsRequest(),
-					PrivateResponses.SupportedChainsResponse.class,
-					PrivateResponses.SupportedChainsResponse::get
+						PrivateEndpoints.supportedChainsRequest(),
+						PrivateResponses.SupportedChainsResponse.class,
+						PrivateResponses.SupportedChainsResponse::get
 		);
 	}
 
 	@Override
 	public CompletableFuture<WalletAddress> getUsdtWalletAddress(SupportedChain chain) {
 		return processRequest(
-					PrivateEndpoints.usdtWalletAddressRequest(chain),
-					PrivateResponses.UsdtWalletAddressResponse.class,
-					(resp) -> resp.get(chain)
+						PrivateEndpoints.usdtWalletAddressRequest(chain),
+						PrivateResponses.UsdtWalletAddressResponse.class,
+						(resp) -> resp.get(chain)
 		);
 	}
 
 	@Override
 	public CompletableFuture<Void> withdrawUsdt(Withdrawal withdrawal) {
 		return processRequest(
-					PrivateEndpoints.withdrawUsdtRequest(withdrawal),
-					PrivateResponses.WithdrawUsdtResponse.class,
-					(_) -> null
+						PrivateEndpoints.withdrawUsdtRequest(withdrawal),
+						PrivateResponses.WithdrawUsdtResponse.class,
+						(_) -> null
 		);
 	}
 
 	@Override
 	protected CompletableFuture<String> placeFuturesOrderSymbol(String symbol, FuturesOrder futuresOrder) {
 		return processRequest(
-					PrivateEndpoints.placeFuturesOrderRequestSymbol(symbol, futuresOrder),
-					PrivateResponses.PlaceFuturesOrderResponse.class,
-					PrivateResponses.PlaceFuturesOrderResponse::orderId
+						PrivateEndpoints.placeFuturesOrderRequestSymbol(symbol, futuresOrder),
+						PrivateResponses.PlaceFuturesOrderResponse.class,
+						PrivateResponses.PlaceFuturesOrderResponse::orderId
 		);
 	}
 
@@ -147,18 +152,43 @@ public class KucoinPrivateHttpClient extends PrivateHttpClient {
 					TradeSide tradeSide
 	) {
 		return processRequest(
-					PrivateEndpoints.orderRecordRequestSymbol(orderId, symbol, tradeSide),
-					PrivateResponses.GetOrderRecordResponse.class,
-					PrivateResponses.GetOrderRecordResponse::get
+						PrivateEndpoints.orderRecordRequestSymbol(orderId, symbol, tradeSide),
+						PrivateResponses.GetOrderRecordResponse.class,
+						PrivateResponses.GetOrderRecordResponse::get
 		);
 	}
 
 	@Override
 	public CompletableFuture<Void> internalTransfer(InternalTransfer internalTransfer) {
 		return processRequest(
-					PrivateEndpoints.internalTransferRequest(internalTransfer),
-					PrivateResponses.InternalTransferResponse.class,
-					(_) -> null
+						PrivateEndpoints.internalTransferRequest(internalTransfer),
+						PrivateResponses.InternalTransferResponse.class,
+						(_) -> null
 		);
+	}
+
+	public CompletableFuture<URI> fetchPrivateWsEndpoint() {
+		SimpleHttpRequest request = signRequest(PublicEndpoints.publicWsToken());
+		return client.send(request).thenApply(response -> {
+			try {
+				JsonNode root = mapper.readTree(response.getBodyText());
+				String code = Json.requireText(root, "code");
+				String msg = root.has("msg") ? root.get("msg").asText() : null;
+				if (!"200000".equals(code)) throw new IllegalStateException("Failed to get KuCoin WS token: " + msg);
+
+				JsonNode data = Json.requireField(root, "data");
+				String token = Json.requireText(data, "token");
+				JsonNode servers = Json.requireArray(data, "instanceServers");
+				if (servers.isEmpty()) throw new IllegalStateException("KuCoin WS token response has no instance servers");
+
+				JsonNode server = servers.get(0);
+				String endpoint = Json.requireText(server, "endpoint");
+				String connectId = UUID.randomUUID().toString();
+				return URI.create(endpoint + "?token=" + token + "&connectId=" + connectId);
+			} catch (Exception ex) {
+				Logger.error("Failed to get KuCoin WS token: " + ex.getMessage());
+				throw new RuntimeException("Failed to get KuCoin WS token", ex);
+			}
+		});
 	}
 }

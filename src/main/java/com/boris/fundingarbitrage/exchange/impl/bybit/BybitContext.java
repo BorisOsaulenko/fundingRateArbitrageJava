@@ -6,7 +6,7 @@ import lombok.NonNull;
 
 public class BybitContext extends ExchangeContext {
 	@Override
-	public @NonNull ExchangeCredentials getCredentialsOrThrow() {
+	protected @NonNull ExchangeCredentials getCredentialsOrThrow() {
 		String apiKey = System.getenv("BYBIT_API_KEY");
 		String apiSecret = System.getenv("BYBIT_SECRET");
 

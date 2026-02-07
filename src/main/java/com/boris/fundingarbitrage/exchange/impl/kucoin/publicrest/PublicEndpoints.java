@@ -14,26 +14,19 @@ public final class PublicEndpoints {
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest contractDetailRequestSymbol(String symbol) {
-		URI uri = new URIBuilder(baseUrl)
-					.setPath("/api/v1/contracts/" + symbol)
-					.build();
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v1/contracts/" + symbol).build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest tickerRequestSymbol(String symbol) {
-		URI uri = new URIBuilder(baseUrl)
-					.setPath("/api/v1/ticker")
-					.addParameter("symbol", symbol)
-					.build();
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v1/ticker").addParameter("symbol", symbol).build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest fundingRateRequestSymbol(String symbol) {
-		URI uri = new URIBuilder(baseUrl)
-					.setPath("/api/v1/funding-rate/" + symbol + "/current")
-					.build();
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v1/funding-rate/" + symbol + "/current").build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
@@ -42,12 +35,18 @@ public final class PublicEndpoints {
 		long now = System.currentTimeMillis();
 		long oneHourAgo = now - 3_600_000L;
 		URI uri = new URIBuilder(baseUrl)
-					.setPath("/api/v1/kline/query")
-					.addParameter("symbol", symbol)
-					.addParameter("granularity", "60")
-					.addParameter("from", String.valueOf(oneHourAgo))
-					.addParameter("to", String.valueOf(now))
-					.build();
+						.setPath("/api/v1/kline/query")
+						.addParameter("symbol", symbol)
+						.addParameter("granularity", "60")
+						.addParameter("from", String.valueOf(oneHourAgo))
+						.addParameter("to", String.valueOf(now))
+						.build();
 		return new SimpleHttpRequest("GET", uri);
+	}
+
+	@SneakyThrows
+	public static @NonNull SimpleHttpRequest publicWsToken() {
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v1/bullet-public").build();
+		return new SimpleHttpRequest("POST", uri);
 	}
 }

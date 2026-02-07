@@ -1,6 +1,7 @@
 package com.boris.fundingarbitrage.exchange.impl.bitget.publicws;
 
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
+import com.boris.fundingarbitrage.exchange.impl.bitget.publicrest.BitgetPublicHttpClient;
 import com.boris.fundingarbitrage.exchange.impl.bitget.publicws.pojos.WsRequest;
 import com.boris.fundingarbitrage.exchange.publicws.PublicWsClient;
 
@@ -11,53 +12,57 @@ public class BitgetPublicWsClient extends PublicWsClient {
 	private static final String instType = "USDT-FUTURES";
 	private static final String tickerChannel = "ticker";
 
-	public BitgetPublicWsClient(ExchangeContext context, BitgetPublicMessageHandler messageHandler) {
-		super(context, endpoint, messageHandler);
+	public BitgetPublicWsClient(
+					ExchangeContext context,
+					BitgetPublicMessageHandler messageHandler,
+					BitgetPublicHttpClient publicHttp
+	) {
+		super(context, endpoint, messageHandler, publicHttp);
 	}
 
-	private void sendSubscribeFrame(String[] symbols) {
+	private String getSubscribeFrame(String[] symbols) {
 		WsRequest.Arg[] args = new WsRequest.Arg[symbols.length];
 		for (int i = 0; i < symbols.length; i++) {
 			args[i] = new WsRequest.Arg(instType, BitgetPublicWsClient.tickerChannel, symbols[i]);
 		}
-		this.prettyWsClient.sendObject(new WsRequest("subscribe", args));
+		return new WsRequest("subscribe", args).toJson();
 	}
 
-	private void sendUnsubscribeFrame(String[] symbols) {
+	private String getUnsubscribeFrame(String[] symbols) {
 		WsRequest.Arg[] args = new WsRequest.Arg[symbols.length];
 		for (int i = 0; i < symbols.length; i++) {
 			args[i] = new WsRequest.Arg(instType, BitgetPublicWsClient.tickerChannel, symbols[i]);
 		}
-		this.prettyWsClient.sendObject(new WsRequest("unsubscribe", args));
+		return new WsRequest("unsubscribe", args).toJson();
 	}
 
 	@Override
-	protected void sendSubscribeFundingRateFrame(String[] symbols) {
-		sendSubscribeFrame(symbols);
+	protected String getSubscribeFundingRateFrame(String[] symbols) {
+		return getSubscribeFrame(symbols);
 	}
 
 	@Override
-	protected void sendUnsubscribeFundingRateFrame(String[] symbols) {
-		sendUnsubscribeFrame(symbols);
+	protected String getUnsubscribeFundingRateFrame(String[] symbols) {
+		return getUnsubscribeFrame(symbols);
 	}
 
 	@Override
-	protected void sendSubscribeBookTickerFrame(String[] symbols) {
-		sendSubscribeFrame(symbols);
+	protected String getSubscribeBookTickerFrame(String[] symbols) {
+		return getSubscribeFrame(symbols);
 	}
 
 	@Override
-	protected void sendUnsubscribeBookTickerFrame(String[] symbols) {
-		sendUnsubscribeFrame(symbols);
+	protected String getUnsubscribeBookTickerFrame(String[] symbols) {
+		return getUnsubscribeFrame(symbols);
 	}
 
 	@Override
-	protected void sendSubscribeMarkPriceFrame(String[] symbols) {
-		sendSubscribeFrame(symbols);
+	protected String getSubscribeMarkPriceFrame(String[] symbols) {
+		return getSubscribeFrame(symbols);
 	}
 
 	@Override
-	protected void sendUnsubscribeMarkPriceFrame(String[] symbols) {
-		sendUnsubscribeFrame(symbols);
+	protected String getUnsubscribeMarkPriceFrame(String[] symbols) {
+		return getUnsubscribeFrame(symbols);
 	}
 }

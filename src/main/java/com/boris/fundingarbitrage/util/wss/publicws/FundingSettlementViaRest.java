@@ -1,11 +1,15 @@
 package com.boris.fundingarbitrage.util.wss.publicws;
 
+import com.boris.fundingarbitrage.exchange.ExchangeContext;
+import com.boris.fundingarbitrage.exchange.publichttp.PublicHttpClient;
+import com.boris.fundingarbitrage.exchange.publicws.PublicMessageHandler;
 import com.boris.fundingarbitrage.exchange.publicws.PublicWsClient;
 import com.boris.fundingarbitrage.model.contract.FundingRate;
 import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import lombok.NonNull;
 
+import java.net.URI;
 import java.time.Instant;
 import java.util.concurrent.CompletableFuture;
 
@@ -14,8 +18,13 @@ public abstract class FundingSettlementViaRest extends PublicWsClient {
 	private final CoinVector<Instant> settlementVector = new CoinVector<>();
 	private final CoinVector<CompletableFuture<FundingRate>> fundingRateFutureVector = new CoinVector<>();
 
-	public FundingSettlementViaRest(PublicWsClient client) {
-		super(client);
+	public FundingSettlementViaRest(
+					ExchangeContext context,
+					URI endpoint,
+					PublicMessageHandler messageHandler,
+					PublicHttpClient publicHttp
+	) {
+		super(context, endpoint, messageHandler, publicHttp);
 	}
 
 	public void updateFundingSettlementForCoin(String coin) {

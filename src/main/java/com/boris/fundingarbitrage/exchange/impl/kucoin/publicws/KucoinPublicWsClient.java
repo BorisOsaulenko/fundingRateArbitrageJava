@@ -1,10 +1,9 @@
 package com.boris.fundingarbitrage.exchange.impl.kucoin.publicws;
 
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
-import com.boris.fundingarbitrage.exchange.impl.kucoin.KucoinWsTokenProvider;
+import com.boris.fundingarbitrage.exchange.impl.kucoin.publicrest.KucoinPublicHttpClient;
 import com.boris.fundingarbitrage.exchange.impl.kucoin.ws.pojos.WsRequest;
-import com.boris.fundingarbitrage.exchange.publicws.PublicWsClient;
-import com.boris.fundingarbitrage.util.wss.publicws.FundingSettlementViaRest;
+import com.boris.fundingarbitrage.util.wss.publicws.FullFundingViaRest;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -12,78 +11,62 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-public class KucoinPublicWsClient extends PublicWsClient {
+public class KucoinPublicWsClient extends FullFundingViaRest {
 	private final ScheduledExecutorService pingExecutor = Executors.newSingleThreadScheduledExecutor();
+	private final String instrumentTopic = "/contract/instrument:";
+	private final String tickerTopic = "/contractMarket/tickerV2:";
 
-	public KucoinPublicWsClient(ExchangeContext context, KucoinPublicMessageHandler messageHandler) {
-		var kucoinMessageHandler = new FundingSettlementViaRest<>(messageHandler);
-		super(context, KucoinWsTokenProvider.getPublicEndpoint(), kucoinMessageHandler);
-
+	public KucoinPublicWsClient(
+					ExchangeContext context,
+					KucoinPublicMessageHandler messageHandler,
+					KucoinPublicHttpClient publicHttp
+	) {
+		super(context, publicHttp.fetchPublicWsEndpoint(), messageHandler, publicHttp);
 		pingExecutor.scheduleAtFixedRate(this::sendPingFrame, 10, 9, TimeUnit.SECONDS);
 	}
 
-	private void sendSubscribeFrame(String topic) {
+	private String getSubscribeFrame(String topic) {
 		WsRequest request = new WsRequest(UUID.randomUUID().toString(), "subscribe", topic, false, true);
-		this.prettyWsClient.sendObject(request);
+		return request.toJson();
 	}
 
-	private void sendUnsubscribeFrame(String topic) {
+	private String getUnsubscribeFrame(String topic) {
 		WsRequest request = new WsRequest(UUID.randomUUID().toString(), "unsubscribe", topic, false, true);
-		this.prettyWsClient.sendObject(request);
-	}
-
-	private String instrumentTopic(String symbol) {
-		return "/contract/instrument:" + symbol;
-	}
-
-	private String tickerTopic(String symbol) {
-		return "/contractMarket/tickerV2:" + symbol;
+		return request.toJson();
 	}
 
 	@Override
-	protected void sendSubscribeFundingRateFrame(String[] symbols) {
-		for (String symbol : symbols) {
-			sendSubscribeFrame(instrumentTopic(symbol));
-		}
+	protected String getSubscribeFundingRateFrame(String[] symbols) {
+		return getSubscribeFrame(instrumentTopic + String.join(",", symbols));
 	}
 
 	@Override
-	protected void sendUnsubscribeFundingRateFrame(String[] symbols) {
-		for (String symbol : symbols) {
-			sendUnsubscribeFrame(instrumentTopic(symbol));
-		}
+	protected String getUnsubscribeFundingRateFrame(String[] symbols) {
+		return getUnsubscribeFrame(instrumentTopic + String.join(",", symbols));
 	}
 
 	@Override
-	protected void sendSubscribeBookTickerFrame(String[] symbols) {
-		for (String symbol : symbols) {
-			sendSubscribeFrame(tickerTopic(symbol));
-		}
+	protected String getSubscribeBookTickerFrame(String[] symbols) {
+		return getSubscribeFrame(tickerTopic + String.join(",", symbols));
 	}
 
 	@Override
-	protected void sendUnsubscribeBookTickerFrame(String[] symbols) {
-		for (String symbol : symbols) {
-			sendUnsubscribeFrame(tickerTopic(symbol));
-		}
+	protected String getUnsubscribeBookTickerFrame(String[] symbols) {
+		return getUnsubscribeFrame(tickerTopic + String.join(",", symbols));
 	}
 
 	@Override
-	protected void sendSubscribeMarkPriceFrame(String[] symbols) {
-		for (String symbol : symbols) {
-			sendSubscribeFrame(instrumentTopic(symbol));
-		}
+	protected String getSubscribeMarkPriceFrame(String[] symbols) {
+		return getSubscribeFrame(instrumentTopic + String.join(",", symbols));
 	}
 
 	@Override
-	protected void sendUnsubscribeMarkPriceFrame(String[] symbols) {
-		for (String symbol : symbols) {
-			sendUnsubscribeFrame(instrumentTopic(symbol));
-		}
+	protected String getUnsubscribeMarkPriceFrame(String[] symbols) {
+		return getUnsubscribeFrame(instrumentTopic + String.join(",", symbols));
 	}
 
 	private void sendPingFrame() {
-		this.prettyWsClient.sendObject(new PingFrame());
+		this.sendObject(new PingFrame());
 	}
 
 	@Override

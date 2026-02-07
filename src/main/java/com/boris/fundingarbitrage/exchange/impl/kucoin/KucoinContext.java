@@ -8,7 +8,7 @@ public class KucoinContext extends ExchangeContext {
 	private static final String QUOTE = "USDTM";
 
 	@Override
-	public @NonNull ExchangeCredentials getCredentialsOrThrow() {
+	protected @NonNull ExchangeCredentials getCredentialsOrThrow() {
 		String apiKey = System.getenv("KUCOIN_API_KEY");
 		String apiSecret = System.getenv("KUCOIN_SECRET");
 		String passphrase = System.getenv("KUCOIN_PASSPHRASE");

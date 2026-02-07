@@ -15,58 +15,74 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 public abstract class PrivateWsClient {
-	protected final PrettyWsClient prettyWsClient;
 	protected final ExchangeContext exchangeContext;
+	private final CompletableFuture<PrettyWsClient> prettyWsClient;
 	private final Set<Consumer<DepositPatch>> depositHandlers = new HashSet<>();
 	private final Map<String, Consumer<PartialFill>> partialFillHandlers = new HashMap<>();
 	private final PrivateMessageHandler messageHandler;
 
+	public PrivateWsClient(ExchangeContext context, URI endpoint, PrivateMessageHandler messageHandler) {
+		this.exchangeContext = context;
+		this.messageHandler = messageHandler;
+		this.prettyWsClient = CompletableFuture.completedFuture(new PrettyWsClientBuilder(endpoint, this::handleMessage)
+						.withOnOpenHook((s) -> CompletableFuture.runAsync(() -> sendMessage(getAuthenticationFrame())))
+						.build());
+	}
+
 	public PrivateWsClient(
 					ExchangeContext context,
-					URI endpoint,
+					CompletableFuture<URI> endpointFuture,
 					PrivateMessageHandler messageHandler
 	) {
 		this.exchangeContext = context;
 		this.messageHandler = messageHandler;
-		this.prettyWsClient = new PrettyWsClientBuilder(endpoint, this::handleMessage)
-						.withOnOpenHook((s) -> CompletableFuture.runAsync(this::sendAuthenticationFrame))
-						.build();
+		this.prettyWsClient = endpointFuture.thenApply(endpoint -> new PrettyWsClientBuilder(endpoint, this::handleMessage)
+						.withOnOpenHook((s) -> CompletableFuture.runAsync(() -> sendMessage(getAuthenticationFrame())))
+						.build());
 	}
 
 	public final void close() {
-		this.prettyWsClient.close();
+		this.prettyWsClient.thenAccept(PrettyWsClient::close);
 	}
 
-	protected abstract void sendSubscribeDepositFrame();
+	protected abstract String getSubscribeDepositFrame();
 
-	protected abstract void sendUnsubscribeDepositFrame();
+	protected abstract String getUnsubscribeDepositFrame();
 
-	protected abstract void sendSubscribePartialFillsFrame();
+	protected abstract String getSubscribePartialFillsFrame();
 
-	protected abstract void sendUnsubscribePartialFillsFrame();
+	protected abstract String getUnsubscribePartialFillsFrame();
 
-	protected abstract void sendAuthenticationFrame();
+	protected abstract String getAuthenticationFrame();
+
+	public void sendMessage(String message) {
+		this.prettyWsClient.thenAccept(client -> client.sendMessage(message));
+	}
+
+	public void sendObject(Object obj) {
+		this.prettyWsClient.thenAccept(client -> client.sendObject(obj));
+	}
 
 	public void subscribeDeposits(Consumer<DepositPatch> handler) {
 		boolean wasEmpty = depositHandlers.isEmpty();
 		depositHandlers.add(handler);
-		if (wasEmpty) sendSubscribeDepositFrame();
+		if (wasEmpty) this.sendMessage(getSubscribeDepositFrame());
 	}
 
 	public void unsubscribeDeposits(Consumer<DepositPatch> handler) {
 		depositHandlers.remove(handler);
-		if (depositHandlers.isEmpty()) sendUnsubscribeDepositFrame();
+		if (depositHandlers.isEmpty()) this.sendMessage(getUnsubscribeDepositFrame());
 	}
 
 	public void subscribePartialFills(String clientOrderId, Consumer<PartialFill> handler) {
 		boolean wasEmpty = partialFillHandlers.isEmpty();
 		partialFillHandlers.put(clientOrderId, handler);
-		if (wasEmpty) sendSubscribePartialFillsFrame();
+		if (wasEmpty) this.sendMessage(getSubscribePartialFillsFrame());
 	}
 
 	public void unsubscribePartialFills(String clientOrderId) {
 		partialFillHandlers.remove(clientOrderId);
-		if (partialFillHandlers.isEmpty()) sendUnsubscribePartialFillsFrame();
+		if (partialFillHandlers.isEmpty()) this.sendMessage(getUnsubscribePartialFillsFrame());
 	}
 
 	private void handleMessage(String message) {
@@ -89,7 +105,7 @@ public abstract class PrivateWsClient {
 
 		String pingResponse = messageHandler.getResponseToPingMessage(message);
 		if (pingResponse != null) {
-			prettyWsClient.sendMessage(pingResponse);
+			prettyWsClient.thenAccept(client -> client.sendMessage(pingResponse));
 		}
 	}
 }

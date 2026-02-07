@@ -4,15 +4,18 @@ import com.boris.fundingarbitrage.exchange.impl.kucoin.KucoinContext;
 import com.boris.fundingarbitrage.exchange.impl.kucoin.publicrest.KucoinPublicHttpClient;
 import com.boris.fundingarbitrage.exchange.impl.kucoin.publicws.KucoinPublicMessageHandler;
 import com.boris.fundingarbitrage.exchange.impl.kucoin.publicws.KucoinPublicWsClient;
-import com.boris.fundingarbitrage.exchange.publichttp.PublicHttpClient;
 import com.boris.fundingarbitrage.exchange.publicws.PublicWsClient;
 import exchange.PublicWsTest;
 
 public class KucoinPublicWsTest extends PublicWsTest {
 	private static final KucoinContext context = new KucoinContext();
-	private static final PublicHttpClient publicHttp = new KucoinPublicHttpClient(context);
-	private static final KucoinPublicMessageHandler messageHandler = new KucoinPublicMessageHandler(context, publicHttp);
-	private static final KucoinPublicWsClient publicWsClient = new KucoinPublicWsClient(context, messageHandler);
+	private static final KucoinPublicHttpClient publicHttp = new KucoinPublicHttpClient(context);
+	private static final KucoinPublicMessageHandler messageHandler = new KucoinPublicMessageHandler(context);
+	private static final KucoinPublicWsClient publicWsClient = new KucoinPublicWsClient(
+					context,
+					messageHandler,
+					publicHttp
+	);
 
 	@Override
 	protected PublicWsClient publicWsClient() {

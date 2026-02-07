@@ -6,16 +6,14 @@ import lombok.NonNull;
 
 public class BitgetContext extends ExchangeContext {
 	@Override
-	public @NonNull ExchangeCredentials getCredentialsOrThrow() {
+	protected @NonNull ExchangeCredentials getCredentialsOrThrow() {
 		String apiKey = System.getenv("BITGET_API_KEY");
 		String apiSecret = System.getenv("BITGET_SECRET");
 		String passphrase = System.getenv("BITGET_PASSPHRASE");
 
 		if (apiKey == null) throw new RuntimeException("BITGET_API_KEY environment variable not set");
-		if (apiSecret == null)
-			throw new RuntimeException("BITGET_API_SECRET environment variable not set");
-		if (passphrase == null)
-			throw new RuntimeException("BITGET_PASSPHRASE environment variable not set");
+		if (apiSecret == null) throw new RuntimeException("BITGET_API_SECRET environment variable not set");
+		if (passphrase == null) throw new RuntimeException("BITGET_PASSPHRASE environment variable not set");
 
 		return new ExchangeCredentials(apiKey, null, apiSecret, passphrase);
 	}

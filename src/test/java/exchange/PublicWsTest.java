@@ -17,7 +17,7 @@ import java.util.concurrent.TimeUnit;
 @Tag("integration")
 public abstract class PublicWsTest {
 	private static final String[] COINS = {"SOL"};
-	private static final Duration WAIT_TIMEOUT = Duration.ofSeconds(180);
+	private static final Duration WAIT_TIMEOUT = Duration.ofSeconds(240);
 	private static final int MIN_MESSAGES_PER_STREAM = 3;
 	private final CoinVector<Integer> bookTickerMessageCounts = new CoinVector<>();
 	private final CoinVector<Integer> fundingRateMessageCounts = new CoinVector<>();

@@ -28,7 +28,7 @@ public class GatePrivateHttpClient extends PrivateHttpClient {
 
 	public GatePrivateHttpClient(ExchangeContext context) {
 		super(context, PrettyHttpClient.getINSTANCE());
-		this.credentials = context.getCredentialsOrThrow();
+		this.credentials = context.credentials;
 	}
 
 	@Override
@@ -68,8 +68,7 @@ public class GatePrivateHttpClient extends PrivateHttpClient {
 				T responseObj = mapper.readValue(response.getBodyText(), responseClass);
 				return parser.apply(responseObj);
 			} catch (Exception e) {
-				Logger
-								.error(String.format("Error parsing private rest response: %s", e.getMessage()));
+				Logger.error(String.format("Error parsing private rest response: %s", e.getMessage()));
 				throw new RuntimeException("Failed to process request", e);
 			}
 		});
@@ -142,7 +141,8 @@ public class GatePrivateHttpClient extends PrivateHttpClient {
 							ExchangeChainsBuilder builder = new ExchangeChainsBuilder();
 
 							try {
-								PrivateResponses.SupportedChainsResponse chainsResponse = mapper.readValue(chainsResp.getBodyText(),
+								PrivateResponses.SupportedChainsResponse chainsResponse = mapper.readValue(
+												chainsResp.getBodyText(),
 												PrivateResponses.SupportedChainsResponse.class
 								);
 
@@ -192,10 +192,7 @@ public class GatePrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
-	protected CompletableFuture<String> placeFuturesOrderSymbol(
-					String symbol,
-					FuturesOrder futuresOrder
-	) {
+	protected CompletableFuture<String> placeFuturesOrderSymbol(String symbol, FuturesOrder futuresOrder) {
 		return processRequest(
 						PrivateEndpoints.placeFuturesOrderRequestSymbol(symbol, futuresOrder),
 						PrivateResponses.PlaceFuturesOrderResponse.class,

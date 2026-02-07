@@ -14,30 +14,26 @@ public class BinancePrivateWsClient extends PrivateWsClient {
 
 	public BinancePrivateWsClient(ExchangeContext context) {
 		super(context, endpoint, messageHandler);
-		this.credentials = context.getCredentialsOrThrow();
+		this.credentials = context.credentials;
 	}
 
 	@Override
-	protected void sendAuthenticationFrame() {
-		String payload = String.format(
-						"apiKey=%s&timestamp=%tl",
-						credentials.apiKey(),
-						System.currentTimeMillis()
-		);
+	protected String getAuthenticationFrame() {
+		String payload = String.format("apiKey=%s&timestamp=%tl", credentials.apiKey(), System.currentTimeMillis());
 		String signature = Signers.signEd25519(payload, this.credentials.privateKey());
 		AuthenticationFrame frame = new AuthenticationFrame(this.credentials.apiKey(), signature);
-		this.prettyWsClient.sendObject(frame);
+		return frame.toJson();
 	}
 
 	@Override
-	protected void sendSubscribeDepositFrame() {}
+	protected String getSubscribeDepositFrame() {return null;}
 
 	@Override
-	protected void sendUnsubscribeDepositFrame() {}
+	protected String getUnsubscribeDepositFrame() {return null;}
 
 	@Override
-	protected void sendSubscribePartialFillsFrame() {}
+	protected String getSubscribePartialFillsFrame() {return null;}
 
 	@Override
-	protected void sendUnsubscribePartialFillsFrame() {}
+	protected String getUnsubscribePartialFillsFrame() {return null;}
 }

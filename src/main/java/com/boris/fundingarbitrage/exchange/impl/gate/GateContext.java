@@ -9,8 +9,7 @@ public class GateContext extends ExchangeContext {
 
 	public GateContext() {
 		this.userId = System.getenv("GATE_USER_ID");
-		if (this.userId == null)
-			throw new RuntimeException("Environment variable GATE_USER_ID is not set");
+		if (this.userId == null) throw new RuntimeException("Environment variable GATE_USER_ID is not set");
 	}
 
 	public @NonNull String getUserId() {
@@ -18,7 +17,7 @@ public class GateContext extends ExchangeContext {
 	}
 
 	@Override
-	public @NonNull ExchangeCredentials getCredentialsOrThrow() {
+	protected @NonNull ExchangeCredentials getCredentialsOrThrow() {
 		String apiKey = System.getenv("GATE_API_KEY");
 		String apiSecret = System.getenv("GATE_SECRET");
 

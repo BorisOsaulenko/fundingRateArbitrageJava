@@ -16,43 +16,43 @@ public class BybitPrivateWsClient extends PrivateWsClient {
 
 	public BybitPrivateWsClient(ExchangeContext context) {
 		super(context, endpoint, messageHandler);
-		this.credentials = context.getCredentialsOrThrow();
+		this.credentials = context.credentials;
 	}
 
 	@Override
-	protected void sendAuthenticationFrame() {
+	protected String getAuthenticationFrame() {
 		long expires = System.currentTimeMillis() + 10_000;
 		String payload = "GET/realtime" + expires;
 		String sign = Signers.signHmacSha256Hex(payload, credentials.apiSecret());
 		Object[] args = new Object[]{credentials.apiKey(), String.valueOf(expires), sign};
-		this.prettyWsClient.sendObject(new AuthRequest("auth", args));
+		return new AuthRequest("auth", args).toJson();
 	}
 
-	private void sendSubscribeFrame(String channel) {
-		this.prettyWsClient.sendObject(new WsRequest("subscribe", new String[]{channel}));
+	private String getSubscribeFrame(String channel) {
+		return new WsRequest("subscribe", new String[]{channel}).toJson();
 	}
 
-	private void sendUnsubscribeFrame(String channel) {
-		this.prettyWsClient.sendObject(new WsRequest("unsubscribe", new String[]{channel}));
-	}
-
-	@Override
-	protected void sendSubscribeDepositFrame() {
-		sendSubscribeFrame("wallet");
+	private String getUnsubscribeFrame(String channel) {
+		return new WsRequest("unsubscribe", new String[]{channel}).toJson();
 	}
 
 	@Override
-	protected void sendUnsubscribeDepositFrame() {
-		sendUnsubscribeFrame("wallet");
+	protected String getSubscribeDepositFrame() {
+		return getSubscribeFrame("wallet");
 	}
 
 	@Override
-	protected void sendSubscribePartialFillsFrame() {
-		sendSubscribeFrame("execution");
+	protected String getUnsubscribeDepositFrame() {
+		return getUnsubscribeFrame("wallet");
 	}
 
 	@Override
-	protected void sendUnsubscribePartialFillsFrame() {
-		sendUnsubscribeFrame("execution");
+	protected String getSubscribePartialFillsFrame() {
+		return getSubscribeFrame("execution");
+	}
+
+	@Override
+	protected String getUnsubscribePartialFillsFrame() {
+		return getUnsubscribeFrame("execution");
 	}
 }

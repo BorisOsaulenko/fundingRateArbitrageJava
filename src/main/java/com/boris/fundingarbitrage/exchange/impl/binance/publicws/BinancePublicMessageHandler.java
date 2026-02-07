@@ -5,7 +5,6 @@ import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.impl.binance.publicws.pojos.BookTickerMessage;
 import com.boris.fundingarbitrage.exchange.impl.binance.publicws.pojos.FundingRateMessage;
 import com.boris.fundingarbitrage.exchange.impl.binance.publicws.pojos.MarkPriceMessage;
-import com.boris.fundingarbitrage.exchange.publichttp.PublicHttpClient;
 import com.boris.fundingarbitrage.exchange.publicws.PublicMessageHandler;
 import com.boris.fundingarbitrage.model.contract.PriceLevel;
 import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
@@ -24,8 +23,7 @@ public class BinancePublicMessageHandler implements PublicMessageHandler {
 	private final ExchangeContext context;
 	private final ObjectMapper jsonMapper = ObjectMapperSingleton.getInstance();
 
-	public BinancePublicMessageHandler(ExchangeContext exchangeContext, PublicHttpClient publicHttpClient) {
-		super(publicHttpClient);
+	public BinancePublicMessageHandler(ExchangeContext exchangeContext) {
 		this.context = exchangeContext;
 	}
 

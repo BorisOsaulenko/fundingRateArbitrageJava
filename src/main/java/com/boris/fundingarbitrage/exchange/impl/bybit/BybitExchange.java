@@ -11,13 +11,11 @@ public class BybitExchange extends BaseExchange {
 	private static final BybitContext context = new BybitContext();
 	private static final BybitPrivateWsClient privateWs = new BybitPrivateWsClient(context);
 	private static final BybitPublicHttpClient publicHttp = new BybitPublicHttpClient(context);
-	private static final BybitPublicMessageHandler publicMessageHandler = new BybitPublicMessageHandler(
-					context,
-					publicHttp
-	);
+	private static final BybitPublicMessageHandler publicMessageHandler = new BybitPublicMessageHandler(context);
 	private static final BybitPublicWsClient publicWs = new BybitPublicWsClient(
 					context,
-					publicMessageHandler
+					publicMessageHandler,
+					publicHttp
 	);
 	private static final BybitPrivateHttpClient privateHttp = new BybitPrivateHttpClient(context);
 

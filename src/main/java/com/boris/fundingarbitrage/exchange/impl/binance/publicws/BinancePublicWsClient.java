@@ -3,6 +3,7 @@ package com.boris.fundingarbitrage.exchange.impl.binance.publicws;
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.impl.binance.publicws.pojos.SubscribePOJO;
 import com.boris.fundingarbitrage.exchange.impl.binance.publicws.pojos.UnsubscribePOJO;
+import com.boris.fundingarbitrage.exchange.publichttp.PublicHttpClient;
 import com.boris.fundingarbitrage.exchange.publicws.PublicWsClient;
 import org.jetbrains.annotations.NotNull;
 
@@ -15,24 +16,28 @@ public class BinancePublicWsClient extends PublicWsClient {
 	private static final URI endpoint = URI.create("wss://fstream.binance.com/ws");
 	private static final AtomicInteger NEXT_ID = new AtomicInteger(1);
 
-	public BinancePublicWsClient(ExchangeContext context, BinancePublicMessageHandler messageHandler) {
-		super(context, endpoint, messageHandler);
+	public BinancePublicWsClient(
+					ExchangeContext context,
+					BinancePublicMessageHandler messageHandler,
+					PublicHttpClient publicHttp
+	) {
+		super(context, endpoint, messageHandler, publicHttp);
 	}
 
 	public static int getNextId() {
 		return NEXT_ID.getAndIncrement();
 	}
 
-	private void sendSubscribeFrame(String[] symbols, Function<String, String> toStreamMapper) {
+	private String getSubscribeFrame(String[] symbols, Function<String, String> toStreamMapper) {
 		String[] streams = Arrays.stream(symbols).map(toStreamMapper).toArray(String[]::new);
 		SubscribePOJO sub = new SubscribePOJO(streams);
-		this.prettyWsClient.sendObject(sub);
+		return sub.toJson();
 	}
 
-	private void sendUnsubscribeFrame(String[] symbols, Function<String, String> toStreamMapper) {
+	private String getUnsubscribeFrame(String[] symbols, Function<String, String> toStreamMapper) {
 		String[] streams = Arrays.stream(symbols).map(toStreamMapper).toArray(String[]::new);
 		UnsubscribePOJO unsub = new UnsubscribePOJO(streams);
-		this.prettyWsClient.sendObject(unsub);
+		return unsub.toJson();
 	}
 
 	private String getFundingRateStream(@NotNull String symbol) {
@@ -48,32 +53,32 @@ public class BinancePublicWsClient extends PublicWsClient {
 	}
 
 	@Override
-	protected void sendSubscribeFundingRateFrame(String[] symbols) {
-		this.sendSubscribeFrame(symbols, this::getFundingRateStream);
+	protected String getSubscribeFundingRateFrame(String[] symbols) {
+		return this.getSubscribeFrame(symbols, this::getFundingRateStream);
 	}
 
 	@Override
-	protected void sendUnsubscribeFundingRateFrame(String[] symbols) {
-		this.sendUnsubscribeFrame(symbols, this::getFundingRateStream);
+	protected String getUnsubscribeFundingRateFrame(String[] symbols) {
+		return this.getUnsubscribeFrame(symbols, this::getFundingRateStream);
 	}
 
 	@Override
-	protected void sendSubscribeBookTickerFrame(String[] symbols) {
-		this.sendSubscribeFrame(symbols, this::getBookTickerStream);
+	protected String getSubscribeBookTickerFrame(String[] symbols) {
+		return this.getSubscribeFrame(symbols, this::getBookTickerStream);
 	}
 
 	@Override
-	protected void sendUnsubscribeBookTickerFrame(String[] symbols) {
-		this.sendUnsubscribeFrame(symbols, this::getBookTickerStream);
+	protected String getUnsubscribeBookTickerFrame(String[] symbols) {
+		return this.getUnsubscribeFrame(symbols, this::getBookTickerStream);
 	}
 
 	@Override
-	protected void sendSubscribeMarkPriceFrame(String[] symbols) {
-		this.sendSubscribeFrame(symbols, this::getMarkPriceStream);
+	protected String getSubscribeMarkPriceFrame(String[] symbols) {
+		return this.getSubscribeFrame(symbols, this::getMarkPriceStream);
 	}
 
 	@Override
-	protected void sendUnsubscribeMarkPriceFrame(String[] symbols) {
-		this.sendUnsubscribeFrame(symbols, this::getMarkPriceStream);
+	protected String getUnsubscribeMarkPriceFrame(String[] symbols) {
+		return this.getUnsubscribeFrame(symbols, this::getMarkPriceStream);
 	}
 }

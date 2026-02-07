@@ -2,8 +2,6 @@ package com.boris.fundingarbitrage.exchange.impl.kucoin.publicws;
 
 import com.boris.fundingarbitrage.ObjectMapperSingleton;
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
-import com.boris.fundingarbitrage.exchange.impl.kucoin.KucoinJson;
-import com.boris.fundingarbitrage.exchange.publichttp.PublicHttpClient;
 import com.boris.fundingarbitrage.exchange.publicws.PublicMessageHandler;
 import com.boris.fundingarbitrage.model.contract.FundingRate;
 import com.boris.fundingarbitrage.model.contract.PriceLevel;
@@ -12,6 +10,7 @@ import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
 import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
 import com.boris.fundingarbitrage.util.JsonParsingFunction;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
+import com.boris.fundingarbitrage.util.json.Json;
 import com.boris.fundingarbitrage.util.logger.Logger;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -32,8 +31,7 @@ public class KucoinPublicMessageHandler implements PublicMessageHandler {
 	private final CoinVector<Instant> settlementVector = new CoinVector<>();
 	private final CoinVector<CompletableFuture<FundingRate>> fundingRateFutureVector = new CoinVector<>();
 
-	public KucoinPublicMessageHandler(ExchangeContext context, PublicHttpClient publicHttpClient) {
-		super(publicHttpClient);
+	public KucoinPublicMessageHandler(ExchangeContext context) {
 		this.context = context;
 	}
 
@@ -69,7 +67,7 @@ public class KucoinPublicMessageHandler implements PublicMessageHandler {
 		double askPrice = Double.parseDouble(askPriceText);
 		double askSize = Double.parseDouble(askSizeText);
 		long ts = Long.parseLong(tsText);
-		Instant timestamp = KucoinJson.toInstantMillisOrNanos(ts);
+		Instant timestamp = Json.toInstantMillisOrNanos(ts);
 		String coin = context.getSymbolInverse(symbol);
 
 		return new BookTickerPatch(coin, new PriceLevel(bidPrice, bidSize), new PriceLevel(askPrice, askSize), timestamp);
