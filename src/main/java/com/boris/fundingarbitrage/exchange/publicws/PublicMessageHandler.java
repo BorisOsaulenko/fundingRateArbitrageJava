@@ -6,7 +6,7 @@ import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
 import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
 
 public abstract class PublicMessageHandler {
-	protected final PublicHttpClient publicHttpClient; // Some exchanges have incomplete WS data and need HTTP client to fill the gaps
+	public final PublicHttpClient publicHttpClient; // Some exchanges have incomplete WS data and need HTTP client to fill the gaps
 
 	public PublicMessageHandler(PublicHttpClient publicHttpClient) {
 		this.publicHttpClient = publicHttpClient;

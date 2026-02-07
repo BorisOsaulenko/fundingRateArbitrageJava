@@ -32,7 +32,13 @@ public abstract class PublicWsClient<T extends PublicMessageHandler> {
 		this.prettyWsClient = new PrettyWsClientBuilder(endpoint, this::handleMessage).build();
 	}
 
-	public final void close() {
+	protected PublicWsClient(PublicWsClient<T> client) {
+		this.exchangeContext = client.exchangeContext;
+		this.messageHandler = client.messageHandler;
+		this.prettyWsClient = client.prettyWsClient;
+	}
+
+	public void close() {
 		this.prettyWsClient.close();
 	}
 

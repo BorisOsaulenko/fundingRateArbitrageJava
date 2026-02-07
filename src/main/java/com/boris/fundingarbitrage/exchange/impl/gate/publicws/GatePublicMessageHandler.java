@@ -4,13 +4,11 @@ import com.boris.fundingarbitrage.ObjectMapperSingleton;
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.publichttp.PublicHttpClient;
 import com.boris.fundingarbitrage.exchange.publicws.PublicMessageHandler;
-import com.boris.fundingarbitrage.model.contract.FundingRate;
 import com.boris.fundingarbitrage.model.contract.PriceLevel;
 import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
 import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
 import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
 import com.boris.fundingarbitrage.util.JsonParsingFunction;
-import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import com.boris.fundingarbitrage.util.logger.Logger;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -20,15 +18,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.time.Instant;
 import java.util.Arrays;
-import java.util.concurrent.CompletableFuture;
 
 public class GatePublicMessageHandler extends PublicMessageHandler {
 	private final ExchangeContext context;
 	private final ObjectMapper mapper = ObjectMapperSingleton.getInstance();
-
-	private final CoinVector<Boolean> updatingFundingRateVector = new CoinVector<>();
-	private final CoinVector<Instant> settlementVector = new CoinVector<>();
-	private final CoinVector<CompletableFuture<FundingRate>> fundingRateFutureVector = new CoinVector<>();
 
 	public GatePublicMessageHandler(ExchangeContext context, PublicHttpClient publicHttpClient) {
 		super(publicHttpClient);
@@ -62,9 +55,7 @@ public class GatePublicMessageHandler extends PublicMessageHandler {
 		if (fundingRateStr == null || fundingRateStr.isEmpty()) return null;
 
 		return new FundingRatePatch(
-						coin,
-						Double.parseDouble(fundingRateStr),
-						null, // Gate provides no funding settlement updates via websocket
+						coin, Double.parseDouble(fundingRateStr), null, // Gate provides no funding settlement updates via websocket
 						Instant.ofEpochSecond(time)
 		);
 	}
@@ -108,9 +99,7 @@ public class GatePublicMessageHandler extends PublicMessageHandler {
 		String bidSize = result.path("B").asText();
 		String askPrice = result.path("a").asText();
 		String askSize = result.path("A").asText();
-		if (Arrays
-						.stream((new String[]{bidPrice, bidSize, askSize, askPrice}))
-						.anyMatch(this::correctString)) {
+		if (Arrays.stream((new String[]{bidPrice, bidSize, askSize, askPrice})).anyMatch(this::correctString)) {
 			PriceLevel bid = new PriceLevel(Double.parseDouble(bidPrice), Double.parseDouble(bidSize));
 			PriceLevel ask = new PriceLevel(Double.parseDouble(askPrice), Double.parseDouble(askSize));
 			long time = result.path("t").asLong();
@@ -132,46 +121,9 @@ public class GatePublicMessageHandler extends PublicMessageHandler {
 		}
 	}
 
-	public void updateFundingSettlementForCoin(String coin) {
-		updatingFundingRateVector.put(coin, true);
-		CompletableFuture<FundingRate> future = this.publicHttpClient
-						.getFundingRate(coin)
-						.thenApply((fr) -> {
-							updatingFundingRateVector.put(coin, false);
-							settlementVector.put(coin, fr.settlement());
-							return fr;
-						});
-		fundingRateFutureVector.put(coin, future);
-	}
-
 	@Override
 	public FundingRatePatch parseFundingRateMessageSymbol(String message) {
-		return parseErrorHandled(
-						(msg) -> {
-							FundingRatePatch fundingRate = this.parseFundingRateInternal(msg);
-							if (fundingRate == null) return null;
-
-							String coin = fundingRate.coin();
-
-							Instant settlement = settlementVector.get(coin);
-							if (settlement == null) return null;
-
-							boolean updating = updatingFundingRateVector.get(coin);
-							if (updating) return null;
-
-							if (Instant.now().isAfter(settlement)) {
-								updateFundingSettlementForCoin(coin);
-								return null;
-							}
-
-							return new FundingRatePatch(
-											fundingRate.coin(),
-											fundingRate.rate(),
-											settlement,
-											fundingRate.timestamp()
-							);
-						}, message
-		);
+		return parseErrorHandled(this::parseFundingRateInternal, message);
 	}
 
 	@Override
