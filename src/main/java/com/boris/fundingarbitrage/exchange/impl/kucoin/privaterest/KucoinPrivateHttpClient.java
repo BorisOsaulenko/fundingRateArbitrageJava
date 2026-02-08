@@ -12,7 +12,6 @@ import com.boris.fundingarbitrage.model.contract.PartialFill;
 import com.boris.fundingarbitrage.model.exchange.ExchangeChains;
 import com.boris.fundingarbitrage.model.exchange.WalletAddress;
 import com.boris.fundingarbitrage.util.https.PrettyHttpClient;
-import com.boris.fundingarbitrage.util.json.Json;
 import com.boris.fundingarbitrage.util.logger.Logger;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -172,17 +171,33 @@ public class KucoinPrivateHttpClient extends PrivateHttpClient {
 		return client.send(request).thenApply(response -> {
 			try {
 				JsonNode root = mapper.readTree(response.getBodyText());
-				String code = Json.requireText(root, "code");
-				String msg = root.has("msg") ? root.get("msg").asText() : null;
+				String code = root.path("code").asText();
+				if (code.isEmpty()) {
+					throw new IllegalStateException("KuCoin response code missing");
+				}
+				String msg = root.path("msg").asText();
+				if (msg.isEmpty()) msg = null;
 				if (!"200000".equals(code)) throw new IllegalStateException("Failed to get KuCoin WS token: " + msg);
 
-				JsonNode data = Json.requireField(root, "data");
-				String token = Json.requireText(data, "token");
-				JsonNode servers = Json.requireArray(data, "instanceServers");
+				JsonNode data = root.get("data");
+				if (data == null || !data.isObject()) {
+					throw new IllegalStateException("KuCoin WS token data missing");
+				}
+				String token = data.path("token").asText();
+				if (token.isEmpty()) {
+					throw new IllegalStateException("KuCoin WS token missing");
+				}
+				JsonNode servers = data.get("instanceServers");
+				if (servers == null || !servers.isArray()) {
+					throw new IllegalStateException("KuCoin WS token instance servers missing");
+				}
 				if (servers.isEmpty()) throw new IllegalStateException("KuCoin WS token response has no instance servers");
 
 				JsonNode server = servers.get(0);
-				String endpoint = Json.requireText(server, "endpoint");
+				String endpoint = server.path("endpoint").asText();
+				if (endpoint.isEmpty()) {
+					throw new IllegalStateException("KuCoin WS endpoint missing");
+				}
 				String connectId = UUID.randomUUID().toString();
 				return URI.create(endpoint + "?token=" + token + "&connectId=" + connectId);
 			} catch (Exception ex) {

@@ -1,14 +1,14 @@
 package com.boris.fundingarbitrage;
 
-import com.boris.fundingarbitrage.exchange.impl.gate.GateExchange;
+import com.boris.fundingarbitrage.exchange.impl.binance.BinanceExchange;
 import com.boris.fundingarbitrage.util.logger.Logger;
 
 class App {
 	static void main(String[] args) throws Exception {
-		GateExchange exchange = new GateExchange();
-		exchange.publicWsClient.subscribeFundingRates(
-						"SOL", (_) -> {
-							Logger.log("Received funding rate update for SOL");
+		BinanceExchange exchange = new BinanceExchange();
+		exchange.publicWsClient.subscribeMarkPrice(
+						"SOL", (data) -> {
+							Logger.log(data.toString());
 						}
 		);
 

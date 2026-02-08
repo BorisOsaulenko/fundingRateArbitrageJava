@@ -2,7 +2,6 @@ package com.boris.fundingarbitrage.exchange.impl.bitget.publicrest;
 
 import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.FundingRate;
-import com.boris.fundingarbitrage.model.contract.PriceLevel;
 
 import java.time.Instant;
 
@@ -85,26 +84,19 @@ public class PublicResponses {
 		public BookTicker bookTicker() {
 			if (data.length == 0) return null;
 			Ticker ticker = data[0];
-			PriceLevel bid = new PriceLevel(
+			Instant timestamp = Instant.ofEpochMilli(requestTime);
+			return new BookTicker(
 							Double.parseDouble(ticker.bidPr()),
-							Double.parseDouble(ticker.bidSz())
-			);
-			PriceLevel ask = new PriceLevel(
+							Double.parseDouble(ticker.bidSz()),
 							Double.parseDouble(ticker.askPr()),
-							Double.parseDouble(ticker.askSz())
+							Double.parseDouble(ticker.askSz()),
+							timestamp
 			);
-			Instant timestamp = toInstant(ticker.ts(), requestTime);
-			return new BookTicker(bid, ask, timestamp);
 		}
 
 		public double volume24h() {
 			if (data.length == 0) return 0.0;
 			return Double.parseDouble(data[0].baseVolume());
-		}
-
-		private Instant toInstant(String ts, long fallback) {
-			if (ts == null || ts.isEmpty()) return Instant.ofEpochMilli(fallback);
-			return Instant.ofEpochMilli(Long.parseLong(ts));
 		}
 	}
 

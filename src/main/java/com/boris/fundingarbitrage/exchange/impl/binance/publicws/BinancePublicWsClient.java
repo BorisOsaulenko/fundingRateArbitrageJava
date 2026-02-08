@@ -1,8 +1,7 @@
 package com.boris.fundingarbitrage.exchange.impl.binance.publicws;
 
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
-import com.boris.fundingarbitrage.exchange.impl.binance.publicws.pojos.SubscribePOJO;
-import com.boris.fundingarbitrage.exchange.impl.binance.publicws.pojos.UnsubscribePOJO;
+import com.boris.fundingarbitrage.exchange.impl.binance.publicws.pojos.WsRequest;
 import com.boris.fundingarbitrage.exchange.publichttp.PublicHttpClient;
 import com.boris.fundingarbitrage.exchange.publicws.PublicWsClient;
 import org.jetbrains.annotations.NotNull;
@@ -30,13 +29,13 @@ public class BinancePublicWsClient extends PublicWsClient {
 
 	private String getSubscribeFrame(String[] symbols, Function<String, String> toStreamMapper) {
 		String[] streams = Arrays.stream(symbols).map(toStreamMapper).toArray(String[]::new);
-		SubscribePOJO sub = new SubscribePOJO(streams);
+		WsRequest sub = new WsRequest("SUBSCRIBE", streams);
 		return sub.toJson();
 	}
 
 	private String getUnsubscribeFrame(String[] symbols, Function<String, String> toStreamMapper) {
 		String[] streams = Arrays.stream(symbols).map(toStreamMapper).toArray(String[]::new);
-		UnsubscribePOJO unsub = new UnsubscribePOJO(streams);
+		WsRequest unsub = new WsRequest("UNSUBSCRIBE", streams);
 		return unsub.toJson();
 	}
 

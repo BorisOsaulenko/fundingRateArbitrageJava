@@ -4,18 +4,14 @@ import com.boris.fundingarbitrage.ObjectMapperSingleton;
 import com.boris.fundingarbitrage.exchange.impl.binance.publicws.BinancePublicWsClient;
 import lombok.SneakyThrows;
 
-public record SubscribePOJO(String method, String[] params, int id) {
-	public SubscribePOJO(String[] params) {
-		this("SUBSCRIBE", params, BinancePublicWsClient.getNextId());
+public record WsRequest(String method, String[] params, int id) {
+	public WsRequest(String method, String[] params) {
+		this(method, params, BinancePublicWsClient.getNextId());
 	}
 
-	public SubscribePOJO {
+	public WsRequest {
 		if (params == null || params.length == 0) {
 			throw new IllegalArgumentException("Params cannot be null or empty");
-		}
-
-		if (method == null || method.isBlank()) {
-			method = "SUBSCRIBE";
 		}
 	}
 

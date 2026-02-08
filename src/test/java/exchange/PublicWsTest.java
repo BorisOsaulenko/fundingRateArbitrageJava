@@ -39,11 +39,9 @@ public abstract class PublicWsTest {
 	}
 
 	private void checkMessages() {
-		if (bookTickerMessageCounts
-						.filter((Integer value) -> value < MIN_MESSAGES_PER_STREAM)
-						.isEmpty() && fundingRateMessageCounts
-						.filter((Integer value) -> value < MIN_MESSAGES_PER_STREAM)
-						.isEmpty() && markPriceMessageCounts.filter((Integer value) -> value < MIN_MESSAGES_PER_STREAM).isEmpty()) {
+		if (bookTickerMessageCounts.filter((Integer value) -> value < MIN_MESSAGES_PER_STREAM).isEmpty() &&
+				fundingRateMessageCounts.filter((Integer value) -> value < MIN_MESSAGES_PER_STREAM).isEmpty() &&
+				markPriceMessageCounts.filter((Integer value) -> value < MIN_MESSAGES_PER_STREAM).isEmpty()) {
 			this.waitingFuture.complete(null);
 		}
 	}
@@ -54,8 +52,10 @@ public abstract class PublicWsTest {
 							if (existing == null) return incoming;
 							return new BookTickerPatch(
 											incoming.coin(),
-											incoming.bid() != null ? incoming.bid() : existing.bid(),
-											incoming.ask() != null ? incoming.ask() : existing.ask(),
+											incoming.bidPrice() != null ? incoming.bidPrice() : existing.bidPrice(),
+											incoming.bidSize() != null ? incoming.bidSize() : existing.bidSize(),
+											incoming.askPrice() != null ? incoming.askPrice() : existing.askPrice(),
+											incoming.askSize() != null ? incoming.askSize() : existing.askSize(),
 											incoming.timestamp()
 							);
 						}
@@ -135,7 +135,15 @@ public abstract class PublicWsTest {
 				break;
 			}
 
-			if (bookTickerPatch == null || bookTickerPatch.bid() == null || bookTickerPatch.ask() == null || fundingRatePatch == null || fundingRatePatch.rate() == null || fundingRatePatch.settlement() == null || markPricePatch == null) {
+			if (bookTickerPatch == null ||
+					bookTickerPatch.bidPrice() == null ||
+					bookTickerPatch.bidSize() == null ||
+					bookTickerPatch.askPrice() == null ||
+					bookTickerPatch.askSize() == null ||
+					fundingRatePatch == null ||
+					fundingRatePatch.rate() == null ||
+					fundingRatePatch.settlement() == null ||
+					markPricePatch == null) {
 				allFieldsPresent = false;
 				break;
 			}

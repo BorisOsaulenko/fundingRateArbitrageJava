@@ -8,7 +8,11 @@ import com.boris.fundingarbitrage.model.websocket.patch.GenericPublicWsPatch;
 import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import com.boris.fundingarbitrage.util.wss.prettyclient.PrettyWsClient;
+import com.boris.fundingarbitrage.ObjectMapperSingleton;
 import lombok.NonNull;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -21,6 +25,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 public abstract class PublicWsClient {
+	private static final ObjectMapper JSON_MAPPER = ObjectMapperSingleton.getInstance();
 	protected final ExchangeContext exchangeContext;
 	protected final PublicMessageHandler messageHandler;
 	protected final PublicHttpClient publicHttpClient;
@@ -201,11 +206,11 @@ public abstract class PublicWsClient {
 	}
 
 	private <T extends GenericPublicWsPatch> void tryHandle(
-					String message,
-					Function<String, T> parser,
+					JsonNode root,
+					Function<JsonNode, T> parser,
 					Consumer<T> handler
 	) {
-		T patch = parser.apply(message);
+		T patch = parser.apply(root);
 		if (patch == null) return;
 		handler.accept(patch);
 	}
@@ -213,17 +218,26 @@ public abstract class PublicWsClient {
 	private void handleMessage(String message) {
 		if (message == null || message.isEmpty()) return;
 
-		tryHandle(message, messageHandler::parseBookTickerMessageSymbol, this::handleBookTickerPatch);
-		tryHandle(message, messageHandler::parseMarkPriceMessageSymbol, this::handleMarkPricePatch);
-		tryHandle(message, messageHandler::parseFundingRateMessageSymbol, this::handleFundingRatePatch);
+		JsonNode root = null;
+		try {
+			root = JSON_MAPPER.readTree(message);
+		} catch (JsonProcessingException ignored) {
+			// Non-JSON messages (e.g., ping/pong) are handled below.
+		}
+
+		if (root != null) {
+			tryHandle(root, messageHandler::parseBookTickerMessageSymbol, this::handleBookTickerPatch);
+			tryHandle(root, messageHandler::parseMarkPriceMessageSymbol, this::handleMarkPricePatch);
+			tryHandle(root, messageHandler::parseFundingRateMessageSymbol, this::handleFundingRatePatch);
+		}
 
 		handlePingMessage(message);
 	}
 
 
-	public void unsubscribeSymbol(String symbol) {
-		unsubscribeBookTicker(symbol);
-		unsubscribeFundingRates(symbol);
-		unsubscribeMarkPrice(symbol);
+	public void unsubscribeCoin(String coin) {
+		unsubscribeBookTicker(coin);
+		unsubscribeFundingRates(coin);
+		unsubscribeMarkPrice(coin);
 	}
 }

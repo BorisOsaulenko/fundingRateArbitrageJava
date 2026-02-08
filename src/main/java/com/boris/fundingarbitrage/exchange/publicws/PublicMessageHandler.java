@@ -3,13 +3,14 @@ package com.boris.fundingarbitrage.exchange.publicws;
 import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
 import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
 import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
+import com.fasterxml.jackson.databind.JsonNode;
 
 public interface PublicMessageHandler {
-	FundingRatePatch parseFundingRateMessageSymbol(String message);
+	FundingRatePatch parseFundingRateMessageSymbol(JsonNode root);
 
-	BookTickerPatch parseBookTickerMessageSymbol(String message);
+	BookTickerPatch parseBookTickerMessageSymbol(JsonNode root);
 
-	MarkPricePatch parseMarkPriceMessageSymbol(String message);
+	MarkPricePatch parseMarkPriceMessageSymbol(JsonNode root);
 
 	String getResponseToPingMessage(String message);
 }

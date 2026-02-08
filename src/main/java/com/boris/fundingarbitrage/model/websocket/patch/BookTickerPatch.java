@@ -1,16 +1,24 @@
 package com.boris.fundingarbitrage.model.websocket.patch;
 
-import com.boris.fundingarbitrage.model.contract.PriceLevel;
 import lombok.NonNull;
 
 import java.time.Instant;
 
 public record BookTickerPatch(
-				@NonNull String coin, PriceLevel bid, PriceLevel ask, @NonNull Instant timestamp
+				@NonNull String coin,
+				Double bidPrice,
+				Double bidSize,
+				Double askPrice,
+				Double askSize,
+				@NonNull Instant timestamp
 ) implements GenericPublicWsPatch {
 	public BookTickerPatch {
-		if (bid == null && ask == null) {
-			throw new IllegalArgumentException("Bid and ask cannot both be absent.");
+		if (bidPrice <= 0 || bidSize <= 0 || askPrice <= 0 || askSize <= 0) {
+			throw new IllegalArgumentException("bidPrice, bidSize, askPrice, askSize must be positive");
+		}
+		
+		if (bidPrice == null && bidSize == null && askPrice == null && askSize == null) {
+			throw new IllegalArgumentException("At least one of bidPrice, bidSize, askPrice, askSize must be positive");
 		}
 	}
 }

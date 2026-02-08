@@ -77,26 +77,23 @@ public class PublicResponses {
 			JsonNode best = levels.get(0);
 			if (best == null) return null;
 
-			String price = best.path("p").asText();
-			String size = best.path("s").asText();
+			double price = best.path("p").asDouble();
+			double size = best.path("s").asDouble();
 
-			if (price == null || price.isEmpty()) {
-				throw new IllegalStateException("Invalid price response");
-			}
-			if (size == null || size.isEmpty()) throw new IllegalStateException("Invalid size response");
-			return new PriceLevel(Double.parseDouble(price), Double.parseDouble(size));
+			if (price <= 0.0 || size <= 0.0) throw new IllegalStateException("Invalid price response");
+
+			return new PriceLevel(price, size);
 		}
 
 		public BookTicker bookTicker() {
 			if (node == null || !node.isObject()) return null;
 			PriceLevel bid = parseBest(node.get("bids"));
 			PriceLevel ask = parseBest(node.get("asks"));
-			if (bid == null || ask == null) {
-				throw new IllegalStateException("Invalid order book response");
-			}
+			if (bid == null || ask == null) throw new IllegalStateException("Invalid order book response");
+
 			long t = node.path("current").asLong();
 			Instant ts = Instant.ofEpochSecond(t);
-			return new BookTicker(bid, ask, ts);
+			return new BookTicker(bid.price(), bid.volume(), ask.price(), ask.volume(), ts);
 		}
 	}
 
@@ -112,11 +109,9 @@ public class PublicResponses {
 			JsonNode first = node.get(0);
 			if (first == null) return 0.0;
 
-			String volume = first.path("sum").asText();
-			if (volume == null || volume.isEmpty()) {
-				throw new IllegalStateException("Invalid volume response");
-			}
-			return Double.parseDouble(volume);
+			double volume = first.path("sum").asDouble();
+			if (volume == 0.0) throw new IllegalStateException("Invalid volume response");
+			return volume;
 		}
 	}
 }

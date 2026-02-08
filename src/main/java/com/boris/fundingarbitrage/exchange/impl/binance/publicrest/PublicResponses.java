@@ -2,7 +2,6 @@ package com.boris.fundingarbitrage.exchange.impl.binance.publicrest;
 
 import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.FundingRate;
-import com.boris.fundingarbitrage.model.contract.PriceLevel;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
@@ -31,11 +30,7 @@ public class PublicResponses {
 					String symbol, double lastFundingRate, long nextFundingTime, long time
 	) {
 		public FundingRate get() {
-			return new FundingRate(
-							lastFundingRate,
-							Instant.ofEpochMilli(nextFundingTime),
-							Instant.ofEpochMilli(time)
-			);
+			return new FundingRate(lastFundingRate, Instant.ofEpochMilli(nextFundingTime), Instant.ofEpochMilli(time));
 		}
 	}
 
@@ -43,11 +38,7 @@ public class PublicResponses {
 					String symbol, double bidPrice, double askPrice, double bidQty, double askQty, long time
 	) {
 		public BookTicker get() {
-			return new BookTicker(
-							new PriceLevel(bidPrice, bidQty),
-							new PriceLevel(askPrice, askQty),
-							Instant.ofEpochMilli(time)
-			);
+			return new BookTicker(bidPrice, bidQty, askPrice, askQty, Instant.ofEpochMilli(time));
 		}
 	}
 

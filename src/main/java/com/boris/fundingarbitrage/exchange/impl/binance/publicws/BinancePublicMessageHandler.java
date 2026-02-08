@@ -2,19 +2,12 @@ package com.boris.fundingarbitrage.exchange.impl.binance.publicws;
 
 import com.boris.fundingarbitrage.ObjectMapperSingleton;
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
-import com.boris.fundingarbitrage.exchange.impl.binance.publicws.pojos.BookTickerMessage;
-import com.boris.fundingarbitrage.exchange.impl.binance.publicws.pojos.FundingRateMessage;
-import com.boris.fundingarbitrage.exchange.impl.binance.publicws.pojos.MarkPriceMessage;
 import com.boris.fundingarbitrage.exchange.publicws.PublicMessageHandler;
-import com.boris.fundingarbitrage.model.contract.PriceLevel;
 import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
 import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
 import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
-import com.boris.fundingarbitrage.util.JsonParsingFunction;
 import com.boris.fundingarbitrage.util.logger.Logger;
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.time.Instant;
@@ -27,62 +20,84 @@ public class BinancePublicMessageHandler implements PublicMessageHandler {
 		this.context = exchangeContext;
 	}
 
-	private FundingRatePatch parseFundingRateInternal(String message) throws JsonProcessingException {
-		FundingRateMessage fundingRateMessage = jsonMapper.readValue(message, FundingRateMessage.class);
-		String coin = context.getSymbolInverse(fundingRateMessage.s());
+	private FundingRatePatch parseFundingRateInternal(JsonNode root) {
+		String symbol = root.path("s").asText();
+		if (symbol.isEmpty()) return null;
+
+		String rate = root.path("r").asText();
+		if (rate.isEmpty()) return null;
+
+		long settlementTime = root.path("T").asLong();
+		if (settlementTime == 0) return null;
+
+		long eventTime = root.path("E").asLong();
+		if (eventTime == 0) return null;
+
+		String coin = context.getSymbolInverse(symbol);
 
 		return new FundingRatePatch(
 						coin,
-						Double.parseDouble(fundingRateMessage.r()),
-						Instant.ofEpochMilli(fundingRateMessage.T()),
-						Instant.ofEpochMilli(fundingRateMessage.E())
+						Double.parseDouble(rate),
+						Instant.ofEpochMilli(settlementTime),
+						Instant.ofEpochMilli(eventTime)
 		);
 	}
 
-	private MarkPricePatch parseMarkPriceInternal(String message) throws JsonProcessingException {
-		MarkPriceMessage markPriceMessage = jsonMapper.readValue(message, MarkPriceMessage.class);
-		String coin = context.getSymbolInverse(markPriceMessage.s());
-		return new MarkPricePatch(
-						coin,
-						Double.parseDouble(markPriceMessage.p()),
-						Instant.ofEpochMilli(markPriceMessage.E())
-		);
+	private MarkPricePatch parseMarkPriceInternal(JsonNode root) {
+		String symbol = root.path("s").asText();
+		if (symbol.isEmpty()) return null;
+
+		long eventTime = root.path("E").asLong();
+		if (eventTime == 0) return null;
+
+		String markPrice = root.path("p").asText();
+		if (markPrice.isEmpty()) return null;
+
+		String coin = context.getSymbolInverse(symbol);
+		return new MarkPricePatch(coin, Double.parseDouble(markPrice), Instant.ofEpochMilli(eventTime));
 	}
 
-	private BookTickerPatch parseBookTickerInternal(String message) throws JsonProcessingException {
-		BookTickerMessage bookTickerMessage = jsonMapper.readValue(message, BookTickerMessage.class);
-		PriceLevel bestBid = new PriceLevel(
-						Double.parseDouble(bookTickerMessage.b()),
-						Double.parseDouble(bookTickerMessage.B())
-		);
-		PriceLevel bestAsk = new PriceLevel(
-						Double.parseDouble(bookTickerMessage.a()),
-						Double.parseDouble(bookTickerMessage.A())
-		);
-		String coin = context.getSymbolInverse(bookTickerMessage.s());
+	private BookTickerPatch parseBookTickerInternal(JsonNode root) {
+		String b = root.path("b").asText();
+		String B = root.path("B").asText();
+		String a = root.path("a").asText();
+		String A = root.path("A").asText();
+		String symbol = root.path("s").asText();
+		long eventTime = root.path("E").asLong();
 
-		return new BookTickerPatch(coin, bestBid, bestAsk, Instant.ofEpochMilli(bookTickerMessage.E()));
+		if (symbol.isEmpty()) return null;
+		if (eventTime == 0) return null;
+
+		Double bbPrice = b.isEmpty() ? null : Double.parseDouble(b);
+		Double bbQty = B.isEmpty() ? null : Double.parseDouble(B);
+		Double baPrice = a.isEmpty() ? null : Double.parseDouble(a);
+		Double baQty = A.isEmpty() ? null : Double.parseDouble(A);
+
+		if (bbPrice == null && bbQty == null && baPrice == null && baQty == null) return null;
+
+		String coin = context.getSymbolInverse(symbol);
+		return new BookTickerPatch(coin, bbPrice, bbQty, baPrice, baQty, Instant.ofEpochMilli(eventTime));
 	}
 
 	@Override
-	public FundingRatePatch parseFundingRateMessageSymbol(String message) {
-		return parseErrorHandled(this::parseFundingRateInternal, message);
+	public FundingRatePatch parseFundingRateMessageSymbol(JsonNode root) {
+		return parseErrorHandled(this::parseFundingRateInternal, root);
 	}
 
 	@Override
-	public BookTickerPatch parseBookTickerMessageSymbol(String message) {
-		return parseErrorHandled(this::parseBookTickerInternal, message);
+	public BookTickerPatch parseBookTickerMessageSymbol(JsonNode root) {
+		return parseErrorHandled(this::parseBookTickerInternal, root);
 	}
 
 	@Override
-	public MarkPricePatch parseMarkPriceMessageSymbol(String message) {
-		return parseErrorHandled(this::parseMarkPriceInternal, message);
+	public MarkPricePatch parseMarkPriceMessageSymbol(JsonNode root) {
+		return parseErrorHandled(this::parseMarkPriceInternal, root);
 	}
 
-	private <T> T parseErrorHandled(JsonParsingFunction<T> parser, String message) {
+	private <T> T parseErrorHandled(java.util.function.Function<JsonNode, T> parser, JsonNode root) {
 		try {
-			return parser.apply(message);
-		} catch (JsonParseException | JsonMappingException ex) {
+			return parser.apply(root);
+		} catch (IllegalArgumentException ex) {
 			Logger.log(ex.getMessage());
 			return null; // Not a BookTicker message
 		} catch (Exception ex) {

@@ -2,7 +2,6 @@ package com.boris.fundingarbitrage.exchange.impl.bybit.publicrest;
 
 import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.FundingRate;
-import com.boris.fundingarbitrage.model.contract.PriceLevel;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import java.time.Instant;
@@ -43,39 +42,35 @@ public class PublicResponses {
 		public BookTicker bookTicker() {
 			JsonNode item = first();
 			if (item == null) return null;
-			String bidPrice = item.path("bid1Price").asText();
-			String bidSize = item.path("bid1Size").asText();
-			String askPrice = item.path("ask1Price").asText();
-			String askSize = item.path("ask1Size").asText();
-			if (bidPrice == null || bidPrice.isEmpty() || askPrice == null || askPrice.isEmpty()) {
-				return null;
+			double bidPrice = item.path("bid1Price").asDouble();
+			double bidSize = item.path("bid1Size").asDouble();
+			double askPrice = item.path("ask1Price").asDouble();
+			double askSize = item.path("ask1Size").asDouble();
+			if (bidPrice == 0.0 && bidSize == 0.0 && askPrice == 0.0 && askSize == 0.0) {
+				throw new IllegalStateException("Bybit ticker bid/ask price and size missing");
 			}
-			PriceLevel bid = new PriceLevel(Double.parseDouble(bidPrice), Double.parseDouble(bidSize));
-			PriceLevel ask = new PriceLevel(Double.parseDouble(askPrice), Double.parseDouble(askSize));
-			return new BookTicker(bid, ask, Instant.ofEpochMilli(time));
+
+			return new BookTicker(bidPrice, bidSize, askPrice, askSize, Instant.ofEpochMilli(time));
 		}
 
 		public FundingRate fundingRate() {
 			JsonNode item = first();
 			if (item == null) return null;
-			String rate = item.path("fundingRate").asText();
-			String nextFunding = item.path("nextFundingTime").asText();
-			if (rate == null || rate.isEmpty() || nextFunding == null || nextFunding.isEmpty()) {
-				return null;
+			double rate = item.path("fundingRate").asDouble();
+			long nextFunding = item.path("nextFundingTime").asLong();
+			if (rate == 0.0 || nextFunding == 0) {
+				throw new IllegalStateException("Bybit funding rate or next funding time missing");
 			}
-			return new FundingRate(
-							Double.parseDouble(rate),
-							Instant.ofEpochMilli(Long.parseLong(nextFunding)),
-							Instant.ofEpochMilli(time)
-			);
+
+			return new FundingRate(rate, Instant.ofEpochMilli(nextFunding), Instant.ofEpochMilli(time));
 		}
 
 		public double volume24h() {
 			JsonNode item = first();
-			if (item == null) return 0.0;
-			String volume = item.path("volume24h").asText();
-			if (volume == null || volume.isEmpty()) return 0.0;
-			return Double.parseDouble(volume);
+			if (item == null) throw new IllegalStateException("Bybit ticker list missing");
+			double volume = item.path("volume24h").asDouble();
+			if (volume == 0.0) throw new IllegalStateException("Bybit ticker volume24h missing");
+			return volume;
 		}
 	}
 
@@ -85,7 +80,11 @@ public class PublicResponses {
 			if (list == null || !list.isArray() || list.isEmpty()) return 0.0;
 			JsonNode candle = list.get(0);
 			if (!candle.isArray() || candle.size() < 6) return 0.0;
-			return Double.parseDouble(candle.get(5).asText());
+
+			double volume = candle.get(5).asDouble();
+			if (volume == 0.0) throw new IllegalStateException("Bybit kline volume missing");
+
+			return volume;
 		}
 	}
 }

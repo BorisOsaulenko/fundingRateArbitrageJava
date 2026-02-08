@@ -2,8 +2,6 @@ package com.boris.fundingarbitrage.exchange.impl.kucoin.publicrest;
 
 import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.FundingRate;
-import com.boris.fundingarbitrage.model.contract.PriceLevel;
-import com.boris.fundingarbitrage.util.json.Json;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import java.time.Instant;
@@ -13,7 +11,10 @@ public class PublicResponses {
 
 	public record ContractResponse(String code, String msg, JsonNode data) {
 		private JsonNode requireData() {
-			Json.requireCodeOk(code, expectedSuccessCode, msg);
+			if (!expectedSuccessCode.equals(code)) {
+				throw new IllegalStateException("KuCoin klines response code not OK: " + code + ", msg: " + msg);
+			}
+			
 			if (data == null || !data.isObject()) {
 				throw new IllegalStateException("KuCoin contract detail data missing");
 			}
@@ -22,53 +23,85 @@ public class PublicResponses {
 
 		public boolean symbolMatches(String symbol) {
 			JsonNode node = requireData();
-			String actual = Json.requireText(node, "symbol");
+			String actual = node.path("symbol").asText();
 			return symbol.equalsIgnoreCase(actual);
 		}
 
 		public double lotSize() {
 			JsonNode node = requireData();
-			return Json.requireDouble(node, "lotSize");
+			double size = node.path("lotSize").asDouble();
+			if (size == 0.0) throw new IllegalStateException("KuCoin contract lotSize missing");
+
+			return size;
 		}
 
 		public double volume24h() {
 			JsonNode node = requireData();
-			return Json.requireDouble(node, "volumeOf24h");
+			double volume = node.path("volumeOf24h").asDouble();
+			if (volume == 0.0) throw new IllegalStateException("KuCoin contract volumeOf24h missing");
+
+			return volume;
 		}
 	}
 
 	public record TickerResponse(String code, String msg, JsonNode data) {
 		public BookTicker bookTicker() {
-			Json.requireCodeOk(code, expectedSuccessCode, msg);
+			if (!expectedSuccessCode.equals(code)) {
+				throw new IllegalStateException("KuCoin klines response code not OK: " + code + ", msg: " + msg);
+			}
+
 			if (data == null || !data.isObject()) {
 				throw new IllegalStateException("KuCoin ticker data missing");
 			}
-			double bidPrice = Json.requireDouble(data, "bestBidPrice");
-			double bidSize = Json.requireDouble(data, "bestBidSize");
-			double askPrice = Json.requireDouble(data, "bestAskPrice");
-			double askSize = Json.requireDouble(data, "bestAskSize");
-			long ts = Json.requireLong(data, "ts");
-			Instant timestamp = Json.toInstantMillisOrNanos(ts);
-			return new BookTicker(new PriceLevel(bidPrice, bidSize), new PriceLevel(askPrice, askSize), timestamp);
+			double bidPrice = data.path("bestBidPrice").asDouble();
+			if (bidPrice == 0.0) throw new IllegalStateException("KuCoin ticker bestBidPrice missing");
+
+			double bidSize = data.path("bestBidSize").asDouble();
+			if (bidSize == 0.0) throw new IllegalStateException("KuCoin ticker bestBidSize missing");
+
+			double askPrice = data.path("bestAskPrice").asDouble();
+			if (askPrice == 0.0) throw new IllegalStateException("KuCoin ticker bestAskPrice missing");
+
+			double askSize = data.path("bestAskSize").asDouble();
+			if (askSize == 0.0) throw new IllegalStateException("KuCoin ticker bestAskSize missing");
+
+			long ts = data.path("ts").asLong();
+			if (ts == 0L) throw new IllegalStateException("KuCoin ticker ts missing");
+
+			Instant timestamp = Instant.ofEpochMilli(ts / 1_000_000); // KuCoin ts is in nanoseconds, convert to milliseconds
+			return new BookTicker(bidPrice, bidSize, askPrice, askSize, timestamp);
 		}
 	}
 
 	public record FundingRateResponse(String code, String msg, JsonNode data) {
 		public FundingRate fundingRate() {
-			Json.requireCodeOk(code, expectedSuccessCode, msg);
+			if (!expectedSuccessCode.equals(code)) {
+				throw new IllegalStateException("KuCoin klines response code not OK: " + code + ", msg: " + msg);
+			}
+
 			if (data == null || !data.isObject()) {
 				throw new IllegalStateException("KuCoin funding rate data missing");
 			}
-			double rate = Json.requireDouble(data, "value");
-			long timePoint = Json.requireLong(data, "timePoint");
-			long fundingTime = Json.requireLong(data, "fundingTime");
+
+			double rate = data.path("value").asDouble();
+			if (rate == 0.0) throw new IllegalStateException("KuCoin funding rate value missing");
+
+			long timePoint = data.path("timePoint").asLong();
+			if (timePoint == 0L) throw new IllegalStateException("KuCoin funding rate timePoint missing");
+
+			long fundingTime = data.path("fundingTime").asLong();
+			if (fundingTime == 0L) throw new IllegalStateException("KuCoin funding rate fundingTime missing");
+
 			return new FundingRate(rate, Instant.ofEpochMilli(fundingTime), Instant.ofEpochMilli(timePoint));
 		}
 	}
 
 	public record KlinesResponse(String code, String msg, JsonNode data) {
 		public double volume1h() {
-			Json.requireCodeOk(code, expectedSuccessCode, msg);
+			if (!expectedSuccessCode.equals(code)) {
+				throw new IllegalStateException("KuCoin klines response code not OK: " + code + ", msg: " + msg);
+			}
+
 			if (data == null || !data.isArray() || data.isEmpty()) {
 				throw new IllegalStateException("KuCoin kline data missing");
 			}

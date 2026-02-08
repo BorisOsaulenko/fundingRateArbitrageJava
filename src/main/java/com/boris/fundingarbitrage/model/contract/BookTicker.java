@@ -1,9 +1,9 @@
 package com.boris.fundingarbitrage.model.contract;
 
-import java.time.Instant;
 import lombok.NonNull;
 
+import java.time.Instant;
+
 public record BookTicker(
-        @NonNull PriceLevel bid,
-        @NonNull PriceLevel ask,
-        @NonNull Instant timestamp) {}
+				double bidPrice, double bidSize, double askPrice, double askSize, @NonNull Instant timestamp
+) {}

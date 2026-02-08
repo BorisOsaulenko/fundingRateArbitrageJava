@@ -5,7 +5,6 @@ import com.boris.fundingarbitrage.exchange.privatews.PrivateMessageHandler;
 import com.boris.fundingarbitrage.model.contract.PartialFill;
 import com.boris.fundingarbitrage.model.websocket.patch.DepositPatch;
 import com.boris.fundingarbitrage.util.JsonParsingFunction;
-import com.boris.fundingarbitrage.util.json.Json;
 import com.boris.fundingarbitrage.util.logger.Logger;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -62,17 +61,16 @@ public class KucoinPrivateMessageHandler implements PrivateMessageHandler {
 		String symbol = data.path("symbol").asText();
 		String matchSizeText = data.path("matchSize").asText();
 		String matchPriceText = data.path("matchPrice").asText();
-		String tsText = data.path("ts").asText();
-		if (orderId == null || orderId.isEmpty()) return null;
-		if (symbol == null || symbol.isEmpty()) return null;
-		if (matchSizeText == null || matchSizeText.isEmpty()) return null;
-		if (matchPriceText == null || matchPriceText.isEmpty()) return null;
-		if (tsText == null || tsText.isEmpty()) return null;
+		long ts = data.path("ts").asLong();
+		if (orderId.isEmpty()) return null;
+		if (symbol.isEmpty()) return null;
+		if (matchSizeText.isEmpty()) return null;
+		if (matchPriceText.isEmpty()) return null;
+		if (ts == 0) return null;
 
 		double size = Double.parseDouble(matchSizeText);
 		double price = Double.parseDouble(matchPriceText);
-		long ts = Long.parseLong(tsText);
-		Instant timestamp = Json.toInstantMillisOrNanos(ts);
+		Instant timestamp = Instant.ofEpochMilli(ts / 1000_000); // KuCoin ts is in nanoseconds, convert to milliseconds
 		return new PartialFill(orderId, symbol, size, price, null, timestamp);
 	}
 
@@ -107,8 +105,10 @@ public class KucoinPrivateMessageHandler implements PrivateMessageHandler {
 			String type = root.path("type").asText();
 			if (!"ping".equalsIgnoreCase(type)) return null;
 			String id = root.path("id").asText();
-			if (id == null || id.isEmpty()) return null;
-			return String.format("{\"id\":\"%s\",\"type\":\"pong\"}", id);
+			if (id.isEmpty()) return null;
+
+			PongResponse response = new PongResponse(id);
+			return mapper.writeValueAsString(response);
 		} catch (Exception ex) {
 			return null;
 		}
