@@ -3,7 +3,6 @@ package com.boris.fundingarbitrage.exchange.impl.kucoin.privaterest;
 import com.boris.fundingarbitrage.ObjectMapperSingleton;
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.ExchangeCredentials;
-import com.boris.fundingarbitrage.exchange.impl.kucoin.KucoinAuth;
 import com.boris.fundingarbitrage.exchange.impl.kucoin.publicrest.PublicEndpoints;
 import com.boris.fundingarbitrage.exchange.privatehttp.PrivateHttpClient;
 import com.boris.fundingarbitrage.model.assetops.*;
@@ -11,6 +10,7 @@ import com.boris.fundingarbitrage.model.contract.Fees;
 import com.boris.fundingarbitrage.model.contract.PartialFill;
 import com.boris.fundingarbitrage.model.exchange.ExchangeChains;
 import com.boris.fundingarbitrage.model.exchange.WalletAddress;
+import com.boris.fundingarbitrage.util.cryptography.Signers;
 import com.boris.fundingarbitrage.util.https.PrettyHttpClient;
 import com.boris.fundingarbitrage.util.logger.Logger;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -34,7 +34,41 @@ public class KucoinPrivateHttpClient extends PrivateHttpClient {
 
 	@Override
 	protected SimpleHttpRequest signRequest(SimpleHttpRequest request) {
-		return KucoinAuth.sign(request, credentials);
+		try {
+			String timestamp = String.valueOf(System.currentTimeMillis());
+			String method = request.getMethod().toUpperCase();
+			URI uri = request.getUri();
+			String query = uri.getRawQuery();
+			String requestPath = uri.getRawPath();
+			if (query != null && !query.isEmpty()) {
+				requestPath += "?" + query;
+			}
+
+			String body = request.getBodyText();
+			if (body == null) body = "";
+
+			String payload = timestamp + method + requestPath + body;
+			String signature = Signers.signHmacSha256Base64(payload, credentials.apiSecret());
+
+			String passphrase = credentials.passphrase();
+			if (passphrase == null) {
+				throw new IllegalStateException("KuCoin API passphrase is required for signed requests");
+			}
+			String encodedPassphrase = Signers.signHmacSha256Base64(passphrase, credentials.apiSecret());
+			String keyVersion = "2";
+
+			request.setHeader("KC-API-KEY", credentials.apiKey());
+			request.setHeader("KC-API-SIGN", signature);
+			request.setHeader("KC-API-TIMESTAMP", timestamp);
+			request.setHeader("KC-API-PASSPHRASE", encodedPassphrase);
+			request.setHeader("KC-API-KEY-VERSION", keyVersion);
+			request.setHeader("Content-Type", "application/json");
+
+			return request;
+		} catch (Exception e) {
+			Logger.error("Failed to sign KuCoin request: " + e.getMessage());
+			throw new RuntimeException("Failed to sign KuCoin request", e);
+		}
 	}
 
 	private <T, U> CompletableFuture<U> processRequest(
