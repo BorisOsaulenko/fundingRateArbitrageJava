@@ -4,7 +4,7 @@ import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.model.contract.PartialFill;
 import com.boris.fundingarbitrage.model.websocket.patch.DepositPatch;
 import com.boris.fundingarbitrage.util.wss.prettyclient.PrettyWsClient;
-import com.boris.fundingarbitrage.util.wss.prettyclient.PrettyWsClientBuilder;
+import jakarta.websocket.Session;
 
 import java.net.URI;
 import java.util.HashMap;
@@ -16,7 +16,7 @@ import java.util.function.Consumer;
 
 public abstract class PrivateWsClient {
 	protected final ExchangeContext exchangeContext;
-	private final CompletableFuture<PrettyWsClient> prettyWsClient;
+	private final CompletableFuture<PrettyWsClient> prettyWsClientFuture;
 	private final Set<Consumer<DepositPatch>> depositHandlers = new HashSet<>();
 	private final Map<String, Consumer<PartialFill>> partialFillHandlers = new HashMap<>();
 	private final PrivateMessageHandler messageHandler;
@@ -24,9 +24,12 @@ public abstract class PrivateWsClient {
 	public PrivateWsClient(ExchangeContext context, URI endpoint, PrivateMessageHandler messageHandler) {
 		this.exchangeContext = context;
 		this.messageHandler = messageHandler;
-		this.prettyWsClient = CompletableFuture.completedFuture(new PrettyWsClientBuilder(endpoint, this::handleMessage)
-						.withOnOpenHook((s) -> CompletableFuture.runAsync(() -> sendMessage(getAuthenticationFrame())))
-						.build());
+		this.prettyWsClientFuture = CompletableFuture.completedFuture(new PrettyWsClient(
+						endpoint,
+						this::handleMessage,
+						this::onConnect,
+						null
+		));
 	}
 
 	public PrivateWsClient(
@@ -36,13 +39,17 @@ public abstract class PrivateWsClient {
 	) {
 		this.exchangeContext = context;
 		this.messageHandler = messageHandler;
-		this.prettyWsClient = endpointFuture.thenApply(endpoint -> new PrettyWsClientBuilder(endpoint, this::handleMessage)
-						.withOnOpenHook((s) -> CompletableFuture.runAsync(() -> sendMessage(getAuthenticationFrame())))
-						.build());
+		this.prettyWsClientFuture = endpointFuture.thenApply(endpoint -> new PrettyWsClient(
+						endpoint,
+						this::handleMessage,
+						this::onConnect,
+						null
+		));
+		this.prettyWsClientFuture.thenAccept(PrettyWsClient::connect);
 	}
 
 	public final void close() {
-		this.prettyWsClient.thenAccept(PrettyWsClient::close);
+		this.prettyWsClientFuture.thenAccept(PrettyWsClient::close);
 	}
 
 	protected abstract String getSubscribeDepositFrame();
@@ -56,11 +63,11 @@ public abstract class PrivateWsClient {
 	protected abstract String getAuthenticationFrame();
 
 	public void sendMessage(String message) {
-		this.prettyWsClient.thenAccept(client -> client.sendMessage(message));
+		this.prettyWsClientFuture.thenAccept(client -> client.sendMessage(message));
 	}
 
 	public void sendObject(Object obj) {
-		this.prettyWsClient.thenAccept(client -> client.sendObject(obj));
+		this.prettyWsClientFuture.thenAccept(client -> client.sendObject(obj));
 	}
 
 	public void subscribeDeposits(Consumer<DepositPatch> handler) {
@@ -85,6 +92,12 @@ public abstract class PrivateWsClient {
 		if (partialFillHandlers.isEmpty()) this.sendMessage(getUnsubscribePartialFillsFrame());
 	}
 
+	private void onConnect(Session session) {
+		sendMessage(getAuthenticationFrame());
+		if (!depositHandlers.isEmpty()) sendMessage(getSubscribeDepositFrame());
+		if (!partialFillHandlers.isEmpty()) sendMessage(getSubscribePartialFillsFrame());
+	}
+
 	private void handleMessage(String message) {
 		DepositPatch depositPatch = messageHandler.parseDepositMessageSymbol(message);
 		if (depositPatch != null) {
@@ -105,7 +118,7 @@ public abstract class PrivateWsClient {
 
 		String pingResponse = messageHandler.getResponseToPingMessage(message);
 		if (pingResponse != null) {
-			prettyWsClient.thenAccept(client -> client.sendMessage(pingResponse));
+			prettyWsClientFuture.thenAccept(client -> client.sendMessage(pingResponse));
 		}
 	}
 }

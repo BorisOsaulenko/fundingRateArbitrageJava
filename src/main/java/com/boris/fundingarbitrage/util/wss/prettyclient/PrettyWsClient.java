@@ -46,15 +46,13 @@ public class PrettyWsClient {
 		reconnectHandler = new PrettyWsReconnectHandler(endpointUri, maxReconnectAttempts, () -> !closeRequested);
 		client.getProperties().put(ClientProperties.RECONNECT_HANDLER, reconnectHandler);
 		this.endpoint = new PrettyWsEndpoint(processMessage, getOnOpenHook(), getOnCloseHook());
-		connect();
 	}
 
 	public PrettyWsClient(@NonNull URI uri, @NonNull Consumer<String> processMessage) {
 		this(uri, processMessage, null, null);
 	}
-
-
-	private void connect() {
+	
+	public void connect() {
 		try {
 			client.connectToServer(this.endpoint, endpointUri);
 		} catch (DeploymentException e) {

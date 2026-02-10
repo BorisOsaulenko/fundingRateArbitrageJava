@@ -9,5 +9,5 @@ public record WsRequest(long time, String channel, String event, String[] payloa
 		return ObjectMapperSingleton.getInstance().writeValueAsString(this);
 	}
 
-	public record Auth(String method, String KEY, String SIGN, long time) {}
+	public record Auth(String method, String KEY, String SIGN) {}
 }
