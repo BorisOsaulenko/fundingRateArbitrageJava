@@ -29,7 +29,7 @@ public class GatePrivateWsClient extends PrivateWsClient {
 	private WsRequest.Auth buildAuth(String channel, String event, long time) {
 		String signPayload = "channel=" + channel + "&event=" + event + "&time=" + time;
 		String signature = Signers.signHmacSha512Hex(signPayload, credentials.apiSecret());
-		return new WsRequest.Auth("api_key", credentials.apiKey(), signature, time);
+		return new WsRequest.Auth("api_key", credentials.apiKey(), signature);
 	}
 
 	private String getSubscribeFrame(String channel, String[] payload) {

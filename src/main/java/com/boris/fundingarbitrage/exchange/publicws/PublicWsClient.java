@@ -1,5 +1,6 @@
 package com.boris.fundingarbitrage.exchange.publicws;
 
+import com.boris.fundingarbitrage.ObjectMapperSingleton;
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.publichttp.PublicHttpClient;
 import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
@@ -8,11 +9,11 @@ import com.boris.fundingarbitrage.model.websocket.patch.GenericPublicWsPatch;
 import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import com.boris.fundingarbitrage.util.wss.prettyclient.PrettyWsClient;
-import com.boris.fundingarbitrage.ObjectMapperSingleton;
-import lombok.NonNull;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.websocket.Session;
+import lombok.NonNull;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -43,7 +44,13 @@ public abstract class PublicWsClient {
 		this.exchangeContext = context;
 		this.messageHandler = messageHandler;
 		this.publicHttpClient = publicHttp;
-		this.prettyWsClientFuture = CompletableFuture.completedFuture(new PrettyWsClient(endpoint, this::handleMessage));
+		this.prettyWsClientFuture = CompletableFuture.completedFuture(new PrettyWsClient(
+						endpoint,
+						this::handleMessage,
+						this::onConnect,
+						null
+		));
+		this.prettyWsClientFuture.thenAccept(PrettyWsClient::connect);
 	}
 
 	public PublicWsClient(
@@ -55,7 +62,13 @@ public abstract class PublicWsClient {
 		this.exchangeContext = context;
 		this.messageHandler = messageHandler;
 		this.publicHttpClient = publicHttpClient;
-		this.prettyWsClientFuture = endpointFuture.thenApply(endpoint -> new PrettyWsClient(endpoint, this::handleMessage));
+		this.prettyWsClientFuture = endpointFuture.thenApply(endpoint -> new PrettyWsClient(
+						endpoint,
+						this::handleMessage,
+						this::onConnect,
+						null
+		));
+		this.prettyWsClientFuture.thenAccept(PrettyWsClient::connect);
 	}
 
 	public PublicWsClient(PublicWsClient client) {
@@ -221,19 +234,33 @@ public abstract class PublicWsClient {
 		JsonNode root = null;
 		try {
 			root = JSON_MAPPER.readTree(message);
-		} catch (JsonProcessingException ignored) {
-			// Non-JSON messages (e.g., ping/pong) are handled below.
-		}
-
-		if (root != null) {
 			tryHandle(root, messageHandler::parseBookTickerMessageSymbol, this::handleBookTickerPatch);
 			tryHandle(root, messageHandler::parseMarkPriceMessageSymbol, this::handleMarkPricePatch);
 			tryHandle(root, messageHandler::parseFundingRateMessageSymbol, this::handleFundingRatePatch);
-		}
+		} catch (JsonProcessingException ignored) {}
 
 		handlePingMessage(message);
 	}
 
+	private <T> String[] getSymbols(CoinVector<Set<Consumer<T>>> handlers) {
+		List<String> symbols = new ArrayList<>();
+		for (String coin : handlers.keySet()) {
+			symbols.add(exchangeContext.getSymbol(coin));
+		}
+
+		return symbols.toArray(new String[0]);
+	}
+
+	public void onConnect(Session session) {
+		String[] fundingRateSymbols = getSymbols(fundingRateHandlers);
+		if (fundingRateSymbols.length > 0) this.sendMessage(getSubscribeFundingRateFrame(fundingRateSymbols));
+
+		String[] bookTickerSymbols = getSymbols(bookTickerHandlers);
+		if (bookTickerSymbols.length > 0) this.sendMessage(getSubscribeBookTickerFrame(bookTickerSymbols));
+
+		String[] markPriceSymbols = getSymbols(markPriceHandlers);
+		if (markPriceSymbols.length > 0) this.sendMessage(getSubscribeMarkPriceFrame(markPriceSymbols));
+	}
 
 	public void unsubscribeCoin(String coin) {
 		unsubscribeBookTicker(coin);

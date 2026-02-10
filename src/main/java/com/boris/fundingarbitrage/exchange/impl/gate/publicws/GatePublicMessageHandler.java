@@ -119,9 +119,6 @@ public class GatePublicMessageHandler implements PublicMessageHandler {
 
 	@Override
 	public String getResponseToPingMessage(String message) {
-		if (message == null) return null;
-		String trimmed = message.trim();
-		if ("ping".equalsIgnoreCase(trimmed)) return "pong";
 		return null;
 	}
 }

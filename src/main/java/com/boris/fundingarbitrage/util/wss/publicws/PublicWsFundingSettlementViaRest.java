@@ -13,12 +13,12 @@ import java.net.URI;
 import java.time.Instant;
 import java.util.concurrent.CompletableFuture;
 
-public abstract class FundingSettlementViaRest extends PublicWsClient {
+public abstract class PublicWsFundingSettlementViaRest extends PublicWsClient {
 	private final CoinVector<Boolean> updatingFundingRateVector = new CoinVector<>();
 	private final CoinVector<Instant> settlementVector = new CoinVector<>();
 	private final CoinVector<CompletableFuture<FundingRate>> fundingRateFutureVector = new CoinVector<>();
 
-	public FundingSettlementViaRest(
+	public PublicWsFundingSettlementViaRest(
 					ExchangeContext context,
 					URI endpoint,
 					PublicMessageHandler messageHandler,

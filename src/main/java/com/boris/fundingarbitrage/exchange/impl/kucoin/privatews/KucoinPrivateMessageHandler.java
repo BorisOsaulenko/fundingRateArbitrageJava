@@ -19,14 +19,14 @@ public class KucoinPrivateMessageHandler implements PrivateMessageHandler {
 	private static final String ORDERS_TOPIC = "/contractMarket/tradeOrders";
 	private final ObjectMapper mapper = ObjectMapperSingleton.getInstance();
 
-	private boolean isMessageType(JsonNode root) {
+	private boolean isInvalidType(JsonNode root) {
 		String type = root.path("type").asText();
-		return type == null || type.isEmpty() || "message".equalsIgnoreCase(type);
+		return type != null && !type.isEmpty() && !"message".equalsIgnoreCase(type);
 	}
 
 	private DepositPatch parseDepositInternal(String message) throws JsonProcessingException {
 		JsonNode root = mapper.readTree(message);
-		if (!isMessageType(root)) return null;
+		if (isInvalidType(root)) return null;
 		String topic = root.path("topic").asText();
 		if (topic == null || !topic.startsWith(WALLET_TOPIC)) return null;
 		JsonNode data = root.get("data");
@@ -48,7 +48,7 @@ public class KucoinPrivateMessageHandler implements PrivateMessageHandler {
 
 	private PartialFill parsePartialFillInternal(String message) throws JsonProcessingException {
 		JsonNode root = mapper.readTree(message);
-		if (!isMessageType(root)) return null;
+		if (isInvalidType(root)) return null;
 		String topic = root.path("topic").asText();
 		if (topic == null || !topic.startsWith(ORDERS_TOPIC)) return null;
 		JsonNode data = root.get("data");

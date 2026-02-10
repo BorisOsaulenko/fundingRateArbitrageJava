@@ -13,8 +13,8 @@ public abstract class BaseExchange {
 	public final PrivateHttpClient privateHttpClient;
 
 	public BaseExchange(
-					@NotNull PublicWsClient publicWsClient,
-					@NotNull PrivateWsClient privateWsClient,
+					PublicWsClient publicWsClient,
+					PrivateWsClient privateWsClient,
 					@NotNull PublicHttpClient publicHttpClient,
 					@NotNull PrivateHttpClient privateHttpClient
 	) {
