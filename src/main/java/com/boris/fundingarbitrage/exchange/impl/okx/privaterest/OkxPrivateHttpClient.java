@@ -48,10 +48,6 @@ public class OkxPrivateHttpClient extends PrivateHttpClient {
 			if (query != null && !query.isEmpty()) payload.append("?").append(query);
 			payload.append(body);
 
-			Logger.log(credentials.apiKey());
-			Logger.log(timestamp);
-			Logger.log(credentials.passphrase());
-
 			String signature = Signers.signHmacSha256Base64(payload.toString(), credentials.apiSecret());
 
 			request.setHeader("OK-ACCESS-KEY", credentials.apiKey());

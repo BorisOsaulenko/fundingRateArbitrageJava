@@ -7,10 +7,10 @@ import exchange.PublicRestTest;
 
 public class OkxPublicRestTest extends PublicRestTest {
 	private static final OkxContext context = new OkxContext();
-	private static final OkxPublicHttpClient client = new OkxPublicHttpClient(context);
+	private static final OkxPublicHttpClient publicHttp = new OkxPublicHttpClient(context);
 
 	@Override
 	protected PublicHttpClient publicRest() {
-		return client;
+		return publicHttp;
 	}
 }
