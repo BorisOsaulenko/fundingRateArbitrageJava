@@ -5,14 +5,23 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="b9df00b4-30ed-4e30-b4d9-bb2bc91a4ba3" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/src/test/java/exchange/impl/okx/OkxPrivateRestTest.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/test/java/exchange/impl/okx/OkxPublicRestTest.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/test/java/exchange/impl/okx/OkxPublicWsTest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/kucoin/publicws/WsRequest.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/App.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/App.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bitget/publicrest/BitgetPublicHttpClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bitget/publicrest/BitgetPublicHttpClient.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bybit/publicrest/BybitPublicHttpClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bybit/publicrest/BybitPublicHttpClient.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/util/logger/Logger.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/util/logger/Logger.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/binance/privatews/BinancePrivateMessageHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/binance/privatews/BinancePrivateMessageHandler.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/binance/privatews/pojos/BalanceEntry.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/binance/privatews/pojos/DepositEventData.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/binance/privatews/pojos/DepositMessage.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/binance/privatews/pojos/PartialFillEventData.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/binance/privatews/pojos/PartialFillMessage.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/binance/publicws/BinancePublicWsClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/binance/publicws/BinancePublicWsClient.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/binance/publicws/pojos/WsRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/binance/publicws/WsRequest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/kucoin/privatews/KucoinPrivateWsClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/kucoin/privatews/KucoinPrivateWsClient.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/kucoin/publicws/KucoinPublicWsClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/kucoin/publicws/KucoinPublicWsClient.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/kucoin/ws/pojos/WsRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/kucoin/privatews/WsRequest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/okx/privaterest/PrivateResponses.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/okx/privaterest/PrivateResponses.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/okx/publicws/OkxPublicWsClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/okx/publicws/OkxPublicWsClient.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/okx/publicws/pojos/WsRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/okx/publicws/WsRequest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/s.json" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -129,6 +138,7 @@
     "JUnit.KucoinPublicWsTest.executor": "Run",
     "JUnit.OkxPrivateRestTest.executor": "Run",
     "JUnit.OkxPublicRestTest.executor": "Run",
+    "JUnit.OkxPublicWsTest.executor": "Run",
     "JUnit.PrivateRestTest.changeLeverage.executor": "Run",
     "JUnit.PrivateRestTest.executor": "Run",
     "JUnit.PrivateRestTest.getTradingFees.executor": "Run",
@@ -183,8 +193,12 @@
       <recent name="com.boris.fundingarbitrage.coinvector" />
       <recent name="com.boris.fundingarbitrage" />
     </key>
+    <key name="CopyClassDialog.RECENTS_KEY">
+      <recent name="com.boris.fundingarbitrage.exchange.impl.kucoin.privatews" />
+      <recent name="com.boris.fundingarbitrage.exchange.impl.kucoin.publicws" />
+    </key>
   </component>
-  <component name="RunManager" selected="Application.App">
+  <component name="RunManager" selected="JUnit.OkxPublicWsTest">
     <configuration name="App" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
       <option name="MAIN_CLASS_NAME" value="com.boris.fundingarbitrage.App" />
       <module name="FundingArbitrage.main" />
@@ -231,40 +245,6 @@
       <GradleProfilingDisabled>false</GradleProfilingDisabled>
       <GradleCoverageDisabled>false</GradleCoverageDisabled>
       <method v="2" />
-    </configuration>
-    <configuration name="BinancePublicWsTest and 4 more" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
-      <module name="FundingArbitrage.test" />
-      <extension name="coverage">
-        <pattern>
-          <option name="PATTERN" value="exchange.*" />
-          <option name="ENABLED" value="true" />
-        </pattern>
-      </extension>
-      <extension name="net.ashald.envfile">
-        <option name="IS_ENABLED" value="true" />
-        <option name="IS_SUBST" value="false" />
-        <option name="IS_PATH_MACRO_SUPPORTED" value="false" />
-        <option name="IS_IGNORE_MISSING_FILES" value="false" />
-        <option name="IS_ENABLE_EXPERIMENTAL_INTEGRATIONS" value="false" />
-        <ENTRIES>
-          <ENTRY IS_ENABLED="true" PARSER="runconfig" IS_EXECUTABLE="false" />
-          <ENTRY IS_ENABLED="true" PARSER="env" IS_EXECUTABLE="false" PATH="$USER_HOME$/Documents/Finances/env" />
-        </ENTRIES>
-      </extension>
-      <option name="PACKAGE_NAME" value="exchange" />
-      <option name="MAIN_CLASS_NAME" value="exchange.PublicWsTest" />
-      <option name="METHOD_NAME" value="" />
-      <option name="TEST_OBJECT" value="pattern" />
-      <patterns>
-        <pattern testClass="exchange.impl.binance.BinancePublicWsTest" />
-        <pattern testClass="exchange.impl.bitget.BitgetPublicWsTest" />
-        <pattern testClass="exchange.impl.bybit.BybitPublicWsTest" />
-        <pattern testClass="exchange.impl.gate.GatePublicWsTest" />
-        <pattern testClass="exchange.impl.kucoin.KucoinPublicWsTest" />
-      </patterns>
-      <method v="2">
-        <option name="Make" enabled="true" />
-      </method>
     </configuration>
     <configuration name="GatePublicWsTest" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
       <module name="FundingArbitrage.test" />
@@ -347,6 +327,33 @@
         <option name="Make" enabled="true" />
       </method>
     </configuration>
+    <configuration name="OkxPublicWsTest" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="FundingArbitrage.test" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="exchange.impl.okx.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <extension name="net.ashald.envfile">
+        <option name="IS_ENABLED" value="true" />
+        <option name="IS_SUBST" value="false" />
+        <option name="IS_PATH_MACRO_SUPPORTED" value="false" />
+        <option name="IS_IGNORE_MISSING_FILES" value="false" />
+        <option name="IS_ENABLE_EXPERIMENTAL_INTEGRATIONS" value="false" />
+        <ENTRIES>
+          <ENTRY IS_ENABLED="true" PARSER="runconfig" IS_EXECUTABLE="false" />
+          <ENTRY IS_ENABLED="true" PARSER="env" IS_EXECUTABLE="false" PATH="$USER_HOME$/Documents/Finances/env" />
+        </ENTRIES>
+      </extension>
+      <option name="PACKAGE_NAME" value="exchange.impl.okx" />
+      <option name="MAIN_CLASS_NAME" value="exchange.impl.okx.OkxPublicWsTest" />
+      <option name="METHOD_NAME" value="" />
+      <option name="TEST_OBJECT" value="class" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
     <configuration default="true" type="JUnit" factoryName="JUnit">
       <extension name="net.ashald.envfile">
         <option name="IS_ENABLED" value="true" />
@@ -380,18 +387,18 @@
       <item itemvalue="Application.App" />
       <item itemvalue="Gradle.FundingArbitrage" />
       <item itemvalue="Java Scratch.ScratchTyrusWs" />
+      <item itemvalue="JUnit.OkxPublicWsTest" />
       <item itemvalue="JUnit.OkxPrivateRestTest" />
       <item itemvalue="JUnit.OkxPublicRestTest" />
       <item itemvalue="JUnit.GatePublicWsTest" />
-      <item itemvalue="JUnit.BinancePublicWsTest and 4 more" />
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="Application.App" />
+        <item itemvalue="JUnit.OkxPublicWsTest" />
         <item itemvalue="JUnit.OkxPrivateRestTest" />
         <item itemvalue="JUnit.OkxPublicRestTest" />
+        <item itemvalue="Application.App" />
         <item itemvalue="JUnit.GatePublicWsTest" />
-        <item itemvalue="JUnit.BinancePublicWsTest and 4 more" />
       </list>
     </recent_temporary>
   </component>

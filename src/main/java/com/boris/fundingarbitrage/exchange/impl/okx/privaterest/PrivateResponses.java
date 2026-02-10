@@ -37,14 +37,17 @@ public class PrivateResponses {
 				throw new IllegalStateException("OKX trade fee data missing");
 			}
 			JsonNode item = data.get(0);
-			String maker = item.path("makerU").asText();
-			String taker = item.path("takerU").asText();
-			if (maker == null || maker.isEmpty() || taker == null || taker.isEmpty()) {
+
+			JsonNode makerNode = item.get("makerU");
+			JsonNode takerNode = item.get("takerU");
+			if (makerNode == null || makerNode.isNull() || takerNode == null || takerNode.isNull()) {
 				throw new IllegalStateException("OKX makerU/takerU missing");
 			}
-			double makerFee = Double.parseDouble(maker);
-			double takerFee = Double.parseDouble(taker);
-			return new Fees(makerFee, takerFee, makerFee, takerFee, Instant.now());
+
+			double taker = -takerNode.asDouble(); // OKX returns negative values for fees, we want positive
+			double maker = -makerNode.asDouble();
+
+			return new Fees(maker, taker, maker, taker, Instant.now());
 		}
 	}
 
