@@ -41,10 +41,6 @@ public class Logger {
 		initCalled = true;
 	}
 
-	public static Logger getInstance() {
-		return INSTANCE;
-	}
-
 	private static void writeLine(String line) {
 		if (writer == null) {
 			System.out.println(line);
@@ -116,21 +112,13 @@ public class Logger {
 
 		writeLine(getLogPrefix("INFO") + "(CoinVector)");
 		writeLine(border);
-		writeLine(String.format(
-						"| %-" + coinColWidth + "s | %-" + valueColWidth + "s |",
-						"Coin",
-						"Value"
-		));
+		writeLine(String.format("| %-" + coinColWidth + "s | %-" + valueColWidth + "s |", "Coin", "Value"));
 		writeLine(border);
 
 		for (var e : coinVector.entrySet()) {
 			String coin = e.getKey();
 			String value = String.valueOf(e.getValue());
-			writeLine(String.format(
-							"| %-" + coinColWidth + "s | %-" + valueColWidth + "s |",
-							coin,
-							value
-			));
+			writeLine(String.format("| %-" + coinColWidth + "s | %-" + valueColWidth + "s |", coin, value));
 		}
 
 		writeLine(border);
