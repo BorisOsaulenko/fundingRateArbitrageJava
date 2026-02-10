@@ -2,7 +2,6 @@ package com.boris.fundingarbitrage.exchange.impl.kucoin.publicws;
 
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.impl.kucoin.publicrest.KucoinPublicHttpClient;
-import com.boris.fundingarbitrage.exchange.impl.kucoin.ws.pojos.WsRequest;
 import com.boris.fundingarbitrage.util.wss.publicws.FullFundingViaRest;
 
 import java.time.Instant;

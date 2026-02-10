@@ -1,7 +1,6 @@
 package com.boris.fundingarbitrage.exchange.impl.kucoin.privatews;
 
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
-import com.boris.fundingarbitrage.exchange.impl.kucoin.ws.pojos.WsRequest;
 import com.boris.fundingarbitrage.exchange.privatews.PrivateWsClient;
 
 import java.net.URI;

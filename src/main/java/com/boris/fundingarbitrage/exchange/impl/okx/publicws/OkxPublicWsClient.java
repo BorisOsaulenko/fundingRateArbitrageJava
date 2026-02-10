@@ -2,7 +2,6 @@ package com.boris.fundingarbitrage.exchange.impl.okx.publicws;
 
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.impl.okx.publicrest.OkxPublicHttpClient;
-import com.boris.fundingarbitrage.exchange.impl.okx.publicws.pojos.WsRequest;
 import com.boris.fundingarbitrage.exchange.publicws.PublicWsClient;
 
 import java.net.URI;

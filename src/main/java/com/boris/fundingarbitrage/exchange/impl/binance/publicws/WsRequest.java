@@ -1,10 +1,9 @@
-package com.boris.fundingarbitrage.exchange.impl.binance.publicws.pojos;
+package com.boris.fundingarbitrage.exchange.impl.binance.publicws;
 
 import com.boris.fundingarbitrage.ObjectMapperSingleton;
-import com.boris.fundingarbitrage.exchange.impl.binance.publicws.BinancePublicWsClient;
 import lombok.SneakyThrows;
 
-public record WsRequest(String method, String[] params, int id) {
+record WsRequest(String method, String[] params, int id) {
 	public WsRequest(String method, String[] params) {
 		this(method, params, BinancePublicWsClient.getNextId());
 	}

@@ -1,9 +1,9 @@
-package com.boris.fundingarbitrage.exchange.impl.kucoin.ws.pojos;
+package com.boris.fundingarbitrage.exchange.impl.kucoin.privatews;
 
 import com.boris.fundingarbitrage.ObjectMapperSingleton;
 import lombok.SneakyThrows;
 
-public record WsRequest(
+record WsRequest(
 				String id, String type, String topic, boolean privateChannel, boolean response
 ) {
 	@SneakyThrows
