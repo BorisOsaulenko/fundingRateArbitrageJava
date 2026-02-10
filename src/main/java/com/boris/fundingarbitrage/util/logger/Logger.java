@@ -9,6 +9,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.time.Instant;
 
 public class Logger {
 	private static BufferedWriter writer;
@@ -56,7 +57,7 @@ public class Logger {
 	}
 
 	private static String getLogPrefix(String type) {
-		return String.format("[%s] [%s] ", Thread.currentThread().getName(), type);
+		return String.format("[%s] [%s] [%s] ", Thread.currentThread().getName(), Instant.now().toString(), type);
 	}
 
 	public static void log(String message) {

@@ -5,14 +5,14 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="b9df00b4-30ed-4e30-b4d9-bb2bc91a4ba3" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/src/test/java/exchange/impl/okx/OkxPrivateRestTest.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/test/java/exchange/impl/okx/OkxPublicRestTest.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/test/java/exchange/impl/okx/OkxPublicWsTest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/Instances.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/exchange/impl/whitebit/WhitebitPrivateRestTest.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/App.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/App.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bitget/publicrest/BitgetPublicHttpClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bitget/publicrest/BitgetPublicHttpClient.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bybit/publicrest/BybitPublicHttpClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bybit/publicrest/BybitPublicHttpClient.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/util/logger/Logger.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/util/logger/Logger.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/exchange/impl/okx/OkxPrivateRestTest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/exchange/impl/okx/OkxPublicRestTest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/exchange/impl/okx/OkxPublicWsTest.java" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -102,6 +102,8 @@
     "Gradle.PublicRest.executor": "Run",
     "Gradle.PublicRest.getLotSize.executor": "Run",
     "Gradle.PublicRestTest.executor": "Run",
+    "JUnit.AllExchangesWsStabilityTest.executor": "Run",
+    "JUnit.AllExchangesWsStabilityTest.testAllExchangesWebsocketStability.executor": "Run",
     "JUnit.BinancePrivateRestTest and 2 more.executor": "Run",
     "JUnit.BinancePrivateRestTest and 3 more.executor": "Run",
     "JUnit.BinancePrivateRestTest and 4 more.executor": "Run",
@@ -136,6 +138,9 @@
     "JUnit.PublicRestTest.executor": "Run",
     "JUnit.PublicWsClientTest.executor": "Run",
     "JUnit.PublicWsClientTest.testPublicWsClientSubscriptions.executor": "Run",
+    "JUnit.WhitebitPrivateRestTest.executor": "Run",
+    "JUnit.WhitebitPublicRestTest.executor": "Run",
+    "JUnit.WhitebitPublicWsTest.executor": "Run",
     "Java Scratch.Scratch.executor": "Run",
     "Java Scratch.ScratchTyrusWs.executor": "Run",
     "Java Scratch.SimpleGetExample.executor": "Run",
@@ -149,7 +154,7 @@
     "SHELLCHECK.PATH": "/Users/borisosaulenko/Library/Application Support/JetBrains/IntelliJIdea2025.3/plugins/Shell Script/shellcheck",
     "code.cleanup.on.save": "true",
     "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
-    "git-widget-placeholder": "okx",
+    "git-widget-placeholder": "whitebit",
     "junie.onboarding.icon.badge.shown": "true",
     "kotlin-language-version-configured": "true",
     "project.structure.last.edited": "Modules",
@@ -232,7 +237,7 @@
       <GradleCoverageDisabled>false</GradleCoverageDisabled>
       <method v="2" />
     </configuration>
-    <configuration name="BinancePublicWsTest and 4 more" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+    <configuration name="AllExchangesWsStabilityTest" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
       <module name="FundingArbitrage.test" />
       <extension name="coverage">
         <pattern>
@@ -252,21 +257,14 @@
         </ENTRIES>
       </extension>
       <option name="PACKAGE_NAME" value="exchange" />
-      <option name="MAIN_CLASS_NAME" value="exchange.PublicWsTest" />
+      <option name="MAIN_CLASS_NAME" value="exchange.AllExchangesWsStabilityTest" />
       <option name="METHOD_NAME" value="" />
-      <option name="TEST_OBJECT" value="pattern" />
-      <patterns>
-        <pattern testClass="exchange.impl.binance.BinancePublicWsTest" />
-        <pattern testClass="exchange.impl.bitget.BitgetPublicWsTest" />
-        <pattern testClass="exchange.impl.bybit.BybitPublicWsTest" />
-        <pattern testClass="exchange.impl.gate.GatePublicWsTest" />
-        <pattern testClass="exchange.impl.kucoin.KucoinPublicWsTest" />
-      </patterns>
+      <option name="TEST_OBJECT" value="class" />
       <method v="2">
         <option name="Make" enabled="true" />
       </method>
     </configuration>
-    <configuration name="GatePublicWsTest" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+    <configuration name="AllExchangesWsStabilityTest.testAllExchangesWebsocketStability" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
       <module name="FundingArbitrage.test" />
       <extension name="coverage">
         <pattern>
@@ -285,19 +283,19 @@
           <ENTRY IS_ENABLED="true" PARSER="env" IS_EXECUTABLE="false" PATH="$USER_HOME$/Documents/Finances/env" />
         </ENTRIES>
       </extension>
-      <option name="PACKAGE_NAME" value="exchange.impl.gate" />
-      <option name="MAIN_CLASS_NAME" value="exchange.impl.gate.GatePublicWsTest" />
-      <option name="METHOD_NAME" value="" />
-      <option name="TEST_OBJECT" value="class" />
+      <option name="PACKAGE_NAME" value="exchange" />
+      <option name="MAIN_CLASS_NAME" value="exchange.AllExchangesWsStabilityTest" />
+      <option name="METHOD_NAME" value="testAllExchangesWebsocketStability" />
+      <option name="TEST_OBJECT" value="method" />
       <method v="2">
         <option name="Make" enabled="true" />
       </method>
     </configuration>
-    <configuration name="OkxPrivateRestTest" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+    <configuration name="WhitebitPrivateRestTest" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
       <module name="FundingArbitrage.test" />
       <extension name="coverage">
         <pattern>
-          <option name="PATTERN" value="exchange.impl.okx.*" />
+          <option name="PATTERN" value="exchange.impl.whitebit.*" />
           <option name="ENABLED" value="true" />
         </pattern>
       </extension>
@@ -312,19 +310,19 @@
           <ENTRY IS_ENABLED="true" PARSER="env" IS_EXECUTABLE="false" PATH="$USER_HOME$/Documents/Finances/env" />
         </ENTRIES>
       </extension>
-      <option name="PACKAGE_NAME" value="exchange.impl.okx" />
-      <option name="MAIN_CLASS_NAME" value="exchange.impl.okx.OkxPrivateRestTest" />
+      <option name="PACKAGE_NAME" value="exchange.impl.whitebit" />
+      <option name="MAIN_CLASS_NAME" value="exchange.impl.whitebit.WhitebitPrivateRestTest" />
       <option name="METHOD_NAME" value="" />
       <option name="TEST_OBJECT" value="class" />
       <method v="2">
         <option name="Make" enabled="true" />
       </method>
     </configuration>
-    <configuration name="OkxPublicRestTest" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+    <configuration name="WhitebitPublicWsTest" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
       <module name="FundingArbitrage.test" />
       <extension name="coverage">
         <pattern>
-          <option name="PATTERN" value="exchange.impl.okx.*" />
+          <option name="PATTERN" value="exchange.impl.whitebit.*" />
           <option name="ENABLED" value="true" />
         </pattern>
       </extension>
@@ -339,8 +337,8 @@
           <ENTRY IS_ENABLED="true" PARSER="env" IS_EXECUTABLE="false" PATH="$USER_HOME$/Documents/Finances/env" />
         </ENTRIES>
       </extension>
-      <option name="PACKAGE_NAME" value="exchange.impl.okx" />
-      <option name="MAIN_CLASS_NAME" value="exchange.impl.okx.OkxPublicRestTest" />
+      <option name="PACKAGE_NAME" value="exchange.impl.whitebit" />
+      <option name="MAIN_CLASS_NAME" value="exchange.impl.whitebit.WhitebitPublicWsTest" />
       <option name="METHOD_NAME" value="" />
       <option name="TEST_OBJECT" value="class" />
       <method v="2">
@@ -380,18 +378,18 @@
       <item itemvalue="Application.App" />
       <item itemvalue="Gradle.FundingArbitrage" />
       <item itemvalue="Java Scratch.ScratchTyrusWs" />
-      <item itemvalue="JUnit.OkxPrivateRestTest" />
-      <item itemvalue="JUnit.OkxPublicRestTest" />
-      <item itemvalue="JUnit.GatePublicWsTest" />
-      <item itemvalue="JUnit.BinancePublicWsTest and 4 more" />
+      <item itemvalue="JUnit.AllExchangesWsStabilityTest" />
+      <item itemvalue="JUnit.AllExchangesWsStabilityTest.testAllExchangesWebsocketStability" />
+      <item itemvalue="JUnit.WhitebitPrivateRestTest" />
+      <item itemvalue="JUnit.WhitebitPublicWsTest" />
     </list>
     <recent_temporary>
       <list>
         <item itemvalue="Application.App" />
-        <item itemvalue="JUnit.OkxPrivateRestTest" />
-        <item itemvalue="JUnit.OkxPublicRestTest" />
-        <item itemvalue="JUnit.GatePublicWsTest" />
-        <item itemvalue="JUnit.BinancePublicWsTest and 4 more" />
+        <item itemvalue="JUnit.AllExchangesWsStabilityTest.testAllExchangesWebsocketStability" />
+        <item itemvalue="JUnit.AllExchangesWsStabilityTest" />
+        <item itemvalue="JUnit.WhitebitPublicWsTest" />
+        <item itemvalue="JUnit.WhitebitPrivateRestTest" />
       </list>
     </recent_temporary>
   </component>

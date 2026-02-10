@@ -1,0 +1,35 @@
+package com.boris.fundingarbitrage.exchange;
+
+import com.boris.fundingarbitrage.exchange.impl.binance.BinanceExchange;
+import com.boris.fundingarbitrage.exchange.impl.bitget.BitgetExchange;
+import com.boris.fundingarbitrage.exchange.impl.bybit.BybitExchange;
+import com.boris.fundingarbitrage.exchange.impl.gate.GateExchange;
+import com.boris.fundingarbitrage.exchange.impl.kucoin.KucoinExchange;
+import com.boris.fundingarbitrage.exchange.impl.okx.OkxExchange;
+import com.boris.fundingarbitrage.exchange.impl.whitebit.WhitebitExchange;
+import com.boris.fundingarbitrage.model.exchange.ExchangeName;
+import lombok.Getter;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+
+public class Instances {
+	@Getter
+	private static final Map<ExchangeName, BaseExchange> exchanges = new HashMap<>();
+
+	@Getter
+	private static final ArrayList<BaseExchange> exchangeArray = new ArrayList<>();
+
+	static {
+		exchanges.put(ExchangeName.BINANCE, new BinanceExchange());
+		exchanges.put(ExchangeName.BITGET, new BitgetExchange());
+		exchanges.put(ExchangeName.BYBIT, new BybitExchange());
+		exchanges.put(ExchangeName.GATE, new GateExchange());
+		exchanges.put(ExchangeName.KUCOIN, new KucoinExchange());
+		exchanges.put(ExchangeName.OKX, new OkxExchange());
+		exchanges.put(ExchangeName.WHITEBIT, new WhitebitExchange());
+
+		exchangeArray.addAll(exchanges.values());
+	}
+}
