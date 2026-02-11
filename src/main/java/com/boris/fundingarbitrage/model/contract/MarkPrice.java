@@ -1,11 +1,19 @@
 package com.boris.fundingarbitrage.model.contract;
 
 import com.boris.fundingarbitrage.model.Validations;
-import java.time.Instant;
 import lombok.NonNull;
 
-public record MarkPrice(double price, @NonNull Instant timestamp) {
-    public MarkPrice {
-        Validations.requirePositive(price, "Price");
-    }
+import java.time.Instant;
+
+public class MarkPrice {
+	public double price;
+	public Instant timestamp;
+
+	public MarkPrice(double price, @NonNull Instant timestamp) {
+		Validations.requirePositive(price, "Price");
+	}
+
+	public static MarkPrice empty() {
+		return new MarkPrice(0, Instant.EPOCH);
+	}
 }

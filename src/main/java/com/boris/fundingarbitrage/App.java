@@ -1,21 +1,13 @@
 package com.boris.fundingarbitrage;
 
-import com.boris.fundingarbitrage.exchange.impl.binance.BinanceExchange;
-import com.boris.fundingarbitrage.util.logger.Logger;
+import com.boris.fundingarbitrage.monitor.CoinMonitor;
 
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.List;
 
 class App {
 	static void main(String[] args) throws Exception {
-		AtomicInteger counter = new AtomicInteger();
-		BinanceExchange exchange = new BinanceExchange();
-		exchange.publicWsClient.subscribeBookTicker(
-						"SOL", message -> {
-							counter.getAndIncrement();
-						}
-		);
+		CoinMonitor monitor = new CoinMonitor(List.of("SOL", "KAITO", ""));
 
 		Thread.sleep(60000); // Keep the application running for 1 minute to receive messages
-		Logger.log("Current Ticker: " + counter.get());
 	}
 }

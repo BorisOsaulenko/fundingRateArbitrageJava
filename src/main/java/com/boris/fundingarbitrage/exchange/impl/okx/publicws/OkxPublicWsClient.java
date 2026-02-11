@@ -5,6 +5,8 @@ import com.boris.fundingarbitrage.exchange.impl.okx.publicrest.OkxPublicHttpClie
 import com.boris.fundingarbitrage.exchange.publicws.PublicWsClient;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
 
 public class OkxPublicWsClient extends PublicWsClient {
 	private static final URI endpoint = URI.create("wss://ws.okx.com:8443/ws/v5/public");
@@ -17,49 +19,49 @@ public class OkxPublicWsClient extends PublicWsClient {
 		super(context, endpoint, messageHandler, publicHttp);
 	}
 
-	private String subscribe(String channel, String[] symbols) {
-		WsRequest.Arg[] args = new WsRequest.Arg[symbols.length];
-		for (int i = 0; i < symbols.length; i++) {
-			args[i] = new WsRequest.Arg(channel, symbols[i]);
+	private String subscribe(String channel, List<String> symbols) {
+		ArrayList<WsRequest.Arg> args = new ArrayList<>();
+		for (String symbol : symbols) {
+			args.add(new WsRequest.Arg(channel, symbol));
 		}
 		return new WsRequest("subscribe", args).toJson();
 	}
 
-	private String unsubscribe(String channel, String[] symbols) {
-		WsRequest.Arg[] args = new WsRequest.Arg[symbols.length];
-		for (int i = 0; i < symbols.length; i++) {
-			args[i] = new WsRequest.Arg(channel, symbols[i]);
+	private String unsubscribe(String channel, List<String> symbols) {
+		ArrayList<WsRequest.Arg> args = new ArrayList<>();
+		for (String symbol : symbols) {
+			args.add(new WsRequest.Arg(channel, symbol));
 		}
 		return new WsRequest("unsubscribe", args).toJson();
 	}
 
 	@Override
-	protected String getSubscribeFundingRateFrame(String[] symbols) {
+	protected String getSubscribeFundingRateFrame(List<String> symbols) {
 		return subscribe("funding-rate", symbols);
 	}
 
 	@Override
-	protected String getUnsubscribeFundingRateFrame(String[] symbols) {
+	protected String getUnsubscribeFundingRateFrame(List<String> symbols) {
 		return unsubscribe("funding-rate", symbols);
 	}
 
 	@Override
-	protected String getSubscribeBookTickerFrame(String[] symbols) {
+	protected String getSubscribeBookTickerFrame(List<String> symbols) {
 		return subscribe("tickers", symbols);
 	}
 
 	@Override
-	protected String getUnsubscribeBookTickerFrame(String[] symbols) {
+	protected String getUnsubscribeBookTickerFrame(List<String> symbols) {
 		return unsubscribe("tickers", symbols);
 	}
 
 	@Override
-	protected String getSubscribeMarkPriceFrame(String[] symbols) {
+	protected String getSubscribeMarkPriceFrame(List<String> symbols) {
 		return subscribe("mark-price", symbols);
 	}
 
 	@Override
-	protected String getUnsubscribeMarkPriceFrame(String[] symbols) {
+	protected String getUnsubscribeMarkPriceFrame(List<String> symbols) {
 		return unsubscribe("mark-price", symbols);
 	}
 }

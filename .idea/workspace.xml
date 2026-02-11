@@ -5,22 +5,40 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="b9df00b4-30ed-4e30-b4d9-bb2bc91a4ba3" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/Instances.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/test/java/exchange/impl/whitebit/WhitebitPrivateRestTest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/monitor/CoinMonitor.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/monitor/ExchangeCoinMap.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/App.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/App.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/BaseExchange.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/BaseExchange.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/gate/privatews/GatePrivateMessageHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/gate/privatews/GatePrivateMessageHandler.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/gate/privatews/GatePrivateWsClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/gate/privatews/GatePrivateWsClient.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/gate/privatews/pojos/WsRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/gate/privatews/pojos/WsRequest.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/gate/publicws/GatePublicMessageHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/gate/publicws/GatePublicMessageHandler.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/binance/BinanceExchange.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/binance/BinanceExchange.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/binance/publicws/BinancePublicWsClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/binance/publicws/BinancePublicWsClient.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bitget/BitgetExchange.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bitget/BitgetExchange.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bitget/publicws/BitgetPublicWsClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bitget/publicws/BitgetPublicWsClient.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bitget/publicws/pojos/WsRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bitget/publicws/pojos/WsRequest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bybit/BybitExchange.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bybit/BybitExchange.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bybit/publicws/BybitPublicWsClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bybit/publicws/BybitPublicWsClient.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bybit/publicws/pojos/WsRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/bybit/publicws/pojos/WsRequest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/gate/GateExchange.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/gate/GateExchange.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/gate/publicws/GatePublicWsClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/gate/publicws/GatePublicWsClient.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/kucoin/privatews/KucoinPrivateMessageHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/kucoin/privatews/KucoinPrivateMessageHandler.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/privatews/PrivateWsClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/privatews/PrivateWsClient.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/gate/publicws/pojos/WsRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/gate/publicws/pojos/WsRequest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/kucoin/KucoinExchange.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/kucoin/KucoinExchange.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/kucoin/publicws/KucoinPublicWsClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/kucoin/publicws/KucoinPublicWsClient.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/okx/OkxExchange.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/okx/OkxExchange.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/okx/publicws/OkxPublicWsClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/okx/publicws/OkxPublicWsClient.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/okx/publicws/WsRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/okx/publicws/WsRequest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/whitebit/WhitebitExchange.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/whitebit/WhitebitExchange.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/whitebit/publicws/WhitebitPublicWsClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/whitebit/publicws/WhitebitPublicWsClient.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/whitebit/ws/WsRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/impl/whitebit/ws/WsRequest.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/publicws/PublicWsClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/publicws/PublicWsClient.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/util/wss/prettyclient/PrettyWsClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/util/wss/prettyclient/PrettyWsClient.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/util/wss/prettyclient/PrettyWsClientBuilder.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/util/wss/publicws/FundingSettlementViaRest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/util/wss/publicws/PublicWsFundingSettlementViaRest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/model/contract/BookTicker.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/model/contract/BookTicker.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/model/contract/Fees.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/model/contract/Fees.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/model/contract/FundingRate.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/model/contract/FundingRate.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/model/contract/MarkPrice.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/model/contract/MarkPrice.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/model/exchange/ExchangeSnapshot.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/model/exchange/ExchangeSnapshot.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/util/wss/publicws/FullFundingViaRest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/util/wss/publicws/FullFundingViaRest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/util/wss/publicws/PublicWsFundingSettlementViaRest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/util/wss/publicws/PublicWsFundingSettlementViaRest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/exchange/PrivateRestTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/exchange/PrivateRestTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/exchange/PublicRestTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/exchange/PublicRestTest.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -34,10 +52,10 @@
   </component>
   <component name="CopilotUserSelectedModel">
     <selectedModels>
-      <entry key="chat-panel" value="GPT-5.2-Codex" />
-      <entry key="agent-panel" value="GPT-5.2-Codex" />
       <entry key="inline" value="GPT-5 mini" />
       <entry key="edit-panel" value="GPT-5 mini" />
+      <entry key="chat-panel" value="GPT-5.2-Codex" />
+      <entry key="agent-panel" value="GPT-5.2-Codex" />
     </selectedModels>
   </component>
   <component name="EmbeddingIndexingInfo">
@@ -80,9 +98,6 @@
       </list>
     </option>
   </component>
-  <component name="FindBugs-IDEA-Workspace">
-    <toolWindowEditorPreview>false</toolWindowEditorPreview>
-  </component>
   <component name="FormatOnSaveOptions">
     <option name="myRunOnSave" value="true" />
   </component>
@@ -124,6 +139,7 @@
     "JUnit.BinancePrivateRestTest and 2 more.executor": "Run",
     "JUnit.BinancePrivateRestTest and 3 more.executor": "Run",
     "JUnit.BinancePrivateRestTest and 4 more.executor": "Run",
+    "JUnit.BinancePrivateRestTest,getSpotUsdtBalanceTest and 6 more.executor": "Run",
     "JUnit.BinancePrivateRestTest.executor": "Run",
     "JUnit.BinancePublicRestTest and 2 more.executor": "Run",
     "JUnit.BinancePublicRestTest and 3 more.executor": "Run",
@@ -171,7 +187,7 @@
     "SHELLCHECK.PATH": "/Users/borisosaulenko/Library/Application Support/JetBrains/IntelliJIdea2025.3/plugins/Shell Script/shellcheck",
     "code.cleanup.on.save": "true",
     "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
-    "git-widget-placeholder": "fixes",
+    "git-widget-placeholder": "monitor",
     "junie.onboarding.icon.badge.shown": "true",
     "kotlin-language-version-configured": "true",
     "project.structure.last.edited": "Modules",
@@ -308,11 +324,11 @@
         <option name="Make" enabled="true" />
       </method>
     </configuration>
-    <configuration name="WhitebitPrivateRestTest" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+    <configuration name="BinancePrivateRestTest,getSpotUsdtBalanceTest and 6 more" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
       <module name="FundingArbitrage.test" />
       <extension name="coverage">
         <pattern>
-          <option name="PATTERN" value="exchange.impl.whitebit.*" />
+          <option name="PATTERN" value="exchange.*" />
           <option name="ENABLED" value="true" />
         </pattern>
       </extension>
@@ -327,10 +343,19 @@
           <ENTRY IS_ENABLED="true" PARSER="env" IS_EXECUTABLE="false" PATH="$USER_HOME$/Documents/Finances/env" />
         </ENTRIES>
       </extension>
-      <option name="PACKAGE_NAME" value="exchange.impl.whitebit" />
-      <option name="MAIN_CLASS_NAME" value="exchange.impl.whitebit.WhitebitPrivateRestTest" />
-      <option name="METHOD_NAME" value="" />
-      <option name="TEST_OBJECT" value="class" />
+      <option name="PACKAGE_NAME" value="exchange" />
+      <option name="MAIN_CLASS_NAME" value="exchange.PrivateRestTest" />
+      <option name="METHOD_NAME" value="getSpotUsdtBalanceTest" />
+      <option name="TEST_OBJECT" value="pattern" />
+      <patterns>
+        <pattern testClass="exchange.impl.binance.BinancePrivateRestTest,getSpotUsdtBalanceTest" />
+        <pattern testClass="exchange.impl.bitget.BitgetPrivateRestTest,getSpotUsdtBalanceTest" />
+        <pattern testClass="exchange.impl.bybit.BybitPrivateRestTest,getSpotUsdtBalanceTest" />
+        <pattern testClass="exchange.impl.gate.GatePrivateRestTest,getSpotUsdtBalanceTest" />
+        <pattern testClass="exchange.impl.kucoin.KucoinPrivateRestTest,getSpotUsdtBalanceTest" />
+        <pattern testClass="exchange.impl.okx.OkxPrivateRestTest,getSpotUsdtBalanceTest" />
+        <pattern testClass="exchange.impl.whitebit.WhitebitPrivateRestTest,getSpotUsdtBalanceTest" />
+      </patterns>
       <method v="2">
         <option name="Make" enabled="true" />
       </method>
@@ -395,18 +420,18 @@
       <item itemvalue="Application.App" />
       <item itemvalue="Gradle.FundingArbitrage" />
       <item itemvalue="Java Scratch.ScratchTyrusWs" />
+      <item itemvalue="JUnit.BinancePrivateRestTest,getSpotUsdtBalanceTest and 6 more" />
       <item itemvalue="JUnit.AllExchangesWsStabilityTest" />
       <item itemvalue="JUnit.AllExchangesWsStabilityTest.testAllExchangesWebsocketStability" />
-      <item itemvalue="JUnit.WhitebitPrivateRestTest" />
       <item itemvalue="JUnit.WhitebitPublicWsTest" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="JUnit.BinancePrivateRestTest,getSpotUsdtBalanceTest and 6 more" />
         <item itemvalue="JUnit.AllExchangesWsStabilityTest" />
         <item itemvalue="Application.App" />
         <item itemvalue="JUnit.AllExchangesWsStabilityTest.testAllExchangesWebsocketStability" />
         <item itemvalue="JUnit.WhitebitPublicWsTest" />
-        <item itemvalue="JUnit.WhitebitPrivateRestTest" />
       </list>
     </recent_temporary>
   </component>
@@ -434,11 +459,6 @@
           <url>file://$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/privatews/PrivateWsClient.java</url>
           <line>95</line>
           <option name="timeStamp" value="1" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="java-line">
-          <url>file://$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/publicws/PublicWsClient.java</url>
-          <line>176</line>
-          <option name="timeStamp" value="4" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="java-method">
           <url>file://$PROJECT_DIR$/src/main/java/com/boris/fundingarbitrage/exchange/privatews/PrivateWsClient.java</url>

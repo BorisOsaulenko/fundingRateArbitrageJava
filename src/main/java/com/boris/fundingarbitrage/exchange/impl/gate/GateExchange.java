@@ -6,8 +6,10 @@ import com.boris.fundingarbitrage.exchange.impl.gate.privatews.GatePrivateWsClie
 import com.boris.fundingarbitrage.exchange.impl.gate.publicrest.GatePublicHttpClient;
 import com.boris.fundingarbitrage.exchange.impl.gate.publicws.GatePublicMessageHandler;
 import com.boris.fundingarbitrage.exchange.impl.gate.publicws.GatePublicWsClient;
+import com.boris.fundingarbitrage.model.exchange.ExchangeName;
 
 public class GateExchange extends BaseExchange {
+	private static final ExchangeName name = ExchangeName.GATE;
 	private static final GateContext context = new GateContext();
 	private static final GatePrivateWsClient privateWs = new GatePrivateWsClient(context);
 	private static final GatePublicHttpClient publicHttp = new GatePublicHttpClient(context);
@@ -16,6 +18,6 @@ public class GateExchange extends BaseExchange {
 	private static final GatePrivateHttpClient privateHttp = new GatePrivateHttpClient(context);
 
 	public GateExchange() {
-		super(publicWs, privateWs, publicHttp, privateHttp);
+		super(name, publicWs, privateWs, publicHttp, privateHttp);
 	}
 }

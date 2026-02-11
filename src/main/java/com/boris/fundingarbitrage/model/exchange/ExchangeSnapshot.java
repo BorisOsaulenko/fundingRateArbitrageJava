@@ -4,10 +4,17 @@ import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.Fees;
 import com.boris.fundingarbitrage.model.contract.FundingRate;
 import com.boris.fundingarbitrage.model.contract.MarkPrice;
-import lombok.NonNull;
 
-public record ExchangeSnapshot(
-        @NonNull BookTicker bookTicker,
-        @NonNull Fees fees,
-        @NonNull FundingRate fundingRate,
-        @NonNull MarkPrice markPrice) {}
+public class ExchangeSnapshot {
+	public BookTicker bookTicker;
+	public Fees fees;
+	public FundingRate fundingRate;
+	public MarkPrice markPrice;
+
+	public ExchangeSnapshot(BookTicker bookTicker, Fees fees, FundingRate fundingRate, MarkPrice markPrice) {
+		this.bookTicker = bookTicker;
+		this.fees = fees;
+		this.fundingRate = fundingRate;
+		this.markPrice = markPrice;
+	}
+}

@@ -42,32 +42,32 @@ public abstract class PublicRestTest {
 		BookTicker bidPrice = getWithTimeout(publicRest().getBookTicker(testCoin));
 		assertNotNull(bidPrice, "Book ticker should not be null");
 
-		assertFinite(bidPrice.askPrice(), "Ask price should be finite");
-		assertFinite(bidPrice.askSize(), "Ask volume should be finite");
-		assertFinite(bidPrice.bidPrice(), "Bid price should be finite");
-		assertFinite(bidPrice.bidSize(), "Bid volume should be finite");
-		assertTrue(bidPrice.askPrice() > 0, "Ask price should be greater than 0");
-		assertTrue(bidPrice.askSize() > 0, "Ask volume should be greater than 0");
-		assertTrue(bidPrice.bidPrice() > 0, "Bid price should be greater than 0");
-		assertTrue(bidPrice.bidSize() > 0, "Bid volume should be greater than 0");
-		assertTrue(bidPrice.askPrice() >= bidPrice.bidPrice(), "Ask price should be greater than or equal to bid price");
-		assertTrue(bidPrice.askPrice() - bidPrice.bidPrice() < 5, "Spread should be less than maxSpread");
+		assertFinite(bidPrice.askPrice, "Ask price should be finite");
+		assertFinite(bidPrice.askSize, "Ask volume should be finite");
+		assertFinite(bidPrice.bidPrice, "Bid price should be finite");
+		assertFinite(bidPrice.bidSize, "Bid volume should be finite");
+		assertTrue(bidPrice.askPrice > 0, "Ask price should be greater than 0");
+		assertTrue(bidPrice.askSize > 0, "Ask volume should be greater than 0");
+		assertTrue(bidPrice.bidPrice > 0, "Bid price should be greater than 0");
+		assertTrue(bidPrice.bidSize > 0, "Bid volume should be greater than 0");
+		assertTrue(bidPrice.askPrice >= bidPrice.bidPrice, "Ask price should be greater than or equal to bid price");
+		assertTrue(bidPrice.askPrice - bidPrice.bidPrice < 5, "Spread should be less than maxSpread");
 	}
 
 	@Test
 	void getFundingRate() throws Exception {
 		FundingRate fundingRate = getWithTimeout(publicRest().getFundingRate(testCoin));
 		assertNotNull(fundingRate, "Funding rate should not be null");
-		assertNotNull(fundingRate.settlement(), "Settlement time should not be null");
-		assertFinite(fundingRate.rate(), "Funding rate should be finite");
+		assertNotNull(fundingRate.settlement, "Settlement time should not be null");
+		assertFinite(fundingRate.rate, "Funding rate should be finite");
 		assertTrue(
-						Math.abs(fundingRate.rate()) < MAX_ABS_FUNDING_RATE,
+						Math.abs(fundingRate.rate) < MAX_ABS_FUNDING_RATE,
 						"Funding rate absolute value should be less than " + MAX_ABS_FUNDING_RATE
 		);
 		Instant now = Instant.now();
-		assertTrue(fundingRate.settlement().compareTo(now) > 0, "Settlement time should be in the future");
+		assertTrue(fundingRate.settlement.compareTo(now) > 0, "Settlement time should be in the future");
 		assertTrue(
-						Duration.between(now, fundingRate.settlement()).compareTo(MAX_FUNDING_SETTLEMENT_AHEAD) <= 0,
+						Duration.between(now, fundingRate.settlement).compareTo(MAX_FUNDING_SETTLEMENT_AHEAD) <= 0,
 						"Settlement time should be within " + MAX_FUNDING_SETTLEMENT_AHEAD.toHours() + " hours"
 		);
 	}

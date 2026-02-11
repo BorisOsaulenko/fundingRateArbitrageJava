@@ -6,7 +6,7 @@ import com.boris.fundingarbitrage.exchange.impl.bybit.publicws.pojos.WsRequest;
 import com.boris.fundingarbitrage.exchange.publicws.PublicWsClient;
 
 import java.net.URI;
-import java.util.Arrays;
+import java.util.List;
 
 public class BybitPublicWsClient extends PublicWsClient {
 	private static final URI endpoint = URI.create("wss://stream.bybit.com/v5/public/linear");
@@ -19,43 +19,43 @@ public class BybitPublicWsClient extends PublicWsClient {
 		super(context, endpoint, messageHandler, publicHttp);
 	}
 
-	private String getSubscribeFrame(String[] symbols) {
-		String[] topics = Arrays.stream(symbols).map(symbol -> "tickers." + symbol).toArray(String[]::new);
+	private String getSubscribeFrame(List<String> symbols) {
+		List<String> topics = symbols.stream().map(symbol -> "tickers." + symbol).toList();
 		return new WsRequest("subscribe", topics).toJson();
 	}
 
-	private String getUnsubscribeFrame(String[] symbols) {
-		String[] topics = Arrays.stream(symbols).map(symbol -> "tickers." + symbol).toArray(String[]::new);
+	private String getUnsubscribeFrame(List<String> symbols) {
+		List<String> topics = symbols.stream().map(symbol -> "tickers." + symbol).toList();
 		return new WsRequest("unsubscribe", topics).toJson();
 	}
 
 	@Override
-	protected String getSubscribeFundingRateFrame(String[] symbols) {
+	protected String getSubscribeFundingRateFrame(List<String> symbols) {
 		return getSubscribeFrame(symbols);
 	}
 
 	@Override
-	protected String getUnsubscribeFundingRateFrame(String[] symbols) {
+	protected String getUnsubscribeFundingRateFrame(List<String> symbols) {
 		return getUnsubscribeFrame(symbols);
 	}
 
 	@Override
-	protected String getSubscribeBookTickerFrame(String[] symbols) {
+	protected String getSubscribeBookTickerFrame(List<String> symbols) {
 		return getSubscribeFrame(symbols);
 	}
 
 	@Override
-	protected String getUnsubscribeBookTickerFrame(String[] symbols) {
+	protected String getUnsubscribeBookTickerFrame(List<String> symbols) {
 		return getUnsubscribeFrame(symbols);
 	}
 
 	@Override
-	protected String getSubscribeMarkPriceFrame(String[] symbols) {
+	protected String getSubscribeMarkPriceFrame(List<String> symbols) {
 		return getSubscribeFrame(symbols);
 	}
 
 	@Override
-	protected String getUnsubscribeMarkPriceFrame(String[] symbols) {
+	protected String getUnsubscribeMarkPriceFrame(List<String> symbols) {
 		return getUnsubscribeFrame(symbols);
 	}
 }

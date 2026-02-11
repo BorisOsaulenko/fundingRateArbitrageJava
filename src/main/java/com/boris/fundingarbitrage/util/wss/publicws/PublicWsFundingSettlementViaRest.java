@@ -31,7 +31,7 @@ public abstract class PublicWsFundingSettlementViaRest extends PublicWsClient {
 		updatingFundingRateVector.put(coin, true);
 		CompletableFuture<FundingRate> future = this.publicHttpClient.getFundingRate(coin).thenApply((fr) -> {
 			updatingFundingRateVector.put(coin, false);
-			settlementVector.put(coin, fr.settlement());
+			settlementVector.put(coin, fr.settlement);
 			return fr;
 		});
 		fundingRateFutureVector.put(coin, future);

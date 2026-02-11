@@ -6,9 +6,11 @@ import com.boris.fundingarbitrage.exchange.impl.binance.privatews.BinancePrivate
 import com.boris.fundingarbitrage.exchange.impl.binance.publicrest.BinancePublicHttpClient;
 import com.boris.fundingarbitrage.exchange.impl.binance.publicws.BinancePublicMessageHandler;
 import com.boris.fundingarbitrage.exchange.impl.binance.publicws.BinancePublicWsClient;
+import com.boris.fundingarbitrage.model.exchange.ExchangeName;
 
 public class BinanceExchange extends BaseExchange {
 	private static final BinanceContext context = new BinanceContext();
+	private static final ExchangeName name = ExchangeName.BINANCE;
 
 	private static final BinancePrivateWsClient privateWs = new BinancePrivateWsClient(context);
 	private static final BinancePublicHttpClient publicHttp = new BinancePublicHttpClient(context);
@@ -21,6 +23,6 @@ public class BinanceExchange extends BaseExchange {
 	private static final BinancePrivateHttpClient privateHttp = new BinancePrivateHttpClient(context);
 
 	public BinanceExchange() {
-		super(publicWs, privateWs, publicHttp, privateHttp);
+		super(name, publicWs, privateWs, publicHttp, privateHttp);
 	}
 }

@@ -6,6 +6,7 @@ import com.boris.fundingarbitrage.exchange.impl.gate.publicws.pojos.WsRequest;
 import com.boris.fundingarbitrage.util.wss.publicws.PublicWsFundingSettlementViaRest;
 
 import java.net.URI;
+import java.util.List;
 
 public class GatePublicWsClient extends PublicWsFundingSettlementViaRest {
 	private static final URI endpoint = URI.create("wss://fx-ws.gateio.ws/v4/ws/usdt");
@@ -18,41 +19,41 @@ public class GatePublicWsClient extends PublicWsFundingSettlementViaRest {
 		super(context, endpoint, messageHandler, publicHttp);
 	}
 
-	private String getSubscribeFrame(String channel, String[] symbols) {
+	private String getSubscribeFrame(String channel, List<String> symbols) {
 		return new WsRequest(channel, "subscribe", symbols).toJson();
 	}
 
-	private String getUnsubscribeFrame(String channel, String[] symbols) {
+	private String getUnsubscribeFrame(String channel, List<String> symbols) {
 		return new WsRequest(channel, "unsubscribe", symbols).toJson();
 	}
 
 	@Override
-	protected String getSubscribeFundingRateFrame(String[] symbols) {
+	protected String getSubscribeFundingRateFrame(List<String> symbols) {
 		return getSubscribeFrame("futures.tickers", symbols);
 	}
 
 	@Override
-	protected String getUnsubscribeFundingRateFrame(String[] symbols) {
+	protected String getUnsubscribeFundingRateFrame(List<String> symbols) {
 		return getUnsubscribeFrame("futures.tickers", symbols);
 	}
 
 	@Override
-	protected String getSubscribeBookTickerFrame(String[] symbols) {
+	protected String getSubscribeBookTickerFrame(List<String> symbols) {
 		return getSubscribeFrame("futures.book_ticker", symbols);
 	}
 
 	@Override
-	protected String getUnsubscribeBookTickerFrame(String[] symbols) {
+	protected String getUnsubscribeBookTickerFrame(List<String> symbols) {
 		return getUnsubscribeFrame("futures.book_ticker", symbols);
 	}
 
 	@Override
-	protected String getSubscribeMarkPriceFrame(String[] symbols) {
+	protected String getSubscribeMarkPriceFrame(List<String> symbols) {
 		return getSubscribeFrame("futures.tickers", symbols);
 	}
 
 	@Override
-	protected String getUnsubscribeMarkPriceFrame(String[] symbols) {
+	protected String getUnsubscribeMarkPriceFrame(List<String> symbols) {
 		return getUnsubscribeFrame("futures.tickers", symbols);
 	}
 }

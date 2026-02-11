@@ -6,8 +6,10 @@ import com.boris.fundingarbitrage.exchange.impl.kucoin.privatews.KucoinPrivateWs
 import com.boris.fundingarbitrage.exchange.impl.kucoin.publicrest.KucoinPublicHttpClient;
 import com.boris.fundingarbitrage.exchange.impl.kucoin.publicws.KucoinPublicMessageHandler;
 import com.boris.fundingarbitrage.exchange.impl.kucoin.publicws.KucoinPublicWsClient;
+import com.boris.fundingarbitrage.model.exchange.ExchangeName;
 
 public class KucoinExchange extends BaseExchange {
+	private static final ExchangeName name = ExchangeName.KUCOIN;
 	private static final KucoinContext context = new KucoinContext();
 	private static final KucoinPublicHttpClient publicHttp = new KucoinPublicHttpClient(context);
 	private static final KucoinPublicMessageHandler publicMessageHandler = new KucoinPublicMessageHandler(context);
@@ -23,6 +25,6 @@ public class KucoinExchange extends BaseExchange {
 	);
 
 	public KucoinExchange() {
-		super(publicWs, privateWs, publicHttp, privateHttp);
+		super(name, publicWs, privateWs, publicHttp, privateHttp);
 	}
 }

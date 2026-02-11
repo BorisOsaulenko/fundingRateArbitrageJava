@@ -6,7 +6,7 @@ import com.boris.fundingarbitrage.exchange.publicws.PublicWsClient;
 import org.jetbrains.annotations.NotNull;
 
 import java.net.URI;
-import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
@@ -26,14 +26,14 @@ public class BinancePublicWsClient extends PublicWsClient {
 		return NEXT_ID.getAndIncrement();
 	}
 
-	private String getSubscribeFrame(String[] symbols, Function<String, String> toStreamMapper) {
-		String[] streams = Arrays.stream(symbols).map(toStreamMapper).toArray(String[]::new);
+	private String getSubscribeFrame(List<String> symbols, Function<String, String> toStreamMapper) {
+		String[] streams = symbols.stream().map(toStreamMapper).toArray(String[]::new);
 		WsRequest sub = new WsRequest("SUBSCRIBE", streams);
 		return sub.toJson();
 	}
 
-	private String getUnsubscribeFrame(String[] symbols, Function<String, String> toStreamMapper) {
-		String[] streams = Arrays.stream(symbols).map(toStreamMapper).toArray(String[]::new);
+	private String getUnsubscribeFrame(List<String> symbols, Function<String, String> toStreamMapper) {
+		String[] streams = symbols.stream().map(toStreamMapper).toArray(String[]::new);
 		WsRequest unsub = new WsRequest("UNSUBSCRIBE", streams);
 		return unsub.toJson();
 	}
@@ -51,32 +51,32 @@ public class BinancePublicWsClient extends PublicWsClient {
 	}
 
 	@Override
-	protected String getSubscribeFundingRateFrame(String[] symbols) {
+	protected String getSubscribeFundingRateFrame(List<String> symbols) {
 		return this.getSubscribeFrame(symbols, this::getFundingRateStream);
 	}
 
 	@Override
-	protected String getUnsubscribeFundingRateFrame(String[] symbols) {
+	protected String getUnsubscribeFundingRateFrame(List<String> symbols) {
 		return this.getUnsubscribeFrame(symbols, this::getFundingRateStream);
 	}
 
 	@Override
-	protected String getSubscribeBookTickerFrame(String[] symbols) {
+	protected String getSubscribeBookTickerFrame(List<String> symbols) {
 		return this.getSubscribeFrame(symbols, this::getBookTickerStream);
 	}
 
 	@Override
-	protected String getUnsubscribeBookTickerFrame(String[] symbols) {
+	protected String getUnsubscribeBookTickerFrame(List<String> symbols) {
 		return this.getUnsubscribeFrame(symbols, this::getBookTickerStream);
 	}
 
 	@Override
-	protected String getSubscribeMarkPriceFrame(String[] symbols) {
+	protected String getSubscribeMarkPriceFrame(List<String> symbols) {
 		return this.getSubscribeFrame(symbols, this::getMarkPriceStream);
 	}
 
 	@Override
-	protected String getUnsubscribeMarkPriceFrame(String[] symbols) {
+	protected String getUnsubscribeMarkPriceFrame(List<String> symbols) {
 		return this.getUnsubscribeFrame(symbols, this::getMarkPriceStream);
 	}
 }

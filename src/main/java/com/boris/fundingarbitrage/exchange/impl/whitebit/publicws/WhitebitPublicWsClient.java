@@ -6,6 +6,7 @@ import com.boris.fundingarbitrage.exchange.impl.whitebit.ws.WsRequest;
 import com.boris.fundingarbitrage.util.wss.publicws.FullFundingViaRest;
 
 import java.net.URI;
+import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -33,43 +34,43 @@ public class WhitebitPublicWsClient extends FullFundingViaRest {
 		);
 	}
 
-	private String subscribe(String method, String[] symbols) {
+	private String subscribe(String method, List<String> symbols) {
 		Object[] params = symbols;
 		return new WsRequest(System.currentTimeMillis(), method, params).toJson();
 	}
 
-	private String unsubscribe(String method, String[] symbols) {
+	private String unsubscribe(String method, List<String> symbols) {
 		Object[] params = new Object[]{};
 		return new WsRequest(System.currentTimeMillis(), method, params).toJson();
 	}
 
 	@Override
-	protected String getSubscribeFundingRateFrame(String[] symbols) {
+	protected String getSubscribeFundingRateFrame(List<String> symbols) {
 		return subscribe("market_subscribe", symbols);
 	}
 
 	@Override
-	protected String getUnsubscribeFundingRateFrame(String[] symbols) {
+	protected String getUnsubscribeFundingRateFrame(List<String> symbols) {
 		return unsubscribe("market_unsubscribe", symbols);
 	}
 
 	@Override
-	protected String getSubscribeBookTickerFrame(String[] symbols) {
+	protected String getSubscribeBookTickerFrame(List<String> symbols) {
 		return subscribe("bookTicker_subscribe", symbols);
 	}
 
 	@Override
-	protected String getUnsubscribeBookTickerFrame(String[] symbols) {
+	protected String getUnsubscribeBookTickerFrame(List<String> symbols) {
 		return unsubscribe("bookTicker_unsubscribe", symbols);
 	}
 
 	@Override
-	protected String getSubscribeMarkPriceFrame(String[] symbols) {
+	protected String getSubscribeMarkPriceFrame(List<String> symbols) {
 		return subscribe("lastprice_subscribe", symbols);
 	}
 
 	@Override
-	protected String getUnsubscribeMarkPriceFrame(String[] symbols) {
+	protected String getUnsubscribeMarkPriceFrame(List<String> symbols) {
 		return unsubscribe("lastprice_unsubscribe", symbols);
 	}
 

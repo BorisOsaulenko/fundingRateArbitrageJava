@@ -90,23 +90,23 @@ public abstract class PublicWsClient {
 		this.prettyWsClientFuture.thenAccept(PrettyWsClient::close);
 	}
 
-	protected abstract String getSubscribeFundingRateFrame(String[] symbols);
+	protected abstract String getSubscribeFundingRateFrame(List<String> symbols);
 
-	protected abstract String getUnsubscribeFundingRateFrame(String[] symbols);
+	protected abstract String getUnsubscribeFundingRateFrame(List<String> symbols);
 
-	protected abstract String getSubscribeBookTickerFrame(String[] symbols);
+	protected abstract String getSubscribeBookTickerFrame(List<String> symbols);
 
-	protected abstract String getUnsubscribeBookTickerFrame(String[] symbols);
+	protected abstract String getUnsubscribeBookTickerFrame(List<String> symbols);
 
-	protected abstract String getSubscribeMarkPriceFrame(String[] symbols);
+	protected abstract String getSubscribeMarkPriceFrame(List<String> symbols);
 
-	protected abstract String getUnsubscribeMarkPriceFrame(String[] symbols);
+	protected abstract String getUnsubscribeMarkPriceFrame(List<String> symbols);
 
 	private <T> void subscribe(
-					String[] coins,
+					List<String> coins,
 					Map<String, Set<Consumer<T>>> handlersMap,
 					Consumer<T> handler,
-					Function<String[], String> subscribeMessage
+					Function<List<String>, String> subscribeMessage
 	) {
 		List<String> newSymbols = new ArrayList<>();
 		for (String coin : coins) {
@@ -118,13 +118,13 @@ public abstract class PublicWsClient {
 							}
 			).add(handler);
 		}
-		if (!newSymbols.isEmpty()) this.sendMessage(subscribeMessage.apply(newSymbols.toArray(new String[0])));
+		if (!newSymbols.isEmpty()) this.sendMessage(subscribeMessage.apply(newSymbols));
 	}
 
 	private <T> void unsubscribe(
-					String[] coins,
+					List<String> coins,
 					Map<String, Set<Consumer<T>>> handlersMap,
-					Function<String[], String> unsubscribeAction
+					Function<List<String>, String> unsubscribeAction
 	) {
 		List<String> removedSymbols = new ArrayList<>();
 		for (String coin : coins) {
@@ -134,55 +134,55 @@ public abstract class PublicWsClient {
 				removedSymbols.add(symbol);
 			}
 		}
-		if (!removedSymbols.isEmpty()) this.sendMessage(unsubscribeAction.apply(removedSymbols.toArray(new String[0])));
+		if (!removedSymbols.isEmpty()) this.sendMessage(unsubscribeAction.apply(removedSymbols));
 	}
 
-	public final void subscribeFundingRates(String[] coins, Consumer<@NonNull FundingRatePatch> handler) {
+	public final void subscribeFundingRates(List<String> coins, Consumer<@NonNull FundingRatePatch> handler) {
 		subscribe(coins, fundingRateHandlers, handler, this::getSubscribeFundingRateFrame);
 	}
 
 	public final void subscribeFundingRates(String coin, Consumer<@NonNull FundingRatePatch> handler) {
-		subscribeFundingRates(new String[]{coin}, handler);
+		subscribeFundingRates(List.of(coin), handler);
 	}
 
-	public final void unsubscribeFundingRates(String[] coins) {
+	public final void unsubscribeFundingRates(List<String> coins) {
 		unsubscribe(coins, fundingRateHandlers, this::getUnsubscribeFundingRateFrame);
 	}
 
 	public final void unsubscribeFundingRates(String coin) {
-		unsubscribeFundingRates(new String[]{coin});
+		unsubscribeFundingRates(List.of(coin));
 	}
 
-	public final void subscribeBookTicker(String[] coins, Consumer<@NonNull BookTickerPatch> handler) {
+	public final void subscribeBookTicker(List<String> coins, Consumer<@NonNull BookTickerPatch> handler) {
 		subscribe(coins, bookTickerHandlers, handler, this::getSubscribeBookTickerFrame);
 	}
 
 	public final void subscribeBookTicker(String coin, Consumer<@NonNull BookTickerPatch> handler) {
-		subscribeBookTicker(new String[]{coin}, handler);
+		subscribeBookTicker(List.of(coin), handler);
 	}
 
-	public final void unsubscribeBookTicker(String[] coins) {
+	public final void unsubscribeBookTicker(List<String> coins) {
 		unsubscribe(coins, bookTickerHandlers, this::getUnsubscribeBookTickerFrame);
 	}
 
 	public final void unsubscribeBookTicker(String coin) {
-		unsubscribeBookTicker(new String[]{coin});
+		unsubscribeBookTicker(List.of(coin));
 	}
 
-	public final void subscribeMarkPrice(String[] coins, Consumer<@NonNull MarkPricePatch> handler) {
+	public final void subscribeMarkPrice(List<String> coins, Consumer<@NonNull MarkPricePatch> handler) {
 		subscribe(coins, markPriceHandlers, handler, this::getSubscribeMarkPriceFrame);
 	}
 
 	public final void subscribeMarkPrice(String coin, Consumer<@NonNull MarkPricePatch> handler) {
-		subscribeMarkPrice(new String[]{coin}, handler);
+		subscribeMarkPrice(List.of(coin), handler);
 	}
 
-	public final void unsubscribeMarkPrice(String[] coins) {
+	public final void unsubscribeMarkPrice(List<String> coins) {
 		unsubscribe(coins, markPriceHandlers, this::getUnsubscribeMarkPriceFrame);
 	}
 
 	public final void unsubscribeMarkPrice(String coin) {
-		unsubscribeMarkPrice(new String[]{coin});
+		unsubscribeMarkPrice(List.of(coin));
 	}
 
 	protected <R extends GenericPublicWsPatch> void dispatchPatchToHandlers(
@@ -242,24 +242,15 @@ public abstract class PublicWsClient {
 		handlePingMessage(message);
 	}
 
-	private <T> String[] getSymbols(CoinVector<Set<Consumer<T>>> handlers) {
-		List<String> symbols = new ArrayList<>();
-		for (String coin : handlers.keySet()) {
-			symbols.add(exchangeContext.getSymbol(coin));
-		}
-
-		return symbols.toArray(new String[0]);
-	}
-
 	public void onConnect(Session session) {
-		String[] fundingRateSymbols = getSymbols(fundingRateHandlers);
-		if (fundingRateSymbols.length > 0) this.sendMessage(getSubscribeFundingRateFrame(fundingRateSymbols));
+		List<String> fundingRateSymbols = fundingRateHandlers.keySet().stream().toList();
+		if (!fundingRateSymbols.isEmpty()) this.sendMessage(getSubscribeFundingRateFrame(fundingRateSymbols));
 
-		String[] bookTickerSymbols = getSymbols(bookTickerHandlers);
-		if (bookTickerSymbols.length > 0) this.sendMessage(getSubscribeBookTickerFrame(bookTickerSymbols));
+		List<String> bookTickerSymbols = bookTickerHandlers.keySet().stream().toList();
+		if (!bookTickerSymbols.isEmpty()) this.sendMessage(getSubscribeBookTickerFrame(bookTickerSymbols));
 
-		String[] markPriceSymbols = getSymbols(markPriceHandlers);
-		if (markPriceSymbols.length > 0) this.sendMessage(getSubscribeMarkPriceFrame(markPriceSymbols));
+		List<String> markPriceSymbols = markPriceHandlers.keySet().stream().toList();
+		if (!markPriceSymbols.isEmpty()) this.sendMessage(getSubscribeMarkPriceFrame(markPriceSymbols));
 	}
 
 	public void unsubscribeCoin(String coin) {

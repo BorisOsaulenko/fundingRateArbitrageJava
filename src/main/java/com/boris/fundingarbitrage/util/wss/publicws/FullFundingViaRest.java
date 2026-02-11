@@ -60,9 +60,9 @@ public abstract class FullFundingViaRest extends PublicWsClient {
 				if (err != null || fundingRate == null) return;
 				FundingRatePatch patch = new FundingRatePatch(
 								coin,
-								fundingRate.rate(),
-								fundingRate.settlement(),
-								fundingRate.timestamp()
+								fundingRate.rate,
+								fundingRate.settlement,
+								fundingRate.timestamp
 				);
 				dispatchPatchToHandlers(patch, fundingRateHandlers);
 			});
