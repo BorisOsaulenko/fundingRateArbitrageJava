@@ -18,4 +18,13 @@ public class FundingRate {
 	public static FundingRate empty() {
 		return new FundingRate(0, Instant.EPOCH, Instant.EPOCH);
 	}
+
+	@Override
+	public String toString() {
+		return "FundingRate{" +
+				"rate=" + rate +
+				", settlement=" + settlement +
+				", timestamp=" + timestamp +
+				'}';
+	}
 }

@@ -3,7 +3,6 @@ package com.boris.fundingarbitrage.monitor;
 import com.boris.fundingarbitrage.model.exchange.ExchangeName;
 
 import java.util.Collection;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
@@ -39,7 +38,14 @@ public class ExchangeCoinMap<T> {
 		return exchangeCoinMap.values();
 	}
 
-	public Set<Map.Entry<String, T>> entrySet() {
-		return exchangeCoinMap.entrySet();
+	public Set<ExchangeCoinEntry<T>> entrySet() {
+		return exchangeCoinMap.entrySet().stream().map(e -> {
+			String[] parts = e.getKey().split(":", 2);
+			return new ExchangeCoinEntry<>(ExchangeName.valueOf(parts[0]), parts[1], e.getValue());
+		}).collect(java.util.stream.Collectors.toSet());
+	}
+
+	public void remove(ExchangeName exchange, String coin) {
+		exchangeCoinMap.remove(getKey(exchange, coin));
 	}
 }

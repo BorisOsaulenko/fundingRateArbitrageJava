@@ -16,17 +16,12 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Consumer;
 
 public class PrettyWsClient {
-	private static final ClientManager client;
-
-	static {
-		client = ClientManager.createClient();
-	}
-
 	private final URI endpointUri;
 	private final PrettyWsReconnectHandler reconnectHandler;
 	private final Queue<String> messageQueue = new ConcurrentLinkedQueue<>();
 	private final PrettyWsEndpoint endpoint;
 	private final int maxReconnectAttempts = 5;
+	private final ClientManager client;
 	private boolean closeRequested = false;
 	private CompletableFuture<Session> connecting = new CompletableFuture<>();
 	private Session lastSession = null;
@@ -43,6 +38,7 @@ public class PrettyWsClient {
 		this.customOnCloseHook = customOnCloseHook;
 		this.endpointUri = uri;
 
+		client = ClientManager.createClient();
 		reconnectHandler = new PrettyWsReconnectHandler(endpointUri, maxReconnectAttempts, () -> !closeRequested);
 		client.getProperties().put(ClientProperties.RECONNECT_HANDLER, reconnectHandler);
 		this.endpoint = new PrettyWsEndpoint(processMessage, getOnOpenHook(), getOnCloseHook());
@@ -51,7 +47,7 @@ public class PrettyWsClient {
 	public PrettyWsClient(@NonNull URI uri, @NonNull Consumer<String> processMessage) {
 		this(uri, processMessage, null, null);
 	}
-	
+
 	public void connect() {
 		try {
 			client.connectToServer(this.endpoint, endpointUri);

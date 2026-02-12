@@ -32,4 +32,12 @@ public class Instances {
 
 		exchangeArray.addAll(exchanges.values());
 	}
+
+	public static BaseExchange getExchange(ExchangeName exchangeName) {
+		BaseExchange exchange = exchanges.get(exchangeName);
+		if (exchange == null) {
+			throw new IllegalArgumentException("Unsupported exchange: " + exchangeName);
+		}
+		return exchange;
+	}
 }

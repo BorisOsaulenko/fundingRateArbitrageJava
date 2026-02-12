@@ -2,13 +2,12 @@ package com.boris.fundingarbitrage.exchange.impl.bybit.publicws;
 
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.impl.bybit.publicrest.BybitPublicHttpClient;
-import com.boris.fundingarbitrage.exchange.impl.bybit.publicws.pojos.WsRequest;
-import com.boris.fundingarbitrage.exchange.publicws.PublicWsClient;
+import com.boris.fundingarbitrage.util.wss.publicws.FullFundingViaRest;
 
 import java.net.URI;
 import java.util.List;
 
-public class BybitPublicWsClient extends PublicWsClient {
+public class BybitPublicWsClient extends FullFundingViaRest {
 	private static final URI endpoint = URI.create("wss://stream.bybit.com/v5/public/linear");
 
 	public BybitPublicWsClient(
@@ -31,12 +30,12 @@ public class BybitPublicWsClient extends PublicWsClient {
 
 	@Override
 	protected String getSubscribeFundingRateFrame(List<String> symbols) {
-		return getSubscribeFrame(symbols);
+		return null;
 	}
 
 	@Override
 	protected String getUnsubscribeFundingRateFrame(List<String> symbols) {
-		return getUnsubscribeFrame(symbols);
+		return null;
 	}
 
 	@Override

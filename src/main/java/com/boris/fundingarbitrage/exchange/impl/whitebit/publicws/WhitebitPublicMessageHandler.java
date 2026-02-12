@@ -33,13 +33,13 @@ public class WhitebitPublicMessageHandler implements PublicMessageHandler {
 		if (symbol == null || symbol.isEmpty()) return null;
 		String coin = context.getSymbolInverse(symbol);
 
-		double bidPrice = Double.parseDouble(data.get(4).asText());
-		double bidSize = Double.parseDouble(data.get(5).asText());
-		double askPrice = Double.parseDouble(data.get(6).asText());
-		double askSize = Double.parseDouble(data.get(7).asText());
+		double bidPrice = data.get(4).asDouble();
+		double bidSize = data.get(5).asDouble();
+		double askPrice = data.get(6).asDouble();
+		double askSize = data.get(7).asDouble();
 		if (bidPrice == 0.0 || bidSize == 0.0 || askPrice == 0.0 || askSize == 0.0) return null;
 
-		double messageTime = Double.parseDouble(data.get(1).asText());
+		double messageTime = data.get(1).asDouble();
 		long tsMillis = (long) (messageTime * 1000.0);
 		Instant ts = Instant.ofEpochMilli(tsMillis);
 

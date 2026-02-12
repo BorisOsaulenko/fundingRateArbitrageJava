@@ -13,7 +13,20 @@ public class MarkPrice {
 		Validations.requirePositive(price, "Price");
 	}
 
+	private MarkPrice(double price) { // for empty constructor
+		this.price = price;
+		this.timestamp = Instant.EPOCH;
+	}
+
 	public static MarkPrice empty() {
-		return new MarkPrice(0, Instant.EPOCH);
+		return new MarkPrice(0);
+	}
+
+	@Override
+	public String toString() {
+		return "MarkPrice{" +
+				"price=" + price +
+				", timestamp=" + timestamp +
+				'}';
 	}
 }

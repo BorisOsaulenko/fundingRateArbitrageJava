@@ -27,7 +27,7 @@ import java.util.function.Function;
 
 public abstract class PublicWsClient {
 	private static final ObjectMapper JSON_MAPPER = ObjectMapperSingleton.getInstance();
-	protected final ExchangeContext exchangeContext;
+	protected final ExchangeContext context;
 	protected final PublicMessageHandler messageHandler;
 	protected final PublicHttpClient publicHttpClient;
 	protected final CoinVector<Set<Consumer<FundingRatePatch>>> fundingRateHandlers = new CoinVector<>();
@@ -41,7 +41,7 @@ public abstract class PublicWsClient {
 					PublicMessageHandler messageHandler,
 					PublicHttpClient publicHttp
 	) {
-		this.exchangeContext = context;
+		this.context = context;
 		this.messageHandler = messageHandler;
 		this.publicHttpClient = publicHttp;
 		this.prettyWsClientFuture = CompletableFuture.completedFuture(new PrettyWsClient(
@@ -59,7 +59,7 @@ public abstract class PublicWsClient {
 					PublicMessageHandler messageHandler,
 					PublicHttpClient publicHttpClient
 	) {
-		this.exchangeContext = context;
+		this.context = context;
 		this.messageHandler = messageHandler;
 		this.publicHttpClient = publicHttpClient;
 		this.prettyWsClientFuture = endpointFuture.thenApply(endpoint -> new PrettyWsClient(
@@ -72,7 +72,7 @@ public abstract class PublicWsClient {
 	}
 
 	public PublicWsClient(PublicWsClient client) {
-		this.exchangeContext = client.exchangeContext;
+		this.context = client.context;
 		this.messageHandler = client.messageHandler;
 		this.prettyWsClientFuture = client.prettyWsClientFuture;
 		this.publicHttpClient = client.publicHttpClient;
@@ -110,7 +110,7 @@ public abstract class PublicWsClient {
 	) {
 		List<String> newSymbols = new ArrayList<>();
 		for (String coin : coins) {
-			String symbol = exchangeContext.getSymbol(coin);
+			String symbol = context.getSymbol(coin);
 			handlersMap.computeIfAbsent(
 							coin, key -> {
 								newSymbols.add(symbol);
@@ -128,7 +128,7 @@ public abstract class PublicWsClient {
 	) {
 		List<String> removedSymbols = new ArrayList<>();
 		for (String coin : coins) {
-			String symbol = exchangeContext.getSymbol(coin);
+			String symbol = context.getSymbol(coin);
 			if (handlersMap.containsKey(symbol)) {
 				handlersMap.remove(coin);
 				removedSymbols.add(symbol);
@@ -137,51 +137,51 @@ public abstract class PublicWsClient {
 		if (!removedSymbols.isEmpty()) this.sendMessage(unsubscribeAction.apply(removedSymbols));
 	}
 
-	public final void subscribeFundingRates(List<String> coins, Consumer<@NonNull FundingRatePatch> handler) {
+	public void subscribeFundingRates(List<String> coins, Consumer<@NonNull FundingRatePatch> handler) {
 		subscribe(coins, fundingRateHandlers, handler, this::getSubscribeFundingRateFrame);
 	}
 
-	public final void subscribeFundingRates(String coin, Consumer<@NonNull FundingRatePatch> handler) {
+	public void subscribeFundingRates(String coin, Consumer<@NonNull FundingRatePatch> handler) {
 		subscribeFundingRates(List.of(coin), handler);
 	}
 
-	public final void unsubscribeFundingRates(List<String> coins) {
+	public void unsubscribeFundingRates(List<String> coins) {
 		unsubscribe(coins, fundingRateHandlers, this::getUnsubscribeFundingRateFrame);
 	}
 
-	public final void unsubscribeFundingRates(String coin) {
+	public void unsubscribeFundingRates(String coin) {
 		unsubscribeFundingRates(List.of(coin));
 	}
 
-	public final void subscribeBookTicker(List<String> coins, Consumer<@NonNull BookTickerPatch> handler) {
+	public void subscribeBookTicker(List<String> coins, Consumer<@NonNull BookTickerPatch> handler) {
 		subscribe(coins, bookTickerHandlers, handler, this::getSubscribeBookTickerFrame);
 	}
 
-	public final void subscribeBookTicker(String coin, Consumer<@NonNull BookTickerPatch> handler) {
+	public void subscribeBookTicker(String coin, Consumer<@NonNull BookTickerPatch> handler) {
 		subscribeBookTicker(List.of(coin), handler);
 	}
 
-	public final void unsubscribeBookTicker(List<String> coins) {
+	public void unsubscribeBookTicker(List<String> coins) {
 		unsubscribe(coins, bookTickerHandlers, this::getUnsubscribeBookTickerFrame);
 	}
 
-	public final void unsubscribeBookTicker(String coin) {
+	public void unsubscribeBookTicker(String coin) {
 		unsubscribeBookTicker(List.of(coin));
 	}
 
-	public final void subscribeMarkPrice(List<String> coins, Consumer<@NonNull MarkPricePatch> handler) {
+	public void subscribeMarkPrice(List<String> coins, Consumer<@NonNull MarkPricePatch> handler) {
 		subscribe(coins, markPriceHandlers, handler, this::getSubscribeMarkPriceFrame);
 	}
 
-	public final void subscribeMarkPrice(String coin, Consumer<@NonNull MarkPricePatch> handler) {
+	public void subscribeMarkPrice(String coin, Consumer<@NonNull MarkPricePatch> handler) {
 		subscribeMarkPrice(List.of(coin), handler);
 	}
 
-	public final void unsubscribeMarkPrice(List<String> coins) {
+	public void unsubscribeMarkPrice(List<String> coins) {
 		unsubscribe(coins, markPriceHandlers, this::getUnsubscribeMarkPriceFrame);
 	}
 
-	public final void unsubscribeMarkPrice(String coin) {
+	public void unsubscribeMarkPrice(String coin) {
 		unsubscribeMarkPrice(List.of(coin));
 	}
 
@@ -211,45 +211,50 @@ public abstract class PublicWsClient {
 		dispatchPatchToHandlers(patch, fundingRateHandlers);
 	}
 
-	protected void handlePingMessage(String message) {
+	protected boolean handlePingMessage(String message) {
 		String pingResponse = messageHandler.getResponseToPingMessage(message);
 		if (pingResponse != null) {
 			this.prettyWsClientFuture.thenAccept(client -> client.sendMessage(pingResponse));
+			return true;
 		}
+		return false;
 	}
 
-	private <T extends GenericPublicWsPatch> void tryHandle(
+	private <T extends GenericPublicWsPatch> boolean tryHandle(
 					JsonNode root,
 					Function<JsonNode, T> parser,
 					Consumer<T> handler
 	) {
 		T patch = parser.apply(root);
-		if (patch == null) return;
+		if (patch == null) return false;
 		handler.accept(patch);
+		return true;
 	}
 
 	private void handleMessage(String message) {
 		if (message == null || message.isEmpty()) return;
 
 		JsonNode root = null;
+		boolean s = false;
 		try {
 			root = JSON_MAPPER.readTree(message);
-			tryHandle(root, messageHandler::parseBookTickerMessageSymbol, this::handleBookTickerPatch);
-			tryHandle(root, messageHandler::parseMarkPriceMessageSymbol, this::handleMarkPricePatch);
-			tryHandle(root, messageHandler::parseFundingRateMessageSymbol, this::handleFundingRatePatch);
+			if (tryHandle(root, messageHandler::parseBookTickerMessageSymbol, this::handleBookTickerPatch)) s = true;
+			if (tryHandle(root, messageHandler::parseMarkPriceMessageSymbol, this::handleMarkPricePatch)) s = true;
+			if (tryHandle(root, messageHandler::parseFundingRateMessageSymbol, this::handleFundingRatePatch)) s = true;
 		} catch (JsonProcessingException ignored) {}
 
-		handlePingMessage(message);
+		if (handlePingMessage(message)) s = true;
+//		if (!s) Logger.warn("Unrecognized public ws message: " + message);
 	}
 
 	public void onConnect(Session session) {
-		List<String> fundingRateSymbols = fundingRateHandlers.keySet().stream().toList();
+		List<String> fundingRateSymbols = fundingRateHandlers.keySet().stream().map(context::getSymbol).toList();
 		if (!fundingRateSymbols.isEmpty()) this.sendMessage(getSubscribeFundingRateFrame(fundingRateSymbols));
 
-		List<String> bookTickerSymbols = bookTickerHandlers.keySet().stream().toList();
+		List<String> bookTickerSymbols = bookTickerHandlers.keySet().stream().map(context::getSymbol).toList();
 		if (!bookTickerSymbols.isEmpty()) this.sendMessage(getSubscribeBookTickerFrame(bookTickerSymbols));
 
-		List<String> markPriceSymbols = markPriceHandlers.keySet().stream().toList();
+		List<String> markPriceSymbols = markPriceHandlers.keySet().stream().map(context::getSymbol).toList();
 		if (!markPriceSymbols.isEmpty()) this.sendMessage(getSubscribeMarkPriceFrame(markPriceSymbols));
 	}
 

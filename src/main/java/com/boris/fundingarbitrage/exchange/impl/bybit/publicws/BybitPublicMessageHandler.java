@@ -19,29 +19,8 @@ public class BybitPublicMessageHandler implements PublicMessageHandler {
 
 	private Instant parseTimestamp(JsonNode root) {
 		long ts = root.path("ts").asLong();
+		if (ts == 0) throw new IllegalArgumentException("Missing or invalid timestamp in message: " + root);
 		return Instant.ofEpochMilli(ts);
-	}
-
-	private FundingRatePatch parseFundingRateInternal(JsonNode root) {
-		JsonNode data = root.get("data");
-		if (data == null) return null;
-		String symbol = data.path("symbol").asText();
-		String coin = context.getSymbolInverse(symbol);
-		String fundingRate = data.path("fundingRate").asText();
-		String nextFunding = data.path("nextFundingTime").asText();
-
-		boolean fundingProvided = fundingRate != null && !fundingRate.isEmpty();
-		boolean nextFundingProvided = nextFunding != null && !nextFunding.isEmpty();
-		if (!fundingProvided && !nextFundingProvided) {
-			return null;
-		}
-
-		return new FundingRatePatch(
-						coin,
-						fundingProvided ? Double.parseDouble(fundingRate) : null,
-						nextFundingProvided ? Instant.ofEpochMilli(Long.parseLong(nextFunding)) : null,
-						parseTimestamp(root)
-		);
 	}
 
 	private MarkPricePatch parseMarkPriceInternal(JsonNode root) {
@@ -67,6 +46,7 @@ public class BybitPublicMessageHandler implements PublicMessageHandler {
 		double bidSz = data.path("bid1Size").asDouble();
 		double askPr = data.path("ask1Price").asDouble();
 		double askSz = data.path("ask1Size").asDouble();
+		Instant timestamp = parseTimestamp(root);
 		if (bidPr == 0.0 && bidSz == 0.0 && askPr == 0.0 && askSz == 0.0) return null;
 		return new BookTickerPatch(
 						coin,
@@ -74,7 +54,7 @@ public class BybitPublicMessageHandler implements PublicMessageHandler {
 						bidSz == 0.0 ? null : bidSz,
 						askPr == 0.0 ? null : askPr,
 						askSz == 0.0 ? null : askSz,
-						parseTimestamp(root)
+						timestamp
 		);
 	}
 
@@ -91,7 +71,7 @@ public class BybitPublicMessageHandler implements PublicMessageHandler {
 
 	@Override
 	public FundingRatePatch parseFundingRateMessageSymbol(JsonNode root) {
-		return parseErrorHandled(this::parseFundingRateInternal, root);
+		return null;
 	}
 
 	@Override

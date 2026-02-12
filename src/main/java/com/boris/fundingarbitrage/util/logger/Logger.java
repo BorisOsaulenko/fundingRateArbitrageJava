@@ -40,6 +40,8 @@ public class Logger {
 		}
 		INSTANCE = new Logger(logFilePath);
 		initCalled = true;
+		System.out.println("Logger initialized. Log file: " +
+											 (logFilePath != null ? logFilePath.toAbsolutePath() : "None (console only)"));
 	}
 
 	private static void writeLine(String line) {
@@ -51,6 +53,7 @@ public class Logger {
 		try {
 			writer.write(line);
 			writer.newLine();
+			writer.flush();
 		} catch (IOException e) {
 			throw new UncheckedIOException("Failed writing log line to file", e);
 		}
@@ -125,7 +128,7 @@ public class Logger {
 		writeLine(border);
 	}
 
-	public synchronized void closeLogFile() {
+	public synchronized static void closeLogFile() {
 		if (writer == null) return;
 
 		try {

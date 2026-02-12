@@ -3,13 +3,19 @@ package com.boris.fundingarbitrage.exchange.impl.whitebit.publicws;
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.impl.whitebit.publicrest.WhitebitPublicHttpClient;
 import com.boris.fundingarbitrage.exchange.impl.whitebit.ws.WsRequest;
+import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
 import com.boris.fundingarbitrage.util.wss.publicws.FullFundingViaRest;
+import lombok.NonNull;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 public class WhitebitPublicWsClient extends FullFundingViaRest {
 	private static final URI endpoint = URI.create("wss://api.whitebit.com/ws");
@@ -28,30 +34,30 @@ public class WhitebitPublicWsClient extends FullFundingViaRest {
 	private void startPingLoop() {
 		scheduler.scheduleAtFixedRate(
 						() -> {
-							WsRequest ping = new WsRequest(System.currentTimeMillis(), "ping", new Object[]{});
+							WsRequest ping = new WsRequest(System.currentTimeMillis(), "ping", new ArrayList<>());
 							sendObject(ping);
 						}, PING_INTERVAL_SECONDS, PING_INTERVAL_SECONDS, TimeUnit.SECONDS
 		);
 	}
 
 	private String subscribe(String method, List<String> symbols) {
-		Object[] params = symbols;
+		List<Object> params = new ArrayList<>(symbols);
 		return new WsRequest(System.currentTimeMillis(), method, params).toJson();
 	}
 
 	private String unsubscribe(String method, List<String> symbols) {
-		Object[] params = new Object[]{};
+		List<Object> params = new ArrayList<>();
 		return new WsRequest(System.currentTimeMillis(), method, params).toJson();
 	}
 
 	@Override
 	protected String getSubscribeFundingRateFrame(List<String> symbols) {
-		return subscribe("market_subscribe", symbols);
+		return null;
 	}
 
 	@Override
 	protected String getUnsubscribeFundingRateFrame(List<String> symbols) {
-		return unsubscribe("market_unsubscribe", symbols);
+		return null;
 	}
 
 	@Override
@@ -73,6 +79,17 @@ public class WhitebitPublicWsClient extends FullFundingViaRest {
 	protected String getUnsubscribeMarkPriceFrame(List<String> symbols) {
 		return unsubscribe("lastprice_unsubscribe", symbols);
 	}
+
+	@Override
+	public void subscribeBookTicker(List<String> coins, Consumer<@NonNull BookTickerPatch> handler) {
+		for (String coin : coins) {
+			String symbol = context.getSymbol(coin);
+			sendMessage(getSubscribeBookTickerFrame(List.of(symbol)));
+			Set<Consumer<@NonNull BookTickerPatch>> handlers = bookTickerHandlers.get(coin);
+			if (handlers == null) bookTickerHandlers.put(coin, handlers = new HashSet<>());
+			handlers.add(handler);
+		}
+	} // Whitebit does not allow subscribing to multiple book tickers at once, so we subscribe to each one separately.
 
 	@Override
 	public void close() {

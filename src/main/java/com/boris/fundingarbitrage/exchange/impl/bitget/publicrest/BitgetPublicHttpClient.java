@@ -95,8 +95,9 @@ public class BitgetPublicHttpClient extends PublicHttpClient {
 					return resp.existsSymbol(symbol);
 				}
 
-				// Bitget returns HTTP 400 with specific error code when symbol does not exist
-				if ("40034".equals(code)) {
+				// Bitget returns 40034 code when symbol does not exist
+				// Bitget returns 40309 code when symbol has been delisted
+				if ("40034".equals(code) || "40309".equals(code)) {
 					return false;
 				}
 

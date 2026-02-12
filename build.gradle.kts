@@ -1,7 +1,12 @@
 plugins {
     id("java")
     kotlin("jvm")
+    id("application")
     id("io.freefair.lombok") version "9.2.0"
+}
+
+application {
+    mainClass.set("com.boris.fundingarbitrage.App")
 }
 
 // Apply to all Jar tasks (covers jar plus any additional Jar-producing tasks).

@@ -13,12 +13,15 @@ public record BookTickerPatch(
 				@NonNull Instant timestamp
 ) implements GenericPublicWsPatch {
 	public BookTickerPatch {
-		if (bidPrice <= 0 || bidSize <= 0 || askPrice <= 0 || askSize <= 0) {
-			throw new IllegalArgumentException("bidPrice, bidSize, askPrice, askSize must be positive");
-		}
-		
 		if (bidPrice == null && bidSize == null && askPrice == null && askSize == null) {
 			throw new IllegalArgumentException("At least one of bidPrice, bidSize, askPrice, askSize must be positive");
+		}
+
+		if ((bidPrice != null && bidPrice <= 0) ||
+				(bidSize != null && bidSize <= 0) ||
+				(askPrice != null && askPrice <= 0) ||
+				(askSize != null && askSize <= 0)) {
+			throw new IllegalArgumentException("bidPrice, bidSize, askPrice, askSize must be positive");
 		}
 	}
 }

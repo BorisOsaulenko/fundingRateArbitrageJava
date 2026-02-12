@@ -1,4 +1,4 @@
-package com.boris.fundingarbitrage.exchange.impl.bybit.publicws.pojos;
+package com.boris.fundingarbitrage.exchange.impl.bybit.publicws;
 
 import com.boris.fundingarbitrage.ObjectMapperSingleton;
 import lombok.SneakyThrows;

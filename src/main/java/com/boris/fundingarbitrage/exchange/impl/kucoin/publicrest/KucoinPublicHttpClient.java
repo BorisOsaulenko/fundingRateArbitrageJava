@@ -91,14 +91,15 @@ public class KucoinPublicHttpClient extends PublicHttpClient {
 			try {
 				JsonNode root = mapper.readTree(response.getBodyText());
 				String code = root.path("code").asText();
-				if (code.isEmpty()) {
-					throw new IllegalStateException("KuCoin response code missing");
-				}
+				if (code.isEmpty()) throw new IllegalStateException("KuCoin response code missing");
+
 				if (!"200000".equals(code)) return false;
 				JsonNode data = root.get("data");
-				if (data == null || !data.isObject()) {
-					throw new IllegalStateException("KuCoin response data missing");
-				}
+				if (data == null || !data.isObject()) throw new IllegalStateException("KuCoin response data missing");
+
+				String status = data.path("status").asText();
+				if (!"open".equalsIgnoreCase(status)) return false;
+
 				String actual = data.path("symbol").asText();
 				if (actual.isEmpty()) throw new IllegalStateException("KuCoin symbol missing in response");
 

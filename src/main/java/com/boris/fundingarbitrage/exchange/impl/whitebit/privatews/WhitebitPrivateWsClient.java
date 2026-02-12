@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
 
 import java.net.URI;
+import java.util.List;
 
 public class WhitebitPrivateWsClient extends PrivateWsClient {
 	private static final URI endpoint = URI.create("wss://api.whitebit.com/ws");
@@ -48,31 +49,31 @@ public class WhitebitPrivateWsClient extends PrivateWsClient {
 	@Override
 	protected String getAuthenticationFrame() {
 		String token = fetchWebsocketToken();
-		Object[] params = new Object[]{token, "public"};
+		List<Object> params = List.of(token, "public");
 		return new WsRequest(System.currentTimeMillis(), "authorize", params).toJson();
 	}
 
 	@Override
 	protected String getSubscribeDepositFrame() {
-		Object[] params = new Object[]{"USDT"};
+		List<Object> params = List.of("USDT");
 		return new WsRequest(System.currentTimeMillis(), "balanceSpot_subscribe", params).toJson();
 	}
 
 	@Override
 	protected String getUnsubscribeDepositFrame() {
-		Object[] params = new Object[]{};
+		List<Object> params = List.of();
 		return new WsRequest(System.currentTimeMillis(), "balanceSpot_unsubscribe", params).toJson();
 	}
 
 	@Override
 	protected String getSubscribePartialFillsFrame() {
-		Object[] params = new Object[]{new String[]{}};
+		List<Object> params = List.of();
 		return new WsRequest(System.currentTimeMillis(), "deals_subscribe", params).toJson();
 	}
 
 	@Override
 	protected String getUnsubscribePartialFillsFrame() {
-		Object[] params = new Object[]{};
+		List<Object> params = List.of();
 		return new WsRequest(System.currentTimeMillis(), "deals_unsubscribe", params).toJson();
 	}
 }

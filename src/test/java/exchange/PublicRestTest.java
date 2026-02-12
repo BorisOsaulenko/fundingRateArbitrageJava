@@ -88,13 +88,13 @@ public abstract class PublicRestTest {
 
 	@Test
 	void checkCoinExists() throws Exception {
-		boolean exists = getWithTimeout(publicRest().checkSymbolExists(testCoin));
+		boolean exists = getWithTimeout(publicRest().checkCoinExists(testCoin));
 		assertTrue(exists, "Symbol should exist on the exchange");
 	}
 
 	@Test
 	void checkCoinDoesNotExist() throws Exception {
-		boolean exists = getWithTimeout(publicRest().checkSymbolExists("NONEXISTENTCOIN"));
+		boolean exists = getWithTimeout(publicRest().checkCoinExists("NONEXISTENTCOIN"));
 		assertFalse(exists, "Symbol should not exist on the exchange");
 	}
 }

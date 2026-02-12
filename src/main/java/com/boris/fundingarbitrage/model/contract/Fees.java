@@ -21,9 +21,26 @@ public class Fees {
 							maxFee * 100
 			));
 		}
+
+		this.openMaker = openMaker;
+		this.openTaker = openTaker;
+		this.closeMaker = closeMaker;
+		this.closeTaker = closeTaker;
+		this.timestamp = timestamp;
 	}
 
 	public static Fees empty() {
 		return new Fees(0, 0, 0, 0, Instant.EPOCH);
+	}
+
+	@Override
+	public String toString() {
+		return "Fees{" +
+				"openMaker=" + openMaker +
+				", openTaker=" + openTaker +
+				", closeMaker=" + closeMaker +
+				", closeTaker=" + closeTaker +
+				", timestamp=" + timestamp +
+				'}';
 	}
 }

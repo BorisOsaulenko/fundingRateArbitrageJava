@@ -20,4 +20,15 @@ public class BookTicker {
 	public static BookTicker empty() {
 		return new BookTicker(0, 0, 0, 0, Instant.EPOCH);
 	}
+
+	@Override
+	public String toString() {
+		return "BookTicker{" +
+				"bidPrice=" + bidPrice +
+				", bidSize=" + bidSize +
+				", askPrice=" + askPrice +
+				", askSize=" + askSize +
+				", timestamp=" + timestamp +
+				'}';
+	}
 }

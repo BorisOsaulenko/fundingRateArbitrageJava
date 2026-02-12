@@ -29,10 +29,7 @@ public abstract class PublicHttpClient {
 
 	protected abstract CompletableFuture<Boolean> checkExistsSymbol(String symbol);
 
-	private <T> CompletableFuture<T> withSymbol(
-					String coin,
-					Function<String, CompletableFuture<T>> symbolGetter
-	) {
+	private <T> CompletableFuture<T> withSymbol(String coin, Function<String, CompletableFuture<T>> symbolGetter) {
 		String symbol = exchangeContext.getSymbol(coin);
 		return symbolGetter.apply(symbol);
 	}
@@ -57,7 +54,7 @@ public abstract class PublicHttpClient {
 		return withSymbol(coin, this::getTradingVolume1hSymbol);
 	}
 
-	public CompletableFuture<Boolean> checkSymbolExists(String coin) {
+	public CompletableFuture<Boolean> checkCoinExists(String coin) {
 		return withSymbol(coin, this::checkExistsSymbol);
 	}
 }
