@@ -19,6 +19,12 @@ public final class PublicEndpoints {
 	}
 
 	@SneakyThrows
+	public static @NonNull SimpleHttpRequest activeContractsRequest() {
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v1/contracts/active").build();
+		return new SimpleHttpRequest("GET", uri);
+	}
+
+	@SneakyThrows
 	public static @NonNull SimpleHttpRequest tickerRequestSymbol(String symbol) {
 		URI uri = new URIBuilder(baseUrl).setPath("/api/v1/ticker").addParameter("symbol", symbol).build();
 		return new SimpleHttpRequest("GET", uri);

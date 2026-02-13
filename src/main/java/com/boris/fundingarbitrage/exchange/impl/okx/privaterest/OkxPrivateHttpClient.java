@@ -20,6 +20,7 @@ import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
@@ -85,6 +86,15 @@ public class OkxPrivateHttpClient extends PrivateHttpClient {
 						PrivateEndpoints.tradingFeesRequestSymbol(symbol),
 						PrivateResponses.TradingFeesResponse.class,
 						PrivateResponses.TradingFeesResponse::getFees
+		);
+	}
+
+	@Override
+	protected CompletableFuture<Map<String, Fees>> getTradingFeesSymbols(List<String> symbols) {
+		return processRequest(
+						PrivateEndpoints.tradingFeesRequestSymbols(),
+						PrivateResponses.TradingFeesSymbolsResponse.class,
+						(resp) -> resp.getFeesBySymbols(symbols)
 		);
 	}
 

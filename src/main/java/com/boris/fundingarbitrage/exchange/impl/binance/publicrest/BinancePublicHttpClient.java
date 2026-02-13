@@ -10,6 +10,8 @@ import com.boris.fundingarbitrage.util.logger.Logger;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
 
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
@@ -82,11 +84,29 @@ public class BinancePublicHttpClient extends PublicHttpClient {
 	}
 
 	@Override
+	protected CompletableFuture<Map<String, FundingRate>> getFundingRateSymbols(List<String> symbols) {
+		return processRequest(
+						PublicEndpoints.fundingRateRequestSymbols(),
+						PublicResponses.FundingRateResponseSymbols.class,
+						(resp) -> resp.get(symbols)
+		);
+	}
+
+	@Override
 	public CompletableFuture<Boolean> checkExistsSymbol(String symbol) {
 		return processRequest(
 						PublicEndpoints.checkSymbolExistsRequestSymbol(symbol),
 						PublicResponses.CheckExistsSymbolResponse.class,
 						(resp) -> resp.get(symbol)
+		);
+	}
+
+	@Override
+	protected CompletableFuture<Map<String, Boolean>> checkExistsSymbols(List<String> symbols) {
+		return processRequest(
+						PublicEndpoints.checkSymbolExistsRequestSymbols(),
+						PublicResponses.CheckExistsSymbolsResponse.class,
+						(resp) -> resp.get(symbols)
 		);
 	}
 }

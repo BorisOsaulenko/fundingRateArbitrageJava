@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -19,6 +20,7 @@ public abstract class PrivateRestTest {
 	private static final long REQUEST_TIMEOUT_SECONDS = 8;
 	private static final double MAX_ABS_FEE = 0.02;
 	private final String testCoin = "SOL";
+	private final String batchCoin = "BTC";
 	private final Duration timestampTolerance = Duration.ofSeconds(2);
 
 	private static <T> T getWithTimeout(CompletableFuture<T> future) throws Exception {
@@ -31,9 +33,7 @@ public abstract class PrivateRestTest {
 
 	protected abstract PrivateHttpClient privateRest();
 
-	@Test
-	public void getTradingFeesTest() throws Exception {
-		Fees fees = getWithTimeout(privateRest().getTradingFees(testCoin));
+	private void assertValidFees(Fees fees) {
 		assertNotNull(fees, "Fees should not be null");
 		assertFinite(fees.openTaker, "Open taker fee should be finite");
 		assertFinite(fees.closeTaker, "Close taker fee should be finite");
@@ -47,6 +47,23 @@ public abstract class PrivateRestTest {
 						Duration.between(fees.timestamp, now).compareTo(timestampTolerance) < 0,
 						"Fees timestamp should be recent. Difference: " + Duration.between(fees.timestamp, now).toMillis() + " ms"
 		);
+	}
+
+	@Test
+	public void getTradingFeesTest() throws Exception {
+		Fees fees = getWithTimeout(privateRest().getTradingFees(testCoin));
+		assertValidFees(fees);
+	}
+
+	@Test
+	public void getTradingFeesBatchTest() throws Exception {
+		List<String> coins = List.of(testCoin, batchCoin);
+		var feesByCoin = getWithTimeout(privateRest().getTradingFees(coins));
+		assertNotNull(feesByCoin, "Batch fees result should not be null");
+		assertEquals(coins.size(), feesByCoin.size(), "Batch fees should include all requested coins");
+		for (String coin : coins) {
+			assertValidFees(feesByCoin.get(coin));
+		}
 	}
 
 	@Test

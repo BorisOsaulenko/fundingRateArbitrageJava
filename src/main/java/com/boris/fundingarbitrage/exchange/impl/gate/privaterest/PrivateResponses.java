@@ -10,7 +10,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class PrivateResponses {
 	public record TradingFeesResponse(
@@ -30,6 +32,29 @@ public class PrivateResponses {
 				taker = taker_fee == null || taker_fee.isEmpty() ? 0.0 : Double.parseDouble(taker_fee);
 			}
 			return new Fees(maker, taker, maker, taker, Instant.now());
+		}
+	}
+
+	public record TradingFeesSymbolsResponse(
+					String currency,
+					String taker_fee,
+					String maker_fee,
+					String futures_taker_fee,
+					String futures_maker_fee
+	) {
+		public Map<String, Fees> getFeesBySymbols(List<String> symbols) {
+			Map<String, Fees> feesBySymbol = new HashMap<>();
+			Fees fees = new TradingFeesResponse(
+							currency,
+							taker_fee,
+							maker_fee,
+							futures_taker_fee,
+							futures_maker_fee
+			).getFees();
+			for (String symbol : symbols) {
+				feesBySymbol.put(symbol, fees);
+			}
+			return feesBySymbol;
 		}
 	}
 

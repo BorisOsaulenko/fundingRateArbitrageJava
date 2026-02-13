@@ -11,7 +11,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class PrivateResponses {
 	private static double parseDouble(JsonNode node, String... fields) {
@@ -57,6 +59,21 @@ public class PrivateResponses {
 				}
 			}
 			return new Fees(0, 0, 0, 0, Instant.ofEpochMilli(requestTime));
+		}
+	}
+
+	public record TradingFeesSymbolsResponse(String code, String msg, long requestTime, JsonNode data) {
+		public Map<String, Fees> getFeesBySymbols(List<String> symbols) {
+			Map<String, Fees> feesBySymbol = new HashMap<>();
+			if (data == null || !data.isArray()) return feesBySymbol;
+			for (JsonNode contract : data) {
+				String symbol = contract.path("symbol").asText();
+				if (!symbols.contains(symbol)) continue;
+				double maker = parseDouble(contract, "makerFeeRate");
+				double taker = parseDouble(contract, "takerFeeRate");
+				feesBySymbol.put(symbol, new Fees(maker, taker, maker, taker, Instant.ofEpochMilli(requestTime)));
+			}
+			return feesBySymbol;
 		}
 	}
 

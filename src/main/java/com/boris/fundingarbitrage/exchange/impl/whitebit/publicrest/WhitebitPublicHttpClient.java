@@ -11,6 +11,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
 
 import java.time.Instant;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
@@ -69,6 +71,15 @@ public class WhitebitPublicHttpClient extends PublicHttpClient {
 	}
 
 	@Override
+	protected CompletableFuture<Map<String, FundingRate>> getFundingRateSymbols(List<String> symbols) {
+		return processRequest(
+					PublicEndpoints.futuresRequest(),
+					PublicResponses.FundingRatesResponseSymbols.class,
+					(resp) -> resp.get(symbols)
+		);
+	}
+
+	@Override
 	protected CompletableFuture<Double> getTradingVolume24hSymbol(String symbol) {
 		return processRequest(
 					PublicEndpoints.futuresRequest(),
@@ -92,6 +103,15 @@ public class WhitebitPublicHttpClient extends PublicHttpClient {
 					PublicEndpoints.marketsRequest(),
 					PublicResponses.MarketsResponse.class,
 					(resp) -> resp.symbolExists(symbol)
+		);
+	}
+
+	@Override
+	protected CompletableFuture<Map<String, Boolean>> checkExistsSymbols(List<String> symbols) {
+		return processRequest(
+					PublicEndpoints.marketsRequest(),
+					PublicResponses.SymbolsExistsResponse.class,
+					(resp) -> resp.get(symbols)
 		);
 	}
 }

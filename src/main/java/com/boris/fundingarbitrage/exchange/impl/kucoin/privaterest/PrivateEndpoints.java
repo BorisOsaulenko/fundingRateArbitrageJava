@@ -34,6 +34,12 @@ public final class PrivateEndpoints {
 		return new SimpleHttpRequest("GET", uri);
 	}
 
+	@SneakyThrows
+	public static @NonNull SimpleHttpRequest tradingFeesRequestSymbols() {
+		URI uri = new URIBuilder(baseUrlFutures).setPath("/api/v1/contracts/active").build();
+		return new SimpleHttpRequest("GET", uri);
+	}
+
 	public static @NonNull SimpleHttpRequest changeLeverageRequestSymbol(String symbol, int leverage) {
 		Map<String, Object> body = new HashMap<>();
 		body.put("symbol", symbol);

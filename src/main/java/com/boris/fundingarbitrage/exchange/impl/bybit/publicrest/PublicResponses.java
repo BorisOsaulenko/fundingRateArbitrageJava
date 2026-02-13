@@ -5,6 +5,9 @@ import com.boris.fundingarbitrage.model.contract.FundingRate;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class PublicResponses {
 	public record InstrumentsInfoResponse(int retCode, String retMsg, long time, JsonNode result) {
@@ -29,6 +32,25 @@ public class PublicResponses {
 				return Double.parseDouble(qtyStep);
 			}
 			return null;
+		}
+	}
+
+	public record InstrumentsInfoSymbolsResponse(int retCode, String retMsg, long time, JsonNode result) {
+		public Map<String, Boolean> existsBySymbols(List<String> symbols) {
+			Map<String, Boolean> resultMap = new HashMap<>();
+			for (String symbol : symbols) {
+				resultMap.put(symbol, false);
+			}
+
+			JsonNode list = result == null ? null : result.get("list");
+			if (list == null || !list.isArray()) return resultMap;
+			for (JsonNode item : list) {
+				String symbol = item.path("symbol").asText();
+				if (resultMap.containsKey(symbol)) {
+					resultMap.put(symbol, true);
+				}
+			}
+			return resultMap;
 		}
 	}
 
@@ -71,6 +93,24 @@ public class PublicResponses {
 			double volume = item.path("volume24h").asDouble();
 			if (volume == 0.0) throw new IllegalStateException("Bybit ticker volume24h missing");
 			return volume;
+		}
+	}
+
+	public record FundingRatesResponseSymbols(int retCode, String retMsg, long time, JsonNode result) {
+		public Map<String, FundingRate> get(List<String> symbols) {
+			Map<String, FundingRate> ratesBySymbol = new HashMap<>();
+			JsonNode list = result == null ? null : result.get("list");
+			if (list == null || !list.isArray()) return ratesBySymbol;
+
+			for (JsonNode item : list) {
+				String symbol = item.path("symbol").asText();
+				if (!symbols.contains(symbol)) continue;
+				double rate = item.path("fundingRate").asDouble();
+				long nextFunding = item.path("nextFundingTime").asLong();
+				if (nextFunding == 0L) continue;
+				ratesBySymbol.put(symbol, new FundingRate(rate, Instant.ofEpochMilli(nextFunding), Instant.ofEpochMilli(time)));
+			}
+			return ratesBySymbol;
 		}
 	}
 

@@ -8,6 +8,9 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class PublicResponses {
 	public record ContractResponse(
@@ -44,6 +47,39 @@ public class PublicResponses {
 		public double takerFeeRate() {
 			if (taker_fee_rate == null || taker_fee_rate.isEmpty()) return 0.0;
 			return Double.parseDouble(taker_fee_rate);
+		}
+	}
+
+	@JsonFormat(shape = JsonFormat.Shape.ARRAY)
+	public record ContractsResponse(ContractResponse[] items) {
+		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
+		public ContractsResponse {}
+
+		public Map<String, FundingRate> fundingRatesBySymbols(List<String> symbols) {
+			Map<String, FundingRate> result = new HashMap<>();
+			if (items == null) return result;
+			for (ContractResponse item : items) {
+				if (item == null || item.name() == null) continue;
+				if (!symbols.contains(item.name())) continue;
+				FundingRate fundingRate = item.fundingRate();
+				if (fundingRate != null) result.put(item.name(), fundingRate);
+			}
+			return result;
+		}
+
+		public Map<String, Boolean> existsBySymbols(List<String> symbols) {
+			Map<String, Boolean> result = new HashMap<>();
+			for (String symbol : symbols) {
+				result.put(symbol, false);
+			}
+			if (items == null) return result;
+			for (ContractResponse item : items) {
+				if (item == null || item.name() == null) continue;
+				if (result.containsKey(item.name())) {
+					result.put(item.name(), true);
+				}
+			}
+			return result;
 		}
 	}
 

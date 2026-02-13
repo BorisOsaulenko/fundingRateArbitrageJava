@@ -7,6 +7,9 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class PublicResponses {
 	private record Filter(String filterType, String minQty, String maxQty, String stepSize) {}
@@ -26,11 +29,46 @@ public class PublicResponses {
 		}
 	}
 
+	public record CheckExistsSymbolsResponse(SymbolInfo[] symbols) {
+		public Map<String, Boolean> get(List<String> symbolsToCheck) {
+			Map<String, Boolean> existsBySymbol = new HashMap<>();
+			for (String symbol : symbolsToCheck) {
+				existsBySymbol.put(symbol, false);
+			}
+			if (symbols == null) return existsBySymbol;
+
+			for (SymbolInfo symbolInfo : symbols) {
+				if (existsBySymbol.containsKey(symbolInfo.symbol())) {
+					existsBySymbol.put(symbolInfo.symbol(), true);
+				}
+			}
+			return existsBySymbol;
+		}
+	}
+
 	public record FundingRateResponseSymbol(
 					String symbol, double lastFundingRate, long nextFundingTime, long time
 	) {
 		public FundingRate get() {
 			return new FundingRate(lastFundingRate, Instant.ofEpochMilli(nextFundingTime), Instant.ofEpochMilli(time));
+		}
+	}
+
+	@JsonFormat(shape = JsonFormat.Shape.ARRAY)
+	public record FundingRateResponseSymbols(FundingRateResponseSymbol[] items) {
+		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
+		public FundingRateResponseSymbols {}
+
+		public Map<String, FundingRate> get(List<String> symbolsToGet) {
+			Map<String, FundingRate> fundingBySymbol = new HashMap<>();
+			if (items == null) return fundingBySymbol;
+
+			for (FundingRateResponseSymbol item : items) {
+				if (item == null || item.symbol() == null) continue;
+				if (!symbolsToGet.contains(item.symbol())) continue;
+				fundingBySymbol.put(item.symbol(), item.get());
+			}
+			return fundingBySymbol;
 		}
 	}
 

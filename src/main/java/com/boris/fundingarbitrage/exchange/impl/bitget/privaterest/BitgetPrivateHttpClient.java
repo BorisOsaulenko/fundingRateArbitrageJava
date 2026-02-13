@@ -17,6 +17,7 @@ import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
@@ -84,6 +85,15 @@ public class BitgetPrivateHttpClient extends PrivateHttpClient {
 						PrivateEndpoints.tradingFeesRequestSymbol(symbol),
 						PrivateResponses.TradingFeesResponse.class,
 						(resp) -> resp.getFees(symbol)
+		);
+	}
+
+	@Override
+	protected CompletableFuture<Map<String, Fees>> getTradingFeesSymbols(List<String> symbols) {
+		return processRequest(
+						PrivateEndpoints.tradingFeesRequestSymbols(),
+						PrivateResponses.TradingFeesSymbolsResponse.class,
+						(resp) -> resp.getFeesBySymbols(symbols)
 		);
 	}
 

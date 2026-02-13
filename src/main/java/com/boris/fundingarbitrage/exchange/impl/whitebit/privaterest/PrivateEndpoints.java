@@ -45,6 +45,20 @@ public class PrivateEndpoints {
 		return request;
 	}
 
+	@SneakyThrows
+	public static @NonNull SimpleHttpRequest tradingFeesRequestSymbols() {
+		URI uri = new URIBuilder(baseUrl)
+					.setPath("/api/v4/market/fee")
+					.build();
+		SimpleHttpRequest request = new SimpleHttpRequest("POST", uri);
+		Map<String, Object> body = new HashMap<>();
+		body.put("request", "/api/v4/market/fee");
+		body.put("nonce", String.valueOf(System.currentTimeMillis()));
+		String json = ObjectMapperSingleton.getInstance().writeValueAsString(body);
+		request.setBody(json, ContentType.APPLICATION_JSON);
+		return request;
+	}
+
 	public static @NonNull SimpleHttpRequest changeLeverageRequest(int leverage) {
 		Map<String, Object> body = new HashMap<>();
 		body.put("leverage", String.valueOf(leverage));

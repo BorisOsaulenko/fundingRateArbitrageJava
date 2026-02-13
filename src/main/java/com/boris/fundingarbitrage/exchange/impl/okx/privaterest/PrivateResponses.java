@@ -11,7 +11,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class PrivateResponses {
 	private static void ensureOk(String code, String msg) {
@@ -48,6 +50,30 @@ public class PrivateResponses {
 			double maker = -makerNode.asDouble();
 
 			return new Fees(maker, taker, maker, taker, Instant.now());
+		}
+	}
+
+	public record TradingFeesSymbolsResponse(String code, String msg, JsonNode data) {
+		public Map<String, Fees> getFeesBySymbols(List<String> symbols) {
+			ensureOk(code, msg);
+			if (data == null || !data.isArray() || data.isEmpty()) {
+				throw new IllegalStateException("OKX trade fee data missing");
+			}
+			JsonNode item = data.get(0);
+			JsonNode makerNode = item.get("makerU");
+			JsonNode takerNode = item.get("takerU");
+			if (makerNode == null || makerNode.isNull() || takerNode == null || takerNode.isNull()) {
+				throw new IllegalStateException("OKX makerU/takerU missing");
+			}
+			double maker = -makerNode.asDouble();
+			double taker = -takerNode.asDouble();
+			Fees fees = new Fees(maker, taker, maker, taker, Instant.now());
+
+			Map<String, Fees> feesBySymbol = new HashMap<>();
+			for (String symbol : symbols) {
+				feesBySymbol.put(symbol, fees);
+			}
+			return feesBySymbol;
 		}
 	}
 

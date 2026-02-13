@@ -8,6 +8,8 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -19,6 +21,7 @@ public abstract class PublicRestTest {
 	private static final Duration MAX_FUNDING_SETTLEMENT_AHEAD = Duration.ofHours(8);
 	private final BinanceContext context = new BinanceContext();
 	private final String testCoin = "SOL";
+	private final String batchCoin = "BTC";
 
 	private static <T> T getWithTimeout(CompletableFuture<T> future) throws Exception {
 		return future.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
@@ -29,6 +32,22 @@ public abstract class PublicRestTest {
 	}
 
 	protected abstract PublicHttpClient publicRest();
+
+	private void assertValidFundingRate(FundingRate fundingRate) {
+		assertNotNull(fundingRate, "Funding rate should not be null");
+		assertNotNull(fundingRate.settlement, "Settlement time should not be null");
+		assertFinite(fundingRate.rate, "Funding rate should be finite");
+		assertTrue(
+						Math.abs(fundingRate.rate) < MAX_ABS_FUNDING_RATE,
+						"Funding rate absolute value should be less than " + MAX_ABS_FUNDING_RATE
+		);
+		Instant now = Instant.now();
+		assertTrue(fundingRate.settlement.compareTo(now) > 0, "Settlement time should be in the future");
+		assertTrue(
+						Duration.between(now, fundingRate.settlement).compareTo(MAX_FUNDING_SETTLEMENT_AHEAD) <= 0,
+						"Settlement time should be within " + MAX_FUNDING_SETTLEMENT_AHEAD.toHours() + " hours"
+		);
+	}
 
 	@Test
 	void getLotSize() throws Exception {
@@ -57,19 +76,18 @@ public abstract class PublicRestTest {
 	@Test
 	void getFundingRate() throws Exception {
 		FundingRate fundingRate = getWithTimeout(publicRest().getFundingRate(testCoin));
-		assertNotNull(fundingRate, "Funding rate should not be null");
-		assertNotNull(fundingRate.settlement, "Settlement time should not be null");
-		assertFinite(fundingRate.rate, "Funding rate should be finite");
-		assertTrue(
-						Math.abs(fundingRate.rate) < MAX_ABS_FUNDING_RATE,
-						"Funding rate absolute value should be less than " + MAX_ABS_FUNDING_RATE
-		);
-		Instant now = Instant.now();
-		assertTrue(fundingRate.settlement.compareTo(now) > 0, "Settlement time should be in the future");
-		assertTrue(
-						Duration.between(now, fundingRate.settlement).compareTo(MAX_FUNDING_SETTLEMENT_AHEAD) <= 0,
-						"Settlement time should be within " + MAX_FUNDING_SETTLEMENT_AHEAD.toHours() + " hours"
-		);
+		assertValidFundingRate(fundingRate);
+	}
+
+	@Test
+	void getFundingRatesBatch() throws Exception {
+		List<String> coins = List.of(testCoin, batchCoin);
+		Map<String, FundingRate> fundingRates = getWithTimeout(publicRest().getFundingRate(coins));
+		assertNotNull(fundingRates, "Funding rates map should not be null");
+		assertEquals(coins.size(), fundingRates.size(), "Funding rates should be returned for each requested symbol");
+		for (FundingRate fundingRate : fundingRates.values()) {
+			assertValidFundingRate(fundingRate);
+		}
 	}
 
 	@Test
@@ -96,5 +114,14 @@ public abstract class PublicRestTest {
 	void checkCoinDoesNotExist() throws Exception {
 		boolean exists = getWithTimeout(publicRest().checkCoinExists("NONEXISTENTCOIN"));
 		assertFalse(exists, "Symbol should not exist on the exchange");
+	}
+
+	@Test
+	void checkCoinsExistBatch() throws Exception {
+		List<String> coins = List.of(testCoin, "NONEXISTENTCOIN");
+		var result = getWithTimeout(publicRest().checkCoinsExist(coins));
+		assertNotNull(result, "Batch coin existence result should not be null");
+		assertTrue(result.getOrDefault(testCoin, false), "Existing symbol should be true");
+		assertFalse(result.getOrDefault("NONEXISTENTCOIN", true), "Non-existing symbol should be false");
 	}
 }

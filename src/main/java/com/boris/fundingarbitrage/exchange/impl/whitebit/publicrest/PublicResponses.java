@@ -6,6 +6,9 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class PublicResponses {
 	private static double parseRequiredDouble(JsonNode node, String field) {
@@ -184,6 +187,42 @@ public class PublicResponses {
 			}
 			if (!any) throw new IllegalStateException("No trades in the last hour");
 			return total;
+		}
+	}
+
+	public record FundingRatesResponseSymbols(JsonNode node) {
+		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
+		public FundingRatesResponseSymbols {}
+
+		public Map<String, com.boris.fundingarbitrage.model.contract.FundingRate> get(List<String> symbols) {
+			Map<String, com.boris.fundingarbitrage.model.contract.FundingRate> result = new HashMap<>();
+			FuturesResponse futures = new FuturesResponse(node);
+			for (String symbol : symbols) {
+				result.put(
+								symbol,
+								new com.boris.fundingarbitrage.model.contract.FundingRate(
+												futures.fundingRate(symbol),
+												futures.nextFundingTime(symbol),
+												Instant.now()
+								)
+				);
+			}
+			return result;
+		}
+	}
+
+	@JsonFormat(shape = JsonFormat.Shape.ARRAY)
+	public record SymbolsExistsResponse(JsonNode node) {
+		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
+		public SymbolsExistsResponse {}
+
+		public Map<String, Boolean> get(List<String> symbols) {
+			Map<String, Boolean> result = new HashMap<>();
+			MarketsResponse markets = new MarketsResponse(node);
+			for (String symbol : symbols) {
+				result.put(symbol, markets.symbolExists(symbol));
+			}
+			return result;
 		}
 	}
 }

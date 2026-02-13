@@ -11,6 +11,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
 
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
@@ -49,7 +51,7 @@ public class BitgetPublicHttpClient extends PublicHttpClient {
 	@Override
 	protected CompletableFuture<BookTicker> getBookTickerSymbol(String symbol) {
 		return processRequest(
-						PublicEndpoints.tickerRequestSymbol(symbol),
+						PublicEndpoints.tickerRequestWithSymbol(symbol),
 						PublicResponses.TickerResponse.class,
 						PublicResponses.TickerResponse::bookTicker
 		);
@@ -65,9 +67,18 @@ public class BitgetPublicHttpClient extends PublicHttpClient {
 	}
 
 	@Override
+	protected CompletableFuture<Map<String, FundingRate>> getFundingRateSymbols(List<String> symbols) {
+		return processRequest(
+						PublicEndpoints.tickerRequestAllSymbols(),
+						PublicResponses.FundingRatesResponseSymbols.class,
+						(resp) -> resp.get(symbols)
+		);
+	}
+
+	@Override
 	protected CompletableFuture<Double> getTradingVolume24hSymbol(String symbol) {
 		return processRequest(
-						PublicEndpoints.tickerRequestSymbol(symbol),
+						PublicEndpoints.tickerRequestWithSymbol(symbol),
 						PublicResponses.TickerResponse.class,
 						PublicResponses.TickerResponse::volume24h
 		);
@@ -110,5 +121,14 @@ public class BitgetPublicHttpClient extends PublicHttpClient {
 				throw new RuntimeException("Failed to process request", e);
 			}
 		});
+	}
+
+	@Override
+	protected CompletableFuture<Map<String, Boolean>> checkExistsSymbols(List<String> symbols) {
+		return processRequest(
+						PublicEndpoints.contractsRequestSymbols(),
+						PublicResponses.ContractsSymbolsResponse.class,
+						(resp) -> resp.existsBySymbols(symbols)
+		);
 	}
 }

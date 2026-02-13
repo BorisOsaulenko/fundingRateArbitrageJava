@@ -117,6 +117,8 @@ public class PrettyWsClient {
 					sendMessage(msg);
 				}
 			}
+
+			Logger.log("WebSocket connection established: " + endpointUri);
 		};
 	}
 

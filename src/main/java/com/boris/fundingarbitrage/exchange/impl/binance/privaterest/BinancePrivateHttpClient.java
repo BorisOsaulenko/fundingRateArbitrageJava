@@ -19,9 +19,12 @@ import org.apache.hc.core5.net.URIBuilder;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class BinancePrivateHttpClient extends PrivateHttpClient {
 	private final ObjectMapper mapper = ObjectMapperSingleton.getInstance();
@@ -71,11 +74,15 @@ public class BinancePrivateHttpClient extends PrivateHttpClient {
 
 	@Override
 	protected CompletableFuture<Fees> getTradingFeesSymbol(String symbol) {
-		return processRequest(
-						PrivateEndpoints.tradingFeesRequestSymbol(symbol),
-						PrivateResponses.TradingFeesResponseSymbol.class,
-						PrivateResponses.TradingFeesResponseSymbol::getFees
-		);
+		return CompletableFuture.completedFuture(new Fees(0.0002, 0.0005, 0.0002, 0.0005, Instant.now()));
+		// Correct unless User is Binance VIP 1+ or has BNB balance for fee discount
+	}
+
+	@Override
+	protected CompletableFuture<Map<String, Fees>> getTradingFeesSymbols(List<String> symbols) {
+		return CompletableFuture.completedFuture(symbols
+						.stream()
+						.collect(Collectors.toMap(symbol -> symbol, _ -> new Fees(0.0002, 0.0005, 0.0002, 0.0005, Instant.now()))));
 	}
 
 	@Override

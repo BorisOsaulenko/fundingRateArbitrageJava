@@ -43,6 +43,15 @@ public class PrivateEndpoints {
 		return new SimpleHttpRequest("GET", uri);
 	}
 
+	@SneakyThrows
+	public static @NonNull SimpleHttpRequest tradingFeesRequestSymbols() {
+		URI uri = new URIBuilder(baseUrl)
+					.setPath("/api/v5/account/trade-fee")
+					.addParameter("instType", instType)
+					.build();
+		return new SimpleHttpRequest("GET", uri);
+	}
+
 	public static @NonNull SimpleHttpRequest changeLeverageRequestSymbol(String symbol, int leverage, MarginMode mode) {
 		Map<String, Object> body = new HashMap<>();
 		body.put("instId", symbol);

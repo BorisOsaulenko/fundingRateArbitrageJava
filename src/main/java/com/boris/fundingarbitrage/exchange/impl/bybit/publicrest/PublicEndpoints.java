@@ -22,12 +22,28 @@ public class PublicEndpoints {
 	}
 
 	@SneakyThrows
+	public static @NonNull SimpleHttpRequest instrumentsInfoRequestSymbols() {
+		URI uri = new URIBuilder(baseUrl)
+						.setPath("/v5/market/instruments-info")
+						.addParameter("category", category)
+						.addParameter("limit", "1000")
+						.build();
+		return new SimpleHttpRequest("GET", uri);
+	}
+
+	@SneakyThrows
 	public static @NonNull SimpleHttpRequest tickersRequestSymbol(String symbol) {
 		URI uri = new URIBuilder(baseUrl)
 						.setPath("/v5/market/tickers")
 						.addParameter("category", category)
 						.addParameter("symbol", symbol)
 						.build();
+		return new SimpleHttpRequest("GET", uri);
+	}
+
+	@SneakyThrows
+	public static @NonNull SimpleHttpRequest tickersRequestSymbols() {
+		URI uri = new URIBuilder(baseUrl).setPath("/v5/market/tickers").addParameter("category", category).build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 

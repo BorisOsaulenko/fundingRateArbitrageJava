@@ -4,19 +4,21 @@ import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.publichttp.PublicHttpClient;
 import com.boris.fundingarbitrage.exchange.publicws.PublicMessageHandler;
 import com.boris.fundingarbitrage.exchange.publicws.PublicWsClient;
-import com.boris.fundingarbitrage.model.contract.FundingRate;
 import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import lombok.NonNull;
 
 import java.net.URI;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 public abstract class PublicWsFundingSettlementViaRest extends PublicWsClient {
-	private final CoinVector<Boolean> updatingFundingRateVector = new CoinVector<>();
 	private final CoinVector<Instant> settlementVector = new CoinVector<>();
-	private final CoinVector<CompletableFuture<FundingRate>> fundingRateFutureVector = new CoinVector<>();
+	private boolean updatingSettlements = false;
+	private boolean updateScheduled = false;
+	private CompletableFuture<Void> updatingFuture = CompletableFuture.completedFuture(null);
 
 	public PublicWsFundingSettlementViaRest(
 					ExchangeContext context,
@@ -27,30 +29,38 @@ public abstract class PublicWsFundingSettlementViaRest extends PublicWsClient {
 		super(context, endpoint, messageHandler, publicHttp);
 	}
 
-	public void updateFundingSettlementForCoin(String coin) {
-		updatingFundingRateVector.put(coin, true);
-		CompletableFuture<FundingRate> future = this.publicHttpClient.getFundingRate(coin).thenApply((fr) -> {
-			updatingFundingRateVector.put(coin, false);
-			settlementVector.put(coin, fr.settlement);
-			return fr;
+	private void updateFundingSettlementForCoins() {
+		List<String> coins = new ArrayList<>(fundingRateHandlers.keySet());
+		if (updatingSettlements || coins.isEmpty()) return;
+
+		updatingSettlements = true;
+		updatingFuture = this.publicHttpClient.getFundingRate(coins).thenAccept((rates) -> {
+			updatingSettlements = false;
+			rates.forEach((coin, rate) -> {
+				if (rate == null) return;
+				settlementVector.put(coin, rate.settlement);
+			});
 		});
-		fundingRateFutureVector.put(coin, future);
+	}
+
+	private void scheduleSettlementUpdate() {
+		if (updateScheduled) return;
+		updateScheduled = true;
+		updatingFuture.whenComplete((_, _) -> {
+			updateScheduled = false;
+			updateFundingSettlementForCoins();
+		});
 	}
 
 	@Override
 	protected void handleFundingRatePatch(@NonNull FundingRatePatch patch) {
+		if (updatingSettlements) return;
+
 		String coin = patch.coin();
-		Boolean updating = updatingFundingRateVector.get(coin);
 		Instant settlement = settlementVector.get(coin);
 
-		if (updating == null) {
-			updateFundingSettlementForCoin(coin);
-			return;
-		}
-
-		if (updating) return;
 		if (settlement == null || Instant.now().isAfter(settlement)) {
-			updateFundingSettlementForCoin(coin);
+			scheduleSettlementUpdate();
 			return;
 		}
 

@@ -36,6 +36,15 @@ public class PrivateEndpoints {
 		return new SimpleHttpRequest("GET", uri);
 	}
 
+	@SneakyThrows
+	public static @NonNull SimpleHttpRequest tradingFeesRequestSymbols() {
+		URI uri = new URIBuilder(baseUrl)
+						.setPath("/api/v2/mix/market/contracts")
+						.addParameter("productType", productType)
+						.build();
+		return new SimpleHttpRequest("GET", uri);
+	}
+
 	public static @NonNull SimpleHttpRequest changeLeverageRequestSymbol(
 					String symbol,
 					int leverage

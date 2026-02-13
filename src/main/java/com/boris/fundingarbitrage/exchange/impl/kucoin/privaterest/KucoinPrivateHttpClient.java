@@ -19,6 +19,7 @@ import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
@@ -94,6 +95,15 @@ public class KucoinPrivateHttpClient extends PrivateHttpClient {
 						PrivateEndpoints.tradingFeesRequestSymbol(symbol),
 						PrivateResponses.TradingFeesResponse.class,
 						PrivateResponses.TradingFeesResponse::getFees
+		);
+	}
+
+	@Override
+	protected CompletableFuture<Map<String, Fees>> getTradingFeesSymbols(List<String> symbols) {
+		return processRequest(
+						PrivateEndpoints.tradingFeesRequestSymbols(),
+						PrivateResponses.TradingFeesSymbolsResponse.class,
+						(resp) -> resp.getFeesBySymbols(symbols)
 		);
 	}
 

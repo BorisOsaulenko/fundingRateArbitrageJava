@@ -1,1 +1,1 @@
- - binance publicrest package: make every response record expose a get(String symbol) method move the parser into shared helper
+- bybit check symbols exist reqqires paginating requests

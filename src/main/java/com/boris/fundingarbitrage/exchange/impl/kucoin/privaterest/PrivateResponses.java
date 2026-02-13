@@ -11,7 +11,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class PrivateResponses {
 	private static final String expectedSuccessCode = "200000";
@@ -36,6 +38,33 @@ public class PrivateResponses {
 			double taker = takerNode.asDouble();
 			Instant ts = Instant.now();
 			return new Fees(maker, taker, maker, taker, ts);
+		}
+	}
+
+	public record TradingFeesSymbolsResponse(String code, String msg, JsonNode data) {
+		public Map<String, Fees> getFeesBySymbols(List<String> symbols) {
+			if (!expectedSuccessCode.equals(code)) {
+				throw new IllegalStateException("KuCoin active contracts response code not OK: " + code + ", msg: " + msg);
+			}
+			if (data == null || !data.isArray()) {
+				throw new IllegalStateException("KuCoin active contracts data missing");
+			}
+
+			Map<String, Fees> feesBySymbol = new HashMap<>();
+			for (JsonNode contract : data) {
+				String symbol = contract.path("symbol").asText();
+				if (!symbols.contains(symbol)) continue;
+
+				JsonNode makerNode = contract.get("makerFeeRate");
+				JsonNode takerNode = contract.get("takerFeeRate");
+				if (makerNode == null || makerNode.isNull()) continue;
+				if (takerNode == null || takerNode.isNull()) continue;
+
+				double maker = makerNode.asDouble();
+				double taker = takerNode.asDouble();
+				feesBySymbol.put(symbol, new Fees(maker, taker, maker, taker, Instant.now()));
+			}
+			return feesBySymbol;
 		}
 	}
 

@@ -10,6 +10,8 @@ import com.boris.fundingarbitrage.util.logger.Logger;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
 
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
@@ -64,6 +66,15 @@ public class OkxPublicHttpClient extends PublicHttpClient {
 	}
 
 	@Override
+	protected CompletableFuture<Map<String, FundingRate>> getFundingRateSymbols(List<String> symbols) {
+		return processRequest(
+						PublicEndpoints.fundingRateRequestSymbols(),
+						PublicResponses.FundingRatesSymbolsResponse.class,
+						(resp) -> resp.getBySymbols(symbols)
+		);
+	}
+
+	@Override
 	protected CompletableFuture<Double> getTradingVolume24hSymbol(String symbol) {
 		return processRequest(
 						PublicEndpoints.tickerRequestSymbol(symbol),
@@ -96,5 +107,14 @@ public class OkxPublicHttpClient extends PublicHttpClient {
 				return false;
 			}
 		});
+	}
+
+	@Override
+	protected CompletableFuture<Map<String, Boolean>> checkExistsSymbols(List<String> symbols) {
+		return processRequest(
+						PublicEndpoints.instrumentsRequestSymbols(),
+						PublicResponses.InstrumentsSymbolsResponse.class,
+						(resp) -> resp.existsBySymbols(symbols)
+		);
 	}
 }

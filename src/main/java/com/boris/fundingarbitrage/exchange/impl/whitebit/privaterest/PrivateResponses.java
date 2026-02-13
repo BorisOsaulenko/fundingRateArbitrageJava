@@ -9,7 +9,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class PrivateResponses {
 	private static double parseRequiredDouble(JsonNode node, String field) {
@@ -28,6 +30,20 @@ public class PrivateResponses {
 			double maker = parseRequiredDouble(node, "futures_maker") / 100;
 			double taker = parseRequiredDouble(node, "futures_taker") / 100;
 			return new Fees(maker, taker, maker, taker, Instant.now());
+		}
+	}
+
+	public record TradingFeesSymbolsResponse(JsonNode node) {
+		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
+		public TradingFeesSymbolsResponse {}
+
+		public Map<String, Fees> getFeesBySymbols(List<String> symbols) {
+			Fees fees = new TradingFeesResponse(node).getFees();
+			Map<String, Fees> feesBySymbol = new HashMap<>();
+			for (String symbol : symbols) {
+				feesBySymbol.put(symbol, fees);
+			}
+			return feesBySymbol;
 		}
 	}
 

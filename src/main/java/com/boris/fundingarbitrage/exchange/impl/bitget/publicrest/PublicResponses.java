@@ -4,6 +4,9 @@ import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.FundingRate;
 
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class PublicResponses {
 	private record Contract(
@@ -35,35 +38,21 @@ public class PublicResponses {
 			}
 			return null;
 		}
+	}
 
-		public Integer maxLeverageSymbol(String symbol) {
-			if (data == null) return null;
+	public record ContractsSymbolsResponse(String code, String msg, long requestTime, Contract[] data) {
+		public Map<String, Boolean> existsBySymbols(List<String> symbols) {
+			Map<String, Boolean> result = new HashMap<>();
+			for (String symbol : symbols) {
+				result.put(symbol, false);
+			}
+			if (data == null) return result;
 			for (Contract contract : data) {
-				if (symbol.equalsIgnoreCase(contract.symbol())) {
-					return contract.maxLever();
+				if (result.containsKey(contract.symbol())) {
+					result.put(contract.symbol(), true);
 				}
 			}
-			return null;
-		}
-
-		public double makerFeeRateSymbol(String symbol) {
-			if (data == null) return 0.0;
-			for (Contract contract : data) {
-				if (symbol.equalsIgnoreCase(contract.symbol())) {
-					return contract.makerFeeRate() == null ? 0.0 : Double.parseDouble(contract.makerFeeRate());
-				}
-			}
-			return 0.0;
-		}
-
-		public double takerFeeRateSymbol(String symbol) {
-			if (data == null) return 0.0;
-			for (Contract contract : data) {
-				if (symbol.equalsIgnoreCase(contract.symbol())) {
-					return contract.takerFeeRate() == null ? 0.0 : Double.parseDouble(contract.takerFeeRate());
-				}
-			}
-			return 0.0;
+			return result;
 		}
 	}
 
@@ -75,7 +64,6 @@ public class PublicResponses {
 					String askSz,
 					String markPrice,
 					String fundingRate,
-					String nextFundingTime,
 					String baseVolume,
 					String ts
 	) {}
@@ -97,6 +85,25 @@ public class PublicResponses {
 		public double volume24h() {
 			if (data.length == 0) return 0.0;
 			return Double.parseDouble(data[0].baseVolume());
+		}
+	}
+
+	private record FundingRateEntrySymbol(
+					String symbol, String fundingRate, String nextUpdate
+	) {}
+
+	public record FundingRatesResponseSymbols(String code, String msg, long requestTime, FundingRateEntrySymbol[] data) {
+		public Map<String, FundingRate> get(List<String> symbols) {
+			Map<String, FundingRate> result = new HashMap<>();
+			if (data == null) return result;
+			for (var ticker : data) {
+				if (!symbols.contains(ticker.symbol())) continue;
+				double rate = Double.parseDouble(ticker.fundingRate());
+				Instant settlement = Instant.ofEpochMilli(Long.parseLong(ticker.nextUpdate()));
+				Instant timestamp = Instant.ofEpochMilli(requestTime);
+				result.put(ticker.symbol(), new FundingRate(rate, settlement, timestamp));
+			}
+			return result;
 		}
 	}
 

@@ -5,6 +5,9 @@ import com.boris.fundingarbitrage.model.contract.FundingRate;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class PublicResponses {
 	private static void ensureOk(int code, String msg) {
@@ -108,6 +111,32 @@ public class PublicResponses {
 		}
 	}
 
+	public record FundingRatesSymbolsResponse(int code, String msg, JsonNode data) {
+		public Map<String, FundingRate> getBySymbols(List<String> symbols) {
+			ensureOk(code, msg);
+			Map<String, FundingRate> ratesBySymbol = new HashMap<>();
+			if (data == null || !data.isArray()) return ratesBySymbol;
+
+			for (JsonNode item : data) {
+				String symbol = item.path("instId").asText();
+				if (symbol == null || symbol.isEmpty() || !symbols.contains(symbol)) continue;
+
+				String rateText = item.path("fundingRate").asText();
+				String nextFundingText = item.path("fundingTime").asText();
+				String tsText = item.path("ts").asText();
+				if (rateText == null || rateText.isEmpty()) continue;
+				if (nextFundingText == null || nextFundingText.isEmpty()) continue;
+				if (tsText == null || tsText.isEmpty()) continue;
+
+				double rate = Double.parseDouble(rateText);
+				Instant nextFunding = Instant.ofEpochMilli(Long.parseLong(nextFundingText));
+				Instant ts = Instant.ofEpochMilli(Long.parseLong(tsText));
+				ratesBySymbol.put(symbol, new FundingRate(rate, nextFunding, ts));
+			}
+			return ratesBySymbol;
+		}
+	}
+
 	public record MarkPriceResponse(int code, String msg, JsonNode data) {
 		private JsonNode first() {
 			if (data == null || !data.isArray() || data.isEmpty()) return null;
@@ -151,6 +180,22 @@ public class PublicResponses {
 				throw new IllegalStateException("OKX candle volCcy missing");
 			}
 			return Double.parseDouble(volCcy);
+		}
+	}
+
+	public record InstrumentsSymbolsResponse(int code, String msg, JsonNode data) {
+		public Map<String, Boolean> existsBySymbols(List<String> symbols) {
+			ensureOk(code, msg);
+			Map<String, Boolean> result = new HashMap<>();
+			for (String symbol : symbols) {
+				result.put(symbol, false);
+			}
+			if (data == null || !data.isArray()) return result;
+			for (JsonNode item : data) {
+				String instId = item.path("instId").asText();
+				if (result.containsKey(instId)) result.put(instId, true);
+			}
+			return result;
 		}
 	}
 }

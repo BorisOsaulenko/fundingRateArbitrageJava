@@ -8,11 +8,15 @@ import com.boris.fundingarbitrage.exchange.publicws.PublicWsClient;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 public class BitgetPublicWsClient extends PublicWsClient {
 	private static final URI endpoint = URI.create("wss://ws.bitget.com/v2/ws/public");
 	private static final String instType = "USDT-FUTURES";
 	private static final String tickerChannel = "ticker";
+	private final ScheduledExecutorService pingExecutor = new ScheduledThreadPoolExecutor(1);
 
 	public BitgetPublicWsClient(
 					ExchangeContext context,
@@ -20,6 +24,7 @@ public class BitgetPublicWsClient extends PublicWsClient {
 					BitgetPublicHttpClient publicHttp
 	) {
 		super(context, endpoint, messageHandler, publicHttp);
+		pingExecutor.scheduleAtFixedRate(this::sendPing, 5, 30, TimeUnit.SECONDS);
 	}
 
 	private String getSubscribeFrame(List<String> symbols) {
@@ -66,5 +71,9 @@ public class BitgetPublicWsClient extends PublicWsClient {
 	@Override
 	protected String getUnsubscribeMarkPriceFrame(List<String> symbols) {
 		return getUnsubscribeFrame(symbols);
+	}
+
+	private void sendPing() {
+		sendMessage("ping");
 	}
 }

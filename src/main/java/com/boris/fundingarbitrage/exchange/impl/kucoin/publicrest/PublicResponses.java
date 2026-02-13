@@ -5,6 +5,9 @@ import com.boris.fundingarbitrage.model.contract.FundingRate;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class PublicResponses {
 	private static final String expectedSuccessCode = "200000";
@@ -14,7 +17,7 @@ public class PublicResponses {
 			if (!expectedSuccessCode.equals(code)) {
 				throw new IllegalStateException("KuCoin klines response code not OK: " + code + ", msg: " + msg);
 			}
-			
+
 			if (data == null || !data.isObject()) {
 				throw new IllegalStateException("KuCoin contract detail data missing");
 			}
@@ -118,6 +121,47 @@ public class PublicResponses {
 			} catch (NumberFormatException ex) {
 				throw new IllegalStateException("Invalid KuCoin kline volume", ex);
 			}
+		}
+	}
+
+	public record ActiveContractsResponse(String code, String msg, JsonNode data) {
+		private JsonNode getDataArray() {
+			if (!expectedSuccessCode.equals(code)) {
+				throw new IllegalStateException("KuCoin active contracts response code not OK: " + code + ", msg: " + msg);
+			}
+			if (data == null || !data.isArray()) {
+				throw new IllegalStateException("KuCoin active contracts data missing");
+			}
+			return data;
+		}
+
+		public Map<String, Boolean> existsBySymbols(List<String> symbols) {
+			Map<String, Boolean> existsBySymbol = new HashMap<>();
+			for (String symbol : symbols) {
+				existsBySymbol.put(symbol, false);
+			}
+			for (JsonNode contract : getDataArray()) {
+				String symbol = contract.path("symbol").asText();
+				if (!existsBySymbol.containsKey(symbol)) continue;
+				String status = contract.path("status").asText();
+				existsBySymbol.put(symbol, "open".equalsIgnoreCase(status));
+			}
+			return existsBySymbol;
+		}
+
+		public Map<String, FundingRate> fundingRatesBySymbols(List<String> symbols) {
+			Map<String, FundingRate> fundingBySymbol = new HashMap<>();
+			for (JsonNode contract : getDataArray()) {
+				String symbol = contract.path("symbol").asText();
+				if (!symbols.contains(symbol)) continue;
+
+				double rate = contract.path("fundingFeeRate").asDouble();
+				long settlementMs = contract.path("nextFundingRateDateTime").asLong();
+				if (rate == 0.0 || settlementMs == 0L) continue;
+
+				fundingBySymbol.put(symbol, new FundingRate(rate, Instant.ofEpochMilli(settlementMs), Instant.now()));
+			}
+			return fundingBySymbol;
 		}
 	}
 }

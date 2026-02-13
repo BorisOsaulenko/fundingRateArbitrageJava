@@ -12,6 +12,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
 
 import java.net.URI;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
@@ -67,6 +69,15 @@ public class KucoinPublicHttpClient extends PublicHttpClient {
 	}
 
 	@Override
+	protected CompletableFuture<Map<String, FundingRate>> getFundingRateSymbols(List<String> symbols) {
+		return processRequest(
+						PublicEndpoints.activeContractsRequest(),
+						PublicResponses.ActiveContractsResponse.class,
+						(resp) -> resp.fundingRatesBySymbols(symbols)
+		);
+	}
+
+	@Override
 	protected CompletableFuture<Double> getTradingVolume24hSymbol(String symbol) {
 		return processRequest(
 						PublicEndpoints.contractDetailRequestSymbol(symbol),
@@ -111,6 +122,15 @@ public class KucoinPublicHttpClient extends PublicHttpClient {
 				throw new RuntimeException("Failed to process KuCoin request", e);
 			}
 		});
+	}
+
+	@Override
+	protected CompletableFuture<Map<String, Boolean>> checkExistsSymbols(List<String> symbols) {
+		return processRequest(
+						PublicEndpoints.activeContractsRequest(),
+						PublicResponses.ActiveContractsResponse.class,
+						(resp) -> resp.existsBySymbols(symbols)
+		);
 	}
 
 	public CompletableFuture<URI> fetchPublicWsEndpoint() {
