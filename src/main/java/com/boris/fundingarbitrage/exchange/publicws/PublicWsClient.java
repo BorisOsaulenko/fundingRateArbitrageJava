@@ -129,11 +129,32 @@ public abstract class PublicWsClient {
 		List<String> removedSymbols = new ArrayList<>();
 		for (String coin : coins) {
 			String symbol = context.getSymbol(coin);
-			if (handlersMap.containsKey(symbol)) {
+			if (handlersMap.containsKey(coin)) {
 				handlersMap.remove(coin);
 				removedSymbols.add(symbol);
 			}
 		}
+		if (!removedSymbols.isEmpty()) this.sendMessage(unsubscribeAction.apply(removedSymbols));
+	}
+
+	private <T> void removeHandler(
+					List<String> coins,
+					Map<String, Set<Consumer<T>>> handlersMap,
+					Consumer<T> handler,
+					Function<List<String>, String> unsubscribeAction
+	) {
+		List<String> removedSymbols = new ArrayList<>();
+		for (String coin : coins) {
+			Set<Consumer<T>> handlers = handlersMap.get(coin);
+			if (handlers == null) continue;
+
+			handlers.remove(handler);
+			if (handlers.isEmpty()) {
+				handlersMap.remove(coin, handlers);
+				removedSymbols.add(context.getSymbol(coin));
+			}
+		}
+
 		if (!removedSymbols.isEmpty()) this.sendMessage(unsubscribeAction.apply(removedSymbols));
 	}
 
@@ -153,6 +174,14 @@ public abstract class PublicWsClient {
 		unsubscribeFundingRates(List.of(coin));
 	}
 
+	public void removeFundingRatesHandler(List<String> coins, Consumer<@NonNull FundingRatePatch> handler) {
+		removeHandler(coins, fundingRateHandlers, handler, this::getUnsubscribeFundingRateFrame);
+	}
+
+	public void removeFundingRatesHandler(String coin, Consumer<@NonNull FundingRatePatch> handler) {
+		removeFundingRatesHandler(List.of(coin), handler);
+	}
+
 	public void subscribeBookTicker(List<String> coins, Consumer<@NonNull BookTickerPatch> handler) {
 		subscribe(coins, bookTickerHandlers, handler, this::getSubscribeBookTickerFrame);
 	}
@@ -169,6 +198,14 @@ public abstract class PublicWsClient {
 		unsubscribeBookTicker(List.of(coin));
 	}
 
+	public void removeBookTickerHandler(List<String> coins, Consumer<@NonNull BookTickerPatch> handler) {
+		removeHandler(coins, bookTickerHandlers, handler, this::getUnsubscribeBookTickerFrame);
+	}
+
+	public void removeBookTickerHandler(String coin, Consumer<@NonNull BookTickerPatch> handler) {
+		removeBookTickerHandler(List.of(coin), handler);
+	}
+
 	public void subscribeMarkPrice(List<String> coins, Consumer<@NonNull MarkPricePatch> handler) {
 		subscribe(coins, markPriceHandlers, handler, this::getSubscribeMarkPriceFrame);
 	}
@@ -183,6 +220,14 @@ public abstract class PublicWsClient {
 
 	public void unsubscribeMarkPrice(String coin) {
 		unsubscribeMarkPrice(List.of(coin));
+	}
+
+	public void removeMarkPriceHandler(List<String> coins, Consumer<@NonNull MarkPricePatch> handler) {
+		removeHandler(coins, markPriceHandlers, handler, this::getUnsubscribeMarkPriceFrame);
+	}
+
+	public void removeMarkPriceHandler(String coin, Consumer<@NonNull MarkPricePatch> handler) {
+		removeMarkPriceHandler(List.of(coin), handler);
 	}
 
 	protected <R extends GenericPublicWsPatch> void dispatchPatchToHandlers(
