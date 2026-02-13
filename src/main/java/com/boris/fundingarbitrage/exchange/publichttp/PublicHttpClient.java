@@ -91,7 +91,7 @@ public abstract class PublicHttpClient {
 			for (String coin : coins) {
 				String symbol = exchangeContext.getSymbol(coin);
 				Boolean exists = resultBySymbols.get(symbol);
-				result.put(coin, exists != null && exists);
+				result.put(coin, exists);
 			}
 			return result;
 		});

@@ -42,76 +42,72 @@ public class WhitebitPublicHttpClient extends PublicHttpClient {
 	@Override
 	protected CompletableFuture<Double> getLotSizeSymbol(String symbol) {
 		return processRequest(
-					PublicEndpoints.marketsRequest(),
-					PublicResponses.MarketsResponse.class,
-					(resp) -> resp.lotSizeSymbol(symbol)
+						PublicEndpoints.marketsRequest(),
+						PublicResponses.MarketsResponse.class,
+						(resp) -> resp.lotSizeSymbol(symbol)
 		);
 	}
 
 	@Override
 	protected CompletableFuture<BookTicker> getBookTickerSymbol(String symbol) {
 		return processRequest(
-					PublicEndpoints.orderBookRequestSymbol(symbol),
-					PublicResponses.OrderBookResponse.class,
-					PublicResponses.OrderBookResponse::bookTicker
+						PublicEndpoints.orderBookRequestSymbol(symbol),
+						PublicResponses.OrderBookResponse.class,
+						PublicResponses.OrderBookResponse::bookTicker
 		);
 	}
 
 	@Override
 	protected CompletableFuture<FundingRate> getFundingRateSymbol(String symbol) {
 		return processRequest(
-					PublicEndpoints.futuresRequest(),
-					PublicResponses.FuturesResponse.class,
-					(resp) -> new FundingRate(
-								resp.fundingRate(symbol),
-								resp.nextFundingTime(symbol),
-								Instant.now()
-					)
+						PublicEndpoints.futuresRequest(),
+						PublicResponses.FuturesResponse.class,
+						(resp) -> new FundingRate(resp.fundingRate(symbol), resp.nextFundingTime(symbol), Instant.now())
 		);
 	}
 
 	@Override
 	protected CompletableFuture<Map<String, FundingRate>> getFundingRateSymbols(List<String> symbols) {
 		return processRequest(
-					PublicEndpoints.futuresRequest(),
-					PublicResponses.FundingRatesResponseSymbols.class,
-					(resp) -> resp.get(symbols)
+						PublicEndpoints.futuresRequest(),
+						PublicResponses.FundingRatesResponseSymbols.class,
+						(resp) -> resp.get(symbols)
 		);
 	}
 
 	@Override
 	protected CompletableFuture<Double> getTradingVolume24hSymbol(String symbol) {
 		return processRequest(
-					PublicEndpoints.futuresRequest(),
-					PublicResponses.FuturesResponse.class,
-					(resp) -> resp.volume24hMoney(symbol)
+						PublicEndpoints.futuresRequest(),
+						PublicResponses.FuturesResponse.class,
+						(resp) -> resp.volume24hMoney(symbol)
 		);
 	}
 
 	@Override
 	protected CompletableFuture<Double> getTradingVolume1hSymbol(String symbol) {
 		return processRequest(
-					PublicEndpoints.recentTradesRequestSymbol(symbol),
-					PublicResponses.RecentTradesResponse.class,
-					PublicResponses.RecentTradesResponse::volume1hQuote
+						PublicEndpoints.recentTradesRequestSymbol(symbol),
+						PublicResponses.RecentTradesResponse.class,
+						PublicResponses.RecentTradesResponse::volume1hQuote
 		);
 	}
 
 	@Override
 	protected CompletableFuture<Boolean> checkExistsSymbol(String symbol) {
 		return processRequest(
-					PublicEndpoints.marketsRequest(),
-					PublicResponses.MarketsResponse.class,
-					(resp) -> resp.symbolExists(symbol)
+						PublicEndpoints.marketsRequest(),
+						PublicResponses.MarketsResponse.class,
+						(resp) -> resp.symbolExists(symbol)
 		);
 	}
 
 	@Override
 	protected CompletableFuture<Map<String, Boolean>> checkExistsSymbols(List<String> symbols) {
 		return processRequest(
-					PublicEndpoints.marketsRequest(),
-					PublicResponses.SymbolsExistsResponse.class,
-					(resp) -> resp.get(symbols)
+						PublicEndpoints.marketsRequest(),
+						PublicResponses.SymbolsExistsResponse.class,
+						(resp) -> resp.get(symbols)
 		);
 	}
 }

@@ -17,6 +17,7 @@ import lombok.Getter;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -35,8 +36,8 @@ public class CoinMonitor {
 	private final ExchangeCoinMap<FundingRate> fundingRates = new ExchangeCoinMap<>();
 	private final ExchangeCoinMap<BookTicker> bookTickers = new ExchangeCoinMap<>();
 	private final ExchangeCoinMap<MarkPrice> markPrices = new ExchangeCoinMap<>();
-	private final CoinVector<Set<ExchangeName>> availableExchanges = new CoinVector<>();
-	private final Set<BaseExchange> usedExchanges = ConcurrentHashMap.newKeySet();
+	private final CoinVector<Set<ExchangeName>> availableExchangesByCoin = new CoinVector<>();
+	private final Map<BaseExchange, Set<String>> availableCoinsByExchange = new ConcurrentHashMap<>();
 	@Getter
 	private final CompletableFuture<Void> initFuture;
 	private final ExchangeCoinMap<Fees> fees = new ExchangeCoinMap<>();
@@ -44,7 +45,6 @@ public class CoinMonitor {
 	private final ExchangeCoinMap<Integer> initStateBits = new ExchangeCoinMap<>();
 	private final AtomicInteger initPendingSignals = new AtomicInteger(0);
 	private final CompletableFuture<Void> initDataReady = new CompletableFuture<>();
-	private final ConcurrentHashMap<ExchangeName, Set<String>> subscribedCoinsByExchange = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<ExchangeName, Consumer<BookTickerPatch>> initBookHandlers = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<ExchangeName, Consumer<FundingRatePatch>> initFundingHandlers = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<ExchangeName, Consumer<MarkPricePatch>> initMarkHandlers = new ConcurrentHashMap<>();
@@ -54,6 +54,7 @@ public class CoinMonitor {
 
 		this.initFuture = CompletableFuture.runAsync(() -> {
 			initAvailableExchanges();
+			initFees();
 			fillEmptyData();
 			initCompletionTracking();
 			subscribeData();
@@ -68,9 +69,10 @@ public class CoinMonitor {
 										waitForDataSecond +
 										"s. Falling back to completeness check.");
 				checkDataCompleteness();
+				clearCoinsWithInsufficientExchanges();
 			}
 
-			Logger.logCoinVector(availableExchanges);
+			Logger.logCoinVector(availableExchangesByCoin);
 			switchToSteadyStateHandlers();
 		});
 	}
@@ -92,46 +94,77 @@ public class CoinMonitor {
 					entry.value().askPrice == 0 ||
 					entry.value().askSize == 0 ||
 					entry.value().timestamp == Instant.EPOCH) {
-				Logger.warn("Book ticker data is incomplete for " + entry.coin() + ": " + entry.value());
+				Logger.warn("Book ticker data is incomplete for " + entry.name() + " " + entry.coin() + ": " + entry.value());
 				forgetCoinExchange(entry.coin(), entry.name());
 			}
 		}
 
 		for (var entry : fundingRates.entrySet()) {
 			if (entry.value().settlement == null || entry.value().settlement == Instant.EPOCH) {
-				Logger.warn("Funding rate is incomplete for " + entry.coin() + ": " + entry.value());
+				Logger.warn("Funding rate is incomplete for " + entry.name() + " " + entry.coin() + ": " + entry.value());
 				forgetCoinExchange(entry.coin(), entry.name());
 			}
 		}
 
 		for (var entry : markPrices.entrySet()) {
 			if (entry.value().price == 0 || entry.value().timestamp == Instant.EPOCH) {
-				Logger.warn("Mark price is incomplete for " + entry.coin() + ": " + entry.value());
+				Logger.warn("Mark price is incomplete for " + entry.name() + " " + entry.coin() + ": " + entry.value());
 				forgetCoinExchange(entry.coin(), entry.name());
 			}
 		}
 	}
 
-	private void initAvailableExchanges() {
-		List<CompletableFuture<Void>> futures = new ArrayList<>();
-		for (String coin : coins) {
-			availableExchanges.put(coin, ConcurrentHashMap.newKeySet());
-			for (BaseExchange exchange : Instances.getExchangeArray()) {
-				futures.add(exchange.publicHttpClient.checkCoinExists(coin).thenAccept(result -> {
-					if (result) {
-						availableExchanges.get(coin).add(exchange.name);
-						usedExchanges.add(exchange);
-						initFees(exchange, coin);
-					}
-				}));
+	private void clearCoinsWithInsufficientExchanges() {
+		for (String coin : availableExchangesByCoin.keySet()) {
+			Set<ExchangeName> exchanges = availableExchangesByCoin.get(coin);
+			if (exchanges == null || exchanges.size() < 2) {
+				Logger.warn("Not enough exchanges support " + coin + ". Removing from monitoring.");
+				forgetCoin(coin);
 			}
+		}
+	}
+
+	private void initAvailableExchanges() {
+		for (String coin : coins) availableExchangesByCoin.put(coin, ConcurrentHashMap.newKeySet());
+
+		List<CompletableFuture<Void>> futures = new ArrayList<>();
+		for (BaseExchange exchange : Instances.getExchangeArray()) {
+			availableCoinsByExchange.put(exchange, ConcurrentHashMap.newKeySet());
+			CompletableFuture<Void> future = exchange.publicHttpClient.checkCoinsExist(coins).thenAccept(coinsVect -> {
+				coinsVect.filter(Boolean.TRUE::equals).forEach((coin, _) -> {
+					availableExchangesByCoin.get(coin).add(exchange.name);
+					availableCoinsByExchange.get(exchange).add(coin);
+				});
+			}).exceptionally(err -> {
+				Logger.log("Failed to fetch available coins for " + exchange.name + ": " + err.getMessage());
+				return null;
+			});
+			futures.add(future);
 		}
 
 		CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+		clearCoinsWithInsufficientExchanges();
+	}
+
+	private void initFees() {
+		for (Map.Entry<BaseExchange, Set<String>> entry : availableCoinsByExchange.entrySet()) {
+			BaseExchange exchange = entry.getKey();
+			List<String> supportedCoins = entry.getValue().stream().toList();
+			if (supportedCoins.isEmpty()) return;
+
+			exchange.privateHttpClient.getTradingFees(supportedCoins).thenAccept(result -> {
+				result.forEach((coin, fee) -> {
+					fees.put(exchange.name, coin, fee);
+				});
+			}).exceptionally(t -> {
+				Logger.error("Failed to fetch trading fees for " + exchange.name + ": " + t.getMessage());
+				throw new RuntimeException(t);
+			});
+		}
 	}
 
 	private void fillEmptyData() {
-		availableExchanges.forEach((coin, names) -> {
+		availableExchangesByCoin.forEach((coin, names) -> {
 			for (ExchangeName exchangeName : names) {
 				fundingRates.put(exchangeName, coin, FundingRate.empty());
 				bookTickers.put(exchangeName, coin, BookTicker.empty());
@@ -140,30 +173,11 @@ public class CoinMonitor {
 		});
 	}
 
-	private void initFees(BaseExchange exchange, String coin) {
-		feesFutures.put(
-						exchange.name, coin, exchange.privateHttpClient.getTradingFees(coin).thenAccept(fee -> {
-							fees.put(exchange.name, coin, fee);
-						}).exceptionally(ex -> {
-							Logger.error("Failed to get fees for " + exchange.name + " " + coin + ": " + ex.getMessage());
-							forgetCoinExchange(coin, exchange);
-							return null;
-						})
-		);
-	}
-
 	private void subscribeData() {
-		for (BaseExchange exchange : usedExchanges) {
-			List<String> supportedCoins = availableExchanges
-							.filter((exNames, _) -> exNames.contains(exchange.name))
-							.keySet()
-							.stream()
-							.toList();
+		for (Map.Entry<BaseExchange, Set<String>> entry : availableCoinsByExchange.entrySet()) {
+			BaseExchange exchange = entry.getKey();
+			List<String> supportedCoins = entry.getValue().stream().toList();
 			if (supportedCoins.isEmpty()) continue;
-
-			subscribedCoinsByExchange
-							.computeIfAbsent(exchange.name, _ -> ConcurrentHashMap.newKeySet())
-							.addAll(supportedCoins);
 
 			Consumer<BookTickerPatch> bookHandler = createInitBookHandler(exchange.name);
 			Consumer<FundingRatePatch> fundingHandler = createInitFundingHandler(exchange.name);
@@ -257,8 +271,9 @@ public class CoinMonitor {
 	}
 
 	private void switchToSteadyStateHandlers() {
-		for (BaseExchange exchange : usedExchanges) {
-			List<String> subscribedCoins = getSubscribedCoins(exchange.name);
+		for (Map.Entry<BaseExchange, Set<String>> entry : availableCoinsByExchange.entrySet()) {
+			BaseExchange exchange = entry.getKey();
+			List<String> subscribedCoins = entry.getValue().stream().toList();
 			if (subscribedCoins.isEmpty()) continue;
 
 			exchange.publicWsClient.subscribeBookTicker(subscribedCoins, createSteadyBookHandler(exchange.name));
@@ -280,12 +295,6 @@ public class CoinMonitor {
 				exchange.publicWsClient.removeMarkPriceHandler(subscribedCoins, initMark);
 			}
 		}
-	}
-
-	private List<String> getSubscribedCoins(ExchangeName exchangeName) {
-		Set<String> coins = subscribedCoinsByExchange.get(exchangeName);
-		if (coins == null || coins.isEmpty()) return List.of();
-		return List.copyOf(coins);
 	}
 
 	private void tryMarkComplete(ExchangeName exchangeName, String coin, int bit, boolean isComplete) {
@@ -336,32 +345,14 @@ public class CoinMonitor {
 		return price.price > 0 && price.timestamp != Instant.EPOCH;
 	}
 
-	private void forgetCoinExchange(String coin, BaseExchange exchange) {
-		dropInitTracking(exchange.name, coin);
-
-		Set<ExchangeName> available = availableExchanges.get(coin);
-		if (available != null) available.remove(exchange.name);
-
-		Set<String> subscribedCoins = subscribedCoinsByExchange.get(exchange.name);
-		if (subscribedCoins != null) subscribedCoins.remove(coin);
-
-		exchange.publicWsClient.unsubscribeCoin(coin);
-
-		fundingRates.remove(exchange.name, coin);
-		bookTickers.remove(exchange.name, coin);
-		markPrices.remove(exchange.name, coin);
-		fees.remove(exchange.name, coin);
-		feesFutures.remove(exchange.name, coin);
-	}
-
 	private void forgetCoinExchange(String coin, ExchangeName name) {
 		BaseExchange exchange = Instances.getExchange(name);
 		dropInitTracking(name, coin);
 
-		Set<ExchangeName> available = availableExchanges.get(coin);
+		Set<ExchangeName> available = availableExchangesByCoin.get(coin);
 		if (available != null) available.remove(name);
 
-		Set<String> subscribedCoins = subscribedCoinsByExchange.get(name);
+		Set<String> subscribedCoins = availableCoinsByExchange.get(exchange);
 		if (subscribedCoins != null) subscribedCoins.remove(coin);
 
 		exchange.publicWsClient.unsubscribeCoin(coin);
@@ -373,8 +364,19 @@ public class CoinMonitor {
 		feesFutures.remove(name, coin);
 	}
 
+	private void forgetCoin(String coin) {
+		Set<ExchangeName> available = availableExchangesByCoin.get(coin);
+		if (available != null) {
+			for (ExchangeName name : available) {
+				forgetCoinExchange(coin, name);
+			}
+		}
+
+		availableExchangesByCoin.remove(coin);
+	}
+
 	public void shutdown() {
-		for (BaseExchange exchange : usedExchanges) {
+		for (BaseExchange exchange : availableCoinsByExchange.keySet()) {
 			exchange.publicWsClient.close();
 		}
 	}
