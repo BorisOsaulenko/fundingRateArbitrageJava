@@ -9,7 +9,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class PublicResponses {
+class PublicResponses {
 	private static final String expectedSuccessCode = "200000";
 
 	public record ContractResponse(String code, String msg, JsonNode data) {
@@ -162,6 +162,19 @@ public class PublicResponses {
 				fundingBySymbol.put(symbol, new FundingRate(rate, Instant.ofEpochMilli(settlementMs), Instant.now()));
 			}
 			return fundingBySymbol;
+		}
+	}
+
+	private record FundingGranularityEntry(String symbol, long fundingRateGranularity) {}
+
+	public record FundingGranularityResponse(String code, List<FundingGranularityEntry> data) {
+		public Map<String, Integer> get(List<String> symbols) {
+			Map<String, Integer> result = new HashMap<>();
+			for (FundingGranularityEntry entry : data) {
+				if (!symbols.contains(entry.symbol())) continue;
+				result.put(entry.symbol(), (int) (entry.fundingRateGranularity / 3600_000L));
+			}
+			return result;
 		}
 	}
 }

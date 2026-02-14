@@ -9,7 +9,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class PublicResponses {
+class PublicResponses {
 	private static void ensureOk(int code, String msg) {
 		if (code != 0) throw new RuntimeException(String.format("OKX public request failed: %s, %s", code, msg));
 	}
@@ -195,6 +195,20 @@ public class PublicResponses {
 				String instId = item.path("instId").asText();
 				if (result.containsKey(instId)) result.put(instId, true);
 			}
+			return result;
+		}
+	}
+
+	private record FundingGranularityEntry(String instId, long fundingTime, long nextFundingTime) {}
+
+	public record FundingGranularityResponse(int code, String msg, List<FundingGranularityEntry> data) {
+		public Map<String, Integer> get(List<String> symbols) {
+			Map<String, Integer> result = new HashMap<>();
+			for (var entry : data) {
+				if (!symbols.contains(entry.instId)) continue;
+				result.put(entry.instId, (int) ((entry.nextFundingTime - entry.fundingTime) / 3600000L));
+			}
+
 			return result;
 		}
 	}

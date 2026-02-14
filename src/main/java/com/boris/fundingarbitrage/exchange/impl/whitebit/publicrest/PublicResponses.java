@@ -1,6 +1,7 @@
 package com.boris.fundingarbitrage.exchange.impl.whitebit.publicrest;
 
 import com.boris.fundingarbitrage.model.contract.BookTicker;
+import com.boris.fundingarbitrage.model.contract.FundingRate;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -10,7 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class PublicResponses {
+class PublicResponses {
 	private static double parseRequiredDouble(JsonNode node, String field) {
 		JsonNode val = node.get(field);
 		if (val == null || val.isNull()) throw new IllegalStateException("Missing field: " + field);
@@ -140,20 +141,6 @@ public class PublicResponses {
 			if (entry == null) throw new IllegalStateException("Futures market not found: " + symbol);
 			return parseRequiredDouble(entry, "money_volume");
 		}
-
-		public int maxLeverage(String symbol) {
-			JsonNode entry = findEntry(symbol);
-			if (entry == null) throw new IllegalStateException("Futures market not found: " + symbol);
-			String text = entry.path("max_leverage").asText();
-			if (text == null || text.isEmpty()) throw new IllegalStateException("Missing max_leverage");
-			return (int) Math.round(Double.parseDouble(text));
-		}
-
-		public double indexPrice(String symbol) {
-			JsonNode entry = findEntry(symbol);
-			if (entry == null) throw new IllegalStateException("Futures market not found: " + symbol);
-			return parseRequiredDouble(entry, "index_price");
-		}
 	}
 
 	@JsonFormat(shape = JsonFormat.Shape.ARRAY)
@@ -194,17 +181,13 @@ public class PublicResponses {
 		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
 		public FundingRatesResponseSymbols {}
 
-		public Map<String, com.boris.fundingarbitrage.model.contract.FundingRate> get(List<String> symbols) {
-			Map<String, com.boris.fundingarbitrage.model.contract.FundingRate> result = new HashMap<>();
+		public Map<String, FundingRate> get(List<String> symbols) {
+			Map<String, FundingRate> result = new HashMap<>();
 			FuturesResponse futures = new FuturesResponse(node);
 			for (String symbol : symbols) {
 				result.put(
 								symbol,
-								new com.boris.fundingarbitrage.model.contract.FundingRate(
-												futures.fundingRate(symbol),
-												futures.nextFundingTime(symbol),
-												Instant.now()
-								)
+								new FundingRate(futures.fundingRate(symbol), futures.nextFundingTime(symbol), Instant.now())
 				);
 			}
 			return result;
@@ -223,6 +206,19 @@ public class PublicResponses {
 				result.put(symbol, markets.symbolExists(symbol));
 			}
 			return result;
+		}
+	}
+
+	private record FundingGranularityEntry(String ticker_id, int funding_interval_minutes) {}
+
+	public record FundingGranularityResponse(boolean success, String message, List<FundingGranularityEntry> result) {
+		public Map<String, Integer> get(List<String> symbols) {
+			Map<String, Integer> resultMap = new HashMap<>();
+			for (FundingGranularityEntry entry : result) {
+				if (!symbols.contains(entry.ticker_id)) continue;
+				resultMap.put(entry.ticker_id, entry.funding_interval_minutes / 60);
+			}
+			return resultMap;
 		}
 	}
 }

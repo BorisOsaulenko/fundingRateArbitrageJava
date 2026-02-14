@@ -3,8 +3,6 @@ package com.boris.fundingarbitrage.exchange.impl.whitebit.privaterest;
 import com.boris.fundingarbitrage.ObjectMapperSingleton;
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.ExchangeCredentials;
-import com.boris.fundingarbitrage.exchange.impl.whitebit.publicrest.PublicEndpoints;
-import com.boris.fundingarbitrage.exchange.impl.whitebit.publicrest.PublicResponses;
 import com.boris.fundingarbitrage.exchange.privatehttp.PrivateHttpClient;
 import com.boris.fundingarbitrage.model.assetops.*;
 import com.boris.fundingarbitrage.model.contract.Fees;
@@ -58,46 +56,38 @@ public class WhitebitPrivateHttpClient extends PrivateHttpClient {
 	@Override
 	protected CompletableFuture<Fees> getTradingFeesSymbol(String symbol) {
 		return processRequest(
-					PrivateEndpoints.tradingFeesRequestSymbol(symbol),
-					PrivateResponses.TradingFeesResponse.class,
-					PrivateResponses.TradingFeesResponse::getFees
+						PrivateEndpoints.tradingFeesRequestSymbol(symbol),
+						PrivateResponses.TradingFeesResponse.class,
+						PrivateResponses.TradingFeesResponse::getFees
 		);
 	}
 
 	@Override
 	protected CompletableFuture<Map<String, Fees>> getTradingFeesSymbols(List<String> symbols) {
 		return processRequest(
-					PrivateEndpoints.tradingFeesRequestSymbols(),
-					PrivateResponses.TradingFeesSymbolsResponse.class,
-					(resp) -> resp.getFeesBySymbols(symbols)
+						PrivateEndpoints.tradingFeesRequestSymbols(),
+						PrivateResponses.TradingFeesSymbolsResponse.class,
+						(resp) -> resp.getFeesBySymbols(symbols)
 		);
 	}
 
 	@Override
 	protected CompletableFuture<Void> changeLeverageSymbol(String symbol, int leverage) {
-		return processRequest(
-					PrivateEndpoints.changeLeverageRequest(leverage),
-					JsonNode.class,
-					(resp) -> null
-		);
+		return processRequest(PrivateEndpoints.changeLeverageRequest(leverage), JsonNode.class, (resp) -> null);
 	}
 
 	@Override
 	protected CompletableFuture<Void> setMarginModeSymbol(String symbol, MarginMode marginMode) {
 		boolean hedgeMode = marginMode == MarginMode.ISOLATED;
-		return processRequest(
-					PrivateEndpoints.setHedgeModeRequest(hedgeMode),
-					JsonNode.class,
-					(resp) -> null
-		);
+		return processRequest(PrivateEndpoints.setHedgeModeRequest(hedgeMode), JsonNode.class, (resp) -> null);
 	}
 
 	@Override
 	public CompletableFuture<Double> getSpotUsdtBalance() {
 		return processRequest(
-					PrivateEndpoints.spotUsdtBalanceRequest(),
-					PrivateResponses.SpotBalanceResponse.class,
-					PrivateResponses.SpotBalanceResponse::usdtAvailable
+						PrivateEndpoints.spotUsdtBalanceRequest(),
+						PrivateResponses.SpotBalanceResponse.class,
+						PrivateResponses.SpotBalanceResponse::usdtAvailable
 		);
 	}
 
@@ -112,13 +102,13 @@ public class WhitebitPrivateHttpClient extends PrivateHttpClient {
 
 	@Override
 	protected CompletableFuture<Integer> getMaxLeverageSymbol(String symbol) {
-		return this.client.send(PublicEndpoints.futuresRequest()).thenApply((response) -> {
+		return this.client.send(PrivateEndpoints.maxLeverageRequest()).thenApply((response) -> {
 			try {
-				PublicResponses.FuturesResponse resp = mapper.readValue(
+				PrivateResponses.MaxLeverageResponse resp = mapper.readValue(
 								response.getBodyText(),
-								PublicResponses.FuturesResponse.class
+								PrivateResponses.MaxLeverageResponse.class
 				);
-				return resp.maxLeverage(symbol);
+				return resp.get(symbol);
 			} catch (Exception e) {
 				Logger.error(String.format("Error parsing max leverage response: %s", e.getMessage()));
 				throw new RuntimeException("Failed to process max leverage", e);
@@ -143,7 +133,7 @@ public class WhitebitPrivateHttpClient extends PrivateHttpClient {
 
 	@Override
 	public CompletableFuture<ExchangeChains> getSupportedChains() {
-		SimpleHttpRequest request = PublicEndpoints.publicFeeRequest();
+		SimpleHttpRequest request = PrivateEndpoints.publicFeeRequest();
 		return this.client.send(request).thenApply((response) -> {
 			try {
 				JsonNode root = mapper.readTree(response.getBodyText());
@@ -195,27 +185,23 @@ public class WhitebitPrivateHttpClient extends PrivateHttpClient {
 			throw new IllegalArgumentException("Unsupported chain for Whitebit: " + chain);
 		}
 		return processRequest(
-					PrivateEndpoints.usdtWalletAddressRequest(chain),
-					PrivateResponses.WalletAddressResponse.class,
-					(resp) -> resp.get(chain)
+						PrivateEndpoints.usdtWalletAddressRequest(chain),
+						PrivateResponses.WalletAddressResponse.class,
+						(resp) -> resp.get(chain)
 		);
 	}
 
 	@Override
 	public CompletableFuture<Void> withdrawUsdt(Withdrawal withdrawal) {
-		return processRequest(
-					PrivateEndpoints.withdrawUsdtRequest(withdrawal),
-					JsonNode.class,
-					(resp) -> null
-		);
+		return processRequest(PrivateEndpoints.withdrawUsdtRequest(withdrawal), JsonNode.class, (resp) -> null);
 	}
 
 	@Override
 	protected CompletableFuture<String> placeFuturesOrderSymbol(String symbol, FuturesOrder futuresOrder) {
 		return processRequest(
-					PrivateEndpoints.placeFuturesOrderRequestSymbol(symbol, futuresOrder),
-					PrivateResponses.PlaceOrderResponse.class,
-					PrivateResponses.PlaceOrderResponse::orderId
+						PrivateEndpoints.placeFuturesOrderRequestSymbol(symbol, futuresOrder),
+						PrivateResponses.PlaceOrderResponse.class,
+						PrivateResponses.PlaceOrderResponse::orderId
 		);
 	}
 
@@ -226,18 +212,14 @@ public class WhitebitPrivateHttpClient extends PrivateHttpClient {
 					TradeSide tradeSide
 	) {
 		return processRequest(
-					PrivateEndpoints.orderRecordRequestSymbol(orderId),
-					PrivateResponses.OrderDealsResponse.class,
-					PrivateResponses.OrderDealsResponse::get
+						PrivateEndpoints.orderRecordRequestSymbol(orderId),
+						PrivateResponses.OrderDealsResponse.class,
+						PrivateResponses.OrderDealsResponse::get
 		);
 	}
 
 	@Override
 	public CompletableFuture<Void> internalTransfer(InternalTransfer internalTransfer) {
-		return processRequest(
-					PrivateEndpoints.internalTransferRequest(internalTransfer),
-					JsonNode.class,
-					(resp) -> null
-		);
+		return processRequest(PrivateEndpoints.internalTransferRequest(internalTransfer), JsonNode.class, (resp) -> null);
 	}
 }

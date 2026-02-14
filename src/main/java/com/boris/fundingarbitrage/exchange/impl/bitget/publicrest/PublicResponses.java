@@ -8,7 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class PublicResponses {
+class PublicResponses {
 	private record Contract(
 					String symbol,
 					String sizeMultiplier,
@@ -127,6 +127,20 @@ public class PublicResponses {
 			String[] candle = data[0];
 			if (candle.length < 6) return 0.0;
 			return Double.parseDouble(candle[5]);
+		}
+	}
+
+	private record FundingGranularityEntry(String symbol, String fundingRateInterval) {}
+
+	public record FundingGranularityResponse(String code, String msg, long requestTime, FundingGranularityEntry[] data) {
+		public Map<String, Integer> get(List<String> symbols) {
+			Map<String, Integer> result = new HashMap<>();
+			if (data == null) return result;
+			for (var ticker : data) {
+				if (!symbols.contains(ticker.symbol())) continue;
+				result.put(ticker.symbol(), Integer.parseInt(ticker.fundingRateInterval()));
+			}
+			return result;
 		}
 	}
 }

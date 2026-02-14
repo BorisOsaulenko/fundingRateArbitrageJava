@@ -7,7 +7,7 @@ import org.apache.hc.core5.net.URIBuilder;
 
 import java.net.URI;
 
-public class PublicEndpoints {
+class PublicEndpoints {
 	private static final String baseUrl = "https://api.bitget.com";
 	private static final String productType = "USDT-FUTURES";
 
@@ -69,5 +69,14 @@ public class PublicEndpoints {
 						.addParameter("limit", "1")
 						.build();
 		return new SimpleHttpRequest("GET", uri);
+	}
+
+	@SneakyThrows
+	public static @NonNull SimpleHttpRequest fundingGranularityRequest() {
+		URI url = new URIBuilder(baseUrl)
+						.setPath("/api/v2/mix/market/current-fund-rate")
+						.addParameter("productType", productType)
+						.build();
+		return new SimpleHttpRequest("GET", url);
 	}
 }

@@ -21,7 +21,7 @@ public abstract class PublicRestTest {
 	private static final Duration MAX_FUNDING_SETTLEMENT_AHEAD = Duration.ofHours(8);
 	private final BinanceContext context = new BinanceContext();
 	private final String testCoin = "SOL";
-	private final String batchCoin = "BTC";
+	private final List<String> coins = List.of("SOL", "ETH", "XRP", "LTC", "ADA");
 
 	private static <T> T getWithTimeout(CompletableFuture<T> future) throws Exception {
 		return future.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
@@ -81,7 +81,6 @@ public abstract class PublicRestTest {
 
 	@Test
 	void getFundingRatesBatch() throws Exception {
-		List<String> coins = List.of(testCoin, batchCoin);
 		Map<String, FundingRate> fundingRates = getWithTimeout(publicRest().getFundingRate(coins));
 		assertNotNull(fundingRates, "Funding rates map should not be null");
 		assertEquals(coins.size(), fundingRates.size(), "Funding rates should be returned for each requested symbol");
@@ -123,5 +122,17 @@ public abstract class PublicRestTest {
 		assertNotNull(result, "Batch coin existence result should not be null");
 		assertTrue(result.getOrDefault(testCoin, false), "Existing symbol should be true");
 		assertFalse(result.getOrDefault("NONEXISTENTCOIN", true), "Non-existing symbol should be false");
+	}
+
+	@Test
+	void getFundingGranularityTest() throws Exception {
+		var result = getWithTimeout(publicRest().getFundingGranularityHours(coins));
+		assertNotNull(result, "Funding granularity result should not be null");
+		for (String coin : coins) {
+			assertTrue(result.containsKey(coin), "Funding granularity result should contain symbol");
+			assertNotNull(result.get(coin), "Funding granularity should not be null");
+			assertTrue(result.get(coin) > 0, "Funding granularity should be greater than 0");
+			assertTrue(result.get(coin) <= 8, "Funding granularity should be less than or equal to 8");
+		}
 	}
 }

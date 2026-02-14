@@ -110,4 +110,13 @@ public class WhitebitPublicHttpClient extends PublicHttpClient {
 						(resp) -> resp.get(symbols)
 		);
 	}
+
+	@Override
+	protected CompletableFuture<Map<String, Integer>> getFundingGranularityHoursSymbols(List<String> symbols) {
+		return processRequest(
+						PublicEndpoints.fundingGranularityRequestSymbols(),
+						PublicResponses.FundingGranularityResponse.class,
+						(resp) -> resp.get(symbols)
+		);
+	}
 }

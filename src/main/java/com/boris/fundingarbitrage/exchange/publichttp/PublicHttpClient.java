@@ -35,6 +35,8 @@ public abstract class PublicHttpClient {
 	protected abstract CompletableFuture<Boolean> checkExistsSymbol(String symbol);
 
 	protected abstract CompletableFuture<Map<String, Boolean>> checkExistsSymbols(List<String> symbols);
+	
+	protected abstract CompletableFuture<Map<String, Integer>> getFundingGranularityHoursSymbols(List<String> symbols);
 
 	private <T> CompletableFuture<T> withSymbol(String coin, Function<String, CompletableFuture<T>> symbolGetter) {
 		String symbol = exchangeContext.getSymbol(coin);
@@ -92,6 +94,18 @@ public abstract class PublicHttpClient {
 				String symbol = exchangeContext.getSymbol(coin);
 				Boolean exists = resultBySymbols.get(symbol);
 				result.put(coin, exists);
+			}
+			return result;
+		});
+	}
+
+	public CompletableFuture<CoinVector<Integer>> getFundingGranularityHours(List<String> coins) {
+		return withSymbol(coins, this::getFundingGranularityHoursSymbols).thenApply(resultBySymbols -> {
+			CoinVector<Integer> result = new CoinVector<>();
+			for (String coin : coins) {
+				String symbol = exchangeContext.getSymbol(coin);
+				Integer hours = resultBySymbols.get(symbol);
+				result.put(coin, hours);
 			}
 			return result;
 		});

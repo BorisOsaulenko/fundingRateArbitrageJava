@@ -147,4 +147,24 @@ public class PublicResponses {
 			return items[0].get();
 		}
 	}
+
+	private record FundingGranularityEntry(String symbol, int fundingIntervalHours) {}
+
+	@JsonFormat(shape = JsonFormat.Shape.ARRAY)
+	public record FundingGranularityResponse(FundingGranularityEntry[] items) {
+		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
+		public FundingGranularityResponse {}
+
+		public Map<String, Integer> get(List<String> symbols) {
+			Map<String, Integer> result = new HashMap<>();
+			if (items == null) return result;
+
+			for (var item : items) {
+				if (!symbols.contains(item.symbol())) continue;
+				result.put(item.symbol(), item.fundingIntervalHours());
+			}
+
+			return result;
+		}
+	}
 }

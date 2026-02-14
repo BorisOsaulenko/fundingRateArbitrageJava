@@ -1,6 +1,6 @@
 package com.boris.fundingarbitrage;
 
-import com.boris.fundingarbitrage.exchange.impl.gate.GateExchange;
+import com.boris.fundingarbitrage.exchange.impl.bybit.BybitExchange;
 import com.boris.fundingarbitrage.monitor.CoinMonitor;
 import com.boris.fundingarbitrage.util.logger.Logger;
 
@@ -124,23 +124,7 @@ public class App {
 	}
 
 	static void main(String[] args) throws ExecutionException, InterruptedException {
-		GateExchange gate = new GateExchange();
-		gate.publicHttpClient.checkCoinExists("AWE").thenAccept(fees -> {
-			Logger.log(fees.toString());
-		}).get();
-
-		gate.publicWsClient.subscribeBookTicker(
-						"AWE", (bookTicker) -> {
-							Logger.log("Received book ticker update: " + bookTicker);
-						}
-		);
-
-		gate.publicWsClient.subscribeFundingRates(
-						"AWE", (fundingRate) -> {
-							Logger.log("Received funding rate update: " + fundingRate);
-						}
-		);
-
-		Thread.sleep(120000);
+		BybitExchange exchange = new BybitExchange();
+		exchange.publicHttpClient.getFundingGranularityHours(List.of("SOL", "ETH")).thenAccept(Logger::logCoinVector).get();
 	}
 }

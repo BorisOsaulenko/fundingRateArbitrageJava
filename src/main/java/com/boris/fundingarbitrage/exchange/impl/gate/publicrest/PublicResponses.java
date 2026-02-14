@@ -12,7 +12,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class PublicResponses {
+class PublicResponses {
 	public record ContractResponse(
 					String name,
 					String order_size_min,
@@ -27,26 +27,11 @@ public class PublicResponses {
 			return Double.parseDouble(order_size_min);
 		}
 
-		public Integer maxLeverage() {
-			if (leverage_max == null || leverage_max.isEmpty()) return null;
-			return (int) Math.round(Double.parseDouble(leverage_max));
-		}
-
 		public FundingRate fundingRate() {
 			if (funding_rate == null || funding_rate.isEmpty()) return null;
 			long now = Instant.now().getEpochSecond();
 			Instant next = Instant.ofEpochSecond(funding_next_apply);
 			return new FundingRate(Double.parseDouble(funding_rate), next, Instant.ofEpochSecond(now));
-		}
-
-		public double makerFeeRate() {
-			if (maker_fee_rate == null || maker_fee_rate.isEmpty()) return 0.0;
-			return Double.parseDouble(maker_fee_rate);
-		}
-
-		public double takerFeeRate() {
-			if (taker_fee_rate == null || taker_fee_rate.isEmpty()) return 0.0;
-			return Double.parseDouble(taker_fee_rate);
 		}
 	}
 
@@ -148,6 +133,23 @@ public class PublicResponses {
 			double volume = first.path("sum").asDouble();
 			if (volume == 0.0) throw new IllegalStateException("Invalid volume response");
 			return volume;
+		}
+	}
+
+	private record FundingGranularityEntry(String name, int funding_interval) {}
+
+	@JsonFormat(shape = JsonFormat.Shape.ARRAY)
+	public record FundingGranularityResponse(List<FundingGranularityEntry> items) {
+		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
+		public FundingGranularityResponse {}
+
+		public Map<String, Integer> get(List<String> symbols) {
+			Map<String, Integer> result = new HashMap<>();
+			for (var item : items) {
+				if (!symbols.contains(item.name)) continue;
+				result.put(item.name, item.funding_interval / 3600);
+			}
+			return result;
 		}
 	}
 }

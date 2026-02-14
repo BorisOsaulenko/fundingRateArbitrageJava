@@ -7,7 +7,7 @@ import org.apache.hc.core5.net.URIBuilder;
 
 import java.net.URI;
 
-public class PublicEndpoints {
+class PublicEndpoints {
 	private static final String baseUrl = "https://api.bybit.com";
 	private static final String category = "linear";
 
@@ -55,6 +55,16 @@ public class PublicEndpoints {
 						.addParameter("symbol", symbol)
 						.addParameter("interval", "60")
 						.addParameter("limit", "1")
+						.build();
+		return new SimpleHttpRequest("GET", uri);
+	}
+
+	@SneakyThrows
+	public static @NonNull SimpleHttpRequest fundingGranularityRequestSymbols() {
+		URI uri = new URIBuilder(baseUrl)
+						.setPath("/v5/market/instruments-info")
+						.addParameter("limit", "1000")
+						.addParameter("category", category)
 						.build();
 		return new SimpleHttpRequest("GET", uri);
 	}

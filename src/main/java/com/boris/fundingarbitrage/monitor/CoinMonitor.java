@@ -32,16 +32,17 @@ public class CoinMonitor {
 	private static final int ALL_BITS = BIT_BOOK | BIT_FUNDING | BIT_MARK;
 
 	private final List<String> coins;
-	private final int waitForDataSecond = 60;
+	private final int waitForDataSeconds = 60;
 	private final ExchangeCoinMap<FundingRate> fundingRates = new ExchangeCoinMap<>();
 	private final ExchangeCoinMap<BookTicker> bookTickers = new ExchangeCoinMap<>();
 	private final ExchangeCoinMap<MarkPrice> markPrices = new ExchangeCoinMap<>();
+	private final ExchangeCoinMap<Fees> fees = new ExchangeCoinMap<>();
+	private final ExchangeCoinMap<CompletableFuture<Void>> feesFutures = new ExchangeCoinMap<>();
+
 	private final CoinVector<Set<ExchangeName>> availableExchangesByCoin = new CoinVector<>();
 	private final Map<BaseExchange, Set<String>> availableCoinsByExchange = new ConcurrentHashMap<>();
 	@Getter
 	private final CompletableFuture<Void> initFuture;
-	private final ExchangeCoinMap<Fees> fees = new ExchangeCoinMap<>();
-	private final ExchangeCoinMap<CompletableFuture<Void>> feesFutures = new ExchangeCoinMap<>();
 	private final ExchangeCoinMap<Integer> initStateBits = new ExchangeCoinMap<>();
 	private final AtomicInteger initPendingSignals = new AtomicInteger(0);
 	private final CompletableFuture<Void> initDataReady = new CompletableFuture<>();
@@ -61,12 +62,12 @@ public class CoinMonitor {
 
 			CompletableFuture<Void> timeout = CompletableFuture.runAsync(
 							() -> {},
-							CompletableFuture.delayedExecutor(waitForDataSecond, TimeUnit.SECONDS)
+							CompletableFuture.delayedExecutor(waitForDataSeconds, TimeUnit.SECONDS)
 			);
 			CompletableFuture.anyOf(initDataReady, timeout).join();
 			if (!initDataReady.isDone()) {
 				Logger.warn("Coin monitor init timed out after " +
-										waitForDataSecond +
+										waitForDataSeconds +
 										"s. Falling back to completeness check.");
 				checkDataCompleteness();
 				clearCoinsWithInsufficientExchanges();

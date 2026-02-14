@@ -3,7 +3,6 @@ package com.boris.fundingarbitrage.exchange.impl.kucoin.privaterest;
 import com.boris.fundingarbitrage.ObjectMapperSingleton;
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.ExchangeCredentials;
-import com.boris.fundingarbitrage.exchange.impl.kucoin.publicrest.PublicEndpoints;
 import com.boris.fundingarbitrage.exchange.privatehttp.PrivateHttpClient;
 import com.boris.fundingarbitrage.model.assetops.*;
 import com.boris.fundingarbitrage.model.contract.Fees;
@@ -211,7 +210,7 @@ public class KucoinPrivateHttpClient extends PrivateHttpClient {
 	}
 
 	public CompletableFuture<URI> fetchPrivateWsEndpoint() {
-		SimpleHttpRequest request = signRequest(PublicEndpoints.publicWsToken());
+		SimpleHttpRequest request = signRequest(PrivateEndpoints.privateWsToken());
 		return client.send(request).thenApply(response -> {
 			try {
 				JsonNode root = mapper.readTree(response.getBodyText());

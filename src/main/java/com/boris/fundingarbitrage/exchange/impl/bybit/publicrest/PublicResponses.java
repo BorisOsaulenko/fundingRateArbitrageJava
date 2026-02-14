@@ -9,7 +9,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class PublicResponses {
+class PublicResponses {
 	public record InstrumentsInfoResponse(int retCode, String retMsg, long time, JsonNode result) {
 		public boolean symbolExists(String symbol) {
 			JsonNode list = result == null ? null : result.get("list");
@@ -125,6 +125,21 @@ public class PublicResponses {
 			if (volume == 0.0) throw new IllegalStateException("Bybit kline volume missing");
 
 			return volume;
+		}
+	}
+
+	private record FundingGranularityEntry(String symbol, int fundingInterval) {}
+
+	private record FundingGranularityResult(String category, List<FundingGranularityEntry> list) {}
+
+	public record FundingGranularityResponse(int retCode, String retMsg, long time, FundingGranularityResult result) {
+		public Map<String, Integer> get(List<String> symbols) {
+			Map<String, Integer> resultMap = new HashMap<>();
+			for (var entry : result.list()) {
+				if (!symbols.contains(entry.symbol())) continue;
+				resultMap.put(entry.symbol(), entry.fundingInterval() / 60);
+			}
+			return resultMap;
 		}
 	}
 }

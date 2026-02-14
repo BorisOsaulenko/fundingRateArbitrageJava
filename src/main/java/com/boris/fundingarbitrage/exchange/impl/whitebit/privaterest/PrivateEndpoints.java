@@ -32,10 +32,7 @@ public class PrivateEndpoints {
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest tradingFeesRequestSymbol(String symbol) {
-		URI uri = new URIBuilder(baseUrl)
-					.setPath("/api/v4/market/fee")
-					.addParameter("market", symbol)
-					.build();
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v4/market/fee").addParameter("market", symbol).build();
 		SimpleHttpRequest request = new SimpleHttpRequest("POST", uri);
 		Map<String, Object> body = new HashMap<>();
 		body.put("request", "/api/v4/market/fee");
@@ -47,9 +44,7 @@ public class PrivateEndpoints {
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest tradingFeesRequestSymbols() {
-		URI uri = new URIBuilder(baseUrl)
-					.setPath("/api/v4/market/fee")
-					.build();
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v4/market/fee").build();
 		SimpleHttpRequest request = new SimpleHttpRequest("POST", uri);
 		Map<String, Object> body = new HashMap<>();
 		body.put("request", "/api/v4/market/fee");
@@ -114,10 +109,7 @@ public class PrivateEndpoints {
 		return orderSide == OrderSide.LONG ? "long" : "short";
 	}
 
-	public static @NonNull SimpleHttpRequest placeFuturesOrderRequestSymbol(
-					String symbol,
-					FuturesOrder futuresOrder
-	) {
+	public static @NonNull SimpleHttpRequest placeFuturesOrderRequestSymbol(String symbol, FuturesOrder futuresOrder) {
 		Map<String, Object> body = new HashMap<>();
 		body.put("market", symbol);
 		body.put("side", mapSide(futuresOrder.orderSide(), futuresOrder.tradeSide()));
@@ -149,5 +141,17 @@ public class PrivateEndpoints {
 
 	public static @NonNull SimpleHttpRequest websocketTokenRequest() {
 		return privatePost("/api/v4/profile/websocket_token", null);
+	}
+
+	@SneakyThrows
+	public static @NonNull SimpleHttpRequest maxLeverageRequest() {
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v4/public/futures").build();
+		return new SimpleHttpRequest("GET", uri);
+	}
+
+	@SneakyThrows
+	public static @NonNull SimpleHttpRequest publicFeeRequest() {
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v4/public/fee").build();
+		return new SimpleHttpRequest("GET", uri);
 	}
 }

@@ -131,4 +131,13 @@ public class BitgetPublicHttpClient extends PublicHttpClient {
 						(resp) -> resp.existsBySymbols(symbols)
 		);
 	}
+
+	@Override
+	protected CompletableFuture<Map<String, Integer>> getFundingGranularityHoursSymbols(List<String> symbols) {
+		return processRequest(
+						PublicEndpoints.fundingGranularityRequest(),
+						PublicResponses.FundingGranularityResponse.class,
+						(resp) -> resp.get(symbols)
+		);
+	}
 }

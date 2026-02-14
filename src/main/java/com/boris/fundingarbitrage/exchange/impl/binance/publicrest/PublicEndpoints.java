@@ -7,7 +7,7 @@ import org.apache.hc.core5.net.URIBuilder;
 
 import java.net.URI;
 
-public class PublicEndpoints {
+class PublicEndpoints {
 	private static final String futuresBaseUrl = "https://fapi.binance.com";
 
 	@SneakyThrows
@@ -63,6 +63,12 @@ public class PublicEndpoints {
 						.addParameter("interval", "1h")
 						.addParameter("limit", "1")
 						.build();
+		return new SimpleHttpRequest("GET", url);
+	}
+
+	@SneakyThrows
+	public static @NonNull SimpleHttpRequest fundingGranularityRequest() {
+		URI url = new URIBuilder(futuresBaseUrl).setPath("/fapi/v1/fundingInfo").build();
 		return new SimpleHttpRequest("GET", url);
 	}
 }

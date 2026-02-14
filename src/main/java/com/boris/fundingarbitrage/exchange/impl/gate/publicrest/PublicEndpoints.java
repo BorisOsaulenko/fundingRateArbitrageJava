@@ -7,23 +7,19 @@ import org.apache.hc.core5.net.URIBuilder;
 
 import java.net.URI;
 
-public class PublicEndpoints {
+class PublicEndpoints {
 	private static final String baseUrl = "https://api.gateio.ws";
 	private static final String settle = "usdt";
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest contractRequestSymbol(String symbol) {
-		URI uri = new URIBuilder(baseUrl)
-						.setPath("/api/v4/futures/" + settle + "/contracts/" + symbol)
-						.build();
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v4/futures/" + settle + "/contracts/" + symbol).build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest contractsRequestSymbols() {
-		URI uri = new URIBuilder(baseUrl)
-						.setPath("/api/v4/futures/" + settle + "/contracts")
-						.build();
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v4/futures/" + settle + "/contracts").build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
@@ -54,6 +50,12 @@ public class PublicEndpoints {
 						.addParameter("contract", symbol)
 						.addParameter("limit", "1")
 						.build();
+		return new SimpleHttpRequest("GET", uri);
+	}
+
+	@SneakyThrows
+	public static @NonNull SimpleHttpRequest fundingGranularityRequestSymbols() {
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v4/futures/" + settle + "/contracts").build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 }

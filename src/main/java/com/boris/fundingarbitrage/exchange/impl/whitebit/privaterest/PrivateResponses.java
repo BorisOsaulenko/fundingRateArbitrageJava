@@ -133,4 +133,20 @@ public class PrivateResponses {
 			return result;
 		}
 	}
+
+	private record MaxLeverageResponseEntry(String ticker_id, int max_leverage) {}
+
+	public record MaxLeverageResponse(boolean success, String message, List<MaxLeverageResponseEntry> result) {
+		public int get(String symbol) {
+			MaxLeverageResponseEntry entry = result
+							.stream()
+							.filter(e -> e.ticker_id().equals(symbol))
+							.findFirst()
+							.orElse(null);
+			if (entry == null) {
+				throw new IllegalArgumentException("Get max leverage for symbol " + symbol + " failed: " + message);
+			}
+			return entry.max_leverage();
+		}
+	}
 }
