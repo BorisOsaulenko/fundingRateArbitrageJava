@@ -5,6 +5,7 @@ import lombok.NonNull;
 import java.time.Instant;
 
 public class FundingRate {
+	private static final double emptyRateValue = -10; // funding rates are usually between -0.1% and 0.1%, so -10% is a safe "empty" value
 	public double rate;
 	public Instant settlement;
 	public Instant timestamp;
@@ -16,15 +17,18 @@ public class FundingRate {
 	}
 
 	public static FundingRate empty() {
-		return new FundingRate(0, Instant.EPOCH, Instant.EPOCH);
+		return new FundingRate(emptyRateValue, Instant.EPOCH, Instant.EPOCH);
 	}
+
+	public static boolean isPartiallyEmpty(FundingRate fundingRate) {
+		return fundingRate.rate == emptyRateValue ||
+					 Instant.EPOCH.equals(fundingRate.settlement) ||
+					 Instant.EPOCH.equals(fundingRate.timestamp);
+	}
+
 
 	@Override
 	public String toString() {
-		return "FundingRate{" +
-				"rate=" + rate +
-				", settlement=" + settlement +
-				", timestamp=" + timestamp +
-				'}';
+		return "FundingRate{" + "rate=" + rate + ", settlement=" + settlement + ", timestamp=" + timestamp + '}';
 	}
 }

@@ -1,4 +1,4 @@
-package com.boris.fundingarbitrage.exchange.impl.gate.privatews.pojos;
+package com.boris.fundingarbitrage.exchange.impl.gate.privatews;
 
 import com.boris.fundingarbitrage.ObjectMapperSingleton;
 import lombok.SneakyThrows;

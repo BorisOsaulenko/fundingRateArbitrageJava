@@ -33,14 +33,27 @@ public class Fees {
 		return new Fees(0, 0, 0, 0, Instant.EPOCH);
 	}
 
+	public static boolean isPartiallyEmpty(Fees fees) {
+		return fees.openMaker == 0 ||
+					 fees.openTaker == 0 ||
+					 fees.closeMaker == 0 ||
+					 fees.closeTaker == 0 ||
+					 Instant.EPOCH.equals(fees.timestamp);
+	}
+
 	@Override
 	public String toString() {
 		return "Fees{" +
-				"openMaker=" + openMaker +
-				", openTaker=" + openTaker +
-				", closeMaker=" + closeMaker +
-				", closeTaker=" + closeTaker +
-				", timestamp=" + timestamp +
-				'}';
+					 "openMaker=" +
+					 openMaker +
+					 ", openTaker=" +
+					 openTaker +
+					 ", closeMaker=" +
+					 closeMaker +
+					 ", closeTaker=" +
+					 closeTaker +
+					 ", timestamp=" +
+					 timestamp +
+					 '}';
 	}
 }

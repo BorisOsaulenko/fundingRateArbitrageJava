@@ -22,11 +22,12 @@ public class MarkPrice {
 		return new MarkPrice(0);
 	}
 
+	public static boolean isPartiallyEmpty(MarkPrice markPrice) {
+		return markPrice.price == 0 || Instant.EPOCH.equals(markPrice.timestamp);
+	}
+
 	@Override
 	public String toString() {
-		return "MarkPrice{" +
-				"price=" + price +
-				", timestamp=" + timestamp +
-				'}';
+		return "MarkPrice{" + "price=" + price + ", timestamp=" + timestamp + '}';
 	}
 }

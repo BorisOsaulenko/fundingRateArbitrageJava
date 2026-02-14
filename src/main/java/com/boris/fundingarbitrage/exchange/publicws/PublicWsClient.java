@@ -8,6 +8,7 @@ import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
 import com.boris.fundingarbitrage.model.websocket.patch.GenericPublicWsPatch;
 import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
+import com.boris.fundingarbitrage.util.logger.Logger;
 import com.boris.fundingarbitrage.util.wss.prettyclient.PrettyWsClient;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -277,6 +278,7 @@ public abstract class PublicWsClient {
 	}
 
 	private void handleMessage(String message) {
+		Logger.log(message);
 		if (message == null || message.isEmpty()) return;
 
 		JsonNode root = null;

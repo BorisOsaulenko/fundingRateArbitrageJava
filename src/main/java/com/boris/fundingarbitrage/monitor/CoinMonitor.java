@@ -89,25 +89,21 @@ public class CoinMonitor {
 
 	private void checkDataCompleteness() {
 		for (var entry : bookTickers.entrySet()) {
-			if (entry.value().bidPrice == 0 ||
-					entry.value().bidSize == 0 ||
-					entry.value().askPrice == 0 ||
-					entry.value().askSize == 0 ||
-					entry.value().timestamp == Instant.EPOCH) {
+			if (BookTicker.isPartiallyEmpty(entry.value())) {
 				Logger.warn("Book ticker data is incomplete for " + entry.name() + " " + entry.coin() + ": " + entry.value());
 				forgetCoinExchange(entry.coin(), entry.name());
 			}
 		}
 
 		for (var entry : fundingRates.entrySet()) {
-			if (entry.value().settlement == null || entry.value().settlement == Instant.EPOCH) {
+			if (FundingRate.isPartiallyEmpty(entry.value())) {
 				Logger.warn("Funding rate is incomplete for " + entry.name() + " " + entry.coin() + ": " + entry.value());
 				forgetCoinExchange(entry.coin(), entry.name());
 			}
 		}
 
 		for (var entry : markPrices.entrySet()) {
-			if (entry.value().price == 0 || entry.value().timestamp == Instant.EPOCH) {
+			if (MarkPrice.isPartiallyEmpty(entry.value())) {
 				Logger.warn("Mark price is incomplete for " + entry.name() + " " + entry.coin() + ": " + entry.value());
 				forgetCoinExchange(entry.coin(), entry.name());
 			}

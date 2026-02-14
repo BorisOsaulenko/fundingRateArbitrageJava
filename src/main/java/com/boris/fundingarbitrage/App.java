@@ -1,6 +1,6 @@
 package com.boris.fundingarbitrage;
 
-import com.boris.fundingarbitrage.exchange.impl.binance.BinanceExchange;
+import com.boris.fundingarbitrage.exchange.impl.gate.GateExchange;
 import com.boris.fundingarbitrage.monitor.CoinMonitor;
 import com.boris.fundingarbitrage.util.logger.Logger;
 
@@ -105,7 +105,7 @@ public class App {
 					"BLUAI" // 92 coins
 	);
 
-	static void main(String[] args) throws Exception {
+	static void main2(String[] args) throws Exception {
 		CoinMonitor monitor = new CoinMonitor(coins);
 		Logger.init(Path.of("app.log"));
 		Logger.log("Initializing coin monitor and waiting for complete data...");
@@ -123,13 +123,24 @@ public class App {
 //		Thread.sleep(40000);
 	}
 
-	static void main2(String[] args) throws ExecutionException, InterruptedException {
-		BinanceExchange gate = new BinanceExchange();
-		gate.privateHttpClient.getTradingFees("KAITO").thenAccept(fees -> {
-			System.out.println("Maker fee: " + fees.closeMaker);
-			System.out.println("Taker fee: " + fees.closeTaker);
+	static void main(String[] args) throws ExecutionException, InterruptedException {
+		GateExchange gate = new GateExchange();
+		gate.publicHttpClient.checkCoinExists("AWE").thenAccept(fees -> {
+			Logger.log(fees.toString());
 		}).get();
 
-		Thread.sleep(30000);
+		gate.publicWsClient.subscribeBookTicker(
+						"AWE", (bookTicker) -> {
+							Logger.log("Received book ticker update: " + bookTicker);
+						}
+		);
+
+		gate.publicWsClient.subscribeFundingRates(
+						"AWE", (fundingRate) -> {
+							Logger.log("Received funding rate update: " + fundingRate);
+						}
+		);
+
+		Thread.sleep(120000);
 	}
 }

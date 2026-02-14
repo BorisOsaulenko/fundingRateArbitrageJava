@@ -2,7 +2,6 @@ package com.boris.fundingarbitrage.exchange.impl.gate.privatews;
 
 import com.boris.fundingarbitrage.exchange.ExchangeCredentials;
 import com.boris.fundingarbitrage.exchange.impl.gate.GateContext;
-import com.boris.fundingarbitrage.exchange.impl.gate.privatews.pojos.WsRequest;
 import com.boris.fundingarbitrage.exchange.privatews.PrivateWsClient;
 import com.boris.fundingarbitrage.util.cryptography.Signers;
 

@@ -21,14 +21,27 @@ public class BookTicker {
 		return new BookTicker(0, 0, 0, 0, Instant.EPOCH);
 	}
 
+	public static boolean isPartiallyEmpty(BookTicker bookTicker) {
+		return bookTicker.bidPrice == 0 ||
+					 bookTicker.askPrice == 0 ||
+					 bookTicker.bidSize == 0 ||
+					 bookTicker.askSize == 0 ||
+					 Instant.EPOCH.equals(bookTicker.timestamp);
+	}
+
 	@Override
 	public String toString() {
 		return "BookTicker{" +
-				"bidPrice=" + bidPrice +
-				", bidSize=" + bidSize +
-				", askPrice=" + askPrice +
-				", askSize=" + askSize +
-				", timestamp=" + timestamp +
-				'}';
+					 "bidPrice=" +
+					 bidPrice +
+					 ", bidSize=" +
+					 bidSize +
+					 ", askPrice=" +
+					 askPrice +
+					 ", askSize=" +
+					 askSize +
+					 ", timestamp=" +
+					 timestamp +
+					 '}';
 	}
 }

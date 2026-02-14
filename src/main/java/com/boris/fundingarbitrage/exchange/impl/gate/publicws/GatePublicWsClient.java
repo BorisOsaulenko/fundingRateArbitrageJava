@@ -2,7 +2,6 @@ package com.boris.fundingarbitrage.exchange.impl.gate.publicws;
 
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.impl.gate.publicrest.GatePublicHttpClient;
-import com.boris.fundingarbitrage.exchange.impl.gate.publicws.pojos.WsRequest;
 import com.boris.fundingarbitrage.util.wss.publicws.PublicWsFundingSettlementViaRest;
 
 import java.net.URI;
