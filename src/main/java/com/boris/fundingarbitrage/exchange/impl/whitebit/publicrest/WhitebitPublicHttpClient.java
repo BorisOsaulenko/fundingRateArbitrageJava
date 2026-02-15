@@ -3,6 +3,7 @@ package com.boris.fundingarbitrage.exchange.impl.whitebit.publicrest;
 import com.boris.fundingarbitrage.ObjectMapperSingleton;
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.publichttp.PublicHttpClient;
+import com.boris.fundingarbitrage.exchange.publichttp.PublicOnePullData;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.FundingRate;
 import com.boris.fundingarbitrage.util.https.PrettyHttpClient;
@@ -10,8 +11,7 @@ import com.boris.fundingarbitrage.util.logger.Logger;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
 
-import java.time.Instant;
-import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
@@ -23,15 +23,10 @@ public class WhitebitPublicHttpClient extends PublicHttpClient {
 		super(context, PrettyHttpClient.getINSTANCE());
 	}
 
-	private <T, U> CompletableFuture<U> processRequest(
-					SimpleHttpRequest request,
-					Class<T> responseClass,
-					Function<T, U> parser
-	) {
-		return this.client.send(request).thenApply((response) -> {
+	private <U> CompletableFuture<U> getResponse(SimpleHttpRequest req, Class<U> responseClass) {
+		return this.client.send(req).thenApply((response) -> {
 			try {
-				T responseObj = mapper.readValue(response.getBodyText(), responseClass);
-				return parser.apply(responseObj);
+				return mapper.readValue(response.getBodyText(), responseClass);
 			} catch (Exception e) {
 				Logger.error(String.format("Error parsing public rest response: %s", e.getMessage()));
 				throw new RuntimeException("Failed to process request", e);
@@ -39,84 +34,67 @@ public class WhitebitPublicHttpClient extends PublicHttpClient {
 		});
 	}
 
-	@Override
-	protected CompletableFuture<Double> getLotSizeSymbol(String symbol) {
-		return processRequest(
-						PublicEndpoints.marketsRequest(),
-						PublicResponses.MarketsResponse.class,
-						(resp) -> resp.lotSizeSymbol(symbol)
-		);
+	private <T, U> CompletableFuture<U> processRequest(
+					SimpleHttpRequest request,
+					Class<T> responseClass,
+					Function<T, U> parser
+	) {
+		return getResponse(request, responseClass).thenApply(parser);
 	}
 
 	@Override
-	protected CompletableFuture<BookTicker> getBookTickerSymbol(String symbol) {
-		return processRequest(
-						PublicEndpoints.orderBookRequestSymbol(symbol),
-						PublicResponses.OrderBookResponse.class,
-						PublicResponses.OrderBookResponse::bookTicker
-		);
-	}
-
-	@Override
-	protected CompletableFuture<FundingRate> getFundingRateSymbol(String symbol) {
+	protected CompletableFuture<Map<String, FundingRate>> getFundingRateSymbolBatch() {
 		return processRequest(
 						PublicEndpoints.futuresRequest(),
 						PublicResponses.FuturesResponse.class,
-						(resp) -> new FundingRate(resp.fundingRate(symbol), resp.nextFundingTime(symbol), Instant.now())
+						PublicResponses.FuturesResponse::getFundingRates
 		);
 	}
 
 	@Override
-	protected CompletableFuture<Map<String, FundingRate>> getFundingRateSymbolBatch(List<String> symbols) {
-		return processRequest(
-						PublicEndpoints.futuresRequest(),
-						PublicResponses.FundingRatesResponseSymbols.class,
-						(resp) -> resp.get(symbols)
-		);
-	}
-
-	@Override
-	protected CompletableFuture<Double> getTradingVolume24hSymbol(String symbol) {
-		return processRequest(
-						PublicEndpoints.futuresRequest(),
-						PublicResponses.FuturesResponse.class,
-						(resp) -> resp.volume24hMoney(symbol)
-		);
-	}
-
-	@Override
-	protected CompletableFuture<Double> getTradingVolume1hSymbol(String symbol) {
-		return processRequest(
-						PublicEndpoints.recentTradesRequestSymbol(symbol),
-						PublicResponses.RecentTradesResponse.class,
-						PublicResponses.RecentTradesResponse::volume1hQuote
-		);
-	}
-
-	@Override
-	protected CompletableFuture<Boolean> checkExistsSymbol(String symbol) {
-		return processRequest(
+	protected CompletableFuture<Map<String, PublicOnePullData>> getPublicOnePullData() {
+		CompletableFuture<PublicResponses.MarketsResponse> marketsResponseFuture = getResponse(
 						PublicEndpoints.marketsRequest(),
-						PublicResponses.MarketsResponse.class,
-						(resp) -> resp.symbolExists(symbol)
+						PublicResponses.MarketsResponse.class
 		);
-	}
+		CompletableFuture<PublicResponses.FuturesResponse> futuresResponseFuture = getResponse(
+						PublicEndpoints.futuresRequest(),
+						PublicResponses.FuturesResponse.class
+		);
 
-	@Override
-	protected CompletableFuture<Map<String, Boolean>> getExistingSymbols(List<String> symbols) {
-		return processRequest(
-						PublicEndpoints.marketsRequest(),
-						PublicResponses.SymbolsExistsResponse.class,
-						(resp) -> resp.get(symbols)
-		);
-	}
+		return CompletableFuture.allOf(marketsResponseFuture, futuresResponseFuture).thenCompose(_ -> {
+			Map<String, Double> lotSizes = marketsResponseFuture.join().getLotSizes();
+			Map<String, Double> volumes24h = futuresResponseFuture.join().getVolume24h();
+			Map<String, Integer> fundingGranularityHours = futuresResponseFuture.join().getFundingGranularityHours();
 
-	@Override
-	protected CompletableFuture<Map<String, Integer>> getFundingGranularityHoursSymbolBatch(List<String> symbols) {
-		return processRequest(
-						PublicEndpoints.fundingGranularityRequestSymbols(),
-						PublicResponses.FundingGranularityResponse.class,
-						(resp) -> resp.get(symbols)
-		);
+			Map<String, CompletableFuture<BookTicker>> tickerFutures = new HashMap<>();
+			for (String symbol : lotSizes.keySet()) {
+				tickerFutures.put(
+							symbol,
+							processRequest(
+											PublicEndpoints.orderBookRequestSymbol(symbol),
+											PublicResponses.OrderBookResponse.class,
+											PublicResponses.OrderBookResponse::bookTicker
+							)
+				);
+			}
+
+			CompletableFuture<?>[] allTickerFutures = tickerFutures.values().toArray(new CompletableFuture[0]);
+			return CompletableFuture.allOf(allTickerFutures).thenApply(__ -> {
+				Map<String, PublicOnePullData> result = new HashMap<>();
+				for (String symbol : lotSizes.keySet()) {
+					BookTicker ticker = tickerFutures.get(symbol).join();
+					Integer granularity = fundingGranularityHours.get(symbol);
+					if (granularity == null) {
+						throw new RuntimeException("Funding granularity missing for symbol: " + symbol);
+					}
+					result.put(
+								symbol,
+								new PublicOnePullData(lotSizes.get(symbol), ticker, volumes24h.get(symbol), granularity)
+					);
+				}
+				return result;
+			});
+		});
 	}
 }

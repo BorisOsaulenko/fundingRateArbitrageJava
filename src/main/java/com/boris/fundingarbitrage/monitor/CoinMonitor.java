@@ -2,6 +2,7 @@ package com.boris.fundingarbitrage.monitor;
 
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.exchange.Instances;
+import com.boris.fundingarbitrage.exchange.publichttp.PublicOnePullData;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.Fees;
 import com.boris.fundingarbitrage.model.contract.FundingRate;
@@ -38,6 +39,7 @@ public class CoinMonitor {
 	private final ExchangeCoinMap<MarkPrice> markPrices = new ExchangeCoinMap<>();
 	private final ExchangeCoinMap<Fees> fees = new ExchangeCoinMap<>();
 	private final ExchangeCoinMap<CompletableFuture<Void>> feesFutures = new ExchangeCoinMap<>();
+	private final ExchangeCoinMap<PublicOnePullData> initialData = new ExchangeCoinMap<>();
 
 	private final CoinVector<Set<ExchangeName>> availableExchangesByCoin = new CoinVector<>();
 	private final Map<BaseExchange, Set<String>> availableCoinsByExchange = new ConcurrentHashMap<>();
@@ -127,10 +129,11 @@ public class CoinMonitor {
 		List<CompletableFuture<Void>> futures = new ArrayList<>();
 		for (BaseExchange exchange : Instances.getExchangeArray()) {
 			availableCoinsByExchange.put(exchange, ConcurrentHashMap.newKeySet());
-			CompletableFuture<Void> future = exchange.publicHttpClient.checkCoinsExist(coins).thenAccept(coinsVect -> {
-				coinsVect.filter(Boolean.TRUE::equals).forEach((coin, _) -> {
+			CompletableFuture<Void> future = exchange.publicHttpClient.getOnePullData(coins).thenAccept(coinsVect -> {
+				coinsVect.forEach((coin, data) -> {
 					availableExchangesByCoin.get(coin).add(exchange.name);
 					availableCoinsByExchange.get(exchange).add(coin);
+					initialData.put(exchange.name, coin, data);
 				});
 			}).exceptionally(err -> {
 				Logger.log("Failed to fetch available coins for " + exchange.name + ": " + err.getMessage());

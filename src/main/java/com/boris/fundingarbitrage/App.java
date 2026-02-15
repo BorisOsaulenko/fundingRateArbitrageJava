@@ -125,6 +125,6 @@ public class App {
 
 	static void main(String[] args) throws ExecutionException, InterruptedException {
 		BybitExchange exchange = new BybitExchange();
-		exchange.publicHttpClient.getFundingGranularityHours(List.of("SOL", "ETH")).thenAccept(Logger::logCoinVector).get();
+		exchange.publicHttpClient.getOnePullData(List.of("SOL", "ETH")).thenAccept(Logger::logCoinVector).get();
 	}
 }

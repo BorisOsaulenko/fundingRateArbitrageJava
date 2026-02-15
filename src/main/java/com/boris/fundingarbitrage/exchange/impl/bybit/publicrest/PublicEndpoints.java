@@ -12,16 +12,6 @@ class PublicEndpoints {
 	private static final String category = "linear";
 
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest instrumentsInfoRequestSymbol(String symbol) {
-		URI uri = new URIBuilder(baseUrl)
-						.setPath("/v5/market/instruments-info")
-						.addParameter("category", category)
-						.addParameter("symbol", symbol)
-						.build();
-		return new SimpleHttpRequest("GET", uri);
-	}
-
-	@SneakyThrows
 	public static @NonNull SimpleHttpRequest instrumentsInfoRequestSymbols() {
 		URI uri = new URIBuilder(baseUrl)
 						.setPath("/v5/market/instruments-info")
@@ -32,40 +22,8 @@ class PublicEndpoints {
 	}
 
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest tickersRequestSymbol(String symbol) {
-		URI uri = new URIBuilder(baseUrl)
-						.setPath("/v5/market/tickers")
-						.addParameter("category", category)
-						.addParameter("symbol", symbol)
-						.build();
-		return new SimpleHttpRequest("GET", uri);
-	}
-
-	@SneakyThrows
 	public static @NonNull SimpleHttpRequest tickersRequestSymbols() {
 		URI uri = new URIBuilder(baseUrl).setPath("/v5/market/tickers").addParameter("category", category).build();
-		return new SimpleHttpRequest("GET", uri);
-	}
-
-	@SneakyThrows
-	public static @NonNull SimpleHttpRequest kline1hRequestSymbol(String symbol) {
-		URI uri = new URIBuilder(baseUrl)
-						.setPath("/v5/market/kline")
-						.addParameter("category", category)
-						.addParameter("symbol", symbol)
-						.addParameter("interval", "60")
-						.addParameter("limit", "1")
-						.build();
-		return new SimpleHttpRequest("GET", uri);
-	}
-
-	@SneakyThrows
-	public static @NonNull SimpleHttpRequest fundingGranularityRequestSymbols() {
-		URI uri = new URIBuilder(baseUrl)
-						.setPath("/v5/market/instruments-info")
-						.addParameter("limit", "1000")
-						.addParameter("category", category)
-						.build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 }

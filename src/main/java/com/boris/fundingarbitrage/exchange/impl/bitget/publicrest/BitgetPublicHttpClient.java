@@ -74,6 +74,8 @@ public class BitgetPublicHttpClient extends PublicHttpClient {
 
 			Map<String, PublicOnePullData> data = new HashMap<>();
 			for (String symbol : lotSizesFuture.join().keySet()) {
+				BookTicker ticker = bookTickers.get(symbol);
+				if (ticker == null) throw new RuntimeException("Book ticker missing for symbol: " + symbol);
 				data.put(
 								symbol, new PublicOnePullData(
 												lotSizesFuture.join().get(symbol),

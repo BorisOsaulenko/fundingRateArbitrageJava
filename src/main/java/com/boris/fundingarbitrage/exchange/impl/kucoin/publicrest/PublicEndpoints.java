@@ -13,40 +13,14 @@ class PublicEndpoints {
 	private PublicEndpoints() {}
 
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest contractDetailRequestSymbol(String symbol) {
-		URI uri = new URIBuilder(baseUrl).setPath("/api/v1/contracts/" + symbol).build();
-		return new SimpleHttpRequest("GET", uri);
-	}
-
-	@SneakyThrows
 	public static @NonNull SimpleHttpRequest activeContractsRequest() {
 		URI uri = new URIBuilder(baseUrl).setPath("/api/v1/contracts/active").build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest tickerRequestSymbol(String symbol) {
-		URI uri = new URIBuilder(baseUrl).setPath("/api/v1/ticker").addParameter("symbol", symbol).build();
-		return new SimpleHttpRequest("GET", uri);
-	}
-
-	@SneakyThrows
-	public static @NonNull SimpleHttpRequest fundingRateRequestSymbol(String symbol) {
-		URI uri = new URIBuilder(baseUrl).setPath("/api/v1/funding-rate/" + symbol + "/current").build();
-		return new SimpleHttpRequest("GET", uri);
-	}
-
-	@SneakyThrows
-	public static @NonNull SimpleHttpRequest klines1hRequestSymbol(String symbol) {
-		long now = System.currentTimeMillis();
-		long oneHourAgo = now - 3_600_000L;
-		URI uri = new URIBuilder(baseUrl)
-						.setPath("/api/v1/kline/query")
-						.addParameter("symbol", symbol)
-						.addParameter("granularity", "60")
-						.addParameter("from", String.valueOf(oneHourAgo))
-						.addParameter("to", String.valueOf(now))
-						.build();
+	public static @NonNull SimpleHttpRequest allTickersRequestSymbols() {
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v1/allTickers").build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
@@ -54,11 +28,5 @@ class PublicEndpoints {
 	public static @NonNull SimpleHttpRequest publicWsToken() {
 		URI uri = new URIBuilder(baseUrl).setPath("/api/v1/bullet-public").build();
 		return new SimpleHttpRequest("POST", uri);
-	}
-
-	@SneakyThrows
-	public static @NonNull SimpleHttpRequest fundingGranularityRequestSymbols() {
-		URI uri = new URIBuilder(baseUrl).setPath("/api/v1/contracts/active").build();
-		return new SimpleHttpRequest("GET", uri);
 	}
 }
