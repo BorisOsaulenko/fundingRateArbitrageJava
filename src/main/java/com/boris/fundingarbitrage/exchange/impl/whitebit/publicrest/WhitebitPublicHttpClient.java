@@ -26,7 +26,7 @@ public class WhitebitPublicHttpClient extends PublicHttpClient {
 	private <U> CompletableFuture<U> getResponse(SimpleHttpRequest req, Class<U> responseClass) {
 		return this.client.send(req).thenApply((response) -> {
 			try {
-				return mapper.readValue(response.getBodyText(), responseClass);
+				return mapper.readValue(response.getBodyBytes(), responseClass);
 			} catch (Exception e) {
 				Logger.error(String.format("Error parsing public rest response: %s", e.getMessage()));
 				throw new RuntimeException("Failed to process request", e);
@@ -70,12 +70,11 @@ public class WhitebitPublicHttpClient extends PublicHttpClient {
 			Map<String, CompletableFuture<BookTicker>> tickerFutures = new HashMap<>();
 			for (String symbol : lotSizes.keySet()) {
 				tickerFutures.put(
-							symbol,
-							processRequest(
-											PublicEndpoints.orderBookRequestSymbol(symbol),
-											PublicResponses.OrderBookResponse.class,
-											PublicResponses.OrderBookResponse::bookTicker
-							)
+								symbol, processRequest(
+												PublicEndpoints.orderBookRequestSymbol(symbol),
+												PublicResponses.OrderBookResponse.class,
+												PublicResponses.OrderBookResponse::bookTicker
+								)
 				);
 			}
 
@@ -88,10 +87,7 @@ public class WhitebitPublicHttpClient extends PublicHttpClient {
 					if (granularity == null) {
 						throw new RuntimeException("Funding granularity missing for symbol: " + symbol);
 					}
-					result.put(
-								symbol,
-								new PublicOnePullData(lotSizes.get(symbol), ticker, volumes24h.get(symbol), granularity)
-					);
+					result.put(symbol, new PublicOnePullData(lotSizes.get(symbol), ticker, volumes24h.get(symbol), granularity));
 				}
 				return result;
 			});

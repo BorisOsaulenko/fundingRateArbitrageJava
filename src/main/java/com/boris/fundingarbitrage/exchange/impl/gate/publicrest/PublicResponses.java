@@ -37,7 +37,7 @@ class PublicResponses {
 			for (ContractResponse item : items) {
 				FundingRate fr = new FundingRate(
 								item.funding_rate(),
-								Instant.ofEpochMilli(item.funding_next_apply()),
+								Instant.ofEpochSecond(item.funding_next_apply()),
 								Instant.now()
 				);
 				result.put(item.name(), fr);

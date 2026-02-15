@@ -62,11 +62,11 @@ public class BinancePrivateHttpClient extends PrivateHttpClient {
 	) {
 		SimpleHttpRequest signedRequest = signRequest(request);
 		return this.client.sendNoCodeCheck(signedRequest).thenApply((response) -> {
-			try { // No code check because -4046: "No need to change margin type."
-				T responseObj = mapper.readValue(response.getBodyText(), responseClass);
+			try {
+				T responseObj = mapper.readValue(response.getBodyBytes(), responseClass);
 				return parser.apply(responseObj);
 			} catch (Exception e) {
-				Logger.error(String.format("Error parsing public rest response: %s", e.getMessage()));
+				Logger.error(String.format("Error parsing private rest response: %s", e.getMessage()));
 				throw new RuntimeException("Failed to process request", e);
 			}
 		});

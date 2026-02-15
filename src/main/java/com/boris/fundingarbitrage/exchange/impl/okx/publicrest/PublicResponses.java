@@ -9,15 +9,10 @@ import java.util.List;
 import java.util.Map;
 
 class PublicResponses {
-	private static void ensureOk(int code, String msg) {
-		if (code != 0) throw new RuntimeException(String.format("OKX public request failed: %s, %s", code, msg));
-	}
-
 	private record Instrument(String instId, String lotSz) {}
 
 	public record InstrumentsResponse(int code, String msg, List<Instrument> data) {
 		public Map<String, Double> getLotSizes() {
-			ensureOk(code, msg);
 			Map<String, Double> result = new HashMap<>();
 			for (Instrument item : data) result.put(item.instId(), Double.parseDouble(item.lotSz()));
 			return result;
@@ -25,36 +20,27 @@ class PublicResponses {
 	}
 
 	private record TickerItem(
-					String instId,
-					String bidPx,
-					String bidSz,
-					String askPx,
-					String askSz,
-					String volCcy24h,
-					String ts
+					String instId, String bidPx, String bidSz, String askPx, String askSz, String volCcy24h, String ts
 	) {}
 
 	public record TickersResponse(int code, String msg, List<TickerItem> data) {
 		public Map<String, BookTicker> getBookTickers() {
-			ensureOk(code, msg);
 			Map<String, BookTicker> result = new HashMap<>();
 			for (TickerItem item : data) {
 				result.put(
-							item.instId(),
-							new BookTicker(
-											Double.parseDouble(item.bidPx()),
-											Double.parseDouble(item.bidSz()),
-											Double.parseDouble(item.askPx()),
-											Double.parseDouble(item.askSz()),
-											Instant.ofEpochMilli(Long.parseLong(item.ts()))
-							)
+								item.instId(), new BookTicker(
+												Double.parseDouble(item.bidPx()),
+												Double.parseDouble(item.bidSz()),
+												Double.parseDouble(item.askPx()),
+												Double.parseDouble(item.askSz()),
+												Instant.ofEpochMilli(Long.parseLong(item.ts()))
+								)
 				);
 			}
 			return result;
 		}
 
 		public Map<String, Double> getVolume24h() {
-			ensureOk(code, msg);
 			Map<String, Double> result = new HashMap<>();
 			for (TickerItem item : data) result.put(item.instId(), Double.parseDouble(item.volCcy24h()));
 			return result;
@@ -62,32 +48,25 @@ class PublicResponses {
 	}
 
 	private record FundingRateItem(
-					String instId,
-					String fundingRate,
-					String fundingTime,
-					String nextFundingTime,
-					String ts
+					String instId, String fundingRate, String fundingTime, String nextFundingTime, String ts
 	) {}
 
 	public record FundingRatesResponse(int code, String msg, List<FundingRateItem> data) {
 		public Map<String, FundingRate> getFundingRates() {
-			ensureOk(code, msg);
 			Map<String, FundingRate> result = new HashMap<>();
 			for (FundingRateItem item : data) {
 				result.put(
-							item.instId(),
-							new FundingRate(
-											Double.parseDouble(item.fundingRate()),
-											Instant.ofEpochMilli(Long.parseLong(item.nextFundingTime())),
-											Instant.ofEpochMilli(Long.parseLong(item.ts()))
-							)
+								item.instId(), new FundingRate(
+												Double.parseDouble(item.fundingRate()),
+												Instant.ofEpochMilli(Long.parseLong(item.fundingTime())),
+												Instant.ofEpochMilli(Long.parseLong(item.ts()))
+								)
 				);
 			}
 			return result;
 		}
 
 		public Map<String, Integer> getFundingGranularityHours() {
-			ensureOk(code, msg);
 			Map<String, Integer> result = new HashMap<>();
 			for (FundingRateItem item : data) {
 				long fundingTime = Long.parseLong(item.fundingTime());

@@ -30,7 +30,7 @@ public class BinancePublicHttpClient extends PublicHttpClient {
 	) {
 		return this.client.send(request).thenApply((response) -> {
 			try {
-				T responseObj = mapper.readValue(response.getBodyText(), responseClass);
+				T responseObj = mapper.readValue(response.getBodyBytes(), responseClass);
 				return parser.apply(responseObj);
 			} catch (Exception e) {
 				Logger.error(String.format("Error parsing public rest response: %s", e.getMessage()));
@@ -79,13 +79,25 @@ public class BinancePublicHttpClient extends PublicHttpClient {
 						.thenApply(_ -> {
 							Map<String, PublicOnePullData> data = new HashMap<>();
 							for (String symbol : lotSizesFuture.join().keySet()) {
-								double lotSize = lotSizesFuture.join().get(symbol);
-								double volume24h = volumes24hFuture.join().get(symbol);
-								BookTicker ticker = bookTickersFuture.join().get(symbol);
-								if (ticker == null) throw new RuntimeException("Book ticker missing for symbol: " + symbol);
-								int fundingGranularity = fundingGranularityFuture.join().get(symbol);
-
-								data.put(symbol, new PublicOnePullData(lotSize, ticker, volume24h, fundingGranularity));
+								try {
+									double lotSize = lotSizesFuture.join().get(symbol);
+									double volume24h = volumes24hFuture.join().get(symbol);
+									BookTicker ticker = bookTickersFuture.join().get(symbol);
+									int fundingGranularity = fundingGranularityFuture.join().get(symbol);
+									data.put(symbol, new PublicOnePullData(lotSize, ticker, volume24h, fundingGranularity));
+								} catch (Exception e) {
+									Logger.error(e.getMessage());
+									Logger.log("Failed to parse symbol: " +
+														 symbol +
+														 ". Data: BookTicker:" +
+														 bookTickersFuture.join().get(symbol) +
+														 ", Volume24h: " +
+														 volumes24hFuture.join().get(symbol) +
+														 ", LotSize: " +
+														 lotSizesFuture.join().get(symbol) +
+														 ", FundingGranularity: " +
+														 fundingGranularityFuture.join().get(symbol));
+								}
 							}
 
 							return data;

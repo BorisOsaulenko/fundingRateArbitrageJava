@@ -28,10 +28,10 @@ public class KucoinPublicHttpClient extends PublicHttpClient {
 	private <U> CompletableFuture<U> getResponse(SimpleHttpRequest req, Class<U> responseClass) {
 		return this.client.send(req).thenApply((response) -> {
 			try {
-				return mapper.readValue(response.getBodyText(), responseClass);
+				return mapper.readValue(response.getBodyBytes(), responseClass);
 			} catch (Exception e) {
-				Logger.error(String.format("Error parsing KuCoin public rest response: %s", e.getMessage()));
-				throw new RuntimeException("Failed to process KuCoin request", e);
+				Logger.error(String.format("Error parsing public rest response: %s", e.getMessage()));
+				throw new RuntimeException("Failed to process request", e);
 			}
 		});
 	}

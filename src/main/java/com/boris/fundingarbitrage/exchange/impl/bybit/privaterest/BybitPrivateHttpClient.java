@@ -72,7 +72,7 @@ public class BybitPrivateHttpClient extends PrivateHttpClient {
 		SimpleHttpRequest signedRequest = signRequest(request);
 		return this.client.sendNoCodeCheck(signedRequest).thenApply((response) -> {
 			try {
-				T responseObj = mapper.readValue(response.getBodyText(), responseClass);
+				T responseObj = mapper.readValue(response.getBodyBytes(), responseClass);
 				return parser.apply(responseObj);
 			} catch (Exception e) {
 				Logger.error(String.format("Error parsing private rest response: %s", e.getMessage()));

@@ -26,9 +26,9 @@ public class OkxPublicHttpClient extends PublicHttpClient {
 	private <U> CompletableFuture<U> getResponse(SimpleHttpRequest req, Class<U> responseClass) {
 		return this.client.send(req).thenApply((response) -> {
 			try {
-				return mapper.readValue(response.getBodyText(), responseClass);
+				return mapper.readValue(response.getBodyBytes(), responseClass);
 			} catch (Exception e) {
-				Logger.error(String.format("Error parsing OKX public rest response: %s", e.getMessage()));
+				Logger.error(String.format("Error parsing public rest response: %s", e.getMessage()));
 				throw new RuntimeException("Failed to process request", e);
 			}
 		});
@@ -84,8 +84,8 @@ public class OkxPublicHttpClient extends PublicHttpClient {
 								}
 
 								data.put(
-										symbol,
-										new PublicOnePullData(lotSizes.get(symbol), ticker, volumes24h.get(symbol), granularity)
+												symbol,
+												new PublicOnePullData(lotSizes.get(symbol), ticker, volumes24h.get(symbol), granularity)
 								);
 							}
 							return data;

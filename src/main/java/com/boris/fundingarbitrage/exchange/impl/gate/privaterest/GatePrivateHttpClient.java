@@ -44,7 +44,15 @@ public class GatePrivateHttpClient extends PrivateHttpClient {
 			if (body == null) body = "";
 			String hashedBody = Signers.signSha512Hex(body);
 
-			String payload = method + "\n" + path + "\n" + (query == null ? "" : query) + "\n" + hashedBody + "\n" + timestamp;
+			String payload = method +
+											 "\n" +
+											 path +
+											 "\n" +
+											 (query == null ? "" : query) +
+											 "\n" +
+											 hashedBody +
+											 "\n" +
+											 timestamp;
 			String signature = Signers.signHmacSha512Hex(payload, credentials.apiSecret());
 
 			request.setHeader("KEY", credentials.apiKey());
@@ -66,7 +74,7 @@ public class GatePrivateHttpClient extends PrivateHttpClient {
 		SimpleHttpRequest signedRequest = signRequest(request);
 		return this.client.sendNoCodeCheck(signedRequest).thenApply((response) -> {
 			try {
-				T responseObj = mapper.readValue(response.getBodyText(), responseClass);
+				T responseObj = mapper.readValue(response.getBodyBytes(), responseClass);
 				return parser.apply(responseObj);
 			} catch (Exception e) {
 				Logger.error(String.format("Error parsing private rest response: %s", e.getMessage()));

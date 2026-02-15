@@ -13,15 +13,16 @@ import java.util.Map;
 
 public class PublicResponses {
 
-	public record ExchangeInfoResponse(SymbolInfo[] symbols) {
+	public record ExchangeInfoResponse(List<SymbolInfo> symbols) {
 		private record Filter(String filterType, String minQty, String maxQty, String stepSize) {}
 
-		private record SymbolInfo(String symbol, Filter[] filters) {}
+		private record SymbolInfo(String symbol, String status, String contractType, Filter[] filters) {}
 
 		public Map<String, Double> getLotSizes() {
 			Map<String, Double> result = new HashMap<>();
 
 			for (SymbolInfo info : symbols) {
+				if (!"TRADING".equalsIgnoreCase(info.status()) || !"PERPETUAL".equalsIgnoreCase(info.contractType())) continue;
 				for (Filter filter : info.filters()) {
 					if (filter.filterType().equals("LOT_SIZE")) {
 						result.put(info.symbol(), Double.parseDouble(filter.stepSize()));
