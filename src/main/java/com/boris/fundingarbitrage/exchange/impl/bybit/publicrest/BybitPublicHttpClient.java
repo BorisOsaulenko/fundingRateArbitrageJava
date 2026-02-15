@@ -67,7 +67,7 @@ public class BybitPublicHttpClient extends PublicHttpClient {
 	}
 
 	@Override
-	protected CompletableFuture<Map<String, FundingRate>> getFundingRateSymbols(List<String> symbols) {
+	protected CompletableFuture<Map<String, FundingRate>> getFundingRateSymbolBatch(List<String> symbols) {
 		return processRequest(
 						PublicEndpoints.tickersRequestSymbols(),
 						PublicResponses.FundingRatesResponseSymbols.class,
@@ -119,7 +119,7 @@ public class BybitPublicHttpClient extends PublicHttpClient {
 	}
 
 	@Override
-	protected CompletableFuture<Map<String, Boolean>> checkExistsSymbols(List<String> symbols) {
+	protected CompletableFuture<Map<String, Boolean>> getExistingSymbols(List<String> symbols) {
 		return processRequest(
 						PublicEndpoints.instrumentsInfoRequestSymbols(),
 						PublicResponses.InstrumentsInfoSymbolsResponse.class,
@@ -128,7 +128,7 @@ public class BybitPublicHttpClient extends PublicHttpClient {
 	}
 
 	@Override
-	protected CompletableFuture<Map<String, Integer>> getFundingGranularityHoursSymbols(List<String> symbols) {
+	protected CompletableFuture<Map<String, Integer>> getFundingGranularityHoursSymbolBatch(List<String> symbols) {
 		return processRequest(
 						PublicEndpoints.fundingGranularityRequestSymbols(),
 						PublicResponses.FundingGranularityResponse.class,

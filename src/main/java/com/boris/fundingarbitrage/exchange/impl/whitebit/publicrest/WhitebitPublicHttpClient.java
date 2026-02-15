@@ -67,7 +67,7 @@ public class WhitebitPublicHttpClient extends PublicHttpClient {
 	}
 
 	@Override
-	protected CompletableFuture<Map<String, FundingRate>> getFundingRateSymbols(List<String> symbols) {
+	protected CompletableFuture<Map<String, FundingRate>> getFundingRateSymbolBatch(List<String> symbols) {
 		return processRequest(
 						PublicEndpoints.futuresRequest(),
 						PublicResponses.FundingRatesResponseSymbols.class,
@@ -103,7 +103,7 @@ public class WhitebitPublicHttpClient extends PublicHttpClient {
 	}
 
 	@Override
-	protected CompletableFuture<Map<String, Boolean>> checkExistsSymbols(List<String> symbols) {
+	protected CompletableFuture<Map<String, Boolean>> getExistingSymbols(List<String> symbols) {
 		return processRequest(
 						PublicEndpoints.marketsRequest(),
 						PublicResponses.SymbolsExistsResponse.class,
@@ -112,7 +112,7 @@ public class WhitebitPublicHttpClient extends PublicHttpClient {
 	}
 
 	@Override
-	protected CompletableFuture<Map<String, Integer>> getFundingGranularityHoursSymbols(List<String> symbols) {
+	protected CompletableFuture<Map<String, Integer>> getFundingGranularityHoursSymbolBatch(List<String> symbols) {
 		return processRequest(
 						PublicEndpoints.fundingGranularityRequestSymbols(),
 						PublicResponses.FundingGranularityResponse.class,
