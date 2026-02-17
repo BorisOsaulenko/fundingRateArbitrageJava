@@ -20,7 +20,6 @@ public abstract class PrivateRestTest {
 	private static final long REQUEST_TIMEOUT_SECONDS = 8;
 	private static final double MAX_ABS_FEE = 0.02;
 	private final String testCoin = "SOL";
-	private final String batchCoin = "BTC";
 	private final Duration timestampTolerance = Duration.ofSeconds(2);
 
 	private static <T> T getWithTimeout(CompletableFuture<T> future) throws Exception {
@@ -57,6 +56,7 @@ public abstract class PrivateRestTest {
 
 	@Test
 	public void getTradingFeesBatchTest() throws Exception {
+		String batchCoin = "BTC";
 		List<String> coins = List.of(testCoin, batchCoin);
 		var feesByCoin = getWithTimeout(privateRest().getTradingFees(coins));
 		assertNotNull(feesByCoin, "Batch fees result should not be null");

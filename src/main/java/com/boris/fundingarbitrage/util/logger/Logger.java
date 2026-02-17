@@ -13,7 +13,6 @@ import java.time.Instant;
 
 public class Logger {
 	private static BufferedWriter writer;
-	private static Logger INSTANCE = new Logger(null);
 	private static boolean initCalled = false;
 
 	private Logger(Path logFilePath) {

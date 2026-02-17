@@ -26,9 +26,7 @@ public abstract class PrivateHttpClient {
 
 	protected abstract SimpleHttpRequest signRequest(SimpleHttpRequest request);
 
-	protected abstract CompletableFuture<Fees> getTradingFeesSymbol(String symbol);
-
-	protected abstract CompletableFuture<Map<String, Fees>> getTradingFeesSymbols(List<String> symbols);
+	protected abstract CompletableFuture<Map<String, Fees>> getTradingFeesSymbolBatch(List<String> symbols);
 
 	protected abstract CompletableFuture<Void> changeLeverageSymbol(String symbol, int leverage);
 
@@ -38,7 +36,7 @@ public abstract class PrivateHttpClient {
 
 	public abstract CompletableFuture<Double> getFuturesUsdtBalance();
 
-	protected abstract CompletableFuture<Integer> getMaxLeverageSymbol(String symbol);
+	protected abstract CompletableFuture<Map<String, Integer>> getMaxLeverageSymbolBatch(List<String> symbols);
 
 	public abstract CompletableFuture<ExchangeChains> getSupportedChains();
 
@@ -64,6 +62,21 @@ public abstract class PrivateHttpClient {
 		return symbolGetter.apply(symbol);
 	}
 
+	private <T> CompletableFuture<CoinVector<T>> withSymbolBatch(
+					List<String> coins,
+					Function<List<String>, CompletableFuture<Map<String, T>>> symbolGetter
+	) {
+		List<String> symbols = coins.stream().map(exchangeContext::getSymbol).toList();
+		return symbolGetter.apply(symbols).thenApply(resultBySymbol -> {
+			CoinVector<T> result = new CoinVector<>();
+			for (String coin : coins) {
+				String symbol = exchangeContext.getSymbol(coin);
+				result.put(coin, resultBySymbol.get(symbol));
+			}
+			return result;
+		});
+	}
+
 	private <T> CompletableFuture<Map<String, T>> withSymbol(
 					List<String> coins,
 					Function<List<String>, CompletableFuture<Map<String, T>>> symbolGetter
@@ -72,23 +85,12 @@ public abstract class PrivateHttpClient {
 		return symbolGetter.apply(symbols);
 	}
 
-	public CompletableFuture<Integer> getMaxLeverage(String coin) {
-		return withSymbol(coin, this::getMaxLeverageSymbol);
-	}
-
-	public CompletableFuture<Fees> getTradingFees(String coin) {
-		return withSymbol(coin, this::getTradingFeesSymbol);
+	public CompletableFuture<CoinVector<Integer>> getMaxLeverage(List<String> coins) {
+		return withSymbolBatch(coins, this::getMaxLeverageSymbolBatch);
 	}
 
 	public CompletableFuture<CoinVector<Fees>> getTradingFees(List<String> coins) {
-		return withSymbol(coins, this::getTradingFeesSymbols).thenApply(resultBySymbol -> {
-			CoinVector<Fees> result = new CoinVector<>();
-			for (String coin : coins) {
-				String symbol = exchangeContext.getSymbol(coin);
-				result.put(coin, resultBySymbol.get(symbol));
-			}
-			return result;
-		});
+		return withSymbolBatch(coins, this::getTradingFeesSymbolBatch);
 	}
 
 	public CompletableFuture<Void> changeLeverage(String coin, int leverage) {

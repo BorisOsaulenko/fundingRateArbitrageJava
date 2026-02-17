@@ -84,16 +84,7 @@ public class GatePrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
-	protected CompletableFuture<Fees> getTradingFeesSymbol(String symbol) {
-		return processRequest(
-						PrivateEndpoints.tradingFeesRequestSymbol(symbol),
-						PrivateResponses.TradingFeesResponse.class,
-						PrivateResponses.TradingFeesResponse::getFees
-		);
-	}
-
-	@Override
-	protected CompletableFuture<Map<String, Fees>> getTradingFeesSymbols(List<String> symbols) {
+	protected CompletableFuture<Map<String, Fees>> getTradingFeesSymbolBatch(List<String> symbols) {
 		return processRequest(
 						PrivateEndpoints.tradingFeesRequestSymbols(),
 						PrivateResponses.TradingFeesSymbolsResponse.class,
@@ -138,7 +129,7 @@ public class GatePrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
-	protected CompletableFuture<Integer> getMaxLeverageSymbol(String symbol) {
+	protected CompletableFuture<Integer> getMaxLeverageSymbolBatch(String symbol) {
 		return processRequest(
 						PrivateEndpoints.maxLeverageRequestSymbol(symbol),
 						PrivateResponses.MaxLeverageResponse.class,

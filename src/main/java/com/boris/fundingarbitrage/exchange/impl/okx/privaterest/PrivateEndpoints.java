@@ -36,19 +36,16 @@ public class PrivateEndpoints {
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest tradingFeesRequestSymbol(String symbol) {
 		URI uri = new URIBuilder(baseUrl)
-					.setPath("/api/v5/account/trade-fee")
-					.addParameter("instType", instType)
-					.addParameter("instFamily", instFamilyFromSymbol(symbol))
-					.build();
+						.setPath("/api/v5/account/trade-fee")
+						.addParameter("instType", instType)
+						.addParameter("instFamily", instFamilyFromSymbol(symbol))
+						.build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest tradingFeesRequestSymbols() {
-		URI uri = new URIBuilder(baseUrl)
-					.setPath("/api/v5/account/trade-fee")
-					.addParameter("instType", instType)
-					.build();
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v5/account/trade-fee").addParameter("instType", instType).build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
@@ -63,57 +60,54 @@ public class PrivateEndpoints {
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest leverageInfoRequestSymbol(String symbol, MarginMode mode) {
 		URI uri = new URIBuilder(baseUrl)
-					.setPath("/api/v5/account/leverage-info")
-					.addParameter("instId", symbol)
-					.addParameter("mgnMode", mode == MarginMode.CROSS ? "cross" : "isolated")
-					.build();
+						.setPath("/api/v5/account/leverage-info")
+						.addParameter("instId", symbol)
+						.addParameter("mgnMode", mode == MarginMode.CROSS ? "cross" : "isolated")
+						.build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest spotUsdtBalanceRequest() {
-		URI uri = new URIBuilder(baseUrl)
-					.setPath("/api/v5/asset/balances")
-					.addParameter("ccy", "USDT")
-					.build();
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v5/asset/balances").addParameter("ccy", "USDT").build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest futuresUsdtBalanceRequest() {
-		URI uri = new URIBuilder(baseUrl)
-					.setPath("/api/v5/account/balance")
-					.addParameter("ccy", "USDT")
-					.build();
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v5/account/balance").addParameter("ccy", "USDT").build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest instrumentsRequestSymbol(String symbol) {
 		URI uri = new URIBuilder(baseUrl)
-					.setPath("/api/v5/public/instruments")
-					.addParameter("instType", instType)
-					.addParameter("instId", symbol)
-					.build();
+						.setPath("/api/v5/public/instruments")
+						.addParameter("instType", instType)
+						.addParameter("instId", symbol)
+						.build();
+		return new SimpleHttpRequest("GET", uri);
+	}
+
+	@SneakyThrows
+	public static @NonNull SimpleHttpRequest instrumentsRequest() {
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v5/public/instruments").addParameter("instType", instType).build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest supportedChainsRequest() {
-		URI uri = new URIBuilder(baseUrl)
-					.setPath("/api/v5/asset/currencies")
-					.addParameter("ccy", "USDT")
-					.build();
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v5/asset/currencies").addParameter("ccy", "USDT").build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest usdtWalletAddressRequest(SupportedChain chain) {
 		URI uri = new URIBuilder(baseUrl)
-					.setPath("/api/v5/asset/deposit-address")
-					.addParameter("ccy", "USDT")
-					.addParameter("chain", ChainsMap.get(chain))
-					.build();
+						.setPath("/api/v5/asset/deposit-address")
+						.addParameter("ccy", "USDT")
+						.addParameter("chain", ChainsMap.get(chain))
+						.build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
@@ -152,10 +146,10 @@ public class PrivateEndpoints {
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest orderRecordRequestSymbol(String orderId, String symbol) {
 		URI uri = new URIBuilder(baseUrl)
-					.setPath("/api/v5/trade/fills")
-					.addParameter("instId", symbol)
-					.addParameter("ordId", orderId)
-					.build();
+						.setPath("/api/v5/trade/fills")
+						.addParameter("instId", symbol)
+						.addParameter("ordId", orderId)
+						.build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 

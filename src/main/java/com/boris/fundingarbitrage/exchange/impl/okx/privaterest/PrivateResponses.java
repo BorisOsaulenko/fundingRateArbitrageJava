@@ -142,7 +142,7 @@ public class PrivateResponses {
 		}
 	}
 
-	public record MaxLeverageResponse(String code, String msg, JsonNode data) {
+	public record InstrumentsResponse(String code, String msg, JsonNode data) {
 		public int get(String symbol) {
 			ensureOk(code, msg);
 			if (data == null || !data.isArray() || data.isEmpty()) {

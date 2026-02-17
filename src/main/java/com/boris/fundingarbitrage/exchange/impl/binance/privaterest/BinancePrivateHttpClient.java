@@ -73,13 +73,7 @@ public class BinancePrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
-	protected CompletableFuture<Fees> getTradingFeesSymbol(String symbol) {
-		return CompletableFuture.completedFuture(new Fees(0.0002, 0.0005, 0.0002, 0.0005, Instant.now()));
-		// Correct unless User is Binance VIP 1+ or has BNB balance for fee discount
-	}
-
-	@Override
-	protected CompletableFuture<Map<String, Fees>> getTradingFeesSymbols(List<String> symbols) {
+	protected CompletableFuture<Map<String, Fees>> getTradingFeesSymbolBatch(List<String> symbols) {
 		return CompletableFuture.completedFuture(symbols
 						.stream()
 						.collect(Collectors.toMap(symbol -> symbol, _ -> new Fees(0.0002, 0.0005, 0.0002, 0.0005, Instant.now()))));
@@ -122,7 +116,7 @@ public class BinancePrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
-	protected CompletableFuture<Integer> getMaxLeverageSymbol(String symbol) {
+	protected CompletableFuture<Integer> getMaxLeverageSymbolBatch(String symbol) {
 		return processRequest(
 						PrivateEndpoints.maxLeverageRequestSymbol(symbol),
 						PrivateResponses.MaxLeverageResponse.class,

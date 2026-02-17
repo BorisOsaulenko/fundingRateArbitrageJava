@@ -76,4 +76,10 @@ public class BitgetPublicWsClient extends PublicWsClient {
 	private void sendPing() {
 		sendMessage("ping");
 	}
+
+	@Override
+	public void close() {
+		super.close();
+		pingExecutor.close();
+	}
 }

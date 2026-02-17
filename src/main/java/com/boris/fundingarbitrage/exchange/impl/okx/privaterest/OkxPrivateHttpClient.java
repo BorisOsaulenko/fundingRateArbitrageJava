@@ -81,16 +81,7 @@ public class OkxPrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
-	protected CompletableFuture<Fees> getTradingFeesSymbol(String symbol) {
-		return processRequest(
-						PrivateEndpoints.tradingFeesRequestSymbol(symbol),
-						PrivateResponses.TradingFeesResponse.class,
-						PrivateResponses.TradingFeesResponse::getFees
-		);
-	}
-
-	@Override
-	protected CompletableFuture<Map<String, Fees>> getTradingFeesSymbols(List<String> symbols) {
+	protected CompletableFuture<Map<String, Fees>> getTradingFeesSymbolBatch(List<String> symbols) {
 		return processRequest(
 						PrivateEndpoints.tradingFeesRequestSymbols(),
 						PrivateResponses.TradingFeesSymbolsResponse.class,
@@ -139,10 +130,10 @@ public class OkxPrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
-	protected CompletableFuture<Integer> getMaxLeverageSymbol(String symbol) {
+	protected CompletableFuture<Integer> getMaxLeverageSymbolBatch(String symbol) {
 		return processRequest(
 						PrivateEndpoints.instrumentsRequestSymbol(symbol),
-						PrivateResponses.MaxLeverageResponse.class,
+						PrivateResponses.InstrumentsResponse.class,
 						(resp) -> resp.get(symbol)
 		);
 	}

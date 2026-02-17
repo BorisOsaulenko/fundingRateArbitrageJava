@@ -82,16 +82,7 @@ public class BybitPrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
-	protected CompletableFuture<Fees> getTradingFeesSymbol(String symbol) {
-		return processRequest(
-						PrivateEndpoints.tradingFeesRequest(symbol),
-						PrivateResponses.TradingFeesResponse.class,
-						(resp) -> resp.getFees(symbol)
-		);
-	}
-
-	@Override
-	protected CompletableFuture<Map<String, Fees>> getTradingFeesSymbols(List<String> symbols) {
+	protected CompletableFuture<Map<String, Fees>> getTradingFeesSymbolBatch(List<String> symbols) {
 		return processRequest(
 						PrivateEndpoints.tradingFeesRequestSymbols(),
 						PrivateResponses.TradingFeesSymbolsResponse.class,
@@ -136,7 +127,7 @@ public class BybitPrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
-	protected CompletableFuture<Integer> getMaxLeverageSymbol(String symbol) {
+	protected CompletableFuture<Integer> getMaxLeverageSymbolBatch(String symbol) {
 		return processRequest(
 						PrivateEndpoints.maxLeverageRequest(symbol),
 						PrivateResponses.MaxLeverageResponse.class,
