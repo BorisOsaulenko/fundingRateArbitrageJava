@@ -66,31 +66,19 @@ public class WhitebitPublicHttpClient extends PublicHttpClient {
 			Map<String, Double> lotSizes = marketsResponseFuture.join().getLotSizes();
 			Map<String, Double> volumes24h = futuresResponseFuture.join().getVolume24h();
 			Map<String, Integer> fundingGranularityHours = futuresResponseFuture.join().getFundingGranularityHours();
+			Map<String, BookTicker> bookTickers = futuresResponseFuture.join().getBookTickers();
 
-			Map<String, CompletableFuture<BookTicker>> tickerFutures = new HashMap<>();
+			Map<String, PublicOnePullData> data = new HashMap<>();
 			for (String symbol : lotSizes.keySet()) {
-				tickerFutures.put(
-								symbol, processRequest(
-												PublicEndpoints.orderBookRequestSymbol(symbol),
-												PublicResponses.OrderBookResponse.class,
-												PublicResponses.OrderBookResponse::bookTicker
-								)
+				var symbolData = new PublicOnePullData(
+								lotSizes.get(symbol),
+								bookTickers.get(symbol),
+								volumes24h.get(symbol),
+								fundingGranularityHours.get(symbol)
 				);
+				data.put(symbol, symbolData);
 			}
-
-			CompletableFuture<?>[] allTickerFutures = tickerFutures.values().toArray(new CompletableFuture[0]);
-			return CompletableFuture.allOf(allTickerFutures).thenApply(__ -> {
-				Map<String, PublicOnePullData> result = new HashMap<>();
-				for (String symbol : lotSizes.keySet()) {
-					BookTicker ticker = tickerFutures.get(symbol).join();
-					Integer granularity = fundingGranularityHours.get(symbol);
-					if (granularity == null) {
-						throw new RuntimeException("Funding granularity missing for symbol: " + symbol);
-					}
-					result.put(symbol, new PublicOnePullData(lotSizes.get(symbol), ticker, volumes24h.get(symbol), granularity));
-				}
-				return result;
-			});
+			return CompletableFuture.completedFuture(data);
 		});
 	}
 }

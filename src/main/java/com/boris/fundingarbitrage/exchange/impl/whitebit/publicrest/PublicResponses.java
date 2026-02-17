@@ -46,6 +46,8 @@ class PublicResponses {
 					String ticker_id,
 					String money_volume,
 					String funding_rate,
+					double bid,
+					double ask,
 					long next_funding_rate_timestamp,
 					int funding_interval_minutes
 	) {}
@@ -70,12 +72,11 @@ class PublicResponses {
 			Instant now = Instant.now();
 			for (FuturesEntry entry : result) {
 				resultMap.put(
-							entry.ticker_id(),
-							new FundingRate(
-											Double.parseDouble(entry.funding_rate()),
-											parseFundingTimestamp(entry.next_funding_rate_timestamp()),
-											now
-							)
+								entry.ticker_id(), new FundingRate(
+												Double.parseDouble(entry.funding_rate()),
+												parseFundingTimestamp(entry.next_funding_rate_timestamp()),
+												now
+								)
 				);
 			}
 			return resultMap;
@@ -86,6 +87,17 @@ class PublicResponses {
 			Map<String, Integer> resultMap = new HashMap<>();
 			for (FuturesEntry entry : result) {
 				resultMap.put(entry.ticker_id(), entry.funding_interval_minutes() / 60);
+			}
+			return resultMap;
+		}
+
+		public Map<String, BookTicker> getBookTickers() {
+			requireSuccess();
+			Map<String, BookTicker> resultMap = new HashMap<>();
+			for (FuturesEntry entry : result) {
+				// We use 10 because Whitebit does not provide the bid/ask sizes. Does not affect logic.
+				BookTicker ticker = new BookTicker(entry.bid(), 10, entry.ask(), 10, Instant.now());
+				resultMap.put(entry.ticker_id(), ticker);
 			}
 			return resultMap;
 		}
