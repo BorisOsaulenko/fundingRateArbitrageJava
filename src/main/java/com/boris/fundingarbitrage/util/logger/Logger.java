@@ -37,7 +37,6 @@ public class Logger {
 		if (initCalled) {
 			throw new IllegalStateException("Logger constructor called more than once");
 		}
-		INSTANCE = new Logger(logFilePath);
 		initCalled = true;
 		System.out.println("Logger initialized. Log file: " +
 											 (logFilePath != null ? logFilePath.toAbsolutePath() : "None (console only)"));

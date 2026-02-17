@@ -42,19 +42,10 @@ public class PrivateResponses {
 	}
 
 	public record TradingFeesSymbolsResponse(String code, String msg, JsonNode data) {
-		public Map<String, Fees> getFeesBySymbols(List<String> symbols) {
-			if (!expectedSuccessCode.equals(code)) {
-				throw new IllegalStateException("KuCoin active contracts response code not OK: " + code + ", msg: " + msg);
-			}
-			if (data == null || !data.isArray()) {
-				throw new IllegalStateException("KuCoin active contracts data missing");
-			}
-
+		public Map<String, Fees> getFeesBySymbols() {
 			Map<String, Fees> feesBySymbol = new HashMap<>();
 			for (JsonNode contract : data) {
 				String symbol = contract.path("symbol").asText();
-				if (!symbols.contains(symbol)) continue;
-
 				JsonNode makerNode = contract.get("makerFeeRate");
 				JsonNode takerNode = contract.get("takerFeeRate");
 				if (makerNode == null || makerNode.isNull()) continue;
@@ -128,18 +119,13 @@ public class PrivateResponses {
 		}
 	}
 
-	public record MaxLeverageResponse(String code, String msg, JsonNode data) {
-		public int get() {
-			if (!expectedSuccessCode.equals(code)) {
-				throw new IllegalStateException("KuCoin contract detail response code not OK: " + code + ", msg: " + msg);
-			}
-			if (data == null || !data.isObject()) {
-				throw new IllegalStateException("KuCoin contract detail data missing");
-			}
-			double maxLeverage = data.path("maxLeverage").asDouble();
-			if (maxLeverage == 0.0) throw new IllegalStateException("KuCoin maxLeverage missing");
+	private record MaxLeverageItem(String symbol, double maxLeverage) {}
 
-			return (int) Math.round(maxLeverage);
+	public record MaxLeverageResponse(String code, String msg, List<MaxLeverageItem> data) {
+		public Map<String, Integer> get() {
+			Map<String, Integer> result = new HashMap<>();
+			for (MaxLeverageItem item : data) result.put(item.symbol(), (int) Math.round(item.maxLeverage));
+			return result;
 		}
 	}
 

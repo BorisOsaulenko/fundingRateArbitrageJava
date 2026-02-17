@@ -9,6 +9,7 @@ import com.boris.fundingarbitrage.model.contract.Fees;
 import com.boris.fundingarbitrage.model.contract.PartialFill;
 import com.boris.fundingarbitrage.model.exchange.ExchangeChains;
 import com.boris.fundingarbitrage.model.exchange.WalletAddress;
+import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import com.boris.fundingarbitrage.util.cryptography.Signers;
 import com.boris.fundingarbitrage.util.https.Helpers;
 import com.boris.fundingarbitrage.util.https.PrettyHttpClient;
@@ -24,7 +25,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 public class BinancePrivateHttpClient extends PrivateHttpClient {
 	private final ObjectMapper mapper = ObjectMapperSingleton.getInstance();
@@ -73,10 +73,17 @@ public class BinancePrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
-	protected CompletableFuture<Map<String, Fees>> getTradingFeesSymbolBatch(List<String> symbols) {
-		return CompletableFuture.completedFuture(symbols
-						.stream()
-						.collect(Collectors.toMap(symbol -> symbol, _ -> new Fees(0.0002, 0.0005, 0.0002, 0.0005, Instant.now()))));
+	protected CompletableFuture<Map<String, Fees>> getTradingFeesSymbolBatch() {
+		return null;
+	}
+
+	@Override
+	public CompletableFuture<CoinVector<Fees>> getTradingFees(List<String> coins) {
+		CoinVector<Fees> fees = new CoinVector<>();
+		for (String coin : coins) {
+			fees.put(coin, new Fees(0.0002, 0.0005, 0.0002, 0.0005, Instant.now()));
+		} // those fees are true, for binance vip level = 1, not going out of that for some time :)
+		return CompletableFuture.completedFuture(fees);
 	}
 
 	@Override
@@ -116,9 +123,9 @@ public class BinancePrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
-	protected CompletableFuture<Integer> getMaxLeverageSymbolBatch(String symbol) {
+	protected CompletableFuture<Map<String, Integer>> getMaxLeverageSymbolBatch() {
 		return processRequest(
-						PrivateEndpoints.maxLeverageRequestSymbol(symbol),
+						PrivateEndpoints.maxLeverageRequest(),
 						PrivateResponses.MaxLeverageResponse.class,
 						PrivateResponses.MaxLeverageResponse::get
 		);

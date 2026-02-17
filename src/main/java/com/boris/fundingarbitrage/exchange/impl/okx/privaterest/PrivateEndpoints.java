@@ -25,26 +25,8 @@ public class PrivateEndpoints {
 		return request;
 	}
 
-	private static String instFamilyFromSymbol(String symbol) {
-		int lastDash = symbol.lastIndexOf('-');
-		if (lastDash <= 0) {
-			throw new IllegalArgumentException("Unexpected OKX symbol format: " + symbol);
-		}
-		return symbol.substring(0, lastDash);
-	}
-
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest tradingFeesRequestSymbol(String symbol) {
-		URI uri = new URIBuilder(baseUrl)
-						.setPath("/api/v5/account/trade-fee")
-						.addParameter("instType", instType)
-						.addParameter("instFamily", instFamilyFromSymbol(symbol))
-						.build();
-		return new SimpleHttpRequest("GET", uri);
-	}
-
-	@SneakyThrows
-	public static @NonNull SimpleHttpRequest tradingFeesRequestSymbols() {
+	public static @NonNull SimpleHttpRequest tradingFeesRequest() {
 		URI uri = new URIBuilder(baseUrl).setPath("/api/v5/account/trade-fee").addParameter("instType", instType).build();
 		return new SimpleHttpRequest("GET", uri);
 	}
@@ -76,16 +58,6 @@ public class PrivateEndpoints {
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest futuresUsdtBalanceRequest() {
 		URI uri = new URIBuilder(baseUrl).setPath("/api/v5/account/balance").addParameter("ccy", "USDT").build();
-		return new SimpleHttpRequest("GET", uri);
-	}
-
-	@SneakyThrows
-	public static @NonNull SimpleHttpRequest instrumentsRequestSymbol(String symbol) {
-		URI uri = new URIBuilder(baseUrl)
-						.setPath("/api/v5/public/instruments")
-						.addParameter("instType", instType)
-						.addParameter("instId", symbol)
-						.build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 

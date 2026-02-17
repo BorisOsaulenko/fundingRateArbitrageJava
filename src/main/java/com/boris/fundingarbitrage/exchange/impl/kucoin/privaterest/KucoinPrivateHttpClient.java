@@ -89,11 +89,11 @@ public class KucoinPrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
-	protected CompletableFuture<Map<String, Fees>> getTradingFeesSymbolBatch(List<String> symbols) {
+	protected CompletableFuture<Map<String, Fees>> getTradingFeesSymbolBatch() {
 		return processRequest(
-						PrivateEndpoints.tradingFeesRequestSymbols(),
+						PrivateEndpoints.tradingFeesRequest(),
 						PrivateResponses.TradingFeesSymbolsResponse.class,
-						(resp) -> resp.getFeesBySymbols(symbols)
+						PrivateResponses.TradingFeesSymbolsResponse::getFeesBySymbols
 		);
 	}
 
@@ -134,9 +134,9 @@ public class KucoinPrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
-	protected CompletableFuture<Integer> getMaxLeverageSymbolBatch(String symbol) {
+	protected CompletableFuture<Map<String, Integer>> getMaxLeverageSymbolBatch() {
 		return processRequest(
-						PrivateEndpoints.maxLeverageRequestSymbol(symbol),
+						PrivateEndpoints.maxLeverageRequest(),
 						PrivateResponses.MaxLeverageResponse.class,
 						PrivateResponses.MaxLeverageResponse::get
 		);

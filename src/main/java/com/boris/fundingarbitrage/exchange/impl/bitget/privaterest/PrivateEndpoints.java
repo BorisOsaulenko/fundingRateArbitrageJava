@@ -35,20 +35,8 @@ public class PrivateEndpoints {
 						.build();
 		return new SimpleHttpRequest("GET", uri);
 	}
-
-	@SneakyThrows
-	public static @NonNull SimpleHttpRequest tradingFeesRequestSymbols() {
-		URI uri = new URIBuilder(baseUrl)
-						.setPath("/api/v2/mix/market/contracts")
-						.addParameter("productType", productType)
-						.build();
-		return new SimpleHttpRequest("GET", uri);
-	}
-
-	public static @NonNull SimpleHttpRequest changeLeverageRequestSymbol(
-					String symbol,
-					int leverage
-	) {
+	
+	public static @NonNull SimpleHttpRequest changeLeverageRequestSymbol(String symbol, int leverage) {
 		Map<String, Object> body = new HashMap<>();
 		body.put("symbol", symbol);
 		body.put("productType", productType);
@@ -57,10 +45,7 @@ public class PrivateEndpoints {
 		return postJson("/api/v2/mix/account/set-leverage", body);
 	}
 
-	public static @NonNull SimpleHttpRequest setMarginModeRequestSymbol(
-					String symbol,
-					MarginMode marginMode
-	) {
+	public static @NonNull SimpleHttpRequest setMarginModeRequestSymbol(String symbol, MarginMode marginMode) {
 		Map<String, Object> body = new HashMap<>();
 		body.put("symbol", symbol);
 		body.put("productType", productType);
@@ -89,21 +74,17 @@ public class PrivateEndpoints {
 	}
 
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest maxLeverageRequestSymbol(String symbol) {
+	public static @NonNull SimpleHttpRequest contractsRequest() {
 		URI uri = new URIBuilder(baseUrl)
 						.setPath("/api/v2/mix/market/contracts")
 						.addParameter("productType", productType)
-						.addParameter("symbol", symbol)
 						.build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest supportedChainsRequest() {
-		URI uri = new URIBuilder(baseUrl)
-						.setPath("/api/v2/spot/public/coins")
-						.addParameter("coin", "USDT")
-						.build();
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v2/spot/public/coins").addParameter("coin", "USDT").build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
@@ -137,10 +118,7 @@ public class PrivateEndpoints {
 		throw new IllegalArgumentException("Unsupported order side combination");
 	}
 
-	public static @NonNull SimpleHttpRequest placeFuturesOrderRequestSymbol(
-					String symbol,
-					FuturesOrder futuresOrder
-	) {
+	public static @NonNull SimpleHttpRequest placeFuturesOrderRequestSymbol(String symbol, FuturesOrder futuresOrder) {
 		Map<String, Object> body = new HashMap<>();
 		body.put("symbol", symbol);
 		body.put("productType", productType);

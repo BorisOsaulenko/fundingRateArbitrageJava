@@ -11,6 +11,7 @@ import com.boris.fundingarbitrage.model.exchange.ExchangeChains;
 import com.boris.fundingarbitrage.model.exchange.ExchangeChainsBuilder;
 import com.boris.fundingarbitrage.model.exchange.WalletAddress;
 import com.boris.fundingarbitrage.model.exchange.WithdrawChain;
+import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import com.boris.fundingarbitrage.util.https.PrettyHttpClient;
 import com.boris.fundingarbitrage.util.logger.Logger;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -54,12 +55,17 @@ public class WhitebitPrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
-	protected CompletableFuture<Map<String, Fees>> getTradingFeesSymbolBatch(List<String> symbols) {
+	protected CompletableFuture<Map<String, Fees>> getTradingFeesSymbolBatch() {
+		return null;
+	}
+
+	@Override
+	public CompletableFuture<CoinVector<Fees>> getTradingFees(List<String> coins) {
 		return processRequest(
-						PrivateEndpoints.tradingFeesRequestSymbols(),
+						PrivateEndpoints.tradingFeesRequest(),
 						PrivateResponses.TradingFeesSymbolsResponse.class,
-						(resp) -> resp.getFeesBySymbols(symbols)
-		);
+						PrivateResponses.TradingFeesSymbolsResponse::getAccountFees
+		).thenApply(res -> CoinVector.byDefaultValue(coins, res));
 	}
 
 	@Override
@@ -92,19 +98,12 @@ public class WhitebitPrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
-	protected CompletableFuture<Integer> getMaxLeverageSymbolBatch(String symbol) {
-		return this.client.send(PrivateEndpoints.maxLeverageRequest()).thenApply((response) -> {
-			try {
-				PrivateResponses.MaxLeverageResponse resp = mapper.readValue(
-								response.getBodyText(),
-								PrivateResponses.MaxLeverageResponse.class
-				);
-				return resp.get(symbol);
-			} catch (Exception e) {
-				Logger.error(String.format("Error parsing max leverage response: %s", e.getMessage()));
-				throw new RuntimeException("Failed to process max leverage", e);
-			}
-		});
+	protected CompletableFuture<Map<String, Integer>> getMaxLeverageSymbolBatch() {
+		return processRequest(
+						PrivateEndpoints.maxLeverageRequest(),
+						PrivateResponses.MaxLeverageResponse.class,
+						PrivateResponses.MaxLeverageResponse::get
+		);
 	}
 
 	private static String extractNetwork(String key) {

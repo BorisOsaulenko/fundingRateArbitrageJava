@@ -6,11 +6,14 @@ import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.Objects;
 
 public final class WhitebitSigner {
 	private WhitebitSigner() {}
 
 	public static SimpleHttpRequest signRequest(SimpleHttpRequest request, ExchangeCredentials credentials) {
+		if (Objects.equals(request.getMethod(), "GET")) return request; // only POST requests require signing
+		
 		String body = request.getBodyText();
 		if (body == null) {
 			throw new IllegalStateException("Whitebit request body is required for signing");

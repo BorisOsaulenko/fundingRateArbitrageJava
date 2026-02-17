@@ -1,7 +1,6 @@
 package com.boris.fundingarbitrage.exchange.impl.binance.privaterest;
 
 import com.boris.fundingarbitrage.model.assetops.SupportedChain;
-import com.boris.fundingarbitrage.model.contract.Fees;
 import com.boris.fundingarbitrage.model.contract.PartialFill;
 import com.boris.fundingarbitrage.model.exchange.ExchangeChains;
 import com.boris.fundingarbitrage.model.exchange.ExchangeChainsBuilder;
@@ -12,23 +11,11 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class PrivateResponses {
-	public record TradingFeesResponseSymbol(
-					String symbol, double makerCommissionRate, double takerCommissionRate
-	) {
-		Fees getFees() {
-			return new Fees(
-							makerCommissionRate,
-							takerCommissionRate,
-							makerCommissionRate,
-							takerCommissionRate,
-							Instant.now()
-			);
-		}
-	}
-
 	public record ChangeLeverageResponseSymbol(String symbol, double leverage) {}
 
 	public record SetMarginModeResponse(Integer code, String msg) {
@@ -87,11 +74,12 @@ public class PrivateResponses {
 		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
 		public MaxLeverageResponse {}
 
-		public int get() {
-			if (items != null && items.length > 0) {
-				return items[0].brackets[0].initialLeverage();
+		public Map<String, Integer> get() {
+			Map<String, Integer> result = new HashMap<>();
+			for (LeverageBracketsItem item : items) {
+				result.put(item.symbol(), item.brackets()[0].initialLeverage());
 			}
-			throw new IllegalStateException("Leverage brackets not found");
+			return result;
 		}
 	}
 
@@ -167,9 +155,7 @@ public class PrivateResponses {
 
 			ArrayList<PartialFill> result = new ArrayList<>();
 			for (OrderRecordItem item : items) {
-				Double fee = item
-								.commissionAsset()
-								.equals("USDT") ? Double.parseDouble(item.commission()) : null;
+				Double fee = item.commissionAsset().equals("USDT") ? Double.parseDouble(item.commission()) : null;
 				PartialFill partialFill = new PartialFill(
 								item.orderId(),
 								item.symbol(),

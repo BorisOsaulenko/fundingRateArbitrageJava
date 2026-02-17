@@ -6,11 +6,13 @@ import com.boris.fundingarbitrage.model.assetops.SupportedChain;
 import com.boris.fundingarbitrage.model.contract.Fees;
 import com.boris.fundingarbitrage.model.exchange.ExchangeChains;
 import com.boris.fundingarbitrage.model.exchange.WalletAddress;
+import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -20,6 +22,7 @@ public abstract class PrivateRestTest {
 	private static final long REQUEST_TIMEOUT_SECONDS = 8;
 	private static final double MAX_ABS_FEE = 0.02;
 	private final String testCoin = "SOL";
+	private final List<String> testCoins = List.of("SOL", "ADA", "ETH");
 	private final Duration timestampTolerance = Duration.ofSeconds(2);
 
 	private static <T> T getWithTimeout(CompletableFuture<T> future) throws Exception {
@@ -50,19 +53,11 @@ public abstract class PrivateRestTest {
 
 	@Test
 	public void getTradingFeesTest() throws Exception {
-		Fees fees = getWithTimeout(privateRest().getTradingFees(testCoin));
-		assertValidFees(fees);
-	}
-
-	@Test
-	public void getTradingFeesBatchTest() throws Exception {
-		String batchCoin = "BTC";
-		List<String> coins = List.of(testCoin, batchCoin);
-		var feesByCoin = getWithTimeout(privateRest().getTradingFees(coins));
-		assertNotNull(feesByCoin, "Batch fees result should not be null");
-		assertEquals(coins.size(), feesByCoin.size(), "Batch fees should include all requested coins");
-		for (String coin : coins) {
-			assertValidFees(feesByCoin.get(coin));
+		CoinVector<Fees> fees = getWithTimeout(privateRest().getTradingFees(testCoins));
+		assertNotNull(fees, "Fees result should not be null");
+		assertEquals(testCoins.size(), fees.size(), "Fees result should contain data for each requested coin");
+		for (String coin : testCoins) {
+			assertValidFees(fees.get(coin));
 		}
 	}
 
@@ -102,8 +97,12 @@ public abstract class PrivateRestTest {
 
 	@Test
 	public void getMaxLeverageTest() throws Exception {
-		int maxLeverage = getWithTimeout(privateRest().getMaxLeverage(testCoin));
-		assertTrue(maxLeverage >= 1, "Max leverage should be at least 1");
+		Map<String, Integer> maxLeverage = getWithTimeout(privateRest().getMaxLeverage(testCoins));
+		assertNotNull(maxLeverage, "Max leverage map should not be null");
+		for (String coin : testCoins) {
+			assertNotNull(maxLeverage.get(coin), "Max leverage for " + coin + " should not be null");
+			assertTrue(maxLeverage.get(coin) >= 2, "Max leverage for " + coin + " should be >= 2");
+		}
 	}
 
 	@Test

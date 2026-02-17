@@ -11,6 +11,7 @@ import com.boris.fundingarbitrage.model.exchange.ExchangeChains;
 import com.boris.fundingarbitrage.model.exchange.ExchangeChainsBuilder;
 import com.boris.fundingarbitrage.model.exchange.WalletAddress;
 import com.boris.fundingarbitrage.model.exchange.WithdrawChain;
+import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import com.boris.fundingarbitrage.util.cryptography.Signers;
 import com.boris.fundingarbitrage.util.https.PrettyHttpClient;
 import com.boris.fundingarbitrage.util.logger.Logger;
@@ -84,12 +85,17 @@ public class GatePrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
-	protected CompletableFuture<Map<String, Fees>> getTradingFeesSymbolBatch(List<String> symbols) {
+	protected CompletableFuture<Map<String, Fees>> getTradingFeesSymbolBatch() {
+		return null;
+	}
+
+	@Override
+	public CompletableFuture<CoinVector<Fees>> getTradingFees(List<String> coins) {
 		return processRequest(
 						PrivateEndpoints.tradingFeesRequestSymbols(),
 						PrivateResponses.TradingFeesSymbolsResponse.class,
-						(resp) -> resp.getFeesBySymbols(symbols)
-		);
+						PrivateResponses.TradingFeesSymbolsResponse::getAccountFees
+		).thenApply(fees -> CoinVector.byDefaultValue(coins, fees));
 	}
 
 	@Override
@@ -129,9 +135,9 @@ public class GatePrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
-	protected CompletableFuture<Integer> getMaxLeverageSymbolBatch(String symbol) {
+	protected CompletableFuture<Map<String, Integer>> getMaxLeverageSymbolBatch() {
 		return processRequest(
-						PrivateEndpoints.maxLeverageRequestSymbol(symbol),
+						PrivateEndpoints.maxLeverageRequest(),
 						PrivateResponses.MaxLeverageResponse.class,
 						PrivateResponses.MaxLeverageResponse::get
 		);

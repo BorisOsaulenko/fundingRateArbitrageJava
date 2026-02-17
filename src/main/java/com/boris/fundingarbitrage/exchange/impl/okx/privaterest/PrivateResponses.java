@@ -53,27 +53,16 @@ public class PrivateResponses {
 		}
 	}
 
-	public record TradingFeesSymbolsResponse(String code, String msg, JsonNode data) {
-		public Map<String, Fees> getFeesBySymbols(List<String> symbols) {
-			ensureOk(code, msg);
-			if (data == null || !data.isArray() || data.isEmpty()) {
-				throw new IllegalStateException("OKX trade fee data missing");
-			}
-			JsonNode item = data.get(0);
-			JsonNode makerNode = item.get("makerU");
-			JsonNode takerNode = item.get("takerU");
-			if (makerNode == null || makerNode.isNull() || takerNode == null || takerNode.isNull()) {
-				throw new IllegalStateException("OKX makerU/takerU missing");
-			}
-			double maker = -makerNode.asDouble();
-			double taker = -takerNode.asDouble();
-			Fees fees = new Fees(maker, taker, maker, taker, Instant.now());
+	public record FeeGroup(int groupId, double maker, double taker) {}
 
-			Map<String, Fees> feesBySymbol = new HashMap<>();
-			for (String symbol : symbols) {
-				feesBySymbol.put(symbol, fees);
-			}
-			return feesBySymbol;
+	private record TradingFeeItem(List<FeeGroup> feeGroup) {}
+
+	public record TradingFeesSymbolsResponse(String code, String msg, List<TradingFeeItem> data) {
+		public Map<Integer, FeeGroup> getFeeGroups() {
+			Map<Integer, FeeGroup> feeGroups = new HashMap<>();
+			var entry = data.getFirst();
+			for (FeeGroup group : entry.feeGroup) {feeGroups.put(group.groupId, group);}
+			return feeGroups;
 		}
 	}
 
@@ -143,20 +132,24 @@ public class PrivateResponses {
 	}
 
 	public record InstrumentsResponse(String code, String msg, JsonNode data) {
-		public int get(String symbol) {
-			ensureOk(code, msg);
-			if (data == null || !data.isArray() || data.isEmpty()) {
-				throw new IllegalStateException("OKX instrument data missing");
-			}
+		public Map<String, Integer> getMaxLeverage() {
+			Map<String, Integer> leverageBySymbol = new HashMap<>();
 			for (JsonNode item : data) {
-				if (!symbol.equalsIgnoreCase(item.path("instId").asText())) continue;
-				String lever = item.path("lever").asText();
-				if (lever == null || lever.isEmpty()) {
-					throw new IllegalStateException("OKX instrument lever missing");
-				}
-				return (int) Math.floor(Double.parseDouble(lever));
+				String symbol = item.path("instId").asText();
+				double lever = item.path("lever").asDouble();
+				leverageBySymbol.put(symbol, (int) Math.floor(lever));
 			}
-			throw new IllegalStateException("OKX instrument not found for symbol: " + symbol);
+			return leverageBySymbol;
+		}
+
+		public Map<String, Integer> getFeeGroupId() {
+			Map<String, Integer> feeGroupIdBySymbol = new HashMap<>();
+			for (JsonNode item : data) {
+				String symbol = item.path("instId").asText();
+				int feeGroupId = item.path("groupId").asInt();
+				feeGroupIdBySymbol.put(symbol, feeGroupId);
+			}
+			return feeGroupIdBySymbol;
 		}
 	}
 

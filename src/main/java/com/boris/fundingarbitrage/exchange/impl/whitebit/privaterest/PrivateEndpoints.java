@@ -31,27 +31,8 @@ public class PrivateEndpoints {
 	}
 
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest tradingFeesRequestSymbol(String symbol) {
-		URI uri = new URIBuilder(baseUrl).setPath("/api/v4/market/fee").addParameter("market", symbol).build();
-		SimpleHttpRequest request = new SimpleHttpRequest("POST", uri);
-		Map<String, Object> body = new HashMap<>();
-		body.put("request", "/api/v4/market/fee");
-		body.put("nonce", String.valueOf(System.currentTimeMillis()));
-		String json = ObjectMapperSingleton.getInstance().writeValueAsString(body);
-		request.setBody(json, ContentType.APPLICATION_JSON);
-		return request;
-	}
-
-	@SneakyThrows
-	public static @NonNull SimpleHttpRequest tradingFeesRequestSymbols() {
-		URI uri = new URIBuilder(baseUrl).setPath("/api/v4/market/fee").build();
-		SimpleHttpRequest request = new SimpleHttpRequest("POST", uri);
-		Map<String, Object> body = new HashMap<>();
-		body.put("request", "/api/v4/market/fee");
-		body.put("nonce", String.valueOf(System.currentTimeMillis()));
-		String json = ObjectMapperSingleton.getInstance().writeValueAsString(body);
-		request.setBody(json, ContentType.APPLICATION_JSON);
-		return request;
+	public static @NonNull SimpleHttpRequest tradingFeesRequest() {
+		return privatePost("/api/v4/market/fee", Map.of());
 	}
 
 	public static @NonNull SimpleHttpRequest changeLeverageRequest(int leverage) {

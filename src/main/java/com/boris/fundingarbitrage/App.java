@@ -1,6 +1,6 @@
 package com.boris.fundingarbitrage;
 
-import com.boris.fundingarbitrage.exchange.impl.binance.BinanceExchange;
+import com.boris.fundingarbitrage.exchange.impl.bybit.BybitExchange;
 import com.boris.fundingarbitrage.monitor.CoinMonitor;
 import com.boris.fundingarbitrage.util.logger.Logger;
 
@@ -126,8 +126,7 @@ public class App {
 	}
 
 	static void main(String[] args) throws ExecutionException, InterruptedException {
-		Logger.init(Path.of("app.log"));
-		BinanceExchange binance = new BinanceExchange();
-		var result = binance.publicHttpClient.getOnePullData(coins).get();
+		BybitExchange bybit = new BybitExchange();
+		bybit.privateHttpClient.getMaxLeverage(coins).thenAccept(Logger::logCoinVector).get();
 	}
 }

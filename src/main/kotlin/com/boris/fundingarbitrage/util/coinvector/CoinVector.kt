@@ -3,6 +3,17 @@ package com.boris.fundingarbitrage.util.coinvector
 import java.util.concurrent.ConcurrentHashMap
 
 class CoinVector<T> : MutableMap<String, T> by ConcurrentHashMap() {
+    companion object {
+        @JvmStatic
+        fun <T> byDefaultValue(coins: List<String>, value: T): CoinVector<T> {
+            return CoinVector<T>().apply {
+                for (coin in coins) {
+                    this[coin] = value
+                }
+            }
+        }
+    }
+
     fun <R : Number> transform(op: (T, String?) -> R): CoinVector<R> {
         val result = CoinVector<R>()
         for ((key, value) in this) {

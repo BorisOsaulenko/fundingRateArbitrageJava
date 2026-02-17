@@ -22,28 +22,14 @@ public class PrivateResponses {
 		return Double.parseDouble(text);
 	}
 
-	public record TradingFeesResponse(JsonNode node) {
-		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
-		public TradingFeesResponse {}
-
-		public Fees getFees() {
-			double maker = parseRequiredDouble(node, "futures_maker") / 100;
-			double taker = parseRequiredDouble(node, "futures_taker") / 100;
-			return new Fees(maker, taker, maker, taker, Instant.now());
-		}
-	}
-
 	public record TradingFeesSymbolsResponse(JsonNode node) {
 		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
 		public TradingFeesSymbolsResponse {}
 
-		public Map<String, Fees> getFeesBySymbols(List<String> symbols) {
-			Fees fees = new TradingFeesResponse(node).getFees();
-			Map<String, Fees> feesBySymbol = new HashMap<>();
-			for (String symbol : symbols) {
-				feesBySymbol.put(symbol, fees);
-			}
-			return feesBySymbol;
+		public Fees getAccountFees() {
+			double maker = parseRequiredDouble(node, "futures_maker") / 100;
+			double taker = parseRequiredDouble(node, "futures_taker") / 100;
+			return new Fees(maker, taker, maker, taker, Instant.now());
 		}
 	}
 
@@ -137,16 +123,10 @@ public class PrivateResponses {
 	private record MaxLeverageResponseEntry(String ticker_id, int max_leverage) {}
 
 	public record MaxLeverageResponse(boolean success, String message, List<MaxLeverageResponseEntry> result) {
-		public int get(String symbol) {
-			MaxLeverageResponseEntry entry = result
-							.stream()
-							.filter(e -> e.ticker_id().equals(symbol))
-							.findFirst()
-							.orElse(null);
-			if (entry == null) {
-				throw new IllegalArgumentException("Get max leverage for symbol " + symbol + " failed: " + message);
-			}
-			return entry.max_leverage();
+		public Map<String, Integer> get() {
+			Map<String, Integer> maxLeveragesBySymbol = new HashMap<>();
+			for (var item : result) maxLeveragesBySymbol.put(item.ticker_id, item.max_leverage);
+			return maxLeveragesBySymbol;
 		}
 	}
 }

@@ -15,46 +15,11 @@ import java.util.List;
 import java.util.Map;
 
 public class PrivateResponses {
-	public record TradingFeesResponse(
-					String currency,
-					String taker_fee,
-					String maker_fee,
-					String futures_taker_fee,
-					String futures_maker_fee
-	) {
-		public Fees getFees() {
-			double maker = futures_maker_fee == null || futures_maker_fee.isEmpty() ? 0.0 : Double.parseDouble(
-							futures_maker_fee);
-			double taker = futures_taker_fee == null || futures_taker_fee.isEmpty() ? 0.0 : Double.parseDouble(
-							futures_taker_fee);
-			if (maker == 0.0 && taker == 0.0) {
-				maker = maker_fee == null || maker_fee.isEmpty() ? 0.0 : Double.parseDouble(maker_fee);
-				taker = taker_fee == null || taker_fee.isEmpty() ? 0.0 : Double.parseDouble(taker_fee);
-			}
-			return new Fees(maker, taker, maker, taker, Instant.now());
-		}
-	}
-
 	public record TradingFeesSymbolsResponse(
-					String currency,
-					String taker_fee,
-					String maker_fee,
-					String futures_taker_fee,
-					String futures_maker_fee
+					double taker_fee, double maker_fee, double futures_taker_fee, double futures_maker_fee
 	) {
-		public Map<String, Fees> getFeesBySymbols(List<String> symbols) {
-			Map<String, Fees> feesBySymbol = new HashMap<>();
-			Fees fees = new TradingFeesResponse(
-							currency,
-							taker_fee,
-							maker_fee,
-							futures_taker_fee,
-							futures_maker_fee
-			).getFees();
-			for (String symbol : symbols) {
-				feesBySymbol.put(symbol, fees);
-			}
-			return feesBySymbol;
+		public Fees getAccountFees() {
+			return new Fees(futures_maker_fee, futures_taker_fee, futures_maker_fee, futures_taker_fee, Instant.now());
 		}
 	}
 
@@ -98,23 +63,24 @@ public class PrivateResponses {
 		}
 	}
 
+	private record MaxLeverageItem(String name, String leverage_max) {}
+
+	@JsonFormat(shape = JsonFormat.Shape.ARRAY)
 	public record MaxLeverageResponse(
-					String leverage_max
+					List<MaxLeverageItem> items
 	) {
-		public int get() {
-			if (leverage_max == null || leverage_max.isEmpty()) {
-				throw new IllegalStateException("Leverage info not found");
-			}
-			return (int) Math.round(Double.parseDouble(leverage_max));
+		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
+		public MaxLeverageResponse {}
+
+		public Map<String, Integer> get() {
+			Map<String, Integer> result = new HashMap<>();
+			for (MaxLeverageItem item : items) result.put(item.name(), Integer.parseInt(item.leverage_max));
+			return result;
 		}
 	}
 
 	public record ChainEntry(
-					String chain,
-					int is_disabled,
-					int is_deposit_disabled,
-					int is_withdraw_disabled,
-					int is_tag
+					String chain, int is_disabled, int is_deposit_disabled, int is_withdraw_disabled, int is_tag
 	) {}
 
 	@JsonFormat(shape = JsonFormat.Shape.ARRAY)

@@ -32,51 +32,6 @@ public class PrivateResponses {
 		return 0.0;
 	}
 
-	private static Instant parseInstant(JsonNode node, String... fields) {
-		for (String field : fields) {
-			JsonNode val = node.get(field);
-			if (val != null && !val.isNull()) {
-				String text = val.asText();
-				if (text != null && !text.isEmpty()) {
-					try {
-						return Instant.ofEpochMilli(Long.parseLong(text));
-					} catch (NumberFormatException ignored) {
-					}
-				}
-			}
-		}
-		return Instant.now();
-	}
-
-	public record TradingFeesResponse(String code, String msg, long requestTime, JsonNode data) {
-		public Fees getFees(String symbol) {
-			if (data == null || !data.isArray()) return new Fees(0, 0, 0, 0, Instant.now());
-			for (JsonNode contract : data) {
-				if (symbol.equalsIgnoreCase(contract.path("symbol").asText())) {
-					double maker = parseDouble(contract, "makerFeeRate");
-					double taker = parseDouble(contract, "takerFeeRate");
-					return new Fees(maker, taker, maker, taker, Instant.ofEpochMilli(requestTime));
-				}
-			}
-			return new Fees(0, 0, 0, 0, Instant.ofEpochMilli(requestTime));
-		}
-	}
-
-	public record TradingFeesSymbolsResponse(String code, String msg, long requestTime, JsonNode data) {
-		public Map<String, Fees> getFeesBySymbols(List<String> symbols) {
-			Map<String, Fees> feesBySymbol = new HashMap<>();
-			if (data == null || !data.isArray()) return feesBySymbol;
-			for (JsonNode contract : data) {
-				String symbol = contract.path("symbol").asText();
-				if (!symbols.contains(symbol)) continue;
-				double maker = parseDouble(contract, "makerFeeRate");
-				double taker = parseDouble(contract, "takerFeeRate");
-				feesBySymbol.put(symbol, new Fees(maker, taker, maker, taker, Instant.ofEpochMilli(requestTime)));
-			}
-			return feesBySymbol;
-		}
-	}
-
 	public record ChangeLeverageResponse(String code, String msg, long requestTime) {
 		public ChangeLeverageResponse {
 			if (!"00000".equals(code)) {
@@ -116,37 +71,44 @@ public class PrivateResponses {
 	}
 
 	public record FuturesUsdtBalanceResponse(
-					String code,
-					String msg,
-					long requestTime,
-					JsonNode data
+					String code, String msg, long requestTime, JsonNode data
 	) {
 		public double get() {
 			if (data == null || !data.isArray()) return 0.0;
 			for (JsonNode account : data) {
 				String marginCoin = account.path("marginCoin").asText();
 				if (!"USDT".equalsIgnoreCase(marginCoin)) continue;
-				return parseDouble(
-								account,
-								"available",
-								"availableBalance",
-								"availableEquity",
-								"maxAvailable"
-				);
+				return parseDouble(account, "available", "availableBalance", "availableEquity", "maxAvailable");
 			}
 			return 0.0;
 		}
 	}
 
-	public record MaxLeverageResponse(String code, String msg, long requestTime, JsonNode data) {
-		public int get() {
-			if (data == null || !data.isArray() || data.isEmpty()) {
-				throw new IllegalStateException("Leverage info not found");
+	private record ContractsItem(String symbol, int maxLever, double makerFeeRate, double takerFeeRate) {}
+
+	public record ContractsResponse(String code, String msg, long requestTime, List<ContractsItem> data) {
+		public Map<String, Integer> getMaxLeverages() {
+			Map<String, Integer> maxLeverageBySymbol = new HashMap<>();
+			if (data == null) return maxLeverageBySymbol;
+			for (ContractsItem item : data) maxLeverageBySymbol.put(item.symbol, item.maxLever);
+			return maxLeverageBySymbol;
+		}
+
+		public Map<String, Fees> getFees() {
+			Map<String, Fees> feesBySymbol = new HashMap<>();
+			if (data == null) return feesBySymbol;
+			for (ContractsItem item : data) {
+				Fees f = new Fees(
+								item.makerFeeRate,
+								item.takerFeeRate,
+								item.makerFeeRate,
+								item.takerFeeRate,
+								Instant.ofEpochMilli(requestTime)
+				);
+				feesBySymbol.put(item.symbol, f);
 			}
-			JsonNode first = data.get(0);
-			int maxLever = first.path("maxLever").asInt();
-			if (maxLever > 0) return maxLever;
-			throw new IllegalStateException("Leverage info not found");
+
+			return feesBySymbol;
 		}
 	}
 
@@ -168,12 +130,8 @@ public class PrivateResponses {
 					SupportedChain mapped = ChainsMap.getInverse(chainName);
 					if (mapped == null) continue;
 
-					boolean depositEnable = chain
-									.path("rechargeable")
-									.asBoolean(chain.path("depositEnable").asBoolean(false));
-					boolean withdrawEnable = chain
-									.path("withdrawable")
-									.asBoolean(chain.path("withdrawEnable").asBoolean(false));
+					boolean depositEnable = chain.path("rechargeable").asBoolean(chain.path("depositEnable").asBoolean(false));
+					boolean withdrawEnable = chain.path("withdrawable").asBoolean(chain.path("withdrawEnable").asBoolean(false));
 
 					if (depositEnable) builder.addDepositableChain(mapped);
 					if (withdrawEnable) {
@@ -191,10 +149,7 @@ public class PrivateResponses {
 	}
 
 	public record UsdtWalletAddressResponse(
-					String code,
-					String msg,
-					long requestTime,
-					JsonNode data
+					String code, String msg, long requestTime, JsonNode data
 	) {
 		public WalletAddress get(SupportedChain chain) {
 			String address = data.path("address").asText();
@@ -207,10 +162,7 @@ public class PrivateResponses {
 	public record WithdrawUsdtResponse(String code, String msg, long requestTime, JsonNode data) {}
 
 	public record PlaceFuturesOrderResponse(
-					String code,
-					String msg,
-					long requestTime,
-					JsonNode data
+					String code, String msg, long requestTime, JsonNode data
 	) {
 		public String orderId() {
 			String id = data.path("orderId").asText();
@@ -231,7 +183,9 @@ public class PrivateResponses {
 				double fee = parseDouble(item, "fee");
 				String feeCoin = item.path("feeCoin").asText();
 				Double feeValue = "USDT".equalsIgnoreCase(feeCoin) ? fee : null;
-				Instant ts = parseInstant(item, "ts", "fillTime", "cTime");
+				long cTime = item.path("cTime").asLong();
+				if (cTime == 0L) throw new IllegalStateException("Invalid timestamp for order: " + orderId);
+				Instant ts = Instant.ofEpochMilli(cTime);
 				if (orderId == null || orderId.isEmpty()) continue;
 				result.add(new PartialFill(orderId, symbol, size, price, feeValue, ts));
 			}
@@ -240,9 +194,6 @@ public class PrivateResponses {
 	}
 
 	public record InternalTransferResponse(
-					String code,
-					String msg,
-					long requestTime,
-					JsonNode data
+					String code, String msg, long requestTime, JsonNode data
 	) {}
 }

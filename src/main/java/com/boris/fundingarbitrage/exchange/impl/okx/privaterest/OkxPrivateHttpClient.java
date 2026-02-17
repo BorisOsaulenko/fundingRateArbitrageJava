@@ -19,6 +19,7 @@ import java.net.URI;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -63,16 +64,11 @@ public class OkxPrivateHttpClient extends PrivateHttpClient {
 		}
 	}
 
-	private <T, U> CompletableFuture<U> processRequest(
-					SimpleHttpRequest request,
-					Class<T> responseClass,
-					Function<T, U> parser
-	) {
+	private <T> CompletableFuture<T> fetchResponse(SimpleHttpRequest request, Class<T> responseClass) {
 		SimpleHttpRequest signedRequest = signRequest(request);
 		return this.client.sendNoCodeCheck(signedRequest).thenApply((response) -> {
 			try {
-				T responseObj = mapper.readValue(response.getBodyBytes(), responseClass);
-				return parser.apply(responseObj);
+				return mapper.readValue(response.getBodyBytes(), responseClass);
 			} catch (Exception e) {
 				Logger.error(String.format("Error parsing private rest response: %s", e.getMessage()));
 				throw new RuntimeException("Failed to process request", e);
@@ -80,13 +76,41 @@ public class OkxPrivateHttpClient extends PrivateHttpClient {
 		});
 	}
 
+	private <T, U> CompletableFuture<U> processRequest(
+					SimpleHttpRequest request,
+					Class<T> responseClass,
+					Function<T, U> parser
+	) {
+		return fetchResponse(request, responseClass).thenApply(parser);
+	}
+
 	@Override
-	protected CompletableFuture<Map<String, Fees>> getTradingFeesSymbolBatch(List<String> symbols) {
-		return processRequest(
-						PrivateEndpoints.tradingFeesRequestSymbols(),
+	protected CompletableFuture<Map<String, Fees>> getTradingFeesSymbolBatch() {
+		CompletableFuture<Map<Integer, PrivateResponses.FeeGroup>> feeGroupMapFuture = processRequest(
+						PrivateEndpoints.tradingFeesRequest(),
 						PrivateResponses.TradingFeesSymbolsResponse.class,
-						(resp) -> resp.getFeesBySymbols(symbols)
+						PrivateResponses.TradingFeesSymbolsResponse::getFeeGroups
 		);
+
+		CompletableFuture<Map<String, Integer>> instrumentsResponseFuture = processRequest(
+						PrivateEndpoints.instrumentsRequest(),
+						PrivateResponses.InstrumentsResponse.class,
+						PrivateResponses.InstrumentsResponse::getFeeGroupId
+		);
+
+		return CompletableFuture.allOf(feeGroupMapFuture, instrumentsResponseFuture).thenApply(_ -> {
+			Map<String, Integer> instruments = instrumentsResponseFuture.join();
+			Map<Integer, PrivateResponses.FeeGroup> feeGroupMap = feeGroupMapFuture.join();
+			Map<String, Fees> result = new HashMap<>();
+
+			instruments.forEach((String symbol, Integer feeGroupId) -> {
+				double maker = -feeGroupMap.get(feeGroupId).maker(); // okx expresses fees as negative
+				double taker = -feeGroupMap.get(feeGroupId).taker();
+				result.put(symbol, new Fees(maker, taker, maker, taker, Instant.now()));
+			});
+
+			return result;
+		});
 	}
 
 	@Override
@@ -130,11 +154,11 @@ public class OkxPrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
-	protected CompletableFuture<Integer> getMaxLeverageSymbolBatch(String symbol) {
+	protected CompletableFuture<Map<String, Integer>> getMaxLeverageSymbolBatch() {
 		return processRequest(
-						PrivateEndpoints.instrumentsRequestSymbol(symbol),
+						PrivateEndpoints.instrumentsRequest(),
 						PrivateResponses.InstrumentsResponse.class,
-						(resp) -> resp.get(symbol)
+						PrivateResponses.InstrumentsResponse::getMaxLeverage
 		);
 	}
 

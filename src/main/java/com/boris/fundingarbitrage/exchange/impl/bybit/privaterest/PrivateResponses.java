@@ -16,41 +16,13 @@ import java.util.List;
 import java.util.Map;
 
 public class PrivateResponses {
-	private static void ensureCode(int retCode, String retMsg) {
-		if (retCode != 0) {
-			throw new RuntimeException(String.format(
-							"Bybit private request failed: %d, %s",
-							retCode,
-							retMsg
-			));
-		}
-	}
-
 	public record TradingFeesResponse(int retCode, String retMsg, long time, JsonNode result) {
-		public Fees getFees(String symbol) {
-			ensureCode(retCode, retMsg);
-			JsonNode list = result == null ? null : result.get("list");
-			if (list == null || !list.isArray()) return new Fees(0, 0, 0, 0, Instant.ofEpochMilli(time));
-
-			for (JsonNode item : list) {
-				if (!symbol.equalsIgnoreCase(item.path("symbol").asText())) continue;
-				double maker = Double.parseDouble(item.path("makerFeeRate").asText());
-				double taker = Double.parseDouble(item.path("takerFeeRate").asText());
-				return new Fees(maker, taker, maker, taker, Instant.ofEpochMilli(time));
-			}
-			return new Fees(0, 0, 0, 0, Instant.ofEpochMilli(time));
-		}
-	}
-
-	public record TradingFeesSymbolsResponse(int retCode, String retMsg, long time, JsonNode result) {
-		public Map<String, Fees> getFeesBySymbols(List<String> symbols) {
-			ensureCode(retCode, retMsg);
+		public Map<String, Fees> getFeesBySymbols() {
 			Map<String, Fees> feesBySymbol = new HashMap<>();
 			JsonNode list = result == null ? null : result.get("list");
 			if (list == null || !list.isArray()) return feesBySymbol;
 			for (JsonNode item : list) {
 				String symbol = item.path("symbol").asText();
-				if (!symbols.contains(symbol)) continue;
 				double maker = Double.parseDouble(item.path("makerFeeRate").asText());
 				double taker = Double.parseDouble(item.path("takerFeeRate").asText());
 				feesBySymbol.put(symbol, new Fees(maker, taker, maker, taker, Instant.ofEpochMilli(time)));
@@ -62,24 +34,17 @@ public class PrivateResponses {
 	public record ChangeLeverageResponse(int retCode, String retMsg) {
 		public ChangeLeverageResponse {
 			if (retCode != 0 && retCode != 110043) {
-				throw new RuntimeException(String.format(
-								"Failed to change leverage %d, %s",
-								retCode,
-								retMsg
-				));
+				throw new RuntimeException(String.format("Failed to change leverage %d, %s", retCode, retMsg));
 			}
 		}
 	}
 
 	public record SetMarginModeResponse(int retCode, String retMsg) {
-		public SetMarginModeResponse {
-			ensureCode(retCode, retMsg);
-		}
+		public SetMarginModeResponse {}
 	}
 
 	public record SpotUsdtBalanceResponse(int retCode, String retMsg, long time, JsonNode result) {
 		public double get() {
-			ensureCode(retCode, retMsg);
 			JsonNode list = result == null ? null : result.get("list");
 			if (list == null || !list.isArray()) return 0.0;
 			for (JsonNode account : list) {
@@ -96,7 +61,6 @@ public class PrivateResponses {
 
 	public record FuturesUsdtBalanceResponse(int retCode, String retMsg, long time, JsonNode result) {
 		public double get() {
-			ensureCode(retCode, retMsg);
 			JsonNode list = result == null ? null : result.get("list");
 			if (list == null || !list.isArray()) return 0.0;
 			for (JsonNode account : list) {
@@ -112,26 +76,24 @@ public class PrivateResponses {
 	}
 
 	public record MaxLeverageResponse(int retCode, String retMsg, long time, JsonNode result) {
-		public int get() {
-			ensureCode(retCode, retMsg);
-			JsonNode list = result == null ? null : result.get("list");
-			if (list == null || !list.isArray() || list.isEmpty()) {
-				throw new IllegalStateException("Leverage info not found");
+		public Map<String, Integer> get() {
+			JsonNode list = result.get("list");
+			Map<String, Integer> result = new HashMap<>();
+
+			for (JsonNode item : list) {
+				String symbol = item.path("symbol").asText();
+				double maxLeverage = item.path("leverageFilter").path("maxLeverage").asDouble();
+				if (maxLeverage == 0) throw new IllegalStateException("Invalid max leverage for symbol: " + symbol);
+				result.put(symbol, (int) Math.floor(maxLeverage));
 			}
-			JsonNode leverageFilter = list.get(0).get("leverageFilter");
-			if (leverageFilter == null) throw new IllegalStateException("Leverage info not found");
-			String maxLeverage = leverageFilter.path("maxLeverage").asText();
-			if (maxLeverage == null || maxLeverage.isEmpty()) {
-				throw new IllegalStateException("Leverage info not found");
-			}
-			return (int) Math.floor(Double.parseDouble(maxLeverage));
+
+			return result;
 		}
 	}
 
 	public record SupportedChainsResponse(int retCode, String retMsg, long time, JsonNode result) {
 		public ExchangeChains get() {
 			if (result == null) throw new IllegalStateException("Supported chains info not found");
-			ensureCode(retCode, retMsg);
 			ExchangeChainsBuilder builder = new ExchangeChainsBuilder();
 			JsonNode rows = result.get("rows");
 			if (rows == null || !rows.isArray()) {
@@ -173,7 +135,6 @@ public class PrivateResponses {
 					int retCode, String retMsg, long time, WalletResult result
 	) {
 		public WalletAddress get(SupportedChain chain) {
-			ensureCode(retCode, retMsg);
 			for (WalletItem item : result.chains) {
 				String chainName = item.chain;
 				SupportedChain mapped = ChainsMap.getInverse(chainName);
@@ -190,13 +151,11 @@ public class PrivateResponses {
 
 	public record WithdrawUsdtResponse(int retCode, String retMsg, long time, JsonNode result) {
 		public WithdrawUsdtResponse {
-			ensureCode(retCode, retMsg);
 		}
 	}
 
 	public record PlaceFuturesOrderResponse(int retCode, String retMsg, long time, JsonNode result) {
 		public String orderId() {
-			ensureCode(retCode, retMsg);
 			String id = result.path("orderId").asText();
 			if (id == null || id.isEmpty()) id = result.path("orderLinkId").asText();
 			return id;
@@ -205,7 +164,6 @@ public class PrivateResponses {
 
 	public record GetOrderRecordResponse(int retCode, String retMsg, long time, JsonNode result) {
 		public List<PartialFill> get() {
-			ensureCode(retCode, retMsg);
 			JsonNode list = result == null ? null : result.get("list");
 			if (list == null || !list.isArray()) return List.of();
 			ArrayList<PartialFill> fills = new ArrayList<>();
@@ -227,7 +185,6 @@ public class PrivateResponses {
 
 	public record InternalTransferResponse(int retCode, String retMsg, long time, JsonNode result) {
 		public InternalTransferResponse {
-			ensureCode(retCode, retMsg);
 		}
 	}
 }

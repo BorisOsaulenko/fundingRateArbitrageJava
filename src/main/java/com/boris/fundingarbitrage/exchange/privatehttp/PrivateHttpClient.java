@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 public abstract class PrivateHttpClient {
 	protected final PrettyHttpClient client;
@@ -26,7 +27,7 @@ public abstract class PrivateHttpClient {
 
 	protected abstract SimpleHttpRequest signRequest(SimpleHttpRequest request);
 
-	protected abstract CompletableFuture<Map<String, Fees>> getTradingFeesSymbolBatch(List<String> symbols);
+	protected abstract CompletableFuture<Map<String, Fees>> getTradingFeesSymbolBatch();
 
 	protected abstract CompletableFuture<Void> changeLeverageSymbol(String symbol, int leverage);
 
@@ -36,7 +37,7 @@ public abstract class PrivateHttpClient {
 
 	public abstract CompletableFuture<Double> getFuturesUsdtBalance();
 
-	protected abstract CompletableFuture<Map<String, Integer>> getMaxLeverageSymbolBatch(List<String> symbols);
+	protected abstract CompletableFuture<Map<String, Integer>> getMaxLeverageSymbolBatch();
 
 	public abstract CompletableFuture<ExchangeChains> getSupportedChains();
 
@@ -64,10 +65,9 @@ public abstract class PrivateHttpClient {
 
 	private <T> CompletableFuture<CoinVector<T>> withSymbolBatch(
 					List<String> coins,
-					Function<List<String>, CompletableFuture<Map<String, T>>> symbolGetter
+					Supplier<CompletableFuture<Map<String, T>>> symbolGetter
 	) {
-		List<String> symbols = coins.stream().map(exchangeContext::getSymbol).toList();
-		return symbolGetter.apply(symbols).thenApply(resultBySymbol -> {
+		return symbolGetter.get().thenApply(resultBySymbol -> {
 			CoinVector<T> result = new CoinVector<>();
 			for (String coin : coins) {
 				String symbol = exchangeContext.getSymbol(coin);

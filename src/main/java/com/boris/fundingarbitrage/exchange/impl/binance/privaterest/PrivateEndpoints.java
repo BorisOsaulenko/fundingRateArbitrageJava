@@ -13,19 +13,7 @@ public class PrivateEndpoints {
 	private static final String spotBaseUrl = "https://api.binance.com";
 
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest tradingFeesRequestSymbol(String symbol) {
-		URI uri = new URIBuilder(futuresBaseUrl)
-						.setPath("/fapi/v1/commissionRate")
-						.addParameter("symbol", symbol)
-						.build();
-		return new SimpleHttpRequest("GET", uri);
-	}
-
-	@SneakyThrows
-	public static @NonNull SimpleHttpRequest changeLeverageRequestSymbol(
-					String symbol,
-					int leverage
-	) {
+	public static @NonNull SimpleHttpRequest changeLeverageRequestSymbol(String symbol, int leverage) {
 		URI uri = new URIBuilder(futuresBaseUrl)
 						.setPath("/fapi/v1/leverage")
 						.addParameter("symbol", symbol)
@@ -36,10 +24,7 @@ public class PrivateEndpoints {
 	}
 
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest setMarginModeRequestSymbol(
-					String symbol,
-					MarginMode marginMode
-	) {
+	public static @NonNull SimpleHttpRequest setMarginModeRequestSymbol(String symbol, MarginMode marginMode) {
 		String marginModeStr = marginMode == MarginMode.CROSS ? "CROSSED" : "ISOLATED";
 		URI uri = new URIBuilder(futuresBaseUrl)
 						.setPath("/fapi/v1/marginType")
@@ -52,10 +37,7 @@ public class PrivateEndpoints {
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest spotUsdtBalanceRequest() {
-		URI uri = new URIBuilder(spotBaseUrl)
-						.setPath("/sapi/v3/asset/getUserAsset")
-						.setParameter("asset", "USDT")
-						.build();
+		URI uri = new URIBuilder(spotBaseUrl).setPath("/sapi/v3/asset/getUserAsset").setParameter("asset", "USDT").build();
 		return new SimpleHttpRequest("POST", uri);
 	}
 
@@ -66,11 +48,8 @@ public class PrivateEndpoints {
 	}
 
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest maxLeverageRequestSymbol(String symbol) {
-		URI uri = new URIBuilder(futuresBaseUrl)
-						.setPath("/fapi/v1/leverageBracket")
-						.addParameter("symbol", symbol)
-						.build();
+	public static @NonNull SimpleHttpRequest maxLeverageRequest() {
+		URI uri = new URIBuilder(futuresBaseUrl).setPath("/fapi/v1/leverageBracket").build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
@@ -109,10 +88,7 @@ public class PrivateEndpoints {
 	}
 
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest placeFuturesOrderRequestSymbol(
-					String symbol,
-					FuturesOrder futuresOrder
-	) {
+	public static @NonNull SimpleHttpRequest placeFuturesOrderRequestSymbol(String symbol, FuturesOrder futuresOrder) {
 		URIBuilder uriBuilder = new URIBuilder(futuresBaseUrl)
 						.setPath("/fapi/v1/order")
 						.addParameter("symbol", symbol)
