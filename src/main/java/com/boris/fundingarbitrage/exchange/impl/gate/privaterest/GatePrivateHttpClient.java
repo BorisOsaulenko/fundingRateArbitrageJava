@@ -1,6 +1,5 @@
 package com.boris.fundingarbitrage.exchange.impl.gate.privaterest;
 
-import com.boris.fundingarbitrage.ObjectMapperSingleton;
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.ExchangeCredentials;
 import com.boris.fundingarbitrage.exchange.privatehttp.PrivateHttpClient;
@@ -14,8 +13,8 @@ import com.boris.fundingarbitrage.model.exchange.WithdrawChain;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import com.boris.fundingarbitrage.util.cryptography.Signers;
 import com.boris.fundingarbitrage.util.https.PrettyHttpClient;
+import com.boris.fundingarbitrage.util.https.RequestProcessingClientWrapper;
 import com.boris.fundingarbitrage.util.logger.Logger;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
 
 import java.net.URI;
@@ -25,8 +24,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
 public class GatePrivateHttpClient extends PrivateHttpClient {
-	private final ObjectMapper mapper = ObjectMapperSingleton.getInstance();
 	private final ExchangeCredentials credentials;
+	private final RequestProcessingClientWrapper requestWrapper = new RequestProcessingClientWrapper(this.client);
 
 	public GatePrivateHttpClient(ExchangeContext context) {
 		super(context, PrettyHttpClient.getINSTANCE());
@@ -72,16 +71,7 @@ public class GatePrivateHttpClient extends PrivateHttpClient {
 					Class<T> responseClass,
 					Function<T, U> parser
 	) {
-		SimpleHttpRequest signedRequest = signRequest(request);
-		return this.client.send(signedRequest).thenApply((response) -> {
-			try {
-				T responseObj = mapper.readValue(response.getBodyBytes(), responseClass);
-				return parser.apply(responseObj);
-			} catch (Exception e) {
-				Logger.error(String.format("Error parsing private rest response: %s", e.getMessage()));
-				throw new RuntimeException("Failed to process request", e);
-			}
-		});
+		return requestWrapper.processRequest(signRequest(request), responseClass, parser);
 	}
 
 	@Override
@@ -148,39 +138,29 @@ public class GatePrivateHttpClient extends PrivateHttpClient {
 		var chainsRequest = PrivateEndpoints.supportedChainsRequest();
 		var withdrawalFeesRequest = PrivateEndpoints.withdrawalFeesRequest();
 
-		var chainsFuture = client.send(signRequest(chainsRequest));
-		var withdrawalFeesFuture = client.send(signRequest(withdrawalFeesRequest));
+		var chainsFuture = requestWrapper.getResponse(
+						signRequest(chainsRequest),
+						PrivateResponses.SupportedChainsResponse.class
+		);
+		var withdrawalFeesFuture = requestWrapper.getResponse(
+						signRequest(withdrawalFeesRequest),
+						PrivateResponses.WithdrawalFeeResponse.class
+		);
 
 		return chainsFuture.thenCombine(
 						withdrawalFeesFuture, (chainsResp, feesResp) -> {
 							ExchangeChainsBuilder builder = new ExchangeChainsBuilder();
+							for (var gateChain : chainsResp.chains()) {
+								if (gateChain.is_disabled() != 0) continue;
+								SupportedChain chain = ChainsMap.getInverse(gateChain.chain());
+								if (chain == null) continue;
 
-							try {
-								PrivateResponses.SupportedChainsResponse chainsResponse = mapper.readValue(
-												chainsResp.getBodyText(),
-												PrivateResponses.SupportedChainsResponse.class
-								);
-
-								PrivateResponses.WithdrawalFeeResponse feeResponse = mapper.readValue(
-												feesResp.getBodyText(),
-												PrivateResponses.WithdrawalFeeResponse.class
-								);
-
-								for (var gateChain : chainsResponse.chains()) {
-									if (gateChain.is_disabled() != 0) continue;
-									SupportedChain chain = ChainsMap.getInverse(gateChain.chain());
-									if (chain == null) continue;
-
-									if (gateChain.is_deposit_disabled() == 0) builder.addDepositableChain(chain);
-									if (gateChain.is_withdraw_disabled() == 0) {
-										double fee = feeResponse.getFeeForChain(chain);
-										double minWithdraw = feeResponse.getMinWithdraw();
-										builder.addWithdrawableChain(new WithdrawChain(chain, fee, minWithdraw));
-									}
+								if (gateChain.is_deposit_disabled() == 0) builder.addDepositableChain(chain);
+								if (gateChain.is_withdraw_disabled() == 0) {
+									double fee = feesResp.getFeeForChain(chain);
+									double minWithdraw = feesResp.getMinWithdraw();
+									builder.addWithdrawableChain(new WithdrawChain(chain, fee, minWithdraw));
 								}
-							} catch (Exception e) {
-								Logger.error(e.getMessage());
-								throw new RuntimeException(e);
 							}
 
 							return builder.build();

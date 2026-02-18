@@ -51,12 +51,14 @@ public class BybitPublicHttpClient extends PublicHttpClient {
 
 			Map<String, PublicOnePullData> data = new HashMap<>();
 			for (String symbol : lotSizes.keySet()) {
-				BookTicker ticker = bookTickers.get(symbol);
-				if (ticker == null) throw new RuntimeException("Book ticker missing for symbol: " + symbol);
-				Integer granularity = fundingGranularityHours.get(symbol);
-				if (granularity == null) throw new RuntimeException("Funding granularity missing for symbol: " + symbol);
-
-				data.put(symbol, new PublicOnePullData(lotSizes.get(symbol), ticker, volume24h.get(symbol), granularity));
+				data.put(
+								symbol, new PublicOnePullData(
+												lotSizes.get(symbol),
+												bookTickers.get(symbol),
+												volume24h.get(symbol),
+												fundingGranularityHours.get(symbol)
+								)
+				);
 			}
 
 			return data;

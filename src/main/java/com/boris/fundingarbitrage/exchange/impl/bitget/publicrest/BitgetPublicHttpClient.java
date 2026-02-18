@@ -1,50 +1,27 @@
 package com.boris.fundingarbitrage.exchange.impl.bitget.publicrest;
 
-import com.boris.fundingarbitrage.ObjectMapperSingleton;
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.publichttp.PublicHttpClient;
 import com.boris.fundingarbitrage.exchange.publichttp.PublicOnePullData;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.FundingRate;
 import com.boris.fundingarbitrage.util.https.PrettyHttpClient;
-import com.boris.fundingarbitrage.util.logger.Logger;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
+import com.boris.fundingarbitrage.util.https.RequestProcessingClientWrapper;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
 
 public class BitgetPublicHttpClient extends PublicHttpClient {
-	private final ObjectMapper mapper = ObjectMapperSingleton.getInstance();
+	private final RequestProcessingClientWrapper requestWrapper = new RequestProcessingClientWrapper(this.client);
 
 	public BitgetPublicHttpClient(ExchangeContext context) {
 		super(context, PrettyHttpClient.getINSTANCE());
 	}
 
-	private <U> CompletableFuture<U> getResponse(SimpleHttpRequest req, Class<U> responseClass) {
-		return this.client.send(req).thenApply((response) -> {
-			try {
-				return mapper.readValue(response.getBodyBytes(), responseClass);
-			} catch (Exception e) {
-				Logger.error(String.format("Error parsing public rest response: %s", e.getMessage()));
-				throw new RuntimeException("Failed to process request", e);
-			}
-		});
-	}
-
-	private <T, U> CompletableFuture<U> processRequest(
-					SimpleHttpRequest request,
-					Class<T> responseClass,
-					Function<T, U> parser
-	) {
-		return getResponse(request, responseClass).thenApply(parser);
-	}
-
 	@Override
 	protected CompletableFuture<Map<String, FundingRate>> getFundingRateSymbolBatch() {
-		return processRequest(
+		return requestWrapper.processRequest(
 						PublicEndpoints.currentFundingRateRequest(),
 						PublicResponses.CurrentFundingRateResponse.class,
 						PublicResponses.CurrentFundingRateResponse::getFundingRates
@@ -53,17 +30,17 @@ public class BitgetPublicHttpClient extends PublicHttpClient {
 
 	@Override
 	protected CompletableFuture<Map<String, PublicOnePullData>> getPublicOnePullData() {
-		CompletableFuture<Map<String, Double>> lotSizesFuture = processRequest(
+		CompletableFuture<Map<String, Double>> lotSizesFuture = requestWrapper.processRequest(
 						PublicEndpoints.contractConfigRequest(),
 						PublicResponses.ContractsResponse.class,
 						PublicResponses.ContractsResponse::getLotSizes
 		);
-		CompletableFuture<Map<String, Integer>> fundingGranularityFuture = processRequest(
+		CompletableFuture<Map<String, Integer>> fundingGranularityFuture = requestWrapper.processRequest(
 						PublicEndpoints.currentFundingRateRequest(),
 						PublicResponses.CurrentFundingRateResponse.class,
 						PublicResponses.CurrentFundingRateResponse::getFundingGranularity
 		);
-		CompletableFuture<PublicResponses.TickerResponse> tickersResponse = getResponse(
+		CompletableFuture<PublicResponses.TickerResponse> tickersResponse = requestWrapper.getResponse(
 						PublicEndpoints.tickersRequest(),
 						PublicResponses.TickerResponse.class
 		);

@@ -65,7 +65,7 @@ public class BybitPrivateHttpClient extends PrivateHttpClient {
 	@Override
 	protected CompletableFuture<Map<String, Fees>> getTradingFeesSymbolBatch() {
 		return requestWrapper.processRequest(
-						PrivateEndpoints.tradingFeesRequest(),
+						signRequest(PrivateEndpoints.tradingFeesRequest()),
 						PrivateResponses.TradingFeesResponse.class,
 						PrivateResponses.TradingFeesResponse::getFeesBySymbols
 		);
@@ -74,7 +74,7 @@ public class BybitPrivateHttpClient extends PrivateHttpClient {
 	@Override
 	protected CompletableFuture<Void> changeLeverageSymbol(String symbol, int leverage) {
 		return requestWrapper.processRequest(
-						PrivateEndpoints.changeLeverageRequest(symbol, leverage),
+						signRequest(PrivateEndpoints.changeLeverageRequest(symbol, leverage)),
 						PrivateResponses.ChangeLeverageResponse.class,
 						(_) -> null
 		);
@@ -83,7 +83,7 @@ public class BybitPrivateHttpClient extends PrivateHttpClient {
 	@Override
 	protected CompletableFuture<Void> setMarginModeSymbol(String symbol, MarginMode marginMode) {
 		return requestWrapper.processRequest(
-						PrivateEndpoints.setMarginModeRequest(symbol, marginMode),
+						signRequest(PrivateEndpoints.setMarginModeRequest(symbol, marginMode)),
 						PrivateResponses.SetMarginModeResponse.class,
 						(resp) -> null
 		);
@@ -92,7 +92,7 @@ public class BybitPrivateHttpClient extends PrivateHttpClient {
 	@Override
 	public CompletableFuture<Double> getSpotUsdtBalance() {
 		return requestWrapper.processRequest(
-						PrivateEndpoints.spotUsdtBalanceRequest(),
+						signRequest(PrivateEndpoints.spotUsdtBalanceRequest()),
 						PrivateResponses.SpotUsdtBalanceResponse.class,
 						PrivateResponses.SpotUsdtBalanceResponse::get
 		);
@@ -101,7 +101,7 @@ public class BybitPrivateHttpClient extends PrivateHttpClient {
 	@Override
 	public CompletableFuture<Double> getFuturesUsdtBalance() {
 		return requestWrapper.processRequest(
-						PrivateEndpoints.futuresUsdtBalanceRequest(),
+						signRequest(PrivateEndpoints.futuresUsdtBalanceRequest()),
 						PrivateResponses.FuturesUsdtBalanceResponse.class,
 						PrivateResponses.FuturesUsdtBalanceResponse::get
 		);
@@ -121,7 +121,7 @@ public class BybitPrivateHttpClient extends PrivateHttpClient {
 	@Override
 	public CompletableFuture<ExchangeChains> getSupportedChains() {
 		return requestWrapper.processRequest(
-						PrivateEndpoints.supportedChainsRequest(),
+						signRequest(PrivateEndpoints.supportedChainsRequest()),
 						PrivateResponses.SupportedChainsResponse.class,
 						PrivateResponses.SupportedChainsResponse::get
 		);
@@ -130,7 +130,7 @@ public class BybitPrivateHttpClient extends PrivateHttpClient {
 	@Override
 	public CompletableFuture<WalletAddress> getUsdtWalletAddress(SupportedChain chain) {
 		return requestWrapper.processRequest(
-						PrivateEndpoints.usdtWalletAddressRequest(chain),
+						signRequest(PrivateEndpoints.usdtWalletAddressRequest(chain)),
 						PrivateResponses.UsdtWalletAddressResponse.class,
 						(resp) -> resp.get(chain)
 		);
@@ -139,7 +139,7 @@ public class BybitPrivateHttpClient extends PrivateHttpClient {
 	@Override
 	public CompletableFuture<Void> withdrawUsdt(Withdrawal withdrawal) {
 		return requestWrapper.processRequest(
-						PrivateEndpoints.withdrawUsdtRequest(withdrawal),
+						signRequest(PrivateEndpoints.withdrawUsdtRequest(withdrawal)),
 						PrivateResponses.WithdrawUsdtResponse.class,
 						(resp) -> null
 		);
@@ -148,7 +148,7 @@ public class BybitPrivateHttpClient extends PrivateHttpClient {
 	@Override
 	protected CompletableFuture<String> placeFuturesOrderSymbol(String symbol, FuturesOrder futuresOrder) {
 		return requestWrapper.processRequest(
-						PrivateEndpoints.placeFuturesOrderRequest(symbol, futuresOrder),
+						signRequest(PrivateEndpoints.placeFuturesOrderRequest(symbol, futuresOrder)),
 						PrivateResponses.PlaceFuturesOrderResponse.class,
 						PrivateResponses.PlaceFuturesOrderResponse::orderId
 		);
@@ -161,7 +161,7 @@ public class BybitPrivateHttpClient extends PrivateHttpClient {
 					TradeSide tradeSide
 	) {
 		return requestWrapper.processRequest(
-						PrivateEndpoints.orderRecordRequest(orderId, symbol, tradeSide),
+						signRequest(PrivateEndpoints.orderRecordRequest(orderId, symbol, tradeSide)),
 						PrivateResponses.GetOrderRecordResponse.class,
 						PrivateResponses.GetOrderRecordResponse::get
 		);
@@ -170,7 +170,7 @@ public class BybitPrivateHttpClient extends PrivateHttpClient {
 	@Override
 	public CompletableFuture<Void> internalTransfer(InternalTransfer internalTransfer) {
 		return requestWrapper.processRequest(
-						PrivateEndpoints.internalTransferRequest(internalTransfer),
+						signRequest(PrivateEndpoints.internalTransferRequest(internalTransfer)),
 						PrivateResponses.InternalTransferResponse.class,
 						(resp) -> null
 		);

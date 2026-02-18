@@ -28,6 +28,17 @@ public class RequestProcessingClientWrapper {
 		});
 	}
 
+	public <U> CompletableFuture<U> getResponseNoCodeCheck(SimpleHttpRequest req, Class<U> responseClass) {
+		return client.sendNoCodeCheck(req).thenApply((response) -> {
+			try {
+				return mapper.readValue(response.getBodyBytes(), responseClass);
+			} catch (Exception e) {
+				Logger.error(String.format("Error parsing public rest response: %s", e.getMessage()));
+				throw new RuntimeException("Failed to process request", e);
+			}
+		});
+	}
+
 	public <T, U> CompletableFuture<U> processRequest(
 					SimpleHttpRequest request,
 					Class<T> responseClass,
