@@ -10,11 +10,8 @@ import java.util.List;
 public class BybitPublicWsClient extends FullFundingViaRest {
 	private static final URI endpoint = URI.create("wss://stream.bybit.com/v5/public/linear");
 
-	public BybitPublicWsClient(
-					ExchangeContext context,
-					BybitPublicMessageHandler messageHandler,
-					BybitPublicHttpClient publicHttp
-	) {
+	public BybitPublicWsClient(ExchangeContext context, BybitPublicHttpClient publicHttp) {
+		BybitPublicMessageHandler messageHandler = new BybitPublicMessageHandler(context);
 		super(context, endpoint, messageHandler, publicHttp);
 	}
 

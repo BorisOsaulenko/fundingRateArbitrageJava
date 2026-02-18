@@ -14,7 +14,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.time.Instant;
 
-public class BinancePrivateMessageHandler implements PrivateMessageHandler {
+class BinancePrivateMessageHandler implements PrivateMessageHandler {
 	private final ObjectMapper mapper = ObjectMapperSingleton.getInstance();
 
 	private static double parseDouble(JsonNode node, String field) {

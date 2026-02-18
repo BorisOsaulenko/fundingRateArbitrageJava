@@ -12,7 +12,7 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
-public class PrivateEndpoints {
+class PrivateEndpoints {
 	private static final String baseUrl = "https://api.gateio.ws";
 	private static final String settle = "usdt";
 

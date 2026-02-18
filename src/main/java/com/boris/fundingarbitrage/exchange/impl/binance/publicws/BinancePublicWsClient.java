@@ -14,11 +14,8 @@ public class BinancePublicWsClient extends PublicWsClient {
 	private static final URI endpoint = URI.create("wss://fstream.binance.com/ws");
 	private static final AtomicInteger NEXT_ID = new AtomicInteger(1);
 
-	public BinancePublicWsClient(
-					ExchangeContext context,
-					BinancePublicMessageHandler messageHandler,
-					PublicHttpClient publicHttp
-	) {
+	public BinancePublicWsClient(ExchangeContext context, PublicHttpClient publicHttp) {
+		BinancePublicMessageHandler messageHandler = new BinancePublicMessageHandler(context);
 		super(context, endpoint, messageHandler, publicHttp);
 	}
 

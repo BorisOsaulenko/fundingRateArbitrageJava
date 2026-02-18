@@ -15,7 +15,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class PrivateResponses {
+class PrivateResponses {
 	public record ChangeLeverageResponseSymbol(String symbol, double leverage) {}
 
 	public record SetMarginModeResponse(Integer code, String msg) {

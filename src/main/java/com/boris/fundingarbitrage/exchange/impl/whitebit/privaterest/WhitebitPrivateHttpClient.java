@@ -7,14 +7,11 @@ import com.boris.fundingarbitrage.model.assetops.*;
 import com.boris.fundingarbitrage.model.contract.Fees;
 import com.boris.fundingarbitrage.model.contract.PartialFill;
 import com.boris.fundingarbitrage.model.exchange.ExchangeChains;
-import com.boris.fundingarbitrage.model.exchange.ExchangeChainsBuilder;
 import com.boris.fundingarbitrage.model.exchange.WalletAddress;
-import com.boris.fundingarbitrage.model.exchange.WithdrawChain;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import com.boris.fundingarbitrage.util.cryptography.Signers;
 import com.boris.fundingarbitrage.util.https.PrettyHttpClient;
 import com.boris.fundingarbitrage.util.https.RequestProcessingClientWrapper;
-import com.boris.fundingarbitrage.util.logger.Logger;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
 
@@ -24,7 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
 
 public class WhitebitPrivateHttpClient extends PrivateHttpClient {
 	private final ExchangeCredentials credentials;
@@ -112,66 +108,13 @@ public class WhitebitPrivateHttpClient extends PrivateHttpClient {
 		);
 	}
 
-	private static String extractNetwork(String key) {
-		int start = key.indexOf('(');
-		int end = key.indexOf(')');
-		if (start < 0 || end <= start) return null;
-		return key.substring(start + 1, end).trim();
-	}
-
-	private static boolean requireBoolean(JsonNode node, String field, String key) {
-		JsonNode val = node.get(field);
-		if (val == null || !val.isBoolean()) {
-			throw new IllegalStateException("Missing boolean field " + field + " for " + key);
-		}
-		return val.asBoolean();
-	}
-
 	@Override
 	public CompletableFuture<ExchangeChains> getSupportedChains() {
-		SimpleHttpRequest request = signRequest(PrivateEndpoints.publicFeeRequest());
-		return requestWrapper.getResponse(request, JsonNode.class).thenApply((root) -> {
-			try {
-				if (root == null || !root.isObject()) {
-					throw new IllegalStateException("Invalid fee response");
-				}
-				ExchangeChainsBuilder builder = new ExchangeChainsBuilder();
-				root.fields().forEachRemaining(entry -> {
-					String key = entry.getKey();
-					JsonNode feeEntry = entry.getValue();
-					String ticker = feeEntry.path("ticker").asText();
-					if (!"USDT".equalsIgnoreCase(ticker)) return;
-					String network = extractNetwork(key);
-					SupportedChain chain = ChainsMap.getInverse(network);
-					if (chain == null) return;
-
-					boolean apiDepositable = requireBoolean(feeEntry, "is_api_depositable", key);
-					boolean apiWithdrawable = requireBoolean(feeEntry, "is_api_withdrawal", key);
-					if (apiDepositable) builder.addDepositableChain(chain);
-					if (apiWithdrawable) {
-						JsonNode withdraw = feeEntry.get("withdraw");
-						if (withdraw == null || !withdraw.isObject()) {
-							throw new IllegalStateException("Withdrawal info missing for " + key);
-						}
-						String feeText = withdraw.path("fixed").asText();
-						if (feeText == null || feeText.isEmpty()) {
-							throw new IllegalStateException("Withdrawal fee missing for " + key);
-						}
-						String minText = withdraw.path("min_amount").asText();
-						if (minText == null || minText.isEmpty()) {
-							throw new IllegalStateException("Withdrawal min amount missing for " + key);
-						}
-						double fee = Double.parseDouble(feeText);
-						double min = Double.parseDouble(minText);
-						builder.addWithdrawableChain(new WithdrawChain(chain, fee, min));
-					}
-				});
-				return builder.build();
-			} catch (Exception e) {
-				Logger.error(String.format("Error parsing supported chains response: %s", e.getMessage()));
-				throw new RuntimeException("Failed to process supported chains", e);
-			}
-		});
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.publicFeeRequest()),
+						PrivateResponses.SupportedChainsResponse.class,
+						PrivateResponses.SupportedChainsResponse::getChains
+		);
 	}
 
 	@Override

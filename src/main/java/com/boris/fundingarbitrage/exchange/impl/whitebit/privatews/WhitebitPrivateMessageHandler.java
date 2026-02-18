@@ -11,7 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.time.Instant;
 
-public class WhitebitPrivateMessageHandler implements PrivateMessageHandler {
+class WhitebitPrivateMessageHandler implements PrivateMessageHandler {
 	private final ObjectMapper mapper = ObjectMapperSingleton.getInstance();
 
 	private DepositPatch parseDepositInternal(String message) throws JsonProcessingException {
@@ -67,24 +67,28 @@ public class WhitebitPrivateMessageHandler implements PrivateMessageHandler {
 
 	@Override
 	public DepositPatch parseDepositMessageSymbol(String message) {
-		return parseErrorHandled((msg) -> {
-			try {
-				return parseDepositInternal(msg);
-			} catch (JsonProcessingException e) {
-				return null;
-			}
-		}, message);
+		return parseErrorHandled(
+						(msg) -> {
+							try {
+								return parseDepositInternal(msg);
+							} catch (JsonProcessingException e) {
+								return null;
+							}
+						}, message
+		);
 	}
 
 	@Override
 	public PartialFill parsePartialFillMessageSymbol(String message) {
-		return parseErrorHandled((msg) -> {
-			try {
-				return parsePartialFillInternal(msg);
-			} catch (JsonProcessingException e) {
-				return null;
-			}
-		}, message);
+		return parseErrorHandled(
+						(msg) -> {
+							try {
+								return parsePartialFillInternal(msg);
+							} catch (JsonProcessingException e) {
+								return null;
+							}
+						}, message
+		);
 	}
 
 	@Override

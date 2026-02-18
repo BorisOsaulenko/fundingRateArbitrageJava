@@ -15,7 +15,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class PrivateResponses {
+class PrivateResponses {
 	private static double parseDouble(String... values) {
 		for (String text : values) {
 			if (text == null || text.isEmpty()) continue;
@@ -45,19 +45,12 @@ public class PrivateResponses {
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
 	private record SpotAsset(
-					String coin,
-					String available,
-					String free,
-					String availableBalance
+					String coin, String available, String free, String availableBalance
 	) {}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
 	private record SpotAccount(
-					String accountType,
-					String available,
-					String availableBalance,
-					String availableEquity,
-					List<SpotAsset> assets
+					String accountType, String available, String availableBalance, String availableEquity, List<SpotAsset> assets
 	) {}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
@@ -84,11 +77,7 @@ public class PrivateResponses {
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
 	private record FuturesAccount(
-					String marginCoin,
-					String available,
-					String availableBalance,
-					String availableEquity,
-					String maxAvailable
+					String marginCoin, String available, String availableBalance, String availableEquity, String maxAvailable
 	) {}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
@@ -100,12 +89,7 @@ public class PrivateResponses {
 			for (FuturesAccount account : data) {
 				String marginCoin = account.marginCoin;
 				if (!"USDT".equalsIgnoreCase(marginCoin)) continue;
-				return parseDouble(
-								account.available,
-								account.availableBalance,
-								account.availableEquity,
-								account.maxAvailable
-				);
+				return parseDouble(account.available, account.availableBalance, account.availableEquity, account.maxAvailable);
 			}
 			return 0.0;
 		}
@@ -156,9 +140,7 @@ public class PrivateResponses {
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
 	private record CoinInfo(
-					String coin,
-					List<ChainInfo> chains,
-					List<ChainInfo> chainList
+					String coin, List<ChainInfo> chains, List<ChainInfo> chainList
 	) {}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)

@@ -11,11 +11,8 @@ import java.util.List;
 public class OkxPublicWsClient extends PublicWsClient {
 	private static final URI endpoint = URI.create("wss://ws.okx.com:8443/ws/v5/public");
 
-	public OkxPublicWsClient(
-					ExchangeContext context,
-					OkxPublicMessageHandler messageHandler,
-					OkxPublicHttpClient publicHttp
-	) {
+	public OkxPublicWsClient(ExchangeContext context, OkxPublicHttpClient publicHttp) {
+		OkxPublicMessageHandler messageHandler = new OkxPublicMessageHandler(context);
 		super(context, endpoint, messageHandler, publicHttp);
 	}
 

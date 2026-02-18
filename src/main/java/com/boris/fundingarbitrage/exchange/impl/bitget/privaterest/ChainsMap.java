@@ -5,7 +5,7 @@ import com.boris.fundingarbitrage.model.assetops.SupportedChain;
 import java.util.HashMap;
 import java.util.Map;
 
-public final class ChainsMap {
+class ChainsMap {
 	private static final Map<SupportedChain, String> forward = new HashMap<>();
 	private static final Map<String, SupportedChain> inverse = new HashMap<>();
 

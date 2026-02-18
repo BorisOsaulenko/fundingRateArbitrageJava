@@ -12,7 +12,7 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
-public class PrivateEndpoints {
+class PrivateEndpoints {
 	private static final String baseUrl = "https://api.bitget.com";
 	private static final String productType = "USDT-FUTURES";
 	private static final String marginCoin = "USDT";
@@ -35,7 +35,7 @@ public class PrivateEndpoints {
 						.build();
 		return new SimpleHttpRequest("GET", uri);
 	}
-	
+
 	public static @NonNull SimpleHttpRequest changeLeverageRequestSymbol(String symbol, int leverage) {
 		Map<String, Object> body = new HashMap<>();
 		body.put("symbol", symbol);

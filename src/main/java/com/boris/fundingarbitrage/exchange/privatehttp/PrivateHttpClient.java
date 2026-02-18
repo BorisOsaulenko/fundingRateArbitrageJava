@@ -18,11 +18,11 @@ import java.util.function.Supplier;
 
 public abstract class PrivateHttpClient {
 	protected final PrettyHttpClient client;
-	protected final ExchangeContext exchangeContext;
+	protected final ExchangeContext context;
 
 	protected PrivateHttpClient(ExchangeContext exchangeContext, PrettyHttpClient client) {
 		this.client = client;
-		this.exchangeContext = exchangeContext;
+		this.context = exchangeContext;
 	}
 
 	protected abstract SimpleHttpRequest signRequest(SimpleHttpRequest request);
@@ -59,7 +59,7 @@ public abstract class PrivateHttpClient {
 	public abstract CompletableFuture<Void> internalTransfer(InternalTransfer internalTransfer);
 
 	private <T> CompletableFuture<T> withSymbol(String coin, Function<String, CompletableFuture<T>> symbolGetter) {
-		String symbol = exchangeContext.getSymbol(coin);
+		String symbol = context.getSymbol(coin);
 		return symbolGetter.apply(symbol);
 	}
 
@@ -70,7 +70,7 @@ public abstract class PrivateHttpClient {
 		return symbolGetter.get().thenApply(resultBySymbol -> {
 			CoinVector<T> result = new CoinVector<>();
 			for (String coin : coins) {
-				String symbol = exchangeContext.getSymbol(coin);
+				String symbol = context.getSymbol(coin);
 				result.put(coin, resultBySymbol.get(symbol));
 			}
 			return result;
@@ -81,7 +81,7 @@ public abstract class PrivateHttpClient {
 					List<String> coins,
 					Function<List<String>, CompletableFuture<Map<String, T>>> symbolGetter
 	) {
-		List<String> symbols = coins.stream().map(exchangeContext::getSymbol).toList();
+		List<String> symbols = coins.stream().map(context::getSymbol).toList();
 		return symbolGetter.apply(symbols);
 	}
 

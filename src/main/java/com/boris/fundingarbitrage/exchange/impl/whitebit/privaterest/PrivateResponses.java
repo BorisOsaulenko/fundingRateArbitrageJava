@@ -3,7 +3,10 @@ package com.boris.fundingarbitrage.exchange.impl.whitebit.privaterest;
 import com.boris.fundingarbitrage.model.assetops.SupportedChain;
 import com.boris.fundingarbitrage.model.contract.Fees;
 import com.boris.fundingarbitrage.model.contract.PartialFill;
+import com.boris.fundingarbitrage.model.exchange.ExchangeChains;
 import com.boris.fundingarbitrage.model.exchange.WalletAddress;
+import com.boris.fundingarbitrage.model.exchange.WithdrawChain;
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.time.Instant;
@@ -11,8 +14,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
-public class PrivateResponses {
+class PrivateResponses {
 	@JsonIgnoreProperties(ignoreUnknown = true)
 	public record TradingFeesSymbolsResponse(double futures_maker, double futures_taker) {
 		public Fees getAccountFees() {
@@ -31,6 +35,47 @@ public class PrivateResponses {
 	public record CollateralSummaryResponse(double USDT) {
 		public double futuresBalance() {
 			return USDT;
+		}
+	}
+
+	public record SupportedChainsResponseEntry(
+					String ticker,
+					boolean is_api_depositable,
+					boolean is_api_withdrawal,
+					SupportedChainsWithdrawInfo withdraw
+	) {}
+
+	public record SupportedChainsWithdrawInfo(double fixed, double min_amount) {}
+
+	public record SupportedChainsResponse(Map<String, SupportedChainsResponseEntry> entries) {
+		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
+		public SupportedChainsResponse {}
+
+		private String extractNetwork(String key) {
+			int start = key.indexOf('(');
+			int end = key.indexOf(')');
+			if (start < 0 || end <= start) return null;
+			return key.substring(start + 1, end).trim();
+		}
+
+		public ExchangeChains getChains() {
+			List<SupportedChain> depositable = new ArrayList<>();
+			List<WithdrawChain> withdrawable = new ArrayList<>();
+
+			for (var entry : entries.entrySet()) {
+				if (!"USDT".equalsIgnoreCase(entry.getValue().ticker())) continue;
+				SupportedChain chain = ChainsMap.getInverse(extractNetwork(entry.getKey()));
+				if (chain == null) continue;
+
+				if (entry.getValue().is_api_depositable()) depositable.add(chain);
+				if (entry.getValue().is_api_withdrawal()) {
+					double minWidthdraw = entry.getValue().withdraw().min_amount();
+					double fee = entry.getValue().withdraw().fixed();
+					withdrawable.add(new WithdrawChain(chain, fee, minWidthdraw));
+				}
+			}
+
+			return new ExchangeChains(depositable, withdrawable);
 		}
 	}
 

@@ -15,7 +15,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class PrivateResponses {
+class PrivateResponses {
 	private static void ensureOk(String code, String msg) {
 		if (!"0".equals(code)) {
 			throw new RuntimeException(String.format("OKX private request failed: %s, %s", code, msg));

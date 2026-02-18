@@ -13,7 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class PrivateResponses {
+class PrivateResponses {
 	public record TradingFeesSymbolsResponse(
 					double taker_fee, double maker_fee, double futures_taker_fee, double futures_maker_fee
 	) {
@@ -21,7 +21,7 @@ public class PrivateResponses {
 			return new Fees(futures_maker_fee, futures_taker_fee, futures_maker_fee, futures_taker_fee, Instant.now());
 		}
 	}
-	
+
 	private record SpotBalanceItem(String currency, String available) {}
 
 	@JsonFormat(shape = JsonFormat.Shape.ARRAY)

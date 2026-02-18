@@ -10,11 +10,8 @@ import java.util.List;
 public class GatePublicWsClient extends PublicWsFundingSettlementViaRest {
 	private static final URI endpoint = URI.create("wss://fx-ws.gateio.ws/v4/ws/usdt");
 
-	public GatePublicWsClient(
-					ExchangeContext context,
-					GatePublicMessageHandler messageHandler,
-					GatePublicHttpClient publicHttp
-	) {
+	public GatePublicWsClient(ExchangeContext context, GatePublicHttpClient publicHttp) {
+		GatePublicMessageHandler messageHandler = new GatePublicMessageHandler(context);
 		super(context, endpoint, messageHandler, publicHttp);
 	}
 

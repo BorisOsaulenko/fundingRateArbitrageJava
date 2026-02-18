@@ -16,7 +16,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class PrivateResponses {
+class PrivateResponses {
 	@JsonIgnoreProperties(ignoreUnknown = true)
 	public record TradingFeesResponse(int retCode, String retMsg, long time, TradingFeesResult result) {
 		public Map<String, Fees> getFeesBySymbols() {

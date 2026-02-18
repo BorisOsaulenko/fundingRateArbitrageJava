@@ -4,7 +4,7 @@ import com.boris.fundingarbitrage.model.assetops.SupportedChain;
 
 import java.util.Map;
 
-public class ChainsMap {
+class ChainsMap {
 	private static final Map<SupportedChain, String> forward = Map.of(
 					SupportedChain.BSC,
 					"BSC",

@@ -13,7 +13,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-public class PrivateEndpoints {
+class PrivateEndpoints {
 	private static final String baseUrl = "https://whitebit.com";
 
 	@SneakyThrows

@@ -14,7 +14,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.time.Instant;
 
-public class BitgetPrivateMessageHandler implements PrivateMessageHandler {
+class BitgetPrivateMessageHandler implements PrivateMessageHandler {
 	private final ObjectMapper mapper = ObjectMapperSingleton.getInstance();
 
 	private static double parseDouble(JsonNode node, String... fields) {
@@ -58,13 +58,7 @@ public class BitgetPrivateMessageHandler implements PrivateMessageHandler {
 		JsonNode entry = data.get(0);
 		String marginCoin = entry.path("marginCoin").asText();
 		if (!"USDT".equalsIgnoreCase(marginCoin)) return null;
-		double available = parseDouble(
-						entry,
-						"available",
-						"availableBalance",
-						"availableEquity",
-						"maxAvailable"
-		);
+		double available = parseDouble(entry, "available", "availableBalance", "availableEquity", "maxAvailable");
 		if (available <= 0) return null;
 		Instant ts = parseInstant(entry, "ts", "timestamp");
 		return new DepositPatch(available, ts);

@@ -11,7 +11,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import java.time.Instant;
 import java.util.function.Function;
 
-public class KucoinPublicMessageHandler implements PublicMessageHandler {
+class KucoinPublicMessageHandler implements PublicMessageHandler {
 	private static final String TICKER_TOPIC = "/contractMarket/tickerV2";
 	private static final String INSTRUMENT_TOPIC = "/contract/instrument";
 	private final ExchangeContext context;

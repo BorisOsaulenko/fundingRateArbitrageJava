@@ -16,11 +16,8 @@ public class KucoinPublicWsClient extends FullFundingViaRest {
 	private final String instrumentTopic = "/contract/instrument:";
 	private final String tickerTopic = "/contractMarket/tickerV2:";
 
-	public KucoinPublicWsClient(
-					ExchangeContext context,
-					KucoinPublicMessageHandler messageHandler,
-					KucoinPublicHttpClient publicHttp
-	) {
+	public KucoinPublicWsClient(ExchangeContext context, KucoinPublicHttpClient publicHttp) {
+		KucoinPublicMessageHandler messageHandler = new KucoinPublicMessageHandler(context);
 		super(context, publicHttp.fetchPublicWsEndpoint(), messageHandler, publicHttp);
 		pingExecutor.scheduleAtFixedRate(this::sendPingFrame, 10, 9, TimeUnit.SECONDS);
 	}

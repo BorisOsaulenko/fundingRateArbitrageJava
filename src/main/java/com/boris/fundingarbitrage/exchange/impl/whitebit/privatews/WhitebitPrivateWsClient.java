@@ -1,15 +1,7 @@
 package com.boris.fundingarbitrage.exchange.impl.whitebit.privatews;
 
-import com.boris.fundingarbitrage.ObjectMapperSingleton;
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
-import com.boris.fundingarbitrage.exchange.ExchangeCredentials;
-import com.boris.fundingarbitrage.exchange.impl.whitebit.privaterest.PrivateEndpoints;
-import com.boris.fundingarbitrage.exchange.impl.whitebit.ws.WsRequest;
 import com.boris.fundingarbitrage.exchange.privatews.PrivateWsClient;
-import com.boris.fundingarbitrage.util.https.PrettyHttpClient;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
 
 import java.net.URI;
 import java.util.List;

@@ -8,7 +8,7 @@ import org.apache.hc.core5.net.URIBuilder;
 
 import java.net.URI;
 
-public class PrivateEndpoints {
+class PrivateEndpoints {
 	private static final String futuresBaseUrl = "https://fapi.binance.com";
 	private static final String spotBaseUrl = "https://api.binance.com";
 
