@@ -8,6 +8,9 @@ import com.boris.fundingarbitrage.exchange.impl.whitebit.publicws.WhitebitPublic
 import com.boris.fundingarbitrage.exchange.impl.whitebit.publicws.WhitebitPublicWsClient;
 import com.boris.fundingarbitrage.model.exchange.ExchangeName;
 
+import java.net.URI;
+import java.util.concurrent.CompletableFuture;
+
 public class WhitebitExchange extends BaseExchange {
 	private static final ExchangeName name = ExchangeName.WHITEBIT;
 	private static final WhitebitContext context = new WhitebitContext();
@@ -18,8 +21,9 @@ public class WhitebitExchange extends BaseExchange {
 					publicMessageHandler,
 					publicHttp
 	);
-	private static final WhitebitPrivateWsClient privateWs = new WhitebitPrivateWsClient(context);
 	private static final WhitebitPrivateHttpClient privateHttp = new WhitebitPrivateHttpClient(context);
+	private static final CompletableFuture<String> privateWsTokenFuture = privateHttp.fetchWebsocketToken();
+	private static final WhitebitPrivateWsClient privateWs = new WhitebitPrivateWsClient(context, privateWsTokenFuture);
 
 	public WhitebitExchange() {
 		super(name, publicWs, privateWs, publicHttp, privateHttp);

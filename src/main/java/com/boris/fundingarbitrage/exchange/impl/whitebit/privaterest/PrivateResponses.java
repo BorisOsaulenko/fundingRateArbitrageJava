@@ -88,4 +88,6 @@ public class PrivateResponses {
 			return maxLeveragesBySymbol;
 		}
 	}
+
+	public record TokenResponse(String websocket_token) {}
 }
