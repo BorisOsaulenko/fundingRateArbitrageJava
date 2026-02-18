@@ -7,6 +7,7 @@ import com.boris.fundingarbitrage.model.exchange.ExchangeChains;
 import com.boris.fundingarbitrage.model.exchange.ExchangeChainsBuilder;
 import com.boris.fundingarbitrage.model.exchange.WalletAddress;
 import com.boris.fundingarbitrage.model.exchange.WithdrawChain;
+import com.boris.fundingarbitrage.util.https.PaginatedResponse;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.time.Instant;
@@ -82,20 +83,16 @@ public class PrivateResponses {
 		}
 	}
 
-	@JsonIgnoreProperties(ignoreUnknown = true)
 	private record BalanceResult(List<BalanceAccount> list) {}
 
-	@JsonIgnoreProperties(ignoreUnknown = true)
 	private record BalanceAccount(List<BalanceCoin> coin) {}
 
-	@JsonIgnoreProperties(ignoreUnknown = true)
 	private record BalanceCoin(String coin, String walletBalance) {}
 
-	@JsonIgnoreProperties(ignoreUnknown = true)
-	public record MaxLeverageResponse(int retCode, String retMsg, long time, MaxLeverageResult result) {
-		public Map<String, Integer> get() {
+	public record MaxLeverageResponse(int retCode, String retMsg, long time, MaxLeverageResult result) implements
+					PaginatedResponse {
+		public Map<String, Integer> getMaxLeverages() {
 			Map<String, Integer> maxLeverageBySymbol = new HashMap<>();
-			if (result == null || result.list == null) return maxLeverageBySymbol;
 
 			for (MaxLeverageItem item : result.list) {
 				String symbol = item.symbol;
@@ -106,10 +103,14 @@ public class PrivateResponses {
 
 			return maxLeverageBySymbol;
 		}
+
+		public String getPaginationIndex() {
+			return result.nextPageCursor;
+		}
 	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
-	private record MaxLeverageResult(List<MaxLeverageItem> list) {}
+	private record MaxLeverageResult(List<MaxLeverageItem> list, String nextPageCursor) {}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
 	private record MaxLeverageItem(String symbol, LeverageFilter leverageFilter) {}
@@ -153,25 +154,16 @@ public class PrivateResponses {
 		}
 	}
 
-	@JsonIgnoreProperties(ignoreUnknown = true)
 	private record SupportedChainsResult(List<SupportedCoin> rows) {}
 
-	@JsonIgnoreProperties(ignoreUnknown = true)
 	private record SupportedCoin(String coin, List<SupportedChainInfo> chains) {}
 
-	@JsonIgnoreProperties(ignoreUnknown = true)
 	private record SupportedChainInfo(
-					String chain,
-					String chainDeposit,
-					String chainWithdraw,
-					String withdrawFee,
-					String withdrawMin
+					String chain, String chainDeposit, String chainWithdraw, String withdrawFee, String withdrawMin
 	) {}
 
-	@JsonIgnoreProperties(ignoreUnknown = true)
 	private record WalletItem(String chain, String addressDeposit, String tagDeposit) {}
 
-	@JsonIgnoreProperties(ignoreUnknown = true)
 	private record WalletResult(String coin, List<WalletItem> chains) {}
 
 	public record UsdtWalletAddressResponse(

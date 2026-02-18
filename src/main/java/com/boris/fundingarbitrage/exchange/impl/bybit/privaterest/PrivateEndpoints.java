@@ -68,12 +68,15 @@ public class PrivateEndpoints {
 	}
 
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest maxLeverageRequest() {
-		URI uri = new URIBuilder(baseUrl)
+	public static @NonNull SimpleHttpRequest maxLeverageRequest(String paginationIndex) {
+		URIBuilder uriBuilder = new URIBuilder(baseUrl)
 						.setPath("/v5/market/instruments-info")
 						.addParameter("category", category)
-						.addParameter("limit", "1000")
-						.build();
+						.addParameter("limit", "1000");
+
+		if (paginationIndex != null) uriBuilder.addParameter("cursor", paginationIndex);
+
+		URI uri = uriBuilder.build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 

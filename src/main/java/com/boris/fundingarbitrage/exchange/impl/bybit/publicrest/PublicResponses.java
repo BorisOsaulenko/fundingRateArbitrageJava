@@ -2,6 +2,7 @@ package com.boris.fundingarbitrage.exchange.impl.bybit.publicrest;
 
 import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.FundingRate;
+import com.boris.fundingarbitrage.util.https.PaginatedResponse;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -9,12 +10,14 @@ import java.util.List;
 import java.util.Map;
 
 class PublicResponses {
-	public record InstrumentsInfoSymbolsResponse(int retCode, String retMsg, long time, InstrumentsInfoResult result) {
+	public record InstrumentsInfoSymbolsResponse(
+					int retCode, String retMsg, long time, InstrumentsInfoResult result
+	) implements PaginatedResponse {
 		private record LotSizeFilter(double qtyStep) {}
 
 		private record InstrumentInfo(String symbol, LotSizeFilter lotSizeFilter, int fundingInterval) {}
 
-		private record InstrumentsInfoResult(String category, List<InstrumentInfo> list) {}
+		private record InstrumentsInfoResult(String category, List<InstrumentInfo> list, String nextPageCursor) {}
 
 		public Map<String, Double> getLotSizes() {
 			Map<String, Double> resultMap = new HashMap<>();
@@ -26,6 +29,10 @@ class PublicResponses {
 			Map<String, Integer> resultMap = new HashMap<>();
 			for (InstrumentInfo item : result.list()) resultMap.put(item.symbol(), item.fundingInterval() / 60);
 			return resultMap;
+		}
+
+		public String getPaginationIndex() {
+			return result.nextPageCursor();
 		}
 	}
 
