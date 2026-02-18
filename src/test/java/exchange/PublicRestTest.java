@@ -3,6 +3,7 @@ package exchange;
 import com.boris.fundingarbitrage.exchange.publichttp.PublicHttpClient;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.FundingRate;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -66,6 +67,7 @@ public abstract class PublicRestTest {
 	}
 
 	@Test
+	@Tag("rest")
 	void getFundingRatesBatch() throws Exception {
 		Map<String, FundingRate> fundingRates = getWithTimeout(publicRest().getFundingRate(coins));
 		assertNotNull(fundingRates, "Funding rates map should not be null");
@@ -87,6 +89,7 @@ public abstract class PublicRestTest {
 	}
 
 	@Test
+	@Tag("rest")
 	void publicOnePullData() throws Exception {
 		var result = getWithTimeout(publicRest().getOnePullData(coins));
 		assertNotNull(result, "One pull data should not be null");

@@ -4,8 +4,7 @@ import com.boris.fundingarbitrage.model.assetops.SupportedChain;
 import com.boris.fundingarbitrage.model.contract.Fees;
 import com.boris.fundingarbitrage.model.contract.PartialFill;
 import com.boris.fundingarbitrage.model.exchange.WalletAddress;
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -14,107 +13,67 @@ import java.util.List;
 import java.util.Map;
 
 public class PrivateResponses {
-	private static double parseRequiredDouble(JsonNode node, String field) {
-		JsonNode val = node.get(field);
-		if (val == null || val.isNull()) throw new IllegalStateException("Missing field: " + field);
-		String text = val.asText();
-		if (text == null || text.isEmpty()) throw new IllegalStateException("Missing field: " + field);
-		return Double.parseDouble(text);
-	}
-
-	public record TradingFeesSymbolsResponse(JsonNode node) {
-		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
-		public TradingFeesSymbolsResponse {}
-
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	public record TradingFeesSymbolsResponse(double futures_maker, double futures_taker) {
 		public Fees getAccountFees() {
-			double maker = parseRequiredDouble(node, "futures_maker") / 100;
-			double taker = parseRequiredDouble(node, "futures_taker") / 100;
+			double maker = futures_maker / 100;
+			double taker = futures_taker / 100;
 			return new Fees(maker, taker, maker, taker, Instant.now());
 		}
 	}
 
-	public record SpotBalanceResponse(JsonNode node) {
-		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
-		public SpotBalanceResponse {}
-
+	public record SpotBalanceResponse(double main_balance) {
 		public double usdtAvailable() {
-			if (node == null || !node.isObject()) throw new IllegalStateException("Balance response missing");
-			JsonNode usdt = node.get("USDT");
-			if (usdt == null || !usdt.isObject()) throw new IllegalStateException("USDT balance not found");
-			return parseRequiredDouble(usdt, "available");
+			return main_balance;
 		}
 	}
 
-	public record CollateralSummaryResponse(JsonNode node) {
-		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
-		public CollateralSummaryResponse {}
-
+	public record CollateralSummaryResponse(double USDT) {
 		public double futuresBalance() {
-			if (node == null || !node.isObject()) {
-				throw new IllegalStateException("Collateral balance missing");
-			}
-			JsonNode usdt = node.get("USDT");
-			if (usdt == null || usdt.isNull()) throw new IllegalStateException("USDT collateral balance missing");
-			if (usdt.isNumber()) return usdt.asDouble();
-			if (usdt.isTextual()) return Double.parseDouble(usdt.asText());
-			throw new IllegalStateException("Invalid USDT collateral balance");
+			return USDT;
 		}
 	}
 
-	public record WalletAddressResponse(JsonNode node) {
-		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
-		public WalletAddressResponse {}
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	private record WalletAccount(String address, String memo) {}
 
+	public record WalletAddressResponse(WalletAccount account) {
 		public WalletAddress get(SupportedChain chain) {
-			if (node == null || !node.isObject()) throw new IllegalStateException("Wallet address response missing");
-			JsonNode account = node.get("account");
-			if (account == null || !account.isObject()) throw new IllegalStateException("Account info missing");
-			String address = account.path("address").asText();
+			if (account == null) throw new IllegalStateException("Account info missing");
+			String address = account.address;
 			if (address == null || address.isEmpty()) throw new IllegalStateException("Missing address");
-			String memo = account.path("memo").asText(null);
+			String memo = account.memo;
 			if (memo != null && memo.isEmpty()) memo = null;
 			return new WalletAddress(chain, address, memo);
 		}
 	}
 
-	public record PlaceOrderResponse(JsonNode node) {
-		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
-		public PlaceOrderResponse {}
-
+	public record PlaceOrderResponse(String orderId) {
 		public String orderId() {
-			if (node == null || !node.isObject()) throw new IllegalStateException("Order response missing");
-			String orderId = node.path("orderId").asText();
 			if (orderId == null || orderId.isEmpty()) throw new IllegalStateException("Missing orderId");
 			return orderId;
 		}
 	}
 
-	public record OrderDealsResponse(JsonNode node) {
-		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
-		public OrderDealsResponse {}
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	private record OrderDealRecord(
+					String dealOrderId, String market, double amount, double price, double fee, String feeAsset, long time
+	) {}
 
+	public record OrderDealsResponse(List<OrderDealRecord> records) {
 		public List<PartialFill> get() {
-			if (node == null || !node.isObject()) throw new IllegalStateException("Order deals response missing");
-			JsonNode records = node.get("records");
-			if (records == null || !records.isArray()) {
+			if (records == null) {
 				throw new IllegalStateException("Order deals records missing");
 			}
 			ArrayList<PartialFill> result = new ArrayList<>();
-			for (JsonNode item : records) {
-				String orderId = item.path("dealOrderId").asText();
+			for (OrderDealRecord item : records) {
+				String orderId = item.dealOrderId;
 				if (orderId == null || orderId.isEmpty()) continue;
-				String symbol = item.path("market").asText();
+				String symbol = item.market;
 				if (symbol == null || symbol.isEmpty()) throw new IllegalStateException("Missing market");
-				double amount = parseRequiredDouble(item, "amount");
-				double price = parseRequiredDouble(item, "price");
-				double fee = parseRequiredDouble(item, "fee");
-				String feeAsset = item.path("feeAsset").asText();
-				Double feeValue = "USDT".equalsIgnoreCase(feeAsset) ? fee : null;
-				double time = item.path("time").asDouble();
-				if (time == 0.0) throw new IllegalStateException("Missing time");
-				long timeMillis = (long) (time * 1000.0);
-				Instant ts = Instant.ofEpochMilli(timeMillis);
-				result.add(new PartialFill(orderId, symbol, amount, price, feeValue, ts));
+				Double feeValue = "USDT".equalsIgnoreCase(item.feeAsset) ? item.fee : null;
+				Instant ts = Instant.ofEpochSecond(item.time);
+				result.add(new PartialFill(orderId, symbol, item.amount, item.price, feeValue, ts));
 			}
 			return result;
 		}

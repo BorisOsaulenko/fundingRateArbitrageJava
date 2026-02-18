@@ -6,11 +6,10 @@ import com.boris.fundingarbitrage.model.contract.PartialFill;
 import com.boris.fundingarbitrage.model.exchange.WalletAddress;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonFormat;
-import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -22,44 +21,33 @@ public class PrivateResponses {
 			return new Fees(futures_maker_fee, futures_taker_fee, futures_maker_fee, futures_taker_fee, Instant.now());
 		}
 	}
-
-	public record ChangeLeverageResponse(JsonNode node) {
-		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
-		public ChangeLeverageResponse {}
-	}
-
-	public record SetMarginModeResponse(JsonNode node) {
-		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
-		public SetMarginModeResponse {}
-	}
+	
+	private record SpotBalanceItem(String currency, String available) {}
 
 	@JsonFormat(shape = JsonFormat.Shape.ARRAY)
-	public record SpotUsdtBalanceResponse(JsonNode node) {
+	public record SpotUsdtBalanceResponse(List<SpotBalanceItem> items) {
 		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
 		public SpotUsdtBalanceResponse {}
 
 		public double get() {
-			if (node == null || !node.isArray()) {
+			if (items == null) {
 				throw new IllegalStateException("Balance info not found");
 			}
-			for (JsonNode item : node) {
-				String currency = item.path("currency").asText();
-				if (!"USDT".equalsIgnoreCase(currency)) continue;
-				return Double.parseDouble(item.path("available").asText());
+			for (SpotBalanceItem item : items) {
+				if (!"USDT".equalsIgnoreCase(item.currency)) continue;
+				return Double.parseDouble(item.available);
 			}
 			throw new IllegalStateException("USDT balance info not found");
 		}
 	}
 
-	public record FuturesUsdtBalanceResponse(JsonNode node) {
-		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
-		public FuturesUsdtBalanceResponse {}
-
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	public record FuturesUsdtBalanceResponse(String available) {
 		public double get() {
-			if (node == null || !node.isObject()) {
+			if (available == null || available.isEmpty()) {
 				throw new IllegalStateException("Balance info not found");
 			}
-			return Double.parseDouble(node.path("available").asText());
+			return Double.parseDouble(available);
 		}
 	}
 
@@ -73,7 +61,7 @@ public class PrivateResponses {
 		public MaxLeverageResponse {}
 
 		public Map<String, Integer> get() {
-			Map<String, Integer> result = new HashMap<>();
+			Map<String, Integer> result = new java.util.HashMap<>();
 			for (MaxLeverageItem item : items) result.put(item.name(), Integer.parseInt(item.leverage_max));
 			return result;
 		}
@@ -89,19 +77,21 @@ public class PrivateResponses {
 		public SupportedChainsResponse {}
 	}
 
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	private record MultichainAddress(String chain, String address, String memo) {}
+
 	public record UsdtWalletAddressResponse(
-					String currency, String address, String memo, JsonNode multichain_addresses
+					String currency, String address, String memo, List<MultichainAddress> multichain_addresses
 	) {
 		public WalletAddress get(SupportedChain chain) {
 			String addr = address;
 			String tag = memo;
-			if (multichain_addresses != null && multichain_addresses.isArray()) {
-				for (JsonNode entry : multichain_addresses) {
-					String chainName = entry.path("chain").asText();
-					SupportedChain mapped = ChainsMap.getInverse(chainName);
+			if (multichain_addresses != null) {
+				for (MultichainAddress entry : multichain_addresses) {
+					SupportedChain mapped = ChainsMap.getInverse(entry.chain);
 					if (mapped == chain) {
-						addr = entry.path("address").asText();
-						tag = entry.path("memo").asText(null);
+						addr = entry.address;
+						tag = entry.memo;
 						break;
 					}
 				}
@@ -119,22 +109,27 @@ public class PrivateResponses {
 		}
 	}
 
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	private record OrderRecordItem(
+					String order_id, String contract, String size, String price, String fee, long create_time
+	) {}
+
 	@JsonFormat(shape = JsonFormat.Shape.ARRAY)
-	public record GetOrderRecordResponse(JsonNode node) {
+	public record GetOrderRecordResponse(List<OrderRecordItem> items) {
 		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
 		public GetOrderRecordResponse {}
 
 		public List<PartialFill> get() {
-			if (node == null || !node.isArray()) return List.of();
+			if (items == null) return List.of();
 			ArrayList<PartialFill> result = new ArrayList<>();
-			for (JsonNode item : node) {
-				String orderId = item.path("order_id").asText();
+			for (OrderRecordItem item : items) {
+				String orderId = item.order_id;
 				if (orderId == null || orderId.isEmpty()) continue;
-				String symbol = item.path("contract").asText();
-				double size = Double.parseDouble(item.path("size").asText());
-				double price = Double.parseDouble(item.path("price").asText());
-				double fee = Double.parseDouble(item.path("fee").asText());
-				Instant ts = Instant.ofEpochSecond((item.path("create_time").asLong()));
+				String symbol = item.contract;
+				double size = Double.parseDouble(item.size);
+				double price = Double.parseDouble(item.price);
+				double fee = Double.parseDouble(item.fee);
+				Instant ts = Instant.ofEpochSecond(item.create_time);
 				result.add(new PartialFill(orderId, symbol, Math.abs(size), price, fee, ts));
 			}
 			return result;
@@ -143,20 +138,24 @@ public class PrivateResponses {
 
 	public record InternalTransferResponse(String id) {}
 
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	private record WithdrawalFeeItem(
+					String currency, String withdraw_amount_mini, Map<String, String> withdraw_fix_on_chains
+	) {}
+
 	@JsonFormat(shape = JsonFormat.Shape.ARRAY)
-	public record WithdrawalFeeResponse(JsonNode node) {
+	public record WithdrawalFeeResponse(List<WithdrawalFeeItem> items) {
 		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
 		public WithdrawalFeeResponse {}
 
 		public double getMinWithdraw() {
-			if (node == null || !node.isArray()) {
+			if (items == null) {
 				throw new IllegalStateException("Withdrawal fees info not found");
 			}
 
-			for (JsonNode item : node) {
-				String currency = item.path("currency").asText();
-				if (!"USDT".equalsIgnoreCase(currency)) continue;
-				String minWithdraw = item.path("withdraw_amount_mini").asText();
+			for (WithdrawalFeeItem item : items) {
+				if (!"USDT".equalsIgnoreCase(item.currency)) continue;
+				String minWithdraw = item.withdraw_amount_mini;
 
 				if (minWithdraw == null || minWithdraw.isEmpty()) {
 					throw new IllegalStateException("Minimum withdrawal amount not found");
@@ -169,20 +168,19 @@ public class PrivateResponses {
 		}
 
 		public double getFeeForChain(SupportedChain chain) {
-			if (node == null || !node.isArray()) {
+			if (items == null) {
 				throw new IllegalStateException("Withdrawal fees info not found");
 			}
 
-			for (JsonNode item : node) {
-				String currency = item.path("currency").asText();
-				if (!"USDT".equalsIgnoreCase(currency)) continue;
-				JsonNode chains = item.path("withdraw_fix_on_chains");
+			for (WithdrawalFeeItem item : items) {
+				if (!"USDT".equalsIgnoreCase(item.currency)) continue;
+				Map<String, String> chains = item.withdraw_fix_on_chains;
 				if (chains == null) {
 					throw new IllegalStateException("Withdrawal fees chains info not found");
 				}
 
 				String gateChain = ChainsMap.get(chain);
-				String fee = chains.path(gateChain).asText();
+				String fee = chains.get(gateChain);
 
 				if (fee == null || fee.isEmpty()) {
 					throw new IllegalStateException("Withdrawal fee not found for chain: " + gateChain);

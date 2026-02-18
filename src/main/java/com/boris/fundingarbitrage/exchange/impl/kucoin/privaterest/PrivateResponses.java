@@ -7,7 +7,7 @@ import com.boris.fundingarbitrage.model.exchange.ExchangeChains;
 import com.boris.fundingarbitrage.model.exchange.ExchangeChainsBuilder;
 import com.boris.fundingarbitrage.model.exchange.WalletAddress;
 import com.boris.fundingarbitrage.model.exchange.WithdrawChain;
-import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -18,56 +18,60 @@ import java.util.Map;
 public class PrivateResponses {
 	private static final String expectedSuccessCode = "200000";
 
-	public record TradingFeesResponse(String code, String msg, JsonNode data) {
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	private record TradingFeeData(String makerFeeRate, String takerFeeRate) {}
+
+	public record TradingFeesResponse(String code, String msg, TradingFeeData data) {
 		public Fees getFees() {
 			if (!expectedSuccessCode.equals(code)) {
 				throw new IllegalStateException("KuCoin contract detail response code not OK: " + code + ", msg: " + msg);
 			}
-			if (data == null || !data.isObject()) {
+			if (data == null) {
 				throw new IllegalStateException("KuCoin contract detail data missing");
 			}
-			JsonNode makerNode = data.get("makerFeeRate");
-			JsonNode takerNode = data.get("takerFeeRate");
-			if (makerNode == null || makerNode.isNull()) {
+			if (data.makerFeeRate == null || data.makerFeeRate.isEmpty()) {
 				throw new IllegalStateException("KuCoin makerFeeRate missing");
 			}
-			if (takerNode == null || takerNode.isNull()) {
+			if (data.takerFeeRate == null || data.takerFeeRate.isEmpty()) {
 				throw new IllegalStateException("KuCoin takerFeeRate missing");
 			}
-			double maker = makerNode.asDouble();
-			double taker = takerNode.asDouble();
+			double maker = Double.parseDouble(data.makerFeeRate);
+			double taker = Double.parseDouble(data.takerFeeRate);
 			Instant ts = Instant.now();
 			return new Fees(maker, taker, maker, taker, ts);
 		}
 	}
 
-	public record TradingFeesSymbolsResponse(String code, String msg, JsonNode data) {
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	private record TradingFeeSymbolData(String symbol, String makerFeeRate, String takerFeeRate) {}
+
+	public record TradingFeesSymbolsResponse(String code, String msg, List<TradingFeeSymbolData> data) {
 		public Map<String, Fees> getFeesBySymbols() {
 			Map<String, Fees> feesBySymbol = new HashMap<>();
-			for (JsonNode contract : data) {
-				String symbol = contract.path("symbol").asText();
-				JsonNode makerNode = contract.get("makerFeeRate");
-				JsonNode takerNode = contract.get("takerFeeRate");
-				if (makerNode == null || makerNode.isNull()) continue;
-				if (takerNode == null || takerNode.isNull()) continue;
+			if (data == null) return feesBySymbol;
+			for (TradingFeeSymbolData contract : data) {
+				if (contract.makerFeeRate == null || contract.makerFeeRate.isEmpty()) continue;
+				if (contract.takerFeeRate == null || contract.takerFeeRate.isEmpty()) continue;
 
-				double maker = makerNode.asDouble();
-				double taker = takerNode.asDouble();
-				feesBySymbol.put(symbol, new Fees(maker, taker, maker, taker, Instant.now()));
+				double maker = Double.parseDouble(contract.makerFeeRate);
+				double taker = Double.parseDouble(contract.takerFeeRate);
+				feesBySymbol.put(contract.symbol, new Fees(maker, taker, maker, taker, Instant.now()));
 			}
 			return feesBySymbol;
 		}
 	}
 
-	public record ChangeLeverageResponse(String code, String msg, JsonNode data) {
+	private record OperationData(String orderId) {}
+
+	public record ChangeLeverageResponse(String code, boolean data) {
 		public ChangeLeverageResponse {
-			if (!expectedSuccessCode.equals(code)) {
-				throw new IllegalStateException("KuCoin change leverage response code not OK: " + code + ", msg: " + msg);
+			if (!expectedSuccessCode.equals(code) || !data) {
+				throw new IllegalStateException("KuCoin change leverage response code not OK: " + code);
 			}
 		}
 	}
 
-	public record SetMarginModeResponse(String code, String msg, JsonNode data) {
+	public record SetMarginModeResponse(String code, String msg, OperationData data) {
 		public SetMarginModeResponse {
 			if (!expectedSuccessCode.equals(code)) {
 				throw new IllegalStateException("KuCoin set margin mode response code not OK: " + code + ", msg: " + msg);
@@ -75,20 +79,21 @@ public class PrivateResponses {
 		}
 	}
 
-	public record SpotUsdtBalanceResponse(String code, String msg, JsonNode data) {
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	private record SpotBalanceAccount(String currency, String type, String available) {}
+
+	public record SpotUsdtBalanceResponse(String code, String msg, List<SpotBalanceAccount> data) {
 		public double get() {
 			if (!expectedSuccessCode.equals(code)) {
 				throw new IllegalStateException("KuCoin spot balance response code not OK: " + code + ", msg: " + msg);
 			}
-			if (data == null || !data.isArray()) {
+			if (data == null) {
 				throw new IllegalStateException("KuCoin spot balance data missing");
 			}
-			for (JsonNode account : data) {
-				String currency = account.path("currency").asText();
-				String type = account.path("type").asText();
-				if (!"USDT".equalsIgnoreCase(currency)) continue;
-				if (!"main".equalsIgnoreCase(type)) continue;
-				double available = account.path("available").asDouble();
+			for (SpotBalanceAccount account : data) {
+				if (!"USDT".equalsIgnoreCase(account.currency)) continue;
+				if (!"main".equalsIgnoreCase(account.type)) continue;
+				double available = Double.parseDouble(account.available);
 				if (available == 0.0) {
 					throw new IllegalStateException("USDT main account available balance missing in KuCoin spot balances");
 				}
@@ -99,20 +104,23 @@ public class PrivateResponses {
 		}
 	}
 
-	public record FuturesUsdtBalanceResponse(String code, String msg, JsonNode data) {
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	private record FuturesBalanceData(String currency, String availableBalance) {}
+
+	public record FuturesUsdtBalanceResponse(String code, String msg, FuturesBalanceData data) {
 		public double get() {
 			if (!expectedSuccessCode.equals(code)) {
 				throw new IllegalStateException("KuCoin futures balance response code not OK: " + code + ", msg: " + msg);
 			}
-			if (data == null || !data.isObject()) {
+			if (data == null) {
 				throw new IllegalStateException("KuCoin futures balance data missing");
 			}
-			String currency = data.path("currency").asText();
+			String currency = data.currency;
 			if (!"USDT".equalsIgnoreCase(currency)) {
 				throw new IllegalStateException("Unexpected futures currency: " + currency);
 			}
 
-			double available = data.path("availableBalance").asDouble();
+			double available = Double.parseDouble(data.availableBalance);
 			if (available == 0.0) throw new IllegalStateException("KuCoin futures availableBalance missing");
 
 			return available;
@@ -129,31 +137,41 @@ public class PrivateResponses {
 		}
 	}
 
-	public record SupportedChainsResponse(String code, String msg, JsonNode data) {
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	private record CurrencyChainData(
+					String chainId,
+					boolean isDepositEnabled,
+					boolean isWithdrawEnabled,
+					String withdrawalMinFee,
+					String withdrawalMinSize
+	) {}
+
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	private record CurrencyDetailData(List<CurrencyChainData> chains) {}
+
+	public record SupportedChainsResponse(String code, String msg, CurrencyDetailData data) {
 		public ExchangeChains get() {
 			if (!expectedSuccessCode.equals(code)) {
 				throw new IllegalStateException("KuCoin currency detail response code not OK: " + code + ", msg: " + msg);
 			}
-			if (data == null || !data.isObject()) {
+			if (data == null) {
 				throw new IllegalStateException("KuCoin currency detail data missing");
 			}
 			ExchangeChainsBuilder builder = new ExchangeChainsBuilder();
-			JsonNode chains = data.get("chains");
-			if (chains == null || !chains.isArray()) {
+			List<CurrencyChainData> chains = data.chains;
+			if (chains == null) {
 				throw new IllegalStateException("KuCoin currency chains missing");
 			}
-			for (JsonNode chain : chains) {
-				String chainId = chain.path("chainId").asText();
-				if (chainId.isEmpty()) continue;
+			for (CurrencyChainData chain : chains) {
+				String chainId = chain.chainId;
+				if (chainId == null || chainId.isEmpty()) continue;
 				SupportedChain mapped = ChainsMap.getInverse(chainId);
 				if (mapped == null) continue;
 
-				boolean depositEnabled = chain.path("isDepositEnabled").asBoolean();
-				boolean withdrawEnabled = chain.get("isWithdrawEnabled").asBoolean();
-				if (depositEnabled) builder.addDepositableChain(mapped);
-				if (withdrawEnabled && chain.has("withdrawalMinFee") && chain.has("withdrawalMinSize")) {
-					double fee = chain.path("withdrawalMinFee").asDouble();
-					double min = chain.path("withdrawalMinSize").asDouble();
+				if (chain.isDepositEnabled) builder.addDepositableChain(mapped);
+				if (chain.isWithdrawEnabled && chain.withdrawalMinFee != null && chain.withdrawalMinSize != null) {
+					double fee = Double.parseDouble(chain.withdrawalMinFee);
+					double min = Double.parseDouble(chain.withdrawalMinSize);
 					builder.addWithdrawableChain(new WithdrawChain(mapped, fee, min));
 				}
 			}
@@ -161,32 +179,37 @@ public class PrivateResponses {
 		}
 	}
 
-	public record UsdtWalletAddressResponse(String code, String msg, JsonNode data) {
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	private record DepositAddressData(String chainId, String address, String memo) {}
+
+	public record UsdtWalletAddressResponse(String code, String msg, List<DepositAddressData> data) {
 		public WalletAddress get(SupportedChain chain) {
 			if (!expectedSuccessCode.equals(code)) {
 				throw new IllegalStateException("KuCoin klines response code not OK: " + code + ", msg: " + msg);
 			}
 
-			if (data == null || !data.isArray()) {
+			if (data == null) {
 				throw new IllegalStateException("KuCoin deposit address data missing");
 			}
 
 			String targetChainId = ChainsMap.get(chain);
-			for (JsonNode entry : data) {
-				String chainId = entry.path("chainId").asText();
-				if (chainId.isEmpty() || !chainId.equalsIgnoreCase(targetChainId)) continue;
+			for (DepositAddressData entry : data) {
+				String chainId = entry.chainId;
+				if (chainId == null || chainId.isEmpty() || !chainId.equalsIgnoreCase(targetChainId)) continue;
 
-				String address = entry.path("address").asText();
-				if (address.isEmpty()) throw new IllegalStateException("KuCoin deposit address missing for chain: " + chain);
+				String address = entry.address;
+				if (address == null || address.isEmpty()) {
+					throw new IllegalStateException("KuCoin deposit address missing for chain: " + chain);
+				}
 
-				String memo = entry.path("memo").asText();
+				String memo = entry.memo;
 				return new WalletAddress(chain, address, memo);
 			}
 			throw new IllegalStateException("USDT deposit address not found for chain: " + chain);
 		}
 	}
 
-	public record WithdrawUsdtResponse(String code, String msg, JsonNode data) {
+	public record WithdrawUsdtResponse(String code, String msg, OperationData data) {
 		public WithdrawUsdtResponse {
 			if (!expectedSuccessCode.equals(code)) {
 				throw new IllegalStateException("KuCoin klines response code not OK: " + code + ", msg: " + msg);
@@ -194,61 +217,71 @@ public class PrivateResponses {
 		}
 	}
 
-	public record PlaceFuturesOrderResponse(String code, String msg, JsonNode data) {
+	public record PlaceFuturesOrderResponse(String code, String msg, OperationData data) {
 		public String orderId() {
 			if (!expectedSuccessCode.equals(code)) {
 				throw new IllegalStateException("KuCoin klines response code not OK: " + code + ", msg: " + msg);
 			}
 
-			if (data == null || !data.isObject()) {
+			if (data == null) {
 				throw new IllegalStateException("KuCoin order response data missing");
 			}
 
-			String orderId = data.path("orderId").asText();
-			if (orderId.isEmpty()) throw new IllegalStateException("KuCoin orderId missing in response");
+			String orderId = data.orderId;
+			if (orderId == null || orderId.isEmpty()) {
+				throw new IllegalStateException("KuCoin orderId missing in response");
+			}
 
 			return orderId;
 		}
 	}
 
-	public record GetOrderRecordResponse(String code, String msg, JsonNode data) {
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	private record FillItem(
+					String orderId, String symbol, String size, String price, String fee, long createdAt, String feeCurrency
+	) {}
+
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	private record FillsData(List<FillItem> items) {}
+
+	public record GetOrderRecordResponse(String code, String msg, FillsData data) {
 		public List<PartialFill> get() {
 			if (!expectedSuccessCode.equals(code)) {
 				throw new IllegalStateException("KuCoin klines response code not OK: " + code + ", msg: " + msg);
 			}
 
-			if (data == null || !data.isObject()) {
+			if (data == null) {
 				throw new IllegalStateException("KuCoin fills data missing");
 			}
 
-			JsonNode items = data.get("items");
-			if (items == null || !items.isArray()) {
+			List<FillItem> items = data.items;
+			if (items == null) {
 				throw new IllegalStateException("KuCoin fills items missing");
 			}
 
 			if (items.isEmpty()) return List.of();
 			ArrayList<PartialFill> result = new ArrayList<>();
-			for (JsonNode item : items) {
-				String orderId = item.path("orderId").asText();
-				if (orderId.isEmpty()) continue;
+			for (FillItem item : items) {
+				String orderId = item.orderId;
+				if (orderId == null || orderId.isEmpty()) continue;
 
-				String symbol = item.path("symbol").asText();
-				if (symbol.isEmpty()) continue;
+				String symbol = item.symbol;
+				if (symbol == null || symbol.isEmpty()) continue;
 
-				double size = item.path("size").asDouble();
+				double size = Double.parseDouble(item.size);
 				if (size == 0.0) continue;
 
-				double price = item.path("price").asDouble();
+				double price = Double.parseDouble(item.price);
 				if (price == 0.0) continue;
 
-				double fee = item.path("fee").asDouble();
+				double fee = Double.parseDouble(item.fee);
 				if (fee == 0.0) continue;
 
-				long tradeTime = item.path("createdAt").asLong();
+				long tradeTime = item.createdAt;
 				if (tradeTime == 0L) continue;
 
 				Instant ts = Instant.ofEpochMilli(tradeTime);
-				String feeCurrency = item.path("feeCurrency").asText();
+				String feeCurrency = item.feeCurrency;
 				Double feeValue = "USDT".equalsIgnoreCase(feeCurrency) ? fee : null;
 				result.add(new PartialFill(orderId, symbol, size, price, feeValue, ts));
 			}
@@ -256,7 +289,7 @@ public class PrivateResponses {
 		}
 	}
 
-	public record InternalTransferResponse(String code, String msg, JsonNode data) {
+	public record InternalTransferResponse(String code, String msg, OperationData data) {
 		public InternalTransferResponse {
 			if (!expectedSuccessCode.equals(code)) {
 				throw new IllegalStateException("KuCoin klines response code not OK: " + code + ", msg: " + msg);

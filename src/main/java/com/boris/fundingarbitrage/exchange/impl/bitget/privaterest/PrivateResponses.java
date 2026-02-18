@@ -7,7 +7,7 @@ import com.boris.fundingarbitrage.model.exchange.ExchangeChains;
 import com.boris.fundingarbitrage.model.exchange.ExchangeChainsBuilder;
 import com.boris.fundingarbitrage.model.exchange.WalletAddress;
 import com.boris.fundingarbitrage.model.exchange.WithdrawChain;
-import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -16,17 +16,12 @@ import java.util.List;
 import java.util.Map;
 
 public class PrivateResponses {
-	private static double parseDouble(JsonNode node, String... fields) {
-		for (String field : fields) {
-			JsonNode val = node.get(field);
-			if (val != null && !val.isNull()) {
-				String text = val.asText();
-				if (text != null && !text.isEmpty()) {
-					try {
-						return Double.parseDouble(text);
-					} catch (NumberFormatException ignored) {
-					}
-				}
+	private static double parseDouble(String... values) {
+		for (String text : values) {
+			if (text == null || text.isEmpty()) continue;
+			try {
+				return Double.parseDouble(text);
+			} catch (NumberFormatException ignored) {
 			}
 		}
 		return 0.0;
@@ -48,20 +43,37 @@ public class PrivateResponses {
 		}
 	}
 
-	public record SpotUsdtBalanceResponse(String code, String msg, long requestTime, JsonNode data) {
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	private record SpotAsset(
+					String coin,
+					String available,
+					String free,
+					String availableBalance
+	) {}
+
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	private record SpotAccount(
+					String accountType,
+					String available,
+					String availableBalance,
+					String availableEquity,
+					List<SpotAsset> assets
+	) {}
+
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	public record SpotUsdtBalanceResponse(String code, String msg, long requestTime, List<SpotAccount> data) {
 		public double get() {
-			if (data == null || !data.isArray()) return 0.0;
-			for (JsonNode account : data) {
-				String accountType = account.path("accountType").asText("");
+			if (data == null) return 0.0;
+			for (SpotAccount account : data) {
+				String accountType = account.accountType == null ? "" : account.accountType;
 				if (!accountType.toLowerCase().contains("spot")) continue;
-				double direct = parseDouble(account, "available", "availableBalance", "availableEquity");
+				double direct = parseDouble(account.available, account.availableBalance, account.availableEquity);
 				if (direct > 0) return direct;
 
-				JsonNode assets = account.get("assets");
-				if (assets != null && assets.isArray()) {
-					for (JsonNode asset : assets) {
-						if (!"USDT".equalsIgnoreCase(asset.path("coin").asText())) continue;
-						double available = parseDouble(asset, "available", "free", "availableBalance");
+				if (account.assets != null) {
+					for (SpotAsset asset : account.assets) {
+						if (!"USDT".equalsIgnoreCase(asset.coin)) continue;
+						double available = parseDouble(asset.available, asset.free, asset.availableBalance);
 						if (available > 0) return available;
 					}
 				}
@@ -70,15 +82,30 @@ public class PrivateResponses {
 		}
 	}
 
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	private record FuturesAccount(
+					String marginCoin,
+					String available,
+					String availableBalance,
+					String availableEquity,
+					String maxAvailable
+	) {}
+
+	@JsonIgnoreProperties(ignoreUnknown = true)
 	public record FuturesUsdtBalanceResponse(
-					String code, String msg, long requestTime, JsonNode data
+					String code, String msg, long requestTime, List<FuturesAccount> data
 	) {
 		public double get() {
-			if (data == null || !data.isArray()) return 0.0;
-			for (JsonNode account : data) {
-				String marginCoin = account.path("marginCoin").asText();
+			if (data == null) return 0.0;
+			for (FuturesAccount account : data) {
+				String marginCoin = account.marginCoin;
 				if (!"USDT".equalsIgnoreCase(marginCoin)) continue;
-				return parseDouble(account, "available", "availableBalance", "availableEquity", "maxAvailable");
+				return parseDouble(
+								account.available,
+								account.availableBalance,
+								account.availableEquity,
+								account.maxAvailable
+				);
 			}
 			return 0.0;
 		}
@@ -112,31 +139,54 @@ public class PrivateResponses {
 		}
 	}
 
-	public record SupportedChainsResponse(String code, String msg, long requestTime, JsonNode data) {
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	private record ChainInfo(
+					String chain,
+					String network,
+					Boolean rechargeable,
+					Boolean depositEnable,
+					Boolean withdrawable,
+					Boolean withdrawEnable,
+					String withdrawFee,
+					String withdrawFeeRate,
+					String minWithdrawAmount,
+					String withdrawMin,
+					String minWithdraw
+	) {}
+
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	private record CoinInfo(
+					String coin,
+					List<ChainInfo> chains,
+					List<ChainInfo> chainList
+	) {}
+
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	public record SupportedChainsResponse(String code, String msg, long requestTime, List<CoinInfo> data) {
 		public ExchangeChains get() {
 			ExchangeChainsBuilder builder = new ExchangeChainsBuilder();
-			if (data == null || !data.isArray()) return builder.build();
-			for (JsonNode coin : data) {
-				String coinName = coin.path("coin").asText();
+			if (data == null) return builder.build();
+			for (CoinInfo coin : data) {
+				String coinName = coin.coin;
 				if (!"USDT".equalsIgnoreCase(coinName)) continue;
 
-				JsonNode chains = coin.get("chains");
-				if (chains == null) chains = coin.get("chainList");
-				if (chains == null || !chains.isArray()) continue;
+				List<ChainInfo> chains = coin.chains;
+				if (chains == null) chains = coin.chainList;
+				if (chains == null) continue;
 
-				for (JsonNode chain : chains) {
-					String chainName = chain.path("chain").asText();
-					if (chainName == null || chainName.isEmpty()) chainName = chain.path("network").asText();
+				for (ChainInfo chain : chains) {
+					String chainName = chain.chain;
+					if (chainName == null || chainName.isEmpty()) chainName = chain.network;
 					SupportedChain mapped = ChainsMap.getInverse(chainName);
 					if (mapped == null) continue;
 
-					boolean depositEnable = chain.path("rechargeable").asBoolean(chain.path("depositEnable").asBoolean(false));
-					boolean withdrawEnable = chain.path("withdrawable").asBoolean(chain.path("withdrawEnable").asBoolean(false));
+					boolean depositEnable = Boolean.TRUE.equals(chain.rechargeable) || Boolean.TRUE.equals(chain.depositEnable);
+					boolean withdrawEnable = Boolean.TRUE.equals(chain.withdrawable) || Boolean.TRUE.equals(chain.withdrawEnable);
 
 					if (depositEnable) builder.addDepositableChain(mapped);
 					if (withdrawEnable) {
-						double fee = parseDouble(chain, "withdrawFee", "withdrawFeeRate");
-						double min = parseDouble(chain, "minWithdrawAmount", "withdrawMin", "minWithdraw");
+						double fee = parseDouble(chain.withdrawFee, chain.withdrawFeeRate);
+						double min = parseDouble(chain.minWithdrawAmount, chain.withdrawMin, chain.minWithdraw);
 						if (fee > 0 && min > 0) {
 							builder.addWithdrawableChain(new WithdrawChain(mapped, fee, min));
 						}
@@ -148,42 +198,69 @@ public class PrivateResponses {
 		}
 	}
 
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	private record WalletAddressData(String address, String tag) {}
+
 	public record UsdtWalletAddressResponse(
-					String code, String msg, long requestTime, JsonNode data
+					String code, String msg, long requestTime, WalletAddressData data
 	) {
 		public WalletAddress get(SupportedChain chain) {
-			String address = data.path("address").asText();
-			String tag = data.path("tag").asText(null);
+			if (data == null || data.address == null || data.address.isEmpty()) {
+				throw new IllegalStateException("Bitget wallet address missing");
+			}
+			String address = data.address;
+			String tag = data.tag;
 			if (tag != null && tag.isEmpty()) tag = null;
 			return new WalletAddress(chain, address, tag);
 		}
 	}
 
-	public record WithdrawUsdtResponse(String code, String msg, long requestTime, JsonNode data) {}
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	private record WithdrawUsdtData(String orderId, String clientOid) {}
+
+	public record WithdrawUsdtResponse(String code, String msg, long requestTime, WithdrawUsdtData data) {}
+
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	private record PlaceOrderData(String orderId, String orderIdStr) {}
 
 	public record PlaceFuturesOrderResponse(
-					String code, String msg, long requestTime, JsonNode data
+					String code, String msg, long requestTime, PlaceOrderData data
 	) {
 		public String orderId() {
-			String id = data.path("orderId").asText();
-			if (id == null || id.isEmpty()) id = data.path("orderIdStr").asText();
+			if (data == null) return null;
+			String id = data.orderId;
+			if (id == null || id.isEmpty()) id = data.orderIdStr;
 			return id;
 		}
 	}
 
-	public record GetOrderRecordResponse(String code, String msg, long requestTime, JsonNode data) {
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	private record OrderRecordItem(
+					String orderId,
+					String symbol,
+					String size,
+					String baseVolume,
+					String tradeSize,
+					String price,
+					String tradePrice,
+					String fee,
+					String feeCoin,
+					long cTime
+	) {}
+
+	public record GetOrderRecordResponse(String code, String msg, long requestTime, List<OrderRecordItem> data) {
 		public List<PartialFill> get() {
-			if (data == null || !data.isArray()) return List.of();
+			if (data == null) return List.of();
 			ArrayList<PartialFill> result = new ArrayList<>();
-			for (JsonNode item : data) {
-				String orderId = item.path("orderId").asText();
-				String symbol = item.path("symbol").asText();
-				double size = parseDouble(item, "size", "baseVolume", "tradeSize");
-				double price = parseDouble(item, "price", "tradePrice");
-				double fee = parseDouble(item, "fee");
-				String feeCoin = item.path("feeCoin").asText();
+			for (OrderRecordItem item : data) {
+				String orderId = item.orderId;
+				String symbol = item.symbol;
+				double size = parseDouble(item.size, item.baseVolume, item.tradeSize);
+				double price = parseDouble(item.price, item.tradePrice);
+				double fee = parseDouble(item.fee);
+				String feeCoin = item.feeCoin;
 				Double feeValue = "USDT".equalsIgnoreCase(feeCoin) ? fee : null;
-				long cTime = item.path("cTime").asLong();
+				long cTime = item.cTime;
 				if (cTime == 0L) throw new IllegalStateException("Invalid timestamp for order: " + orderId);
 				Instant ts = Instant.ofEpochMilli(cTime);
 				if (orderId == null || orderId.isEmpty()) continue;
@@ -193,7 +270,10 @@ public class PrivateResponses {
 		}
 	}
 
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	private record InternalTransferData(String transferId, String status) {}
+
 	public record InternalTransferResponse(
-					String code, String msg, long requestTime, JsonNode data
+					String code, String msg, long requestTime, InternalTransferData data
 	) {}
 }

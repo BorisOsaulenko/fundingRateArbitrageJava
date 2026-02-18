@@ -53,3 +53,27 @@ sourceSets {
         }
     }
 }
+
+tasks.test {
+    useJUnitPlatform {
+        excludeTags("manual")
+    }
+}
+
+tasks.register<Test>("testWebsocket") {
+    useJUnitPlatform {
+        includeTags("websocket")
+        excludeTags("manual")
+    }
+    testClassesDirs = sourceSets["test"].output.classesDirs
+    classpath = sourceSets["test"].runtimeClasspath
+}
+
+tasks.register<Test>("testRest") {
+    useJUnitPlatform {
+        includeTags("rest")
+        excludeTags("manual")
+    }
+    testClassesDirs = sourceSets["test"].output.classesDirs
+    classpath = sourceSets["test"].runtimeClasspath
+}

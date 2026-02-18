@@ -49,7 +49,7 @@ public class PrivateEndpoints {
 	public static @NonNull SimpleHttpRequest setMarginModeRequestSymbol(String symbol, MarginMode marginMode) {
 		Map<String, Object> body = new HashMap<>();
 		body.put("contract", symbol);
-		body.put("mode", marginMode == MarginMode.CROSS ? "cross" : "isolated");
+		body.put("mode", marginMode == MarginMode.CROSS ? "CROSS" : "ISOLATED");
 		return postJson("/api/v4/futures/" + settle + "/positions/cross_mode", body);
 	}
 

@@ -7,6 +7,7 @@ import com.boris.fundingarbitrage.model.contract.Fees;
 import com.boris.fundingarbitrage.model.exchange.ExchangeChains;
 import com.boris.fundingarbitrage.model.exchange.WalletAddress;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -52,6 +53,7 @@ public abstract class PrivateRestTest {
 	}
 
 	@Test
+	@Tag("rest")
 	public void getTradingFeesTest() throws Exception {
 		CoinVector<Fees> fees = getWithTimeout(privateRest().getTradingFees(testCoins));
 		assertNotNull(fees, "Fees result should not be null");
@@ -62,19 +64,14 @@ public abstract class PrivateRestTest {
 	}
 
 	@Test
+	@Tag("rest")
 	public void getSpotUsdtBalanceTest() throws Exception {
 		double spotBalance = getWithTimeout(privateRest().getSpotUsdtBalance());
 		assertFinite(spotBalance, "Spot USDT balance should be finite");
 		assertTrue(spotBalance >= 0, "Spot USDT balance should be non-negative");
 	}
 
-	@Test
-	public void getFuturesUsdtBalanceTest() throws Exception {
-		double futuresBalance = getWithTimeout(privateRest().getFuturesUsdtBalance());
-		assertFinite(futuresBalance, "Futures USDT balance should be finite");
-		assertTrue(futuresBalance >= 0, "Futures USDT balance should be non-negative");
-	}
-
+	@Tag("rest")
 	@Test
 	public void changeLeverageTest() throws Exception {
 		int leverage = 2;
@@ -86,6 +83,15 @@ public abstract class PrivateRestTest {
 	}
 
 	@Test
+	@Tag("rest")
+	public void getFuturesUsdtBalanceTest() throws Exception {
+		double futuresBalance = getWithTimeout(privateRest().getFuturesUsdtBalance());
+		assertFinite(futuresBalance, "Futures USDT balance should be finite");
+		assertTrue(futuresBalance >= 0, "Futures USDT balance should be non-negative");
+	}
+
+	@Test
+	@Tag("rest")
 	public void setMarginModeTest() throws Exception {
 		MarginMode marginMode = MarginMode.CROSS;
 		assertTimeout(
@@ -96,6 +102,7 @@ public abstract class PrivateRestTest {
 	}
 
 	@Test
+	@Tag("rest")
 	public void getMaxLeverageTest() throws Exception {
 		Map<String, Integer> maxLeverage = getWithTimeout(privateRest().getMaxLeverage(testCoins));
 		assertNotNull(maxLeverage, "Max leverage map should not be null");
@@ -105,16 +112,7 @@ public abstract class PrivateRestTest {
 		}
 	}
 
-	@Test
-	public void getSupportedChainsTest() throws Exception {
-		ExchangeChains chains = getWithTimeout(privateRest().getSupportedChains());
-		assertNotNull(chains, "Exchange chains should not be null");
-		assertNotNull(chains.depositableChains(), "Depositable chains should not be null");
-		assertNotNull(chains.withdrawableChains(), "Withdrawable chains should not be null");
-		assertFalse(chains.depositableChains().isEmpty(), "There should be at least one depositable chain");
-		assertFalse(chains.withdrawableChains().isEmpty(), "There should be at least one withdrawable chain");
-	}
-
+	@Tag("rest")
 	@Test
 	public void getUsdtWalletAddressTest() throws Exception {
 		WalletAddress address = getWithTimeout(privateRest().getUsdtWalletAddress(SupportedChain.ERC)); // ERC is everywhere
@@ -122,5 +120,16 @@ public abstract class PrivateRestTest {
 		assertEquals(SupportedChain.ERC, address.chain(), "Wallet address chain should match requested chain");
 		assertNotNull(address.address(), "Wallet address string should not be null");
 		assertTrue(address.address().length() > 15, "Wallet address should have a valid length");
+	}
+
+	@Test
+	@Tag("rest")
+	public void getSupportedChainsTest() throws Exception {
+		ExchangeChains chains = getWithTimeout(privateRest().getSupportedChains());
+		assertNotNull(chains, "Exchange chains should not be null");
+		assertNotNull(chains.depositableChains(), "Depositable chains should not be null");
+		assertNotNull(chains.withdrawableChains(), "Withdrawable chains should not be null");
+		assertFalse(chains.depositableChains().isEmpty(), "There should be at least one depositable chain");
+		assertFalse(chains.withdrawableChains().isEmpty(), "There should be at least one withdrawable chain");
 	}
 }

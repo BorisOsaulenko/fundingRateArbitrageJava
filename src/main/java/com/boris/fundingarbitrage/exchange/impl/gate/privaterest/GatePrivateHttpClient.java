@@ -73,7 +73,7 @@ public class GatePrivateHttpClient extends PrivateHttpClient {
 					Function<T, U> parser
 	) {
 		SimpleHttpRequest signedRequest = signRequest(request);
-		return this.client.sendNoCodeCheck(signedRequest).thenApply((response) -> {
+		return this.client.send(signedRequest).thenApply((response) -> {
 			try {
 				T responseObj = mapper.readValue(response.getBodyBytes(), responseClass);
 				return parser.apply(responseObj);
@@ -102,7 +102,7 @@ public class GatePrivateHttpClient extends PrivateHttpClient {
 	protected CompletableFuture<Void> changeLeverageSymbol(String symbol, int leverage) {
 		return processRequest(
 						PrivateEndpoints.changeLeverageRequestSymbol(symbol, leverage),
-						PrivateResponses.ChangeLeverageResponse.class,
+						Object.class, // no meaningful response from Gate on leverage change
 						(resp) -> null
 		);
 	}
@@ -111,7 +111,7 @@ public class GatePrivateHttpClient extends PrivateHttpClient {
 	protected CompletableFuture<Void> setMarginModeSymbol(String symbol, MarginMode marginMode) {
 		return processRequest(
 						PrivateEndpoints.setMarginModeRequestSymbol(symbol, marginMode),
-						PrivateResponses.SetMarginModeResponse.class,
+						Object.class, // no meaningful response from Gate on leverage change
 						(resp) -> null
 		);
 	}

@@ -48,7 +48,9 @@ public class PrivateEndpoints {
 	}
 
 	public static @NonNull SimpleHttpRequest spotUsdtBalanceRequest() {
-		return privatePost("/api/v4/trade-account/balance", null);
+		Map<String, Object> body = new HashMap<>();
+		body.put("ticker", "USDT");
+		return privatePost("/api/v4/main-account/balance", body);
 	}
 
 	public static @NonNull SimpleHttpRequest futuresUsdtBalanceRequest() {

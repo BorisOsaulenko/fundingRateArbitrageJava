@@ -16,6 +16,7 @@ public class AllExchangesWsStabilityTest {
 
 	@Test
 	@Tag("integration")
+	@Tag("manual")
 	public void testAllExchangesWebsocketStability() throws Exception {
 		ArrayList<BaseExchange> exchanges = Instances.getExchangeArray();
 		for (BaseExchange exchange : exchanges) {

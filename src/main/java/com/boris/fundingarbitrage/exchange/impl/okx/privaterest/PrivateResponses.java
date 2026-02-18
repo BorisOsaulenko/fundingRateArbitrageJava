@@ -7,7 +7,7 @@ import com.boris.fundingarbitrage.model.exchange.ExchangeChains;
 import com.boris.fundingarbitrage.model.exchange.ExchangeChainsBuilder;
 import com.boris.fundingarbitrage.model.exchange.WalletAddress;
 import com.boris.fundingarbitrage.model.exchange.WithdrawChain;
-import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -22,32 +22,20 @@ public class PrivateResponses {
 		}
 	}
 
-	private static boolean parseBoolean(JsonNode node, String field) {
-		JsonNode val = node.get(field);
-		if (val == null || val.isNull()) return false;
-		if (val.isBoolean()) return val.asBoolean();
-		String text = val.asText();
-		if ("true".equalsIgnoreCase(text)) return true;
-		if ("false".equalsIgnoreCase(text)) return false;
-		return "1".equals(text);
-	}
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	private record TradingFeeItem(double makerU, double takerU) {}
 
-	public record TradingFeesResponse(String code, String msg, JsonNode data) {
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	public record TradingFeesResponse(String code, String msg, List<TradingFeeItem> data) {
 		public Fees getFees() {
 			ensureOk(code, msg);
-			if (data == null || !data.isArray() || data.isEmpty()) {
+			if (data == null || data.isEmpty()) {
 				throw new IllegalStateException("OKX trade fee data missing");
 			}
-			JsonNode item = data.get(0);
+			TradingFeeItem item = data.get(0);
 
-			JsonNode makerNode = item.get("makerU");
-			JsonNode takerNode = item.get("takerU");
-			if (makerNode == null || makerNode.isNull() || takerNode == null || takerNode.isNull()) {
-				throw new IllegalStateException("OKX makerU/takerU missing");
-			}
-
-			double taker = -takerNode.asDouble(); // OKX returns negative values for fees, we want positive
-			double maker = -makerNode.asDouble();
+			double taker = -item.takerU; // OKX returns negative values for fees
+			double maker = -item.makerU;
 
 			return new Fees(maker, taker, maker, taker, Instant.now());
 		}
@@ -55,9 +43,9 @@ public class PrivateResponses {
 
 	public record FeeGroup(int groupId, double maker, double taker) {}
 
-	private record TradingFeeItem(List<FeeGroup> feeGroup) {}
+	private record TradingFeeGroupItem(List<FeeGroup> feeGroup) {}
 
-	public record TradingFeesSymbolsResponse(String code, String msg, List<TradingFeeItem> data) {
+	public record TradingFeesSymbolsResponse(String code, String msg, List<TradingFeeGroupItem> data) {
 		public Map<Integer, FeeGroup> getFeeGroups() {
 			Map<Integer, FeeGroup> feeGroups = new HashMap<>();
 			var entry = data.getFirst();
@@ -72,33 +60,35 @@ public class PrivateResponses {
 		}
 	}
 
-	public record LeverageInfoResponse(String code, String msg, JsonNode data) {
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	private record LeverageInfoItem(String instId, String lever) {}
+
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	public record LeverageInfoResponse(String code, String msg, List<LeverageInfoItem> data) {
 		public int getLever(String symbol) {
 			ensureOk(code, msg);
-			if (data == null || !data.isArray() || data.isEmpty()) {
-				throw new IllegalStateException("OKX leverage info missing");
-			}
-			for (JsonNode item : data) {
-				if (!symbol.equalsIgnoreCase(item.path("instId").asText())) continue;
-				String lever = item.path("lever").asText();
-				if (lever == null || lever.isEmpty()) {
-					throw new IllegalStateException("OKX leverage value missing");
-				}
+			for (LeverageInfoItem item : data) {
+				if (!symbol.equalsIgnoreCase(item.instId)) continue;
+				String lever = item.lever;
 				return (int) Math.floor(Double.parseDouble(lever));
 			}
 			throw new IllegalStateException("OKX leverage info not found for symbol: " + symbol);
 		}
 	}
 
-	public record SpotUsdtBalanceResponse(String code, String msg, JsonNode data) {
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	private record SpotBalanceItem(String ccy, String bal) {}
+
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	public record SpotUsdtBalanceResponse(String code, String msg, List<SpotBalanceItem> data) {
 		public double get() {
 			ensureOk(code, msg);
-			if (data == null || !data.isArray() || data.isEmpty()) {
+			if (data == null || data.isEmpty()) {
 				throw new IllegalStateException("OKX spot balance data missing");
 			}
-			for (JsonNode item : data) {
-				if (!"USDT".equalsIgnoreCase(item.path("ccy").asText())) continue;
-				String bal = item.path("bal").asText();
+			for (SpotBalanceItem item : data) {
+				if (!"USDT".equalsIgnoreCase(item.ccy)) continue;
+				String bal = item.bal;
 				if (bal == null || bal.isEmpty()) {
 					throw new IllegalStateException("OKX spot balance missing for USDT");
 				}
@@ -108,20 +98,27 @@ public class PrivateResponses {
 		}
 	}
 
-	public record FuturesUsdtBalanceResponse(String code, String msg, JsonNode data) {
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	private record FuturesBalanceDetail(String ccy, String eq) {}
+
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	private record FuturesBalanceAccount(List<FuturesBalanceDetail> details) {}
+
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	public record FuturesUsdtBalanceResponse(String code, String msg, List<FuturesBalanceAccount> data) {
 		public double get() {
 			ensureOk(code, msg);
-			if (data == null || !data.isArray() || data.isEmpty()) {
+			if (data == null || data.isEmpty()) {
 				throw new IllegalStateException("OKX futures balance data missing");
 			}
-			JsonNode account = data.get(0);
-			JsonNode details = account.get("details");
-			if (details == null || !details.isArray()) {
+			FuturesBalanceAccount account = data.get(0);
+			List<FuturesBalanceDetail> details = account.details;
+			if (details == null) {
 				throw new IllegalStateException("OKX futures balance details missing");
 			}
-			for (JsonNode item : details) {
-				if (!"USDT".equalsIgnoreCase(item.path("ccy").asText())) continue;
-				String eq = item.path("eq").asText();
+			for (FuturesBalanceDetail item : details) {
+				if (!"USDT".equalsIgnoreCase(item.ccy)) continue;
+				String eq = item.eq;
 				if (eq == null || eq.isEmpty()) {
 					throw new IllegalStateException("OKX futures equity missing for USDT");
 				}
@@ -131,12 +128,16 @@ public class PrivateResponses {
 		}
 	}
 
-	public record InstrumentsResponse(String code, String msg, JsonNode data) {
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	private record InstrumentItem(String instId, String lever, int groupId) {}
+
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	public record InstrumentsResponse(String code, String msg, List<InstrumentItem> data) {
 		public Map<String, Integer> getMaxLeverage() {
 			Map<String, Integer> leverageBySymbol = new HashMap<>();
-			for (JsonNode item : data) {
-				String symbol = item.path("instId").asText();
-				double lever = item.path("lever").asDouble();
+			for (InstrumentItem item : data) {
+				String symbol = item.instId;
+				double lever = Double.parseDouble(item.lever);
 				leverageBySymbol.put(symbol, (int) Math.floor(lever));
 			}
 			return leverageBySymbol;
@@ -144,35 +145,37 @@ public class PrivateResponses {
 
 		public Map<String, Integer> getFeeGroupId() {
 			Map<String, Integer> feeGroupIdBySymbol = new HashMap<>();
-			for (JsonNode item : data) {
-				String symbol = item.path("instId").asText();
-				int feeGroupId = item.path("groupId").asInt();
-				feeGroupIdBySymbol.put(symbol, feeGroupId);
+			if (data == null) return feeGroupIdBySymbol;
+			for (InstrumentItem item : data) {
+				feeGroupIdBySymbol.put(item.instId, item.groupId);
 			}
 			return feeGroupIdBySymbol;
 		}
 	}
 
-	public record SupportedChainsResponse(String code, String msg, JsonNode data) {
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	private record SupportedChainInfo(
+					String chain, boolean canDep, boolean canWd, double fee, double minWd
+	) {}
+
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	public record SupportedChainsResponse(String code, String msg, List<SupportedChainInfo> data) {
 		public ExchangeChains get() {
 			ensureOk(code, msg);
-			if (data == null || !data.isArray()) {
-				throw new IllegalStateException("OKX currencies data missing");
-			}
 			ExchangeChainsBuilder builder = new ExchangeChainsBuilder();
-			for (JsonNode item : data) {
-				String chain = item.path("chain").asText();
+			for (SupportedChainInfo item : data) {
+				String chain = item.chain;
 				if (chain == null || chain.isEmpty()) continue;
 				SupportedChain mapped = ChainsMap.getInverse(chain);
 				if (mapped == null) continue;
-				boolean canDep = parseBoolean(item, "canDep");
-				boolean canWd = parseBoolean(item, "canWd");
+				boolean canDep = item.canDep;
+				boolean canWd = item.canWd;
 				if (canDep) builder.addDepositableChain(mapped);
 				if (canWd) {
-					double fee = item.path("fee").asDouble();
+					double fee = item.fee;
 					if (fee <= 0.0) throw new IllegalStateException("OKX chain fee missing for chain: " + chain);
 
-					double minWd = item.path("minWd").asDouble();
+					double minWd = item.minWd;
 					if (minWd <= 0.0) throw new IllegalStateException("OKX chain minWd missing for chain: " + chain);
 
 					builder.addWithdrawableChain(new WithdrawChain(mapped, fee, minWd));
@@ -182,20 +185,24 @@ public class PrivateResponses {
 		}
 	}
 
-	public record UsdtWalletAddressResponse(String code, String msg, JsonNode data) {
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	private record WalletAddressItem(String chain, String addr, String tag) {}
+
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	public record UsdtWalletAddressResponse(String code, String msg, List<WalletAddressItem> data) {
 		public WalletAddress get(SupportedChain chain) {
 			ensureOk(code, msg);
-			if (data == null || !data.isArray() || data.isEmpty()) {
+			if (data == null || data.isEmpty()) {
 				throw new IllegalStateException("OKX deposit address data missing");
 			}
 			String chainName = ChainsMap.get(chain);
-			for (JsonNode item : data) {
-				if (!chainName.equalsIgnoreCase(item.path("chain").asText())) continue;
-				String addr = item.path("addr").asText();
+			for (WalletAddressItem item : data) {
+				if (!chainName.equalsIgnoreCase(item.chain)) continue;
+				String addr = item.addr;
 				if (addr == null || addr.isEmpty()) {
 					throw new IllegalStateException("OKX deposit address missing");
 				}
-				String tag = item.path("tag").asText();
+				String tag = item.tag;
 				String memo = (tag == null || tag.isEmpty()) ? null : tag;
 				return new WalletAddress(chain, addr, memo);
 			}
@@ -209,13 +216,17 @@ public class PrivateResponses {
 		}
 	}
 
-	public record PlaceFuturesOrderResponse(String code, String msg, JsonNode data) {
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	private record PlaceOrderItem(String ordId) {}
+
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	public record PlaceFuturesOrderResponse(String code, String msg, List<PlaceOrderItem> data) {
 		public String orderId() {
 			ensureOk(code, msg);
-			if (data == null || !data.isArray() || data.isEmpty()) {
+			if (data == null || data.isEmpty()) {
 				throw new IllegalStateException("OKX order response missing");
 			}
-			String ordId = data.get(0).path("ordId").asText();
+			String ordId = data.get(0).ordId;
 			if (ordId == null || ordId.isEmpty()) {
 				throw new IllegalStateException("OKX ordId missing");
 			}
@@ -223,20 +234,26 @@ public class PrivateResponses {
 		}
 	}
 
-	public record GetOrderRecordResponse(String code, String msg, JsonNode data) {
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	private record OrderRecordItem(
+					String ordId, String instId, String fillSz, String fillPx, String fee, String feeCcy, String ts
+	) {}
+
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	public record GetOrderRecordResponse(String code, String msg, List<OrderRecordItem> data) {
 		public List<PartialFill> get(String orderId) {
 			ensureOk(code, msg);
 			List<PartialFill> fills = new ArrayList<>();
-			if (data == null || !data.isArray()) return fills;
-			for (JsonNode item : data) {
-				String ordId = item.path("ordId").asText();
+			if (data == null) return fills;
+			for (OrderRecordItem item : data) {
+				String ordId = item.ordId;
 				if (!orderId.equals(ordId)) continue;
-				String symbol = item.path("instId").asText();
-				String szText = item.path("fillSz").asText();
-				String pxText = item.path("fillPx").asText();
-				String feeText = item.path("fee").asText();
-				String feeCcy = item.path("feeCcy").asText();
-				String tsText = item.path("ts").asText();
+				String symbol = item.instId;
+				String szText = item.fillSz;
+				String pxText = item.fillPx;
+				String feeText = item.fee;
+				String feeCcy = item.feeCcy;
+				String tsText = item.ts;
 				if (symbol == null || symbol.isEmpty()) continue;
 				if (szText == null || szText.isEmpty()) continue;
 				if (pxText == null || pxText.isEmpty()) continue;
@@ -260,16 +277,20 @@ public class PrivateResponses {
 		}
 	}
 
-	public record CurrencyInfoResponse(String code, String msg, JsonNode data) {
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	private record CurrencyInfoItem(String chain, String minFee) {}
+
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	public record CurrencyInfoResponse(String code, String msg, List<CurrencyInfoItem> data) {
 		public String minFee(SupportedChain chain) {
 			ensureOk(code, msg);
-			if (data == null || !data.isArray()) {
+			if (data == null) {
 				throw new IllegalStateException("OKX currencies data missing");
 			}
 			String chainName = ChainsMap.get(chain);
-			for (JsonNode item : data) {
-				if (!chainName.equalsIgnoreCase(item.path("chain").asText())) continue;
-				String minFee = item.path("minFee").asText();
+			for (CurrencyInfoItem item : data) {
+				if (!chainName.equalsIgnoreCase(item.chain)) continue;
+				String minFee = item.minFee;
 				if (minFee == null || minFee.isEmpty()) {
 					throw new IllegalStateException("OKX minFee missing for chain: " + chain);
 				}

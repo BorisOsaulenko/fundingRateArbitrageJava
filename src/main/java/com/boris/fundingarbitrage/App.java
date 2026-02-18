@@ -1,6 +1,7 @@
 package com.boris.fundingarbitrage;
 
-import com.boris.fundingarbitrage.exchange.impl.bybit.BybitExchange;
+import com.boris.fundingarbitrage.exchange.impl.gate.GateExchange;
+import com.boris.fundingarbitrage.model.assetops.MarginMode;
 import com.boris.fundingarbitrage.monitor.CoinMonitor;
 import com.boris.fundingarbitrage.util.logger.Logger;
 
@@ -126,7 +127,7 @@ public class App {
 	}
 
 	static void main(String[] args) throws ExecutionException, InterruptedException {
-		BybitExchange bybit = new BybitExchange();
-		bybit.privateHttpClient.getMaxLeverage(coins).thenAccept(Logger::logCoinVector).get();
+		GateExchange exchange = new GateExchange();
+		exchange.privateHttpClient.setMarginMode("SOL", MarginMode.CROSS).get();
 	}
 }
