@@ -32,16 +32,15 @@ public class CoinMonitor {
 	private static final int BIT_MARK = 1 << 2;
 	private static final int ALL_BITS = BIT_BOOK | BIT_FUNDING | BIT_MARK;
 
-	private final double min24hVolumeUsdt = 600_000;
-	private final double maxAffordablePrice = 20;
+	private static final double min24hVolumeUsdt = 600_000;
+	private static final double maxAffordablePrice = 20;
+	private static final int waitForDataSeconds = 60;
 
 	private final Set<String> coins;
-	private final int waitForDataSeconds = 60;
 	private final ExchangeCoinMap<FundingRate> fundingRates = new ExchangeCoinMap<>();
 	private final ExchangeCoinMap<BookTicker> bookTickers = new ExchangeCoinMap<>();
 	private final ExchangeCoinMap<MarkPrice> markPrices = new ExchangeCoinMap<>();
 	private final ExchangeCoinMap<Fees> fees = new ExchangeCoinMap<>();
-	private final ExchangeCoinMap<CompletableFuture<Void>> feesFutures = new ExchangeCoinMap<>();
 	private final ExchangeCoinMap<PublicOnePullData> initialData = new ExchangeCoinMap<>();
 
 	private final CoinVector<Set<ExchangeName>> availableExchangesByCoin = new CoinVector<>();
@@ -146,7 +145,7 @@ public class CoinMonitor {
 				coinsVect.forEach((coin, data) -> {
 					String excludedMsg = shouldExcludeCoin(data);
 					if (excludedMsg != null) {
-						Logger.log("Excluding " + coin + " from monitoring: " + excludedMsg);
+						Logger.log("Excluding " + coin + " - " + exchange.name + " from monitoring: " + excludedMsg);
 						forgetCoinExchange(coin, exchange.name);
 						return;
 					}
@@ -166,19 +165,26 @@ public class CoinMonitor {
 	}
 
 	private void initFees() {
+		List<CompletableFuture<Void>> futures = new ArrayList<>();
 		for (Map.Entry<BaseExchange, Set<String>> entry : availableCoinsByExchange.entrySet()) {
 			BaseExchange exchange = entry.getKey();
-			if (entry.getValue().isEmpty()) return;
+			if (entry.getValue().isEmpty()) continue;
 
-			exchange.privateHttpClient.getTradingFees(entry.getValue()).thenAccept(result -> {
-				result.forEach((coin, fee) -> {
-					fees.put(exchange.name, coin, fee);
-				});
-			}).exceptionally(t -> {
-				Logger.error("Failed to fetch trading fees for " + exchange.name + ": " + t.getMessage());
-				throw new RuntimeException(t);
-			});
+			CompletableFuture<Void> future = exchange.privateHttpClient
+							.getTradingFees(entry.getValue())
+							.thenAccept(result -> {
+								result.forEach((coin, fee) -> {
+									fees.put(exchange.name, coin, fee);
+								});
+							})
+							.exceptionally(t -> {
+								Logger.error("Failed to fetch trading fees for " + exchange.name + ": " + t.getMessage());
+								throw new RuntimeException(t);
+							});
+
+			futures.add(future);
 		}
+		CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
 	}
 
 	private void fillEmptyData() {
@@ -379,7 +385,6 @@ public class CoinMonitor {
 		bookTickers.remove(name, coin);
 		markPrices.remove(name, coin);
 		fees.remove(name, coin);
-		feesFutures.remove(name, coin);
 	}
 
 	private void forgetCoin(String coin) {

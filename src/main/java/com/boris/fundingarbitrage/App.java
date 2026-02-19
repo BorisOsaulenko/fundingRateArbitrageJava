@@ -107,7 +107,7 @@ public class App {
 
 	private static final Set<String> coins = Set.of("SOL", "ETH", "XRP", "LTC", "ADA");
 
-	static void main2(String[] args) throws Exception {
+	static void main(String[] args) throws Exception {
 		CoinMonitor monitor = new CoinMonitor(coins);
 		Logger.init(Path.of("app.log"));
 		Logger.log("Initializing coin monitor and waiting for complete data...");
@@ -122,10 +122,10 @@ public class App {
 			monitor.shutdown();
 		}
 
-//		Thread.sleep(40000);
+		Thread.sleep(40000);
 	}
 
-	static void main(String[] args) throws ExecutionException, InterruptedException {
+	static void main2(String[] args) throws ExecutionException, InterruptedException {
 		WhitebitExchange exchange = new WhitebitExchange();
 		exchange.publicHttpClient.getOnePullData(Set.of("ASDF")).thenAccept(Logger::logCoinVector).get();
 	}

@@ -15,7 +15,11 @@ public class Logger {
 	private static BufferedWriter writer;
 	private static boolean initCalled = false;
 
-	private Logger(Path logFilePath) {
+	public static void init(Path logFilePath) {
+		if (initCalled) {
+			throw new IllegalStateException("Logger constructor called more than once");
+		}
+		initCalled = true;
 		if (logFilePath != null) {
 			try {
 				writer = Files.newBufferedWriter(
@@ -31,13 +35,6 @@ public class Logger {
 		} else {
 			writer = null;
 		}
-	}
-
-	public static void init(Path logFilePath) {
-		if (initCalled) {
-			throw new IllegalStateException("Logger constructor called more than once");
-		}
-		initCalled = true;
 		System.out.println("Logger initialized. Log file: " +
 											 (logFilePath != null ? logFilePath.toAbsolutePath() : "None (console only)"));
 	}

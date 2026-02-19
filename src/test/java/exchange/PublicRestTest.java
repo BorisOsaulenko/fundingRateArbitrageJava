@@ -80,7 +80,10 @@ public abstract class PublicRestTest {
 
 	void validateTradingVolume(double volume) throws Exception {
 		assertFinite(volume, "24h trading volume should be finite");
-		assertTrue(volume >= 0, "24h trading volume should be not less than 0");
+		assertTrue(
+						volume > 10_000,
+						"24h trading volume should be not less than 10 000"
+		); // testing on popular coins, so we can expect some volume
 	}
 
 	void validateFundingInterval(int fundingIntervalHours) throws Exception {
