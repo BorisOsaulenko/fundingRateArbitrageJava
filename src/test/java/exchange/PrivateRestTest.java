@@ -12,8 +12,8 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -23,7 +23,7 @@ public abstract class PrivateRestTest {
 	private static final long REQUEST_TIMEOUT_SECONDS = 8;
 	private static final double MAX_ABS_FEE = 0.02;
 	private final String testCoin = "SOL";
-	private final List<String> testCoins = List.of("SOL", "ADA", "ETH");
+	private final Set<String> testCoins = Set.of("SOL", "ADA", "ETH");
 	private final Duration timestampTolerance = Duration.ofSeconds(2);
 
 	private static <T> T getWithTimeout(CompletableFuture<T> future) throws Exception {

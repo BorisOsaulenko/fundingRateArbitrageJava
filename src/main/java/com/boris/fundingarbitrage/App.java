@@ -5,7 +5,7 @@ import com.boris.fundingarbitrage.monitor.CoinMonitor;
 import com.boris.fundingarbitrage.util.logger.Logger;
 
 import java.nio.file.Path;
-import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
 public class App {
@@ -105,7 +105,7 @@ public class App {
 //					"BLUAI" // 92 coins
 //	);
 
-	private static final List<String> coins = List.of("SOL", "ETH", "XRP", "LTC", "ADA");
+	private static final Set<String> coins = Set.of("SOL", "ETH", "XRP", "LTC", "ADA");
 
 	static void main2(String[] args) throws Exception {
 		CoinMonitor monitor = new CoinMonitor(coins);
@@ -127,6 +127,6 @@ public class App {
 
 	static void main(String[] args) throws ExecutionException, InterruptedException {
 		WhitebitExchange exchange = new WhitebitExchange();
-		exchange.publicHttpClient.getOnePullData(List.of("ASDF")).thenAccept(Logger::logCoinVector).get();
+		exchange.publicHttpClient.getOnePullData(Set.of("ASDF")).thenAccept(Logger::logCoinVector).get();
 	}
 }

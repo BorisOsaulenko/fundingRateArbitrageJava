@@ -20,6 +20,7 @@ import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
@@ -80,7 +81,7 @@ public class GatePrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
-	public CompletableFuture<CoinVector<Fees>> getTradingFees(List<String> coins) {
+	public CompletableFuture<CoinVector<Fees>> getTradingFees(Set<String> coins) {
 		return processRequest(
 						PrivateEndpoints.tradingFeesRequestSymbols(),
 						PrivateResponses.TradingFeesSymbolsResponse.class,

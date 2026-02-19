@@ -22,6 +22,7 @@ import java.net.URISyntaxException;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 public class BinancePrivateHttpClient extends PrivateHttpClient {
@@ -59,7 +60,7 @@ public class BinancePrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
-	public CompletableFuture<CoinVector<Fees>> getTradingFees(List<String> coins) {
+	public CompletableFuture<CoinVector<Fees>> getTradingFees(Set<String> coins) {
 		CoinVector<Fees> fees = new CoinVector<>();
 		for (String coin : coins) {
 			fees.put(coin, new Fees(0.0002, 0.0005, 0.0002, 0.0005, Instant.now()));

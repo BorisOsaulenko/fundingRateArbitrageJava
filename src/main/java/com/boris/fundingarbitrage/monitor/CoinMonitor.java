@@ -35,7 +35,7 @@ public class CoinMonitor {
 	private final double min24hVolumeUsdt = 600_000;
 	private final double maxAffordablePrice = 20;
 
-	private final List<String> coins;
+	private final Set<String> coins;
 	private final int waitForDataSeconds = 60;
 	private final ExchangeCoinMap<FundingRate> fundingRates = new ExchangeCoinMap<>();
 	private final ExchangeCoinMap<BookTicker> bookTickers = new ExchangeCoinMap<>();
@@ -55,7 +55,7 @@ public class CoinMonitor {
 	private final ConcurrentHashMap<ExchangeName, Consumer<FundingRatePatch>> initFundingHandlers = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<ExchangeName, Consumer<MarkPricePatch>> initMarkHandlers = new ConcurrentHashMap<>();
 
-	public CoinMonitor(List<String> coins) {
+	public CoinMonitor(Set<String> coins) {
 		this.coins = coins;
 
 		this.initFuture = CompletableFuture.runAsync(() -> {
@@ -168,10 +168,9 @@ public class CoinMonitor {
 	private void initFees() {
 		for (Map.Entry<BaseExchange, Set<String>> entry : availableCoinsByExchange.entrySet()) {
 			BaseExchange exchange = entry.getKey();
-			List<String> supportedCoins = entry.getValue().stream().toList();
-			if (supportedCoins.isEmpty()) return;
+			if (entry.getValue().isEmpty()) return;
 
-			exchange.privateHttpClient.getTradingFees(supportedCoins).thenAccept(result -> {
+			exchange.privateHttpClient.getTradingFees(entry.getValue()).thenAccept(result -> {
 				result.forEach((coin, fee) -> {
 					fees.put(exchange.name, coin, fee);
 				});

@@ -5,8 +5,8 @@ import com.boris.fundingarbitrage.model.contract.FundingRate;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import com.boris.fundingarbitrage.util.https.PrettyHttpClient;
 
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
@@ -24,7 +24,7 @@ public abstract class PublicHttpClient {
 	protected abstract CompletableFuture<Map<String, FundingRate>> getFundingRateSymbolBatch();
 
 	private <T> CompletableFuture<CoinVector<T>> withSymbol(
-					List<String> coins,
+					Set<String> coins,
 					Supplier<CompletableFuture<Map<String, T>>> symbolGetter
 	) {
 		return symbolGetter.get().thenApply(resultBySymbols -> {
@@ -40,11 +40,11 @@ public abstract class PublicHttpClient {
 	}
 
 
-	public CompletableFuture<CoinVector<FundingRate>> getFundingRate(List<String> coins) {
+	public CompletableFuture<CoinVector<FundingRate>> getFundingRate(Set<String> coins) {
 		return withSymbol(coins, this::getFundingRateSymbolBatch);
 	}
 
-	public CompletableFuture<CoinVector<PublicOnePullData>> getOnePullData(List<String> coins) {
+	public CompletableFuture<CoinVector<PublicOnePullData>> getOnePullData(Set<String> coins) {
 		return getPublicOnePullData().thenApply(res -> {
 			CoinVector<PublicOnePullData> result = new CoinVector<>();
 			for (String coin : coins) {

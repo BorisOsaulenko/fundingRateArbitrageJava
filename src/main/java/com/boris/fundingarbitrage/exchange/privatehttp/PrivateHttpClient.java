@@ -12,9 +12,11 @@ import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 public abstract class PrivateHttpClient {
 	protected final PrettyHttpClient client;
@@ -64,7 +66,7 @@ public abstract class PrivateHttpClient {
 	}
 
 	private <T> CompletableFuture<CoinVector<T>> withSymbolBatch(
-					List<String> coins,
+					Set<String> coins,
 					Supplier<CompletableFuture<Map<String, T>>> symbolGetter
 	) {
 		return symbolGetter.get().thenApply(resultBySymbol -> {
@@ -82,18 +84,18 @@ public abstract class PrivateHttpClient {
 	}
 
 	private <T> CompletableFuture<Map<String, T>> withSymbol(
-					List<String> coins,
-					Function<List<String>, CompletableFuture<Map<String, T>>> symbolGetter
+					Set<String> coins,
+					Function<Set<String>, CompletableFuture<Map<String, T>>> symbolGetter
 	) {
-		List<String> symbols = coins.stream().map(context::getSymbol).toList();
+		Set<String> symbols = coins.stream().map(context::getSymbol).collect(Collectors.toSet());
 		return symbolGetter.apply(symbols);
 	}
 
-	public CompletableFuture<CoinVector<Integer>> getMaxLeverage(List<String> coins) {
+	public CompletableFuture<CoinVector<Integer>> getMaxLeverage(Set<String> coins) {
 		return withSymbolBatch(coins, this::getMaxLeverageSymbolBatch);
 	}
 
-	public CompletableFuture<CoinVector<Fees>> getTradingFees(List<String> coins) {
+	public CompletableFuture<CoinVector<Fees>> getTradingFees(Set<String> coins) {
 		return withSymbolBatch(coins, this::getTradingFeesSymbolBatch);
 	}
 

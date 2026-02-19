@@ -9,8 +9,8 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -20,7 +20,7 @@ public abstract class PublicRestTest {
 	private static final long REQUEST_TIMEOUT_SECONDS = 8;
 	private static final double MAX_ABS_FUNDING_RATE = 0.05;
 	private static final Duration MAX_FUNDING_SETTLEMENT_AHEAD = Duration.ofHours(8);
-	private final List<String> coins = List.of("SOL", "ETH", "XRP", "LTC", "ADA");
+	private final Set<String> coins = Set.of("SOL", "ETH", "XRP", "LTC", "ADA");
 
 	private static <T> T getWithTimeout(CompletableFuture<T> future) throws Exception {
 		return future.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
@@ -108,7 +108,7 @@ public abstract class PublicRestTest {
 	@Test
 	@Tag("rest")
 	void publicOnePullDataReturnNullOnNonExistentSymbol() throws Exception {
-		var result = getWithTimeout(publicRest().getOnePullData(List.of("NONEXISTENT")));
+		var result = getWithTimeout(publicRest().getOnePullData(Set.of("NONEXISTENT")));
 		assertNotNull(result, "One pull data should be null for non-existent symbol");
 		assertEquals(1, result.size(), "One pull data should contain data for each requested symbol");
 		Map.Entry<String, PublicOnePullData> entry = result.entrySet().iterator().next();

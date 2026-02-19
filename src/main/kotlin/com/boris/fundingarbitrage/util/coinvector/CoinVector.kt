@@ -5,7 +5,7 @@ import java.util.concurrent.ConcurrentHashMap
 class CoinVector<T> : MutableMap<String, T> by ConcurrentHashMap() {
     companion object {
         @JvmStatic
-        fun <T> byDefaultValue(coins: List<String>, value: T): CoinVector<T> {
+        fun <T> byDefaultValue(coins: Collection<String>, value: T): CoinVector<T> {
             return CoinVector<T>().apply {
                 for (coin in coins) {
                     this[coin] = value

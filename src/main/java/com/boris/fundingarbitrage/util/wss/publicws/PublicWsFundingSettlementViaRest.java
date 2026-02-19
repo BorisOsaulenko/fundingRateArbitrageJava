@@ -10,8 +10,6 @@ import lombok.NonNull;
 
 import java.net.URI;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 public abstract class PublicWsFundingSettlementViaRest extends PublicWsClient {
@@ -30,11 +28,10 @@ public abstract class PublicWsFundingSettlementViaRest extends PublicWsClient {
 	}
 
 	private void updateFundingSettlementForCoins() {
-		List<String> coins = new ArrayList<>(fundingRateHandlers.keySet());
-		if (updatingSettlements || coins.isEmpty()) return;
+		if (updatingSettlements) return;
 
 		updatingSettlements = true;
-		updatingFuture = this.publicHttpClient.getFundingRate(coins).thenAccept((rates) -> {
+		updatingFuture = this.publicHttpClient.getFundingRate(fundingRateHandlers.keySet()).thenAccept((rates) -> {
 			updatingSettlements = false;
 			rates.forEach((coin, rate) -> {
 				if (rate == null) return;

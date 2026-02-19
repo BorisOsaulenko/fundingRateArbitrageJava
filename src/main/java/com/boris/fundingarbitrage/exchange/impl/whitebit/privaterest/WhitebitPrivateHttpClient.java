@@ -16,10 +16,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Base64;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 public class WhitebitPrivateHttpClient extends PrivateHttpClient {
@@ -62,7 +59,7 @@ public class WhitebitPrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
-	public CompletableFuture<CoinVector<Fees>> getTradingFees(List<String> coins) {
+	public CompletableFuture<CoinVector<Fees>> getTradingFees(Set<String> coins) {
 		return requestWrapper.processRequest(
 						signRequest(PrivateEndpoints.tradingFeesRequest()),
 						PrivateResponses.TradingFeesSymbolsResponse.class,
@@ -72,13 +69,21 @@ public class WhitebitPrivateHttpClient extends PrivateHttpClient {
 
 	@Override
 	protected CompletableFuture<Void> changeLeverageSymbol(String symbol, int leverage) {
-		return requestWrapper.processRequest(signRequest(PrivateEndpoints.changeLeverageRequest(leverage)), JsonNode.class, (resp) -> null);
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.changeLeverageRequest(leverage)),
+						JsonNode.class,
+						(resp) -> null
+		);
 	}
 
 	@Override
 	protected CompletableFuture<Void> setMarginModeSymbol(String symbol, MarginMode marginMode) {
 		boolean hedgeMode = marginMode == MarginMode.ISOLATED;
-		return requestWrapper.processRequest(signRequest(PrivateEndpoints.setHedgeModeRequest(hedgeMode)), JsonNode.class, (resp) -> null);
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.setHedgeModeRequest(hedgeMode)),
+						JsonNode.class,
+						(resp) -> null
+		);
 	}
 
 	@Override
@@ -131,7 +136,11 @@ public class WhitebitPrivateHttpClient extends PrivateHttpClient {
 
 	@Override
 	public CompletableFuture<Void> withdrawUsdt(Withdrawal withdrawal) {
-		return requestWrapper.processRequest(signRequest(signRequest(PrivateEndpoints.withdrawUsdtRequest(withdrawal))), JsonNode.class, (resp) -> null);
+		return requestWrapper.processRequest(
+						signRequest(signRequest(PrivateEndpoints.withdrawUsdtRequest(withdrawal))),
+						JsonNode.class,
+						(resp) -> null
+		);
 	}
 
 	@Override
@@ -158,6 +167,10 @@ public class WhitebitPrivateHttpClient extends PrivateHttpClient {
 
 	@Override
 	public CompletableFuture<Void> internalTransfer(InternalTransfer internalTransfer) {
-		return requestWrapper.processRequest(signRequest(PrivateEndpoints.internalTransferRequest(internalTransfer)), JsonNode.class, (resp) -> null);
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.internalTransferRequest(internalTransfer)),
+						JsonNode.class,
+						(resp) -> null
+		);
 	}
 }
