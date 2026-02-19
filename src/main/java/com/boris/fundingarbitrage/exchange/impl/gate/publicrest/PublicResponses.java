@@ -2,6 +2,7 @@ package com.boris.fundingarbitrage.exchange.impl.gate.publicrest;
 
 import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.FundingRate;
+import com.boris.fundingarbitrage.util.logger.Logger;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
@@ -50,7 +51,7 @@ class PublicResponses {
 	public record TickersResponse(List<TickerResponse> items) {
 		private record TickerResponse(
 						String contract,
-						double volume_24h_usd,
+						double volume_24h_quote,
 						double highest_bid,
 						double lowest_ask,
 						double highest_size,
@@ -74,7 +75,7 @@ class PublicResponses {
 
 		public Map<String, Double> getVolume24h() {
 			Map<String, Double> result = new HashMap<>();
-			for (TickerResponse item : items) result.put(item.contract(), item.volume_24h_usd());
+			for (TickerResponse item : items) result.put(item.contract(), item.volume_24h_quote());
 			return result;
 		}
 	}

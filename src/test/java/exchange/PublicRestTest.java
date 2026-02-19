@@ -32,12 +32,12 @@ public abstract class PublicRestTest {
 
 	protected abstract PublicHttpClient publicRest();
 
-	void validateLotSize(double lotSize) throws Exception {
+	void validateLotSize(double lotSize) {
 		assertFinite(lotSize, "Lot size should be finite");
 		assertTrue(lotSize > 0, "Lot size should be greater than 0");
 	}
 
-	void validateBookTicker(BookTicker ticker) throws Exception {
+	void validateBookTicker(BookTicker ticker) {
 		assertNotNull(ticker, "Book ticker should not be null");
 		assertFinite(ticker.askPrice, "Ask price should be finite");
 		assertFinite(ticker.askSize, "Ask volume should be finite");
@@ -51,7 +51,7 @@ public abstract class PublicRestTest {
 		assertTrue(ticker.askPrice - ticker.bidPrice < 5, "Spread should be less than maxSpread");
 	}
 
-	void validateFundingRate(FundingRate fundingRate) throws Exception {
+	void validateFundingRate(FundingRate fundingRate) {
 		assertNotNull(fundingRate, "Funding rate should not be null");
 		assertNotNull(fundingRate.settlement, "Settlement time should not be null");
 		assertFinite(fundingRate.rate, "Funding rate should be finite");
@@ -78,7 +78,7 @@ public abstract class PublicRestTest {
 		}
 	}
 
-	void validateTradingVolume(double volume) throws Exception {
+	void validateTradingVolume(double volume) {
 		assertFinite(volume, "24h trading volume should be finite");
 		assertTrue(
 						volume > 10_000,
@@ -86,7 +86,7 @@ public abstract class PublicRestTest {
 		); // testing on popular coins, so we can expect some volume
 	}
 
-	void validateFundingInterval(int fundingIntervalHours) throws Exception {
+	void validateFundingInterval(int fundingIntervalHours) {
 		assertTrue(fundingIntervalHours > 0, "Funding granularity should be greater than 0");
 		assertTrue(fundingIntervalHours <= 8, "Funding granularity should be less than or equal to 24 hours");
 		assertEquals(0, fundingIntervalHours % 2, "Funding granularity should be even");

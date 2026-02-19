@@ -1,5 +1,6 @@
 package com.boris.fundingarbitrage;
 
+import com.boris.fundingarbitrage.exchange.impl.gate.GateExchange;
 import com.boris.fundingarbitrage.exchange.impl.whitebit.WhitebitExchange;
 import com.boris.fundingarbitrage.monitor.CoinMonitor;
 import com.boris.fundingarbitrage.util.logger.Logger;
@@ -126,7 +127,7 @@ public class App {
 	}
 
 	static void main2(String[] args) throws ExecutionException, InterruptedException {
-		WhitebitExchange exchange = new WhitebitExchange();
-		exchange.publicHttpClient.getOnePullData(Set.of("ASDF")).thenAccept(Logger::logCoinVector).get();
+		GateExchange exchange = new GateExchange();
+		exchange.publicHttpClient.getOnePullData(Set.of("SOL")).thenAccept(Logger::logCoinVector).get();
 	}
 }
