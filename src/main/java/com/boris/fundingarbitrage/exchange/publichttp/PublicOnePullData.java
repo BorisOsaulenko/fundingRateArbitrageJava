@@ -6,7 +6,13 @@ import com.boris.fundingarbitrage.model.contract.BookTicker;
 public record PublicOnePullData(
 				double lotSize, BookTicker bookTicker, double volume24h, int fundingInterval
 ) {
-	public PublicOnePullData {
-		if (bookTicker == null) throw new IllegalArgumentException("Book ticker cannot be null.");
+	public PublicOnePullData {}
+
+	public static PublicOnePullData empty() {
+		return new PublicOnePullData(0, null, 0, 0);
+	}
+
+	public boolean isEmpty() {
+		return bookTicker == null;
 	}
 }

@@ -32,6 +32,7 @@ public abstract class PublicHttpClient {
 			for (String coin : coins) {
 				String symbol = exchangeContext.getSymbol(coin);
 				T value = resultBySymbols.get(symbol);
+				if (value == null) throw new RuntimeException("Symbol " + symbol + " not found in exchange response");
 				result.put(coin, value);
 			}
 			return result;
@@ -44,6 +45,15 @@ public abstract class PublicHttpClient {
 	}
 
 	public CompletableFuture<CoinVector<PublicOnePullData>> getOnePullData(List<String> coins) {
-		return withSymbol(coins, this::getPublicOnePullData);
+		return getPublicOnePullData().thenApply(res -> {
+			CoinVector<PublicOnePullData> result = new CoinVector<>();
+			for (String coin : coins) {
+				String symbol = exchangeContext.getSymbol(coin);
+				PublicOnePullData value = res.get(symbol);
+				if (value == null) value = PublicOnePullData.empty();
+				result.put(coin, value);
+			}
+			return result;
+		});
 	}
 }

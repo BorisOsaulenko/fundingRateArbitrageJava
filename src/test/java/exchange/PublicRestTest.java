@@ -1,6 +1,7 @@
 package exchange;
 
 import com.boris.fundingarbitrage.exchange.publichttp.PublicHttpClient;
+import com.boris.fundingarbitrage.exchange.publichttp.PublicOnePullData;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.FundingRate;
 import org.junit.jupiter.api.Tag;
@@ -102,5 +103,16 @@ public abstract class PublicRestTest {
 			validateTradingVolume(data.volume24h());
 			validateFundingInterval(data.fundingInterval());
 		}
+	}
+
+	@Test
+	@Tag("rest")
+	void publicOnePullDataReturnNullOnNonExistentSymbol() throws Exception {
+		var result = getWithTimeout(publicRest().getOnePullData(List.of("NONEXISTENT")));
+		assertNotNull(result, "One pull data should be null for non-existent symbol");
+		assertEquals(1, result.size(), "One pull data should contain data for each requested symbol");
+		Map.Entry<String, PublicOnePullData> entry = result.entrySet().iterator().next();
+		assertTrue(entry.getValue().isEmpty(), "One pull data for " + entry.getKey() + " should be empty");
+		assertEquals("NONEXISTENT", entry.getKey());
 	}
 }

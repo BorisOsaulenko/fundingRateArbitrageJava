@@ -1,7 +1,6 @@
 package com.boris.fundingarbitrage;
 
-import com.boris.fundingarbitrage.exchange.impl.gate.GateExchange;
-import com.boris.fundingarbitrage.model.assetops.MarginMode;
+import com.boris.fundingarbitrage.exchange.impl.whitebit.WhitebitExchange;
 import com.boris.fundingarbitrage.monitor.CoinMonitor;
 import com.boris.fundingarbitrage.util.logger.Logger;
 
@@ -127,7 +126,7 @@ public class App {
 	}
 
 	static void main(String[] args) throws ExecutionException, InterruptedException {
-		GateExchange exchange = new GateExchange();
-		exchange.privateHttpClient.setMarginMode("SOL", MarginMode.CROSS).get();
+		WhitebitExchange exchange = new WhitebitExchange();
+		exchange.publicHttpClient.getOnePullData(List.of("ASDF")).thenAccept(Logger::logCoinVector).get();
 	}
 }

@@ -71,7 +71,11 @@ public abstract class PrivateHttpClient {
 			CoinVector<T> result = new CoinVector<>();
 			for (String coin : coins) {
 				String symbol = context.getSymbol(coin);
-				result.put(coin, resultBySymbol.get(symbol));
+				T value = resultBySymbol.get(symbol);
+				if (value == null) {
+					throw new RuntimeException("Symbol " + symbol + " (coin: " + coin + ") not found in exchange response");
+				}
+				result.put(coin, value);
 			}
 			return result;
 		});

@@ -32,6 +32,9 @@ public class CoinMonitor {
 	private static final int BIT_MARK = 1 << 2;
 	private static final int ALL_BITS = BIT_BOOK | BIT_FUNDING | BIT_MARK;
 
+	private final double min24hVolumeUsdt = 600_000;
+	private final double maxAffordablePrice = 20;
+
 	private final List<String> coins;
 	private final int waitForDataSeconds = 60;
 	private final ExchangeCoinMap<FundingRate> fundingRates = new ExchangeCoinMap<>();
@@ -123,6 +126,16 @@ public class CoinMonitor {
 		}
 	}
 
+	private String shouldExcludeCoin(PublicOnePullData data) {
+		if (data.isEmpty()) return "Coin does not exist";
+		if (data.volume24h() < min24hVolumeUsdt) return "Volume not enough: " + data.volume24h();
+		if (data.bookTicker().askPrice * data.lotSize() > maxAffordablePrice) {
+			return "Price too high; min price step: " + data.bookTicker().askPrice * data.lotSize();
+		}
+
+		return null;
+	}
+
 	private void initAvailableExchanges() {
 		for (String coin : coins) availableExchangesByCoin.put(coin, ConcurrentHashMap.newKeySet());
 
@@ -131,6 +144,12 @@ public class CoinMonitor {
 			availableCoinsByExchange.put(exchange, ConcurrentHashMap.newKeySet());
 			CompletableFuture<Void> future = exchange.publicHttpClient.getOnePullData(coins).thenAccept(coinsVect -> {
 				coinsVect.forEach((coin, data) -> {
+					String excludedMsg = shouldExcludeCoin(data);
+					if (excludedMsg != null) {
+						Logger.log("Excluding " + coin + " from monitoring: " + excludedMsg);
+						forgetCoinExchange(coin, exchange.name);
+						return;
+					}
 					availableExchangesByCoin.get(coin).add(exchange.name);
 					availableCoinsByExchange.get(exchange).add(coin);
 					initialData.put(exchange.name, coin, data);
