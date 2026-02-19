@@ -3,8 +3,19 @@ package com.boris.fundingarbitrage.util.coinvector
 import java.util.concurrent.ConcurrentHashMap
 
 class CoinVector<T> : MutableMap<String, T> by ConcurrentHashMap() {
+    companion object {
+        @JvmStatic
+        fun <T> byDefaultValue(coins: Collection<String>, value: T): CoinVector<T> {
+            return CoinVector<T>().apply {
+                for (coin in coins) {
+                    this[coin] = value
+                }
+            }
+        }
+    }
+
     fun <R : Number> transform(op: (T, String?) -> R): CoinVector<R> {
-        var result = CoinVector<R>()
+        val result = CoinVector<R>()
         for ((key, value) in this) {
             result[key] = op(value, key)
         }
@@ -37,7 +48,7 @@ class CoinVector<T> : MutableMap<String, T> by ConcurrentHashMap() {
     }
 
     operator fun <T : Number> CoinVector<T>.minus(other: CoinVector<T>): CoinVector<Double> {
-        var result = CoinVector<Double>()
+        val result = CoinVector<Double>()
         this.ensureSameKeys(other)
 
         for (key in this.keys) {
@@ -50,7 +61,7 @@ class CoinVector<T> : MutableMap<String, T> by ConcurrentHashMap() {
     }
 
     operator fun <T : Number> CoinVector<T>.times(other: CoinVector<T>): CoinVector<Double> {
-        var result = CoinVector<Double>()
+        val result = CoinVector<Double>()
         this.ensureSameKeys(other)
 
         for (key in this.keys) {
@@ -63,7 +74,7 @@ class CoinVector<T> : MutableMap<String, T> by ConcurrentHashMap() {
     }
 
     operator fun <T : Number> CoinVector<T>.div(other: CoinVector<T>): CoinVector<Double> {
-        var result = CoinVector<Double>()
+        val result = CoinVector<Double>()
         this.ensureSameKeys(other)
 
         for (key in this.keys) {
@@ -81,11 +92,11 @@ class CoinVector<T> : MutableMap<String, T> by ConcurrentHashMap() {
     }
 
     fun <T : Comparable<T>> CoinVector<T>.compareEach(other: CoinVector<T>): CoinVector<Int> {
-        var result = CoinVector<Int>()
+        val result = CoinVector<Int>()
         this.ensureSameKeys(other)
         for (key in this.keys) {
-            var thisValue = this[key]
-            var otherValue = other[key]
+            val thisValue = this[key]
+            val otherValue = other[key]
 
             if (thisValue == null || otherValue == null) error("Values are not allowed to be null on comparison.")
             result[key] = thisValue.compareTo(otherValue)

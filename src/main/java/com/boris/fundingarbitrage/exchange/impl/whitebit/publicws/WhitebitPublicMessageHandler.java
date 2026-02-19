@@ -13,7 +13,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.time.Instant;
 
-public class WhitebitPublicMessageHandler implements PublicMessageHandler {
+class WhitebitPublicMessageHandler implements PublicMessageHandler {
 	private final ExchangeContext context;
 	private final ObjectMapper mapper = ObjectMapperSingleton.getInstance();
 

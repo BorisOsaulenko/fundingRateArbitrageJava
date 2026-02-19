@@ -5,7 +5,7 @@ import lombok.SneakyThrows;
 
 import java.util.List;
 
-public record WsRequest(String op, List<String> args) {
+record WsRequest(String op, List<String> args) {
 	@SneakyThrows
 	public String toJson() {
 		return ObjectMapperSingleton.getInstance().writeValueAsString(this);

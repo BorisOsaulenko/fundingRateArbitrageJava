@@ -13,13 +13,10 @@
 
 ## Build, Test, and Development Commands
 
-- `./gradlew run`: starts `com.boris.fundingarbitrage.App`.
-- `./gradlew test`: runs JUnit 5 tests.
-- `./gradlew build`: full compile + test + packaging.
-- `./gradlew clean build`: clean rebuild.
-- `./gradlew test --tests "exchange.impl.okx.OkxPublicRestTest"`: run a specific test class.
-- `scripts/run.sh`: loads local env vars then runs app (expects a machine-local env file).
-- `scripts/monitor_metrics.sh --duration 180 -- ./gradlew run`: collect CPU/RSS/GC metrics.
+- `./scripts/run.sh ./gradlew test`: starts provided command with local env vars.
+- `./gradlew test/run/build` should not be used directly; use the above script instead.
+- `./gradlew testRest` to test REST API only.
+- `./gradlew testWebsocket` to test WS API only. May take up to 10 minutes in total; up to 3 minutes for one test class.
 
 ## Coding Style & Naming Conventions
 

@@ -12,23 +12,24 @@ import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 public abstract class PrivateHttpClient {
 	protected final PrettyHttpClient client;
-	protected final ExchangeContext exchangeContext;
+	protected final ExchangeContext context;
 
 	protected PrivateHttpClient(ExchangeContext exchangeContext, PrettyHttpClient client) {
 		this.client = client;
-		this.exchangeContext = exchangeContext;
+		this.context = exchangeContext;
 	}
 
 	protected abstract SimpleHttpRequest signRequest(SimpleHttpRequest request);
 
-	protected abstract CompletableFuture<Fees> getTradingFeesSymbol(String symbol);
-
-	protected abstract CompletableFuture<Map<String, Fees>> getTradingFeesSymbols(List<String> symbols);
+	protected abstract CompletableFuture<Map<String, Fees>> getTradingFeesSymbolBatch();
 
 	protected abstract CompletableFuture<Void> changeLeverageSymbol(String symbol, int leverage);
 
@@ -38,7 +39,7 @@ public abstract class PrivateHttpClient {
 
 	public abstract CompletableFuture<Double> getFuturesUsdtBalance();
 
-	protected abstract CompletableFuture<Integer> getMaxLeverageSymbol(String symbol);
+	protected abstract CompletableFuture<Map<String, Integer>> getMaxLeverageSymbolBatch();
 
 	public abstract CompletableFuture<ExchangeChains> getSupportedChains();
 
@@ -60,35 +61,42 @@ public abstract class PrivateHttpClient {
 	public abstract CompletableFuture<Void> internalTransfer(InternalTransfer internalTransfer);
 
 	private <T> CompletableFuture<T> withSymbol(String coin, Function<String, CompletableFuture<T>> symbolGetter) {
-		String symbol = exchangeContext.getSymbol(coin);
+		String symbol = context.getSymbol(coin);
 		return symbolGetter.apply(symbol);
 	}
 
-	private <T> CompletableFuture<Map<String, T>> withSymbol(
-					List<String> coins,
-					Function<List<String>, CompletableFuture<Map<String, T>>> symbolGetter
+	private <T> CompletableFuture<CoinVector<T>> withSymbolBatch(
+					Set<String> coins,
+					Supplier<CompletableFuture<Map<String, T>>> symbolGetter
 	) {
-		List<String> symbols = coins.stream().map(exchangeContext::getSymbol).toList();
-		return symbolGetter.apply(symbols);
-	}
-
-	public CompletableFuture<Integer> getMaxLeverage(String coin) {
-		return withSymbol(coin, this::getMaxLeverageSymbol);
-	}
-
-	public CompletableFuture<Fees> getTradingFees(String coin) {
-		return withSymbol(coin, this::getTradingFeesSymbol);
-	}
-
-	public CompletableFuture<CoinVector<Fees>> getTradingFees(List<String> coins) {
-		return withSymbol(coins, this::getTradingFeesSymbols).thenApply(resultBySymbol -> {
-			CoinVector<Fees> result = new CoinVector<>();
+		return symbolGetter.get().thenApply(resultBySymbol -> {
+			CoinVector<T> result = new CoinVector<>();
 			for (String coin : coins) {
-				String symbol = exchangeContext.getSymbol(coin);
-				result.put(coin, resultBySymbol.get(symbol));
+				String symbol = context.getSymbol(coin);
+				T value = resultBySymbol.get(symbol);
+				if (value == null) {
+					throw new RuntimeException("Symbol " + symbol + " (coin: " + coin + ") not found in exchange response");
+				}
+				result.put(coin, value);
 			}
 			return result;
 		});
+	}
+
+	private <T> CompletableFuture<Map<String, T>> withSymbol(
+					Set<String> coins,
+					Function<Set<String>, CompletableFuture<Map<String, T>>> symbolGetter
+	) {
+		Set<String> symbols = coins.stream().map(context::getSymbol).collect(Collectors.toSet());
+		return symbolGetter.apply(symbols);
+	}
+
+	public CompletableFuture<CoinVector<Integer>> getMaxLeverage(Set<String> coins) {
+		return withSymbolBatch(coins, this::getMaxLeverageSymbolBatch);
+	}
+
+	public CompletableFuture<CoinVector<Fees>> getTradingFees(Set<String> coins) {
+		return withSymbolBatch(coins, this::getTradingFeesSymbolBatch);
 	}
 
 	public CompletableFuture<Void> changeLeverage(String coin, int leverage) {

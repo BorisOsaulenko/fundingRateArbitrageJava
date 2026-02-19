@@ -12,7 +12,7 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
-public class PrivateEndpoints {
+class PrivateEndpoints {
 	private static final String baseUrl = "https://www.okx.com";
 	private static final String instType = "SWAP";
 
@@ -25,30 +25,9 @@ public class PrivateEndpoints {
 		return request;
 	}
 
-	private static String instFamilyFromSymbol(String symbol) {
-		int lastDash = symbol.lastIndexOf('-');
-		if (lastDash <= 0) {
-			throw new IllegalArgumentException("Unexpected OKX symbol format: " + symbol);
-		}
-		return symbol.substring(0, lastDash);
-	}
-
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest tradingFeesRequestSymbol(String symbol) {
-		URI uri = new URIBuilder(baseUrl)
-					.setPath("/api/v5/account/trade-fee")
-					.addParameter("instType", instType)
-					.addParameter("instFamily", instFamilyFromSymbol(symbol))
-					.build();
-		return new SimpleHttpRequest("GET", uri);
-	}
-
-	@SneakyThrows
-	public static @NonNull SimpleHttpRequest tradingFeesRequestSymbols() {
-		URI uri = new URIBuilder(baseUrl)
-					.setPath("/api/v5/account/trade-fee")
-					.addParameter("instType", instType)
-					.build();
+	public static @NonNull SimpleHttpRequest tradingFeesRequest() {
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v5/account/trade-fee").addParameter("instType", instType).build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
@@ -63,57 +42,44 @@ public class PrivateEndpoints {
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest leverageInfoRequestSymbol(String symbol, MarginMode mode) {
 		URI uri = new URIBuilder(baseUrl)
-					.setPath("/api/v5/account/leverage-info")
-					.addParameter("instId", symbol)
-					.addParameter("mgnMode", mode == MarginMode.CROSS ? "cross" : "isolated")
-					.build();
+						.setPath("/api/v5/account/leverage-info")
+						.addParameter("instId", symbol)
+						.addParameter("mgnMode", mode == MarginMode.CROSS ? "cross" : "isolated")
+						.build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest spotUsdtBalanceRequest() {
-		URI uri = new URIBuilder(baseUrl)
-					.setPath("/api/v5/asset/balances")
-					.addParameter("ccy", "USDT")
-					.build();
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v5/asset/balances").addParameter("ccy", "USDT").build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest futuresUsdtBalanceRequest() {
-		URI uri = new URIBuilder(baseUrl)
-					.setPath("/api/v5/account/balance")
-					.addParameter("ccy", "USDT")
-					.build();
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v5/account/balance").addParameter("ccy", "USDT").build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest instrumentsRequestSymbol(String symbol) {
-		URI uri = new URIBuilder(baseUrl)
-					.setPath("/api/v5/public/instruments")
-					.addParameter("instType", instType)
-					.addParameter("instId", symbol)
-					.build();
+	public static @NonNull SimpleHttpRequest instrumentsRequest() {
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v5/public/instruments").addParameter("instType", instType).build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest supportedChainsRequest() {
-		URI uri = new URIBuilder(baseUrl)
-					.setPath("/api/v5/asset/currencies")
-					.addParameter("ccy", "USDT")
-					.build();
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v5/asset/currencies").addParameter("ccy", "USDT").build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest usdtWalletAddressRequest(SupportedChain chain) {
 		URI uri = new URIBuilder(baseUrl)
-					.setPath("/api/v5/asset/deposit-address")
-					.addParameter("ccy", "USDT")
-					.addParameter("chain", ChainsMap.get(chain))
-					.build();
+						.setPath("/api/v5/asset/deposit-address")
+						.addParameter("ccy", "USDT")
+						.addParameter("chain", ChainsMap.get(chain))
+						.build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
@@ -152,10 +118,10 @@ public class PrivateEndpoints {
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest orderRecordRequestSymbol(String orderId, String symbol) {
 		URI uri = new URIBuilder(baseUrl)
-					.setPath("/api/v5/trade/fills")
-					.addParameter("instId", symbol)
-					.addParameter("ordId", orderId)
-					.build();
+						.setPath("/api/v5/trade/fills")
+						.addParameter("instId", symbol)
+						.addParameter("ordId", orderId)
+						.build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 

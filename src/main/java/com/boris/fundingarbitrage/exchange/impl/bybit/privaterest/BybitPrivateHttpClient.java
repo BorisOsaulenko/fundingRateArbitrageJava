@@ -1,6 +1,5 @@
 package com.boris.fundingarbitrage.exchange.impl.bybit.privaterest;
 
-import com.boris.fundingarbitrage.ObjectMapperSingleton;
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.ExchangeCredentials;
 import com.boris.fundingarbitrage.exchange.privatehttp.PrivateHttpClient;
@@ -11,20 +10,19 @@ import com.boris.fundingarbitrage.model.exchange.ExchangeChains;
 import com.boris.fundingarbitrage.model.exchange.WalletAddress;
 import com.boris.fundingarbitrage.util.cryptography.Signers;
 import com.boris.fundingarbitrage.util.https.PrettyHttpClient;
+import com.boris.fundingarbitrage.util.https.RequestProcessingClientWrapper;
 import com.boris.fundingarbitrage.util.logger.Logger;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
 
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
 
 public class BybitPrivateHttpClient extends PrivateHttpClient {
 	private static final String recvWindow = "5000";
-	private final ObjectMapper mapper = ObjectMapperSingleton.getInstance();
 	private final ExchangeCredentials credentials;
+	private final RequestProcessingClientWrapper requestWrapper = new RequestProcessingClientWrapper(this.client);
 
 	public BybitPrivateHttpClient(ExchangeContext context) {
 		super(context, PrettyHttpClient.getINSTANCE());
@@ -64,45 +62,19 @@ public class BybitPrivateHttpClient extends PrivateHttpClient {
 		}
 	}
 
-	private <T, U> CompletableFuture<U> processRequest(
-					SimpleHttpRequest request,
-					Class<T> responseClass,
-					Function<T, U> parser
-	) {
-		SimpleHttpRequest signedRequest = signRequest(request);
-		return this.client.sendNoCodeCheck(signedRequest).thenApply((response) -> {
-			try {
-				T responseObj = mapper.readValue(response.getBodyText(), responseClass);
-				return parser.apply(responseObj);
-			} catch (Exception e) {
-				Logger.error(String.format("Error parsing private rest response: %s", e.getMessage()));
-				throw new RuntimeException("Failed to process request", e);
-			}
-		});
-	}
-
 	@Override
-	protected CompletableFuture<Fees> getTradingFeesSymbol(String symbol) {
-		return processRequest(
-						PrivateEndpoints.tradingFeesRequest(symbol),
+	protected CompletableFuture<Map<String, Fees>> getTradingFeesSymbolBatch() {
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.tradingFeesRequest()),
 						PrivateResponses.TradingFeesResponse.class,
-						(resp) -> resp.getFees(symbol)
-		);
-	}
-
-	@Override
-	protected CompletableFuture<Map<String, Fees>> getTradingFeesSymbols(List<String> symbols) {
-		return processRequest(
-						PrivateEndpoints.tradingFeesRequestSymbols(),
-						PrivateResponses.TradingFeesSymbolsResponse.class,
-						(resp) -> resp.getFeesBySymbols(symbols)
+						PrivateResponses.TradingFeesResponse::getFeesBySymbols
 		);
 	}
 
 	@Override
 	protected CompletableFuture<Void> changeLeverageSymbol(String symbol, int leverage) {
-		return processRequest(
-						PrivateEndpoints.changeLeverageRequest(symbol, leverage),
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.changeLeverageRequest(symbol, leverage)),
 						PrivateResponses.ChangeLeverageResponse.class,
 						(_) -> null
 		);
@@ -110,8 +82,8 @@ public class BybitPrivateHttpClient extends PrivateHttpClient {
 
 	@Override
 	protected CompletableFuture<Void> setMarginModeSymbol(String symbol, MarginMode marginMode) {
-		return processRequest(
-						PrivateEndpoints.setMarginModeRequest(symbol, marginMode),
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.setMarginModeRequest(symbol, marginMode)),
 						PrivateResponses.SetMarginModeResponse.class,
 						(resp) -> null
 		);
@@ -119,8 +91,8 @@ public class BybitPrivateHttpClient extends PrivateHttpClient {
 
 	@Override
 	public CompletableFuture<Double> getSpotUsdtBalance() {
-		return processRequest(
-						PrivateEndpoints.spotUsdtBalanceRequest(),
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.spotUsdtBalanceRequest()),
 						PrivateResponses.SpotUsdtBalanceResponse.class,
 						PrivateResponses.SpotUsdtBalanceResponse::get
 		);
@@ -128,26 +100,28 @@ public class BybitPrivateHttpClient extends PrivateHttpClient {
 
 	@Override
 	public CompletableFuture<Double> getFuturesUsdtBalance() {
-		return processRequest(
-						PrivateEndpoints.futuresUsdtBalanceRequest(),
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.futuresUsdtBalanceRequest()),
 						PrivateResponses.FuturesUsdtBalanceResponse.class,
 						PrivateResponses.FuturesUsdtBalanceResponse::get
 		);
 	}
 
 	@Override
-	protected CompletableFuture<Integer> getMaxLeverageSymbol(String symbol) {
-		return processRequest(
-						PrivateEndpoints.maxLeverageRequest(symbol),
+	protected CompletableFuture<Map<String, Integer>> getMaxLeverageSymbolBatch() {
+		Map<String, Integer> leverageMap = new java.util.HashMap<>();
+		return requestWrapper.processPaginatedRequest(
+						PrivateEndpoints::maxLeverageRequest,
 						PrivateResponses.MaxLeverageResponse.class,
-						PrivateResponses.MaxLeverageResponse::get
-		);
+						(res) -> {leverageMap.putAll(res.getMaxLeverages());},
+						null
+		).thenApply(_ -> leverageMap);
 	}
 
 	@Override
 	public CompletableFuture<ExchangeChains> getSupportedChains() {
-		return processRequest(
-						PrivateEndpoints.supportedChainsRequest(),
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.supportedChainsRequest()),
 						PrivateResponses.SupportedChainsResponse.class,
 						PrivateResponses.SupportedChainsResponse::get
 		);
@@ -155,8 +129,8 @@ public class BybitPrivateHttpClient extends PrivateHttpClient {
 
 	@Override
 	public CompletableFuture<WalletAddress> getUsdtWalletAddress(SupportedChain chain) {
-		return processRequest(
-						PrivateEndpoints.usdtWalletAddressRequest(chain),
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.usdtWalletAddressRequest(chain)),
 						PrivateResponses.UsdtWalletAddressResponse.class,
 						(resp) -> resp.get(chain)
 		);
@@ -164,8 +138,8 @@ public class BybitPrivateHttpClient extends PrivateHttpClient {
 
 	@Override
 	public CompletableFuture<Void> withdrawUsdt(Withdrawal withdrawal) {
-		return processRequest(
-						PrivateEndpoints.withdrawUsdtRequest(withdrawal),
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.withdrawUsdtRequest(withdrawal)),
 						PrivateResponses.WithdrawUsdtResponse.class,
 						(resp) -> null
 		);
@@ -173,8 +147,8 @@ public class BybitPrivateHttpClient extends PrivateHttpClient {
 
 	@Override
 	protected CompletableFuture<String> placeFuturesOrderSymbol(String symbol, FuturesOrder futuresOrder) {
-		return processRequest(
-						PrivateEndpoints.placeFuturesOrderRequest(symbol, futuresOrder),
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.placeFuturesOrderRequest(symbol, futuresOrder)),
 						PrivateResponses.PlaceFuturesOrderResponse.class,
 						PrivateResponses.PlaceFuturesOrderResponse::orderId
 		);
@@ -186,8 +160,8 @@ public class BybitPrivateHttpClient extends PrivateHttpClient {
 					String symbol,
 					TradeSide tradeSide
 	) {
-		return processRequest(
-						PrivateEndpoints.orderRecordRequest(orderId, symbol, tradeSide),
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.orderRecordRequest(orderId, symbol, tradeSide)),
 						PrivateResponses.GetOrderRecordResponse.class,
 						PrivateResponses.GetOrderRecordResponse::get
 		);
@@ -195,8 +169,8 @@ public class BybitPrivateHttpClient extends PrivateHttpClient {
 
 	@Override
 	public CompletableFuture<Void> internalTransfer(InternalTransfer internalTransfer) {
-		return processRequest(
-						PrivateEndpoints.internalTransferRequest(internalTransfer),
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.internalTransferRequest(internalTransfer)),
 						PrivateResponses.InternalTransferResponse.class,
 						(resp) -> null
 		);

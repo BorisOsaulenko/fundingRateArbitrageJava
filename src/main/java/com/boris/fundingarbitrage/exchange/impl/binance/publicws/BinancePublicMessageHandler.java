@@ -12,7 +12,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.time.Instant;
 
-public class BinancePublicMessageHandler implements PublicMessageHandler {
+class BinancePublicMessageHandler implements PublicMessageHandler {
 	private final ExchangeContext context;
 	private final ObjectMapper jsonMapper = ObjectMapperSingleton.getInstance();
 

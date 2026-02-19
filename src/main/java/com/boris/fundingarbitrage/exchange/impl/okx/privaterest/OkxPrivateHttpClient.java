@@ -1,6 +1,5 @@
 package com.boris.fundingarbitrage.exchange.impl.okx.privaterest;
 
-import com.boris.fundingarbitrage.ObjectMapperSingleton;
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.ExchangeCredentials;
 import com.boris.fundingarbitrage.exchange.privatehttp.PrivateHttpClient;
@@ -11,22 +10,23 @@ import com.boris.fundingarbitrage.model.exchange.ExchangeChains;
 import com.boris.fundingarbitrage.model.exchange.WalletAddress;
 import com.boris.fundingarbitrage.util.cryptography.Signers;
 import com.boris.fundingarbitrage.util.https.PrettyHttpClient;
+import com.boris.fundingarbitrage.util.https.RequestProcessingClientWrapper;
 import com.boris.fundingarbitrage.util.logger.Logger;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
 
 import java.net.URI;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
 public class OkxPrivateHttpClient extends PrivateHttpClient {
-	private final ObjectMapper mapper = ObjectMapperSingleton.getInstance();
 	private final ExchangeCredentials credentials;
+	private final RequestProcessingClientWrapper requestWrapper = new RequestProcessingClientWrapper(this.client);
 
 	public OkxPrivateHttpClient(ExchangeContext context) {
 		super(context, PrettyHttpClient.getINSTANCE());
@@ -68,34 +68,36 @@ public class OkxPrivateHttpClient extends PrivateHttpClient {
 					Class<T> responseClass,
 					Function<T, U> parser
 	) {
-		SimpleHttpRequest signedRequest = signRequest(request);
-		return this.client.sendNoCodeCheck(signedRequest).thenApply((response) -> {
-			try {
-				T responseObj = mapper.readValue(response.getBodyText(), responseClass);
-				return parser.apply(responseObj);
-			} catch (Exception e) {
-				Logger.error(String.format("Error parsing OKX private rest response: %s", e.getMessage()));
-				throw new RuntimeException("Failed to process request", e);
-			}
-		});
+		return requestWrapper.processRequest(signRequest(request), responseClass, parser);
 	}
 
 	@Override
-	protected CompletableFuture<Fees> getTradingFeesSymbol(String symbol) {
-		return processRequest(
-						PrivateEndpoints.tradingFeesRequestSymbol(symbol),
-						PrivateResponses.TradingFeesResponse.class,
-						PrivateResponses.TradingFeesResponse::getFees
-		);
-	}
-
-	@Override
-	protected CompletableFuture<Map<String, Fees>> getTradingFeesSymbols(List<String> symbols) {
-		return processRequest(
-						PrivateEndpoints.tradingFeesRequestSymbols(),
+	protected CompletableFuture<Map<String, Fees>> getTradingFeesSymbolBatch() {
+		CompletableFuture<Map<Integer, PrivateResponses.FeeGroup>> feeGroupMapFuture = processRequest(
+						PrivateEndpoints.tradingFeesRequest(),
 						PrivateResponses.TradingFeesSymbolsResponse.class,
-						(resp) -> resp.getFeesBySymbols(symbols)
+						PrivateResponses.TradingFeesSymbolsResponse::getFeeGroups
 		);
+
+		CompletableFuture<Map<String, Integer>> instrumentsResponseFuture = processRequest(
+						PrivateEndpoints.instrumentsRequest(),
+						PrivateResponses.InstrumentsResponse.class,
+						PrivateResponses.InstrumentsResponse::getFeeGroupId
+		);
+
+		return CompletableFuture.allOf(feeGroupMapFuture, instrumentsResponseFuture).thenApply(_ -> {
+			Map<String, Integer> instruments = instrumentsResponseFuture.join();
+			Map<Integer, PrivateResponses.FeeGroup> feeGroupMap = feeGroupMapFuture.join();
+			Map<String, Fees> result = new HashMap<>();
+
+			instruments.forEach((String symbol, Integer feeGroupId) -> {
+				double maker = -feeGroupMap.get(feeGroupId).maker(); // okx expresses fees as negative
+				double taker = -feeGroupMap.get(feeGroupId).taker();
+				result.put(symbol, new Fees(maker, taker, maker, taker, Instant.now()));
+			});
+
+			return result;
+		});
 	}
 
 	@Override
@@ -139,11 +141,11 @@ public class OkxPrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
-	protected CompletableFuture<Integer> getMaxLeverageSymbol(String symbol) {
+	protected CompletableFuture<Map<String, Integer>> getMaxLeverageSymbolBatch() {
 		return processRequest(
-						PrivateEndpoints.instrumentsRequestSymbol(symbol),
-						PrivateResponses.MaxLeverageResponse.class,
-						(resp) -> resp.get(symbol)
+						PrivateEndpoints.instrumentsRequest(),
+						PrivateResponses.InstrumentsResponse.class,
+						PrivateResponses.InstrumentsResponse::getMaxLeverage
 		);
 	}
 

@@ -2,6 +2,7 @@ package com.boris.fundingarbitrage.monitor;
 
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.exchange.Instances;
+import com.boris.fundingarbitrage.exchange.publichttp.PublicOnePullData;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.Fees;
 import com.boris.fundingarbitrage.model.contract.FundingRate;
@@ -31,17 +32,21 @@ public class CoinMonitor {
 	private static final int BIT_MARK = 1 << 2;
 	private static final int ALL_BITS = BIT_BOOK | BIT_FUNDING | BIT_MARK;
 
-	private final List<String> coins;
-	private final int waitForDataSecond = 60;
+	private static final double min24hVolumeUsdt = 600_000;
+	private static final double maxAffordablePrice = 20;
+	private static final int waitForDataSeconds = 60;
+
+	private final Set<String> coins;
 	private final ExchangeCoinMap<FundingRate> fundingRates = new ExchangeCoinMap<>();
 	private final ExchangeCoinMap<BookTicker> bookTickers = new ExchangeCoinMap<>();
 	private final ExchangeCoinMap<MarkPrice> markPrices = new ExchangeCoinMap<>();
+	private final ExchangeCoinMap<Fees> fees = new ExchangeCoinMap<>();
+	private final ExchangeCoinMap<PublicOnePullData> initialData = new ExchangeCoinMap<>();
+
 	private final CoinVector<Set<ExchangeName>> availableExchangesByCoin = new CoinVector<>();
 	private final Map<BaseExchange, Set<String>> availableCoinsByExchange = new ConcurrentHashMap<>();
 	@Getter
 	private final CompletableFuture<Void> initFuture;
-	private final ExchangeCoinMap<Fees> fees = new ExchangeCoinMap<>();
-	private final ExchangeCoinMap<CompletableFuture<Void>> feesFutures = new ExchangeCoinMap<>();
 	private final ExchangeCoinMap<Integer> initStateBits = new ExchangeCoinMap<>();
 	private final AtomicInteger initPendingSignals = new AtomicInteger(0);
 	private final CompletableFuture<Void> initDataReady = new CompletableFuture<>();
@@ -49,7 +54,7 @@ public class CoinMonitor {
 	private final ConcurrentHashMap<ExchangeName, Consumer<FundingRatePatch>> initFundingHandlers = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<ExchangeName, Consumer<MarkPricePatch>> initMarkHandlers = new ConcurrentHashMap<>();
 
-	public CoinMonitor(List<String> coins) {
+	public CoinMonitor(Set<String> coins) {
 		this.coins = coins;
 
 		this.initFuture = CompletableFuture.runAsync(() -> {
@@ -61,12 +66,12 @@ public class CoinMonitor {
 
 			CompletableFuture<Void> timeout = CompletableFuture.runAsync(
 							() -> {},
-							CompletableFuture.delayedExecutor(waitForDataSecond, TimeUnit.SECONDS)
+							CompletableFuture.delayedExecutor(waitForDataSeconds, TimeUnit.SECONDS)
 			);
 			CompletableFuture.anyOf(initDataReady, timeout).join();
 			if (!initDataReady.isDone()) {
 				Logger.warn("Coin monitor init timed out after " +
-										waitForDataSecond +
+										waitForDataSeconds +
 										"s. Falling back to completeness check.");
 				checkDataCompleteness();
 				clearCoinsWithInsufficientExchanges();
@@ -120,16 +125,33 @@ public class CoinMonitor {
 		}
 	}
 
+	private String shouldExcludeCoin(PublicOnePullData data) {
+		if (data.isEmpty()) return "Coin does not exist";
+		if (data.volume24h() < min24hVolumeUsdt) return "Volume not enough: " + data.volume24h();
+		if (data.bookTicker().askPrice * data.lotSize() > maxAffordablePrice) {
+			return "Price too high; min price step: " + data.bookTicker().askPrice * data.lotSize();
+		}
+
+		return null;
+	}
+
 	private void initAvailableExchanges() {
 		for (String coin : coins) availableExchangesByCoin.put(coin, ConcurrentHashMap.newKeySet());
 
 		List<CompletableFuture<Void>> futures = new ArrayList<>();
 		for (BaseExchange exchange : Instances.getExchangeArray()) {
 			availableCoinsByExchange.put(exchange, ConcurrentHashMap.newKeySet());
-			CompletableFuture<Void> future = exchange.publicHttpClient.checkCoinsExist(coins).thenAccept(coinsVect -> {
-				coinsVect.filter(Boolean.TRUE::equals).forEach((coin, _) -> {
+			CompletableFuture<Void> future = exchange.publicHttpClient.getOnePullData(coins).thenAccept(coinsVect -> {
+				coinsVect.forEach((coin, data) -> {
+					String excludedMsg = shouldExcludeCoin(data);
+					if (excludedMsg != null) {
+						Logger.log("Excluding " + coin + " - " + exchange.name + " from monitoring: " + excludedMsg);
+						forgetCoinExchange(coin, exchange.name);
+						return;
+					}
 					availableExchangesByCoin.get(coin).add(exchange.name);
 					availableCoinsByExchange.get(exchange).add(coin);
+					initialData.put(exchange.name, coin, data);
 				});
 			}).exceptionally(err -> {
 				Logger.log("Failed to fetch available coins for " + exchange.name + ": " + err.getMessage());
@@ -143,20 +165,26 @@ public class CoinMonitor {
 	}
 
 	private void initFees() {
+		List<CompletableFuture<Void>> futures = new ArrayList<>();
 		for (Map.Entry<BaseExchange, Set<String>> entry : availableCoinsByExchange.entrySet()) {
 			BaseExchange exchange = entry.getKey();
-			List<String> supportedCoins = entry.getValue().stream().toList();
-			if (supportedCoins.isEmpty()) return;
+			if (entry.getValue().isEmpty()) continue;
 
-			exchange.privateHttpClient.getTradingFees(supportedCoins).thenAccept(result -> {
-				result.forEach((coin, fee) -> {
-					fees.put(exchange.name, coin, fee);
-				});
-			}).exceptionally(t -> {
-				Logger.error("Failed to fetch trading fees for " + exchange.name + ": " + t.getMessage());
-				throw new RuntimeException(t);
-			});
+			CompletableFuture<Void> future = exchange.privateHttpClient
+							.getTradingFees(entry.getValue())
+							.thenAccept(result -> {
+								result.forEach((coin, fee) -> {
+									fees.put(exchange.name, coin, fee);
+								});
+							})
+							.exceptionally(t -> {
+								Logger.error("Failed to fetch trading fees for " + exchange.name + ": " + t.getMessage());
+								throw new RuntimeException(t);
+							});
+
+			futures.add(future);
 		}
+		CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
 	}
 
 	private void fillEmptyData() {
@@ -357,7 +385,6 @@ public class CoinMonitor {
 		bookTickers.remove(name, coin);
 		markPrices.remove(name, coin);
 		fees.remove(name, coin);
-		feesFutures.remove(name, coin);
 	}
 
 	private void forgetCoin(String coin) {

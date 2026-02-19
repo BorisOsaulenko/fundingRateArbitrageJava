@@ -10,7 +10,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import java.time.Instant;
 
-public class GatePublicMessageHandler implements PublicMessageHandler {
+class GatePublicMessageHandler implements PublicMessageHandler {
 	private final ExchangeContext context;
 
 	public GatePublicMessageHandler(ExchangeContext context) {

@@ -14,7 +14,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.time.Instant;
 
-public class OkxPrivateMessageHandler implements PrivateMessageHandler {
+class OkxPrivateMessageHandler implements PrivateMessageHandler {
 	private final ObjectMapper mapper = ObjectMapperSingleton.getInstance();
 
 	private static Double parseDouble(JsonNode node, String field) {

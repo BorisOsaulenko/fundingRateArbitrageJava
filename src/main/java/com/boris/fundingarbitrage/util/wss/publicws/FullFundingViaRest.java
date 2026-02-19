@@ -8,8 +8,6 @@ import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
 import org.jetbrains.annotations.NotNull;
 
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -41,9 +39,8 @@ public abstract class FullFundingViaRest extends PublicWsClient {
 
 	private void pollFundingRates() {
 		if (fundingRateHandlers.isEmpty()) return;
-		List<String> coins = new ArrayList<>(fundingRateHandlers.keySet());
 
-		publicHttpClient.getFundingRate(coins).whenComplete((rates, err) -> {
+		publicHttpClient.getFundingRate(fundingRateHandlers.keySet()).whenComplete((rates, err) -> {
 			if (err != null) return; // Imitate websocket behavior - if REST call fails, just skip this update cycle.
 			rates.forEach((coin, rate) -> {
 				if (rate == null) return;

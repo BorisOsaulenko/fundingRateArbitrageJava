@@ -2,7 +2,6 @@ package com.boris.fundingarbitrage.exchange.impl.whitebit.publicws;
 
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.impl.whitebit.publicrest.WhitebitPublicHttpClient;
-import com.boris.fundingarbitrage.exchange.impl.whitebit.ws.WsRequest;
 import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
 import com.boris.fundingarbitrage.util.wss.publicws.FullFundingViaRest;
 import lombok.NonNull;
@@ -22,11 +21,8 @@ public class WhitebitPublicWsClient extends FullFundingViaRest {
 	private static final long PING_INTERVAL_SECONDS = 50;
 	private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 
-	public WhitebitPublicWsClient(
-					ExchangeContext context,
-					WhitebitPublicMessageHandler messageHandler,
-					WhitebitPublicHttpClient publicHttp
-	) {
+	public WhitebitPublicWsClient(ExchangeContext context, WhitebitPublicHttpClient publicHttp) {
+		WhitebitPublicMessageHandler messageHandler = new WhitebitPublicMessageHandler(context);
 		super(context, endpoint, messageHandler, publicHttp);
 		startPingLoop();
 	}

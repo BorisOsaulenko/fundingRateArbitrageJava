@@ -3,7 +3,6 @@ package com.boris.fundingarbitrage.exchange.impl.kucoin.privaterest;
 import com.boris.fundingarbitrage.ObjectMapperSingleton;
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.ExchangeCredentials;
-import com.boris.fundingarbitrage.exchange.impl.kucoin.publicrest.PublicEndpoints;
 import com.boris.fundingarbitrage.exchange.privatehttp.PrivateHttpClient;
 import com.boris.fundingarbitrage.model.assetops.*;
 import com.boris.fundingarbitrage.model.contract.Fees;
@@ -12,6 +11,7 @@ import com.boris.fundingarbitrage.model.exchange.ExchangeChains;
 import com.boris.fundingarbitrage.model.exchange.WalletAddress;
 import com.boris.fundingarbitrage.util.cryptography.Signers;
 import com.boris.fundingarbitrage.util.https.PrettyHttpClient;
+import com.boris.fundingarbitrage.util.https.RequestProcessingClientWrapper;
 import com.boris.fundingarbitrage.util.logger.Logger;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -27,6 +27,7 @@ import java.util.function.Function;
 public class KucoinPrivateHttpClient extends PrivateHttpClient {
 	private final ObjectMapper mapper = ObjectMapperSingleton.getInstance();
 	private final ExchangeCredentials credentials;
+	private final RequestProcessingClientWrapper requestWrapper = new RequestProcessingClientWrapper(this.client);
 
 	public KucoinPrivateHttpClient(ExchangeContext context) {
 		super(context, PrettyHttpClient.getINSTANCE());
@@ -77,33 +78,15 @@ public class KucoinPrivateHttpClient extends PrivateHttpClient {
 					Class<T> responseClass,
 					Function<T, U> parser
 	) {
-		SimpleHttpRequest signedRequest = signRequest(request);
-		return this.client.sendNoCodeCheck(signedRequest).thenApply((response) -> {
-			try {
-				T responseObj = mapper.readValue(response.getBodyText(), responseClass);
-				return parser.apply(responseObj);
-			} catch (Exception e) {
-				Logger.error(String.format("Error parsing KuCoin private rest response: %s", e.getMessage()));
-				throw new RuntimeException("Failed to process KuCoin request", e);
-			}
-		});
+		return requestWrapper.processRequest(signRequest(request), responseClass, parser);
 	}
 
 	@Override
-	protected CompletableFuture<Fees> getTradingFeesSymbol(String symbol) {
+	protected CompletableFuture<Map<String, Fees>> getTradingFeesSymbolBatch() {
 		return processRequest(
-						PrivateEndpoints.tradingFeesRequestSymbol(symbol),
-						PrivateResponses.TradingFeesResponse.class,
-						PrivateResponses.TradingFeesResponse::getFees
-		);
-	}
-
-	@Override
-	protected CompletableFuture<Map<String, Fees>> getTradingFeesSymbols(List<String> symbols) {
-		return processRequest(
-						PrivateEndpoints.tradingFeesRequestSymbols(),
+						PrivateEndpoints.tradingFeesRequest(),
 						PrivateResponses.TradingFeesSymbolsResponse.class,
-						(resp) -> resp.getFeesBySymbols(symbols)
+						PrivateResponses.TradingFeesSymbolsResponse::getFeesBySymbols
 		);
 	}
 
@@ -144,9 +127,9 @@ public class KucoinPrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
-	protected CompletableFuture<Integer> getMaxLeverageSymbol(String symbol) {
+	protected CompletableFuture<Map<String, Integer>> getMaxLeverageSymbolBatch() {
 		return processRequest(
-						PrivateEndpoints.maxLeverageRequestSymbol(symbol),
+						PrivateEndpoints.maxLeverageRequest(),
 						PrivateResponses.MaxLeverageResponse.class,
 						PrivateResponses.MaxLeverageResponse::get
 		);
@@ -211,7 +194,7 @@ public class KucoinPrivateHttpClient extends PrivateHttpClient {
 	}
 
 	public CompletableFuture<URI> fetchPrivateWsEndpoint() {
-		SimpleHttpRequest request = signRequest(PublicEndpoints.publicWsToken());
+		SimpleHttpRequest request = signRequest(PrivateEndpoints.privateWsToken());
 		return client.send(request).thenApply(response -> {
 			try {
 				JsonNode root = mapper.readTree(response.getBodyText());

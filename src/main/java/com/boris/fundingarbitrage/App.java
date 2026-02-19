@@ -1,111 +1,114 @@
 package com.boris.fundingarbitrage;
 
 import com.boris.fundingarbitrage.exchange.impl.gate.GateExchange;
+import com.boris.fundingarbitrage.exchange.impl.whitebit.WhitebitExchange;
 import com.boris.fundingarbitrage.monitor.CoinMonitor;
 import com.boris.fundingarbitrage.util.logger.Logger;
 
 import java.nio.file.Path;
-import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
 public class App {
-	static List<String> coins = List.of(
-					"ETH",
-					"SOL",
-					"WIF",
-					"PEPE",
-					"DOGE",
-					"XRP",
-					"0G",
-					"1INCH",
-					"1MBABYDOGE",
-					"2Z",
-					"4",
-					"A2Z",
-					"AAVE",
-					"ACE",
-					"ACH",
-					"ACTSOL",
-					"ACU",
-					"ADA",
-					"AERGO",
-					"AERO",
-					"AEVO",
-					"AGI",
-					"AGLD",
-					"AGT",
-					"AIN",
-					"AIOT",
-					"AIO",
-					"AI",
-					"AIXBT",
-					"AKE",
-					"ALCH",
-					"ALGO",
-					"ALICE",
-					"ALLO",
-					"ALPINE",
-					"ALT",
-					"ALU",
-					"ANIME",
-					"ANKR",
-					"APE",
-					"API3",
-					"APR",
-					"APT",
-					"ARB",
-					"ARC",
-					"ARIA",
-					"ARKM",
-					"ARK",
-					"ARPA",
-					"AR",
-					"ASP",
-					"ASR",
-					"ASTER",
-					"ASTR",
-					"ATH",
-					"ATOM",
-					"AT",
-					"AUCTION",
-					"AUDIO",
-					"A",
-					"AVAAI",
-					"AVA",
-					"AVAX",
-					"AVNT",
-					"AWE",
-					"AXL",
-					"AXS",
-					"AZTEC",
-					"B2",
-					"B3",
-					"BABY",
-					"BANANAS31",
-					"BANANA",
-					"BAND",
-					"BANK",
-					"BAN",
-					"BARD",
-					"BAS",
-					"BAT",
-					"BB",
-					"BCH",
-					"BDXN",
-					"BDX",
-					"BEAT",
-					"BEL",
-					"BERA",
-					"BIGTIME",
-					"BINANCELIFE",
-					"BIO",
-					"BIRB",
-					"BLAST",
-					"BLESS",
-					"BLUAI" // 92 coins
-	);
+//	static List<String> coins = List.of(
+//					"ETH",
+//					"SOL",
+//					"WIF",
+//					"PEPE",
+//					"DOGE",
+//					"XRP",
+//					"0G",
+//					"1INCH",
+//					"1MBABYDOGE",
+//					"2Z",
+//					"4",
+//					"A2Z",
+//					"AAVE",
+//					"ACE",
+//					"ACH",
+//					"ACTSOL",
+//					"ACU",
+//					"ADA",
+//					"AERGO",
+//					"AERO",
+//					"AEVO",
+//					"AGI",
+//					"AGLD",
+//					"AGT",
+//					"AIN",
+//					"AIOT",
+//					"AIO",
+//					"AI",
+//					"AIXBT",
+//					"AKE",
+//					"ALCH",
+//					"ALGO",
+//					"ALICE",
+//					"ALLO",
+//					"ALPINE",
+//					"ALT",
+//					"ALU",
+//					"ANIME",
+//					"ANKR",
+//					"APE",
+//					"API3",
+//					"APR",
+//					"APT",
+//					"ARB",
+//					"ARC",
+//					"ARIA",
+//					"ARKM",
+//					"ARK",
+//					"ARPA",
+//					"AR",
+//					"ASP",
+//					"ASR",
+//					"ASTER",
+//					"ASTR",
+//					"ATH",
+//					"ATOM",
+//					"AT",
+//					"AUCTION",
+//					"AUDIO",
+//					"A",
+//					"AVAAI",
+//					"AVA",
+//					"AVAX",
+//					"AVNT",
+//					"AWE",
+//					"AXL",
+//					"AXS",
+//					"AZTEC",
+//					"B2",
+//					"B3",
+//					"BABY",
+//					"BANANAS31",
+//					"BANANA",
+//					"BAND",
+//					"BANK",
+//					"BAN",
+//					"BARD",
+//					"BAS",
+//					"BAT",
+//					"BB",
+//					"BCH",
+//					"BDXN",
+//					"BDX",
+//					"BEAT",
+//					"BEL",
+//					"BERA",
+//					"BIGTIME",
+//					"BINANCELIFE",
+//					"BIO",
+//					"BIRB",
+//					"BLAST",
+//					"BLESS",
+//					"BLUAI" // 92 coins
+//	);
 
-	static void main2(String[] args) throws Exception {
+	private static final Set<String> coins = Set.of("SOL", "ETH", "XRP", "LTC", "ADA");
+
+	static void main(String[] args) throws Exception {
 		CoinMonitor monitor = new CoinMonitor(coins);
 		Logger.init(Path.of("app.log"));
 		Logger.log("Initializing coin monitor and waiting for complete data...");
@@ -120,27 +123,11 @@ public class App {
 			monitor.shutdown();
 		}
 
-//		Thread.sleep(40000);
+		Thread.sleep(40000);
 	}
 
-	static void main(String[] args) throws ExecutionException, InterruptedException {
-		GateExchange gate = new GateExchange();
-		gate.publicHttpClient.checkCoinExists("AWE").thenAccept(fees -> {
-			Logger.log(fees.toString());
-		}).get();
-
-		gate.publicWsClient.subscribeBookTicker(
-						"AWE", (bookTicker) -> {
-							Logger.log("Received book ticker update: " + bookTicker);
-						}
-		);
-
-		gate.publicWsClient.subscribeFundingRates(
-						"AWE", (fundingRate) -> {
-							Logger.log("Received funding rate update: " + fundingRate);
-						}
-		);
-
-		Thread.sleep(120000);
+	static void main2(String[] args) throws ExecutionException, InterruptedException {
+		GateExchange exchange = new GateExchange();
+		exchange.publicHttpClient.getOnePullData(Set.of("SOL")).thenAccept(Logger::logCoinVector).get();
 	}
 }

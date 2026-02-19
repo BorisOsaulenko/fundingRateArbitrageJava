@@ -12,7 +12,7 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
-public class PrivateEndpoints {
+class PrivateEndpoints {
 	private static final String baseUrl = "https://api.bybit.com";
 	private static final String category = "linear";
 
@@ -26,21 +26,8 @@ public class PrivateEndpoints {
 	}
 
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest tradingFeesRequest(String symbol) {
-		URI uri = new URIBuilder(baseUrl)
-						.setPath("/v5/account/fee-rate")
-						.addParameter("category", category)
-						.addParameter("symbol", symbol)
-						.build();
-		return new SimpleHttpRequest("GET", uri);
-	}
-
-	@SneakyThrows
-	public static @NonNull SimpleHttpRequest tradingFeesRequestSymbols() {
-		URI uri = new URIBuilder(baseUrl)
-						.setPath("/v5/account/fee-rate")
-						.addParameter("category", category)
-						.build();
+	public static @NonNull SimpleHttpRequest tradingFeesRequest() {
+		URI uri = new URIBuilder(baseUrl).setPath("/v5/account/fee-rate").addParameter("category", category).build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
@@ -53,10 +40,7 @@ public class PrivateEndpoints {
 		return postJson("/v5/position/set-leverage", body);
 	}
 
-	public static @NonNull SimpleHttpRequest setMarginModeRequest(
-					String symbol,
-					MarginMode marginMode
-	) {
+	public static @NonNull SimpleHttpRequest setMarginModeRequest(String symbol, MarginMode marginMode) {
 		Map<String, Object> body = new HashMap<>();
 		String mode = marginMode == MarginMode.CROSS ? "REGULAR_MARGIN" : "ISOLATED_MARGIN";
 		body.put("setMarginMode", mode);
@@ -84,21 +68,21 @@ public class PrivateEndpoints {
 	}
 
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest maxLeverageRequest(String symbol) {
-		URI uri = new URIBuilder(baseUrl)
+	public static @NonNull SimpleHttpRequest maxLeverageRequest(String paginationIndex) {
+		URIBuilder uriBuilder = new URIBuilder(baseUrl)
 						.setPath("/v5/market/instruments-info")
 						.addParameter("category", category)
-						.addParameter("symbol", symbol)
-						.build();
+						.addParameter("limit", "1000");
+
+		if (paginationIndex != null) uriBuilder.addParameter("cursor", paginationIndex);
+
+		URI uri = uriBuilder.build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest supportedChainsRequest() {
-		URI uri = new URIBuilder(baseUrl)
-						.setPath("/v5/asset/coin/query-info")
-						.addParameter("coin", "USDT")
-						.build();
+		URI uri = new URIBuilder(baseUrl).setPath("/v5/asset/coin/query-info").addParameter("coin", "USDT").build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
@@ -134,10 +118,7 @@ public class PrivateEndpoints {
 		throw new IllegalArgumentException("Unsupported order side combination");
 	}
 
-	public static @NonNull SimpleHttpRequest placeFuturesOrderRequest(
-					String symbol,
-					FuturesOrder futuresOrder
-	) {
+	public static @NonNull SimpleHttpRequest placeFuturesOrderRequest(String symbol, FuturesOrder futuresOrder) {
 		Map<String, Object> body = new HashMap<>();
 		body.put("category", category);
 		body.put("symbol", symbol);
@@ -151,11 +132,7 @@ public class PrivateEndpoints {
 	}
 
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest orderRecordRequest(
-					String orderId,
-					String symbol,
-					TradeSide tradeSide
-	) {
+	public static @NonNull SimpleHttpRequest orderRecordRequest(String orderId, String symbol, TradeSide tradeSide) {
 		URI uri = new URIBuilder(baseUrl)
 						.setPath("/v5/execution/list")
 						.addParameter("category", category)

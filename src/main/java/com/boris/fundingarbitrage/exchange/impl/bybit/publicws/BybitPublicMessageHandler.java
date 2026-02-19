@@ -10,7 +10,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import java.time.Instant;
 
-public class BybitPublicMessageHandler implements PublicMessageHandler {
+class BybitPublicMessageHandler implements PublicMessageHandler {
 	private final ExchangeContext context;
 
 	public BybitPublicMessageHandler(ExchangeContext context) {

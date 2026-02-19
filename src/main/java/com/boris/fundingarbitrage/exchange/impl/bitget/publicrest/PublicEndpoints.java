@@ -7,41 +7,21 @@ import org.apache.hc.core5.net.URIBuilder;
 
 import java.net.URI;
 
-public class PublicEndpoints {
+class PublicEndpoints {
 	private static final String baseUrl = "https://api.bitget.com";
 	private static final String productType = "USDT-FUTURES";
 
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest contractsRequestSymbol(String symbol) {
+	public static @NonNull SimpleHttpRequest tickersRequest() {
 		URI uri = new URIBuilder(baseUrl)
-						.setPath("/api/v2/mix/market/contracts")
-						.addParameter("productType", productType)
-						.addParameter("symbol", symbol)
-						.build();
-		return new SimpleHttpRequest("GET", uri);
-	}
-
-	@SneakyThrows
-	public static @NonNull SimpleHttpRequest contractsRequestSymbols() {
-		URI uri = new URIBuilder(baseUrl)
-						.setPath("/api/v2/mix/market/contracts")
+						.setPath("/api/v2/mix/market/tickers")
 						.addParameter("productType", productType)
 						.build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest tickerRequestWithSymbol(String symbol) {
-		URI uri = new URIBuilder(baseUrl)
-						.setPath("/api/v2/mix/market/ticker")
-						.addParameter("productType", productType)
-						.addParameter("symbol", symbol)
-						.build();
-		return new SimpleHttpRequest("GET", uri);
-	}
-
-	@SneakyThrows
-	public static @NonNull SimpleHttpRequest tickerRequestAllSymbols() {
+	public static @NonNull SimpleHttpRequest currentFundingRateRequest() {
 		URI uri = new URIBuilder(baseUrl)
 						.setPath("/api/v2/mix/market/current-fund-rate")
 						.addParameter("productType", productType)
@@ -50,23 +30,10 @@ public class PublicEndpoints {
 	}
 
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest fundingRateRequestSymbol(String symbol) {
+	public static @NonNull SimpleHttpRequest contractConfigRequest() {
 		URI uri = new URIBuilder(baseUrl)
-						.setPath("/api/v2/mix/market/current-fund-rate")
+						.setPath("/api/v2/mix/market/contracts")
 						.addParameter("productType", productType)
-						.addParameter("symbol", symbol)
-						.build();
-		return new SimpleHttpRequest("GET", uri);
-	}
-
-	@SneakyThrows
-	public static @NonNull SimpleHttpRequest candles1hRequestSymbol(String symbol) {
-		URI uri = new URIBuilder(baseUrl)
-						.setPath("/api/v2/mix/market/candles")
-						.addParameter("productType", productType)
-						.addParameter("symbol", symbol)
-						.addParameter("granularity", "1H")
-						.addParameter("limit", "1")
 						.build();
 		return new SimpleHttpRequest("GET", uri);
 	}

@@ -1,6 +1,5 @@
 package com.boris.fundingarbitrage.exchange.impl.gate.privaterest;
 
-import com.boris.fundingarbitrage.ObjectMapperSingleton;
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.ExchangeCredentials;
 import com.boris.fundingarbitrage.exchange.privatehttp.PrivateHttpClient;
@@ -11,21 +10,23 @@ import com.boris.fundingarbitrage.model.exchange.ExchangeChains;
 import com.boris.fundingarbitrage.model.exchange.ExchangeChainsBuilder;
 import com.boris.fundingarbitrage.model.exchange.WalletAddress;
 import com.boris.fundingarbitrage.model.exchange.WithdrawChain;
+import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import com.boris.fundingarbitrage.util.cryptography.Signers;
 import com.boris.fundingarbitrage.util.https.PrettyHttpClient;
+import com.boris.fundingarbitrage.util.https.RequestProcessingClientWrapper;
 import com.boris.fundingarbitrage.util.logger.Logger;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
 
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
 public class GatePrivateHttpClient extends PrivateHttpClient {
-	private final ObjectMapper mapper = ObjectMapperSingleton.getInstance();
 	private final ExchangeCredentials credentials;
+	private final RequestProcessingClientWrapper requestWrapper = new RequestProcessingClientWrapper(this.client);
 
 	public GatePrivateHttpClient(ExchangeContext context) {
 		super(context, PrettyHttpClient.getINSTANCE());
@@ -44,7 +45,15 @@ public class GatePrivateHttpClient extends PrivateHttpClient {
 			if (body == null) body = "";
 			String hashedBody = Signers.signSha512Hex(body);
 
-			String payload = method + "\n" + path + "\n" + (query == null ? "" : query) + "\n" + hashedBody + "\n" + timestamp;
+			String payload = method +
+											 "\n" +
+											 path +
+											 "\n" +
+											 (query == null ? "" : query) +
+											 "\n" +
+											 hashedBody +
+											 "\n" +
+											 timestamp;
 			String signature = Signers.signHmacSha512Hex(payload, credentials.apiSecret());
 
 			request.setHeader("KEY", credentials.apiKey());
@@ -63,41 +72,28 @@ public class GatePrivateHttpClient extends PrivateHttpClient {
 					Class<T> responseClass,
 					Function<T, U> parser
 	) {
-		SimpleHttpRequest signedRequest = signRequest(request);
-		return this.client.sendNoCodeCheck(signedRequest).thenApply((response) -> {
-			try {
-				T responseObj = mapper.readValue(response.getBodyText(), responseClass);
-				return parser.apply(responseObj);
-			} catch (Exception e) {
-				Logger.error(String.format("Error parsing private rest response: %s", e.getMessage()));
-				throw new RuntimeException("Failed to process request", e);
-			}
-		});
+		return requestWrapper.processRequest(signRequest(request), responseClass, parser);
 	}
 
 	@Override
-	protected CompletableFuture<Fees> getTradingFeesSymbol(String symbol) {
-		return processRequest(
-						PrivateEndpoints.tradingFeesRequestSymbol(symbol),
-						PrivateResponses.TradingFeesResponse.class,
-						PrivateResponses.TradingFeesResponse::getFees
-		);
+	protected CompletableFuture<Map<String, Fees>> getTradingFeesSymbolBatch() {
+		return null;
 	}
 
 	@Override
-	protected CompletableFuture<Map<String, Fees>> getTradingFeesSymbols(List<String> symbols) {
+	public CompletableFuture<CoinVector<Fees>> getTradingFees(Set<String> coins) {
 		return processRequest(
 						PrivateEndpoints.tradingFeesRequestSymbols(),
 						PrivateResponses.TradingFeesSymbolsResponse.class,
-						(resp) -> resp.getFeesBySymbols(symbols)
-		);
+						PrivateResponses.TradingFeesSymbolsResponse::getAccountFees
+		).thenApply(fees -> CoinVector.byDefaultValue(coins, fees));
 	}
 
 	@Override
 	protected CompletableFuture<Void> changeLeverageSymbol(String symbol, int leverage) {
 		return processRequest(
 						PrivateEndpoints.changeLeverageRequestSymbol(symbol, leverage),
-						PrivateResponses.ChangeLeverageResponse.class,
+						Object.class, // no meaningful response from Gate on leverage change
 						(resp) -> null
 		);
 	}
@@ -106,7 +102,7 @@ public class GatePrivateHttpClient extends PrivateHttpClient {
 	protected CompletableFuture<Void> setMarginModeSymbol(String symbol, MarginMode marginMode) {
 		return processRequest(
 						PrivateEndpoints.setMarginModeRequestSymbol(symbol, marginMode),
-						PrivateResponses.SetMarginModeResponse.class,
+						Object.class, // no meaningful response from Gate on leverage change
 						(resp) -> null
 		);
 	}
@@ -130,9 +126,9 @@ public class GatePrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
-	protected CompletableFuture<Integer> getMaxLeverageSymbol(String symbol) {
+	protected CompletableFuture<Map<String, Integer>> getMaxLeverageSymbolBatch() {
 		return processRequest(
-						PrivateEndpoints.maxLeverageRequestSymbol(symbol),
+						PrivateEndpoints.maxLeverageRequest(),
 						PrivateResponses.MaxLeverageResponse.class,
 						PrivateResponses.MaxLeverageResponse::get
 		);
@@ -143,39 +139,29 @@ public class GatePrivateHttpClient extends PrivateHttpClient {
 		var chainsRequest = PrivateEndpoints.supportedChainsRequest();
 		var withdrawalFeesRequest = PrivateEndpoints.withdrawalFeesRequest();
 
-		var chainsFuture = client.send(signRequest(chainsRequest));
-		var withdrawalFeesFuture = client.send(signRequest(withdrawalFeesRequest));
+		var chainsFuture = requestWrapper.getResponse(
+						signRequest(chainsRequest),
+						PrivateResponses.SupportedChainsResponse.class
+		);
+		var withdrawalFeesFuture = requestWrapper.getResponse(
+						signRequest(withdrawalFeesRequest),
+						PrivateResponses.WithdrawalFeeResponse.class
+		);
 
 		return chainsFuture.thenCombine(
 						withdrawalFeesFuture, (chainsResp, feesResp) -> {
 							ExchangeChainsBuilder builder = new ExchangeChainsBuilder();
+							for (var gateChain : chainsResp.chains()) {
+								if (gateChain.is_disabled() != 0) continue;
+								SupportedChain chain = ChainsMap.getInverse(gateChain.chain());
+								if (chain == null) continue;
 
-							try {
-								PrivateResponses.SupportedChainsResponse chainsResponse = mapper.readValue(
-												chainsResp.getBodyText(),
-												PrivateResponses.SupportedChainsResponse.class
-								);
-
-								PrivateResponses.WithdrawalFeeResponse feeResponse = mapper.readValue(
-												feesResp.getBodyText(),
-												PrivateResponses.WithdrawalFeeResponse.class
-								);
-
-								for (var gateChain : chainsResponse.chains()) {
-									if (gateChain.is_disabled() != 0) continue;
-									SupportedChain chain = ChainsMap.getInverse(gateChain.chain());
-									if (chain == null) continue;
-
-									if (gateChain.is_deposit_disabled() == 0) builder.addDepositableChain(chain);
-									if (gateChain.is_withdraw_disabled() == 0) {
-										double fee = feeResponse.getFeeForChain(chain);
-										double minWithdraw = feeResponse.getMinWithdraw();
-										builder.addWithdrawableChain(new WithdrawChain(chain, fee, minWithdraw));
-									}
+								if (gateChain.is_deposit_disabled() == 0) builder.addDepositableChain(chain);
+								if (gateChain.is_withdraw_disabled() == 0) {
+									double fee = feesResp.getFeeForChain(chain);
+									double minWithdraw = feesResp.getMinWithdraw();
+									builder.addWithdrawableChain(new WithdrawChain(chain, fee, minWithdraw));
 								}
-							} catch (Exception e) {
-								Logger.error(e.getMessage());
-								throw new RuntimeException(e);
 							}
 
 							return builder.build();

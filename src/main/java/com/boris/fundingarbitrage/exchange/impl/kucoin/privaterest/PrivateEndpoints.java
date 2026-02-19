@@ -29,13 +29,7 @@ public final class PrivateEndpoints {
 	}
 
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest tradingFeesRequestSymbol(String symbol) {
-		URI uri = new URIBuilder(baseUrlFutures).setPath("/api/v1/contracts/" + symbol).build();
-		return new SimpleHttpRequest("GET", uri);
-	}
-
-	@SneakyThrows
-	public static @NonNull SimpleHttpRequest tradingFeesRequestSymbols() {
+	public static @NonNull SimpleHttpRequest tradingFeesRequest() {
 		URI uri = new URIBuilder(baseUrlFutures).setPath("/api/v1/contracts/active").build();
 		return new SimpleHttpRequest("GET", uri);
 	}
@@ -74,8 +68,8 @@ public final class PrivateEndpoints {
 	}
 
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest maxLeverageRequestSymbol(String symbol) {
-		URI uri = new URIBuilder(baseUrlFutures).setPath("/api/v1/contracts/" + symbol).build();
+	public static @NonNull SimpleHttpRequest maxLeverageRequest() {
+		URI uri = new URIBuilder(baseUrlFutures).setPath("/api/v1/contracts/active").build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 

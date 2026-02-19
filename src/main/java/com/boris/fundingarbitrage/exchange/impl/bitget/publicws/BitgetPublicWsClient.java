@@ -18,11 +18,8 @@ public class BitgetPublicWsClient extends PublicWsClient {
 	private static final String tickerChannel = "ticker";
 	private final ScheduledExecutorService pingExecutor = new ScheduledThreadPoolExecutor(1);
 
-	public BitgetPublicWsClient(
-					ExchangeContext context,
-					BitgetPublicMessageHandler messageHandler,
-					BitgetPublicHttpClient publicHttp
-	) {
+	public BitgetPublicWsClient(ExchangeContext context, BitgetPublicHttpClient publicHttp) {
+		BitgetPublicMessageHandler messageHandler = new BitgetPublicMessageHandler(context);
 		super(context, endpoint, messageHandler, publicHttp);
 		pingExecutor.scheduleAtFixedRate(this::sendPing, 5, 30, TimeUnit.SECONDS);
 	}
@@ -75,5 +72,11 @@ public class BitgetPublicWsClient extends PublicWsClient {
 
 	private void sendPing() {
 		sendMessage("ping");
+	}
+
+	@Override
+	public void close() {
+		super.close();
+		pingExecutor.close();
 	}
 }

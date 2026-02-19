@@ -108,6 +108,7 @@ public abstract class PublicWsTest {
 	}
 
 	@Test
+	@Tag("websocket")
 	public void testPublicWsClientSubscriptions() throws Exception {
 		initializeMessageCounts();
 		subscribeToStreams();

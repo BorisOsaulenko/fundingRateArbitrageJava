@@ -7,62 +7,36 @@ import org.apache.hc.core5.net.URIBuilder;
 
 import java.net.URI;
 
-public class PublicEndpoints {
+class PublicEndpoints {
 	private static final String futuresBaseUrl = "https://fapi.binance.com";
 
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest checkSymbolExistsRequestSymbol(String symbol) {
-		URI uri = new URIBuilder(futuresBaseUrl).setPath("/fapi/v1/exchangeInfo").addParameter("symbol", symbol).build();
-		return new SimpleHttpRequest("GET", uri);
-	}
-
-	@SneakyThrows
-	public static @NonNull SimpleHttpRequest checkSymbolExistsRequestSymbols() {
-		URI uri = new URIBuilder(futuresBaseUrl).setPath("/fapi/v1/exchangeInfo").build();
-		return new SimpleHttpRequest("GET", uri);
-	}
-
-	@SneakyThrows
-	public static @NonNull SimpleHttpRequest fundingRateRequestSymbol(String symbol) {
-		URI uri = new URIBuilder(futuresBaseUrl).setPath("/fapi/v1/premiumIndex").addParameter("symbol", symbol).build();
-		return new SimpleHttpRequest("GET", uri);
-	}
-
-	@SneakyThrows
-	public static @NonNull SimpleHttpRequest fundingRateRequestSymbols() {
+	public static @NonNull SimpleHttpRequest premiumIndexRequest() {
 		URI uri = new URIBuilder(futuresBaseUrl).setPath("/fapi/v1/premiumIndex").build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest bookTickerRequestSymbol(String symbol) {
-		URI uri = new URIBuilder(futuresBaseUrl)
-						.setPath("/fapi/v1/ticker/bookTicker")
-						.addParameter("symbol", symbol)
-						.build();
+	public static @NonNull SimpleHttpRequest bookTickerRequest() {
+		URI uri = new URIBuilder(futuresBaseUrl).setPath("/fapi/v1/ticker/bookTicker").build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest lotSizeRequestSymbol(String symbol) {
-		URI uri = new URIBuilder(futuresBaseUrl).setPath("/fapi/v1/exchangeInfo").addParameter("symbol", symbol).build();
+	public static @NonNull SimpleHttpRequest exchangeInfoRequest() {
+		URI uri = new URIBuilder(futuresBaseUrl).setPath("/fapi/v1/exchangeInfo").build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest tradingVolume24hRequestSymbol(String symbol) {
-		URI uri = new URIBuilder(futuresBaseUrl).setPath("/fapi/v1/ticker/24hr").addParameter("symbol", symbol).build();
+	public static @NonNull SimpleHttpRequest statistic24hRequest() {
+		URI uri = new URIBuilder(futuresBaseUrl).setPath("/fapi/v1/ticker/24hr").build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest tradingVolume1hRequestSymbol(String symbol) {
-		URI url = new URIBuilder(futuresBaseUrl)
-						.setPath("/fapi/v1/klines")
-						.addParameter("symbol", symbol)
-						.addParameter("interval", "1h")
-						.addParameter("limit", "1")
-						.build();
-		return new SimpleHttpRequest("GET", url);
+	public static @NonNull SimpleHttpRequest fundingInfoRequest() {
+		URI uri = new URIBuilder(futuresBaseUrl).setPath("/fapi/v1/fundingInfo").build();
+		return new SimpleHttpRequest("GET", uri);
 	}
 }

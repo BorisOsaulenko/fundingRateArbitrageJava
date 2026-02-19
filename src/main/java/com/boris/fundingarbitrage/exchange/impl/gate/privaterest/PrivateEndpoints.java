@@ -12,7 +12,7 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
-public class PrivateEndpoints {
+class PrivateEndpoints {
 	private static final String baseUrl = "https://api.gateio.ws";
 	private static final String settle = "usdt";
 
@@ -27,27 +27,18 @@ public class PrivateEndpoints {
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest tradingFeesRequestSymbol(String symbol) {
-		URI uri = new URIBuilder(baseUrl)
-						.setPath("/api/v4/wallet/fee")
-						.addParameter("settle", settle)
-						.build();
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v4/wallet/fee").addParameter("settle", settle).build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest tradingFeesRequestSymbols() {
-		URI uri = new URIBuilder(baseUrl)
-						.setPath("/api/v4/wallet/fee")
-						.addParameter("settle", settle)
-						.build();
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v4/wallet/fee").addParameter("settle", settle).build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest changeLeverageRequestSymbol(
-					String symbol,
-					int leverage
-	) {
+	public static @NonNull SimpleHttpRequest changeLeverageRequestSymbol(String symbol, int leverage) {
 		URI uri = new URIBuilder(baseUrl)
 						.setPath("/api/v4/futures/" + settle + "/positions/" + symbol + "/leverage")
 						.addParameter("leverage", String.valueOf(leverage))
@@ -55,22 +46,16 @@ public class PrivateEndpoints {
 		return new SimpleHttpRequest("POST", uri);
 	}
 
-	public static @NonNull SimpleHttpRequest setMarginModeRequestSymbol(
-					String symbol,
-					MarginMode marginMode
-	) {
+	public static @NonNull SimpleHttpRequest setMarginModeRequestSymbol(String symbol, MarginMode marginMode) {
 		Map<String, Object> body = new HashMap<>();
 		body.put("contract", symbol);
-		body.put("mode", marginMode == MarginMode.CROSS ? "cross" : "isolated");
+		body.put("mode", marginMode == MarginMode.CROSS ? "CROSS" : "ISOLATED");
 		return postJson("/api/v4/futures/" + settle + "/positions/cross_mode", body);
 	}
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest spotUsdtBalanceRequest() {
-		URI uri = new URIBuilder(baseUrl)
-						.setPath("/api/v4/spot/accounts")
-						.addParameter("currency", "USDT")
-						.build();
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v4/spot/accounts").addParameter("currency", "USDT").build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
@@ -81,10 +66,8 @@ public class PrivateEndpoints {
 	}
 
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest maxLeverageRequestSymbol(String symbol) {
-		URI uri = new URIBuilder(baseUrl)
-						.setPath("/api/v4/futures/" + settle + "/contracts/" + symbol)
-						.build();
+	public static @NonNull SimpleHttpRequest maxLeverageRequest() {
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v4/futures/" + settle + "/contracts").build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
@@ -126,10 +109,7 @@ public class PrivateEndpoints {
 		return Math.abs(qty);
 	}
 
-	public static @NonNull SimpleHttpRequest placeFuturesOrderRequestSymbol(
-					String symbol,
-					FuturesOrder futuresOrder
-	) {
+	public static @NonNull SimpleHttpRequest placeFuturesOrderRequestSymbol(String symbol, FuturesOrder futuresOrder) {
 		Map<String, Object> body = new HashMap<>();
 		body.put("contract", symbol);
 		body.put("size", signedContractQty(futuresOrder));

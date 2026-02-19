@@ -10,7 +10,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import java.time.Instant;
 
-public class OkxPublicMessageHandler implements PublicMessageHandler {
+class OkxPublicMessageHandler implements PublicMessageHandler {
 	private final ExchangeContext context;
 
 	public OkxPublicMessageHandler(ExchangeContext context) {

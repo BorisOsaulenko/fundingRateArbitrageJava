@@ -13,7 +13,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-public class PrivateEndpoints {
+class PrivateEndpoints {
 	private static final String baseUrl = "https://whitebit.com";
 
 	@SneakyThrows
@@ -31,32 +31,8 @@ public class PrivateEndpoints {
 	}
 
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest tradingFeesRequestSymbol(String symbol) {
-		URI uri = new URIBuilder(baseUrl)
-					.setPath("/api/v4/market/fee")
-					.addParameter("market", symbol)
-					.build();
-		SimpleHttpRequest request = new SimpleHttpRequest("POST", uri);
-		Map<String, Object> body = new HashMap<>();
-		body.put("request", "/api/v4/market/fee");
-		body.put("nonce", String.valueOf(System.currentTimeMillis()));
-		String json = ObjectMapperSingleton.getInstance().writeValueAsString(body);
-		request.setBody(json, ContentType.APPLICATION_JSON);
-		return request;
-	}
-
-	@SneakyThrows
-	public static @NonNull SimpleHttpRequest tradingFeesRequestSymbols() {
-		URI uri = new URIBuilder(baseUrl)
-					.setPath("/api/v4/market/fee")
-					.build();
-		SimpleHttpRequest request = new SimpleHttpRequest("POST", uri);
-		Map<String, Object> body = new HashMap<>();
-		body.put("request", "/api/v4/market/fee");
-		body.put("nonce", String.valueOf(System.currentTimeMillis()));
-		String json = ObjectMapperSingleton.getInstance().writeValueAsString(body);
-		request.setBody(json, ContentType.APPLICATION_JSON);
-		return request;
+	public static @NonNull SimpleHttpRequest tradingFeesRequest() {
+		return privatePost("/api/v4/market/fee", Map.of());
 	}
 
 	public static @NonNull SimpleHttpRequest changeLeverageRequest(int leverage) {
@@ -72,7 +48,9 @@ public class PrivateEndpoints {
 	}
 
 	public static @NonNull SimpleHttpRequest spotUsdtBalanceRequest() {
-		return privatePost("/api/v4/trade-account/balance", null);
+		Map<String, Object> body = new HashMap<>();
+		body.put("ticker", "USDT");
+		return privatePost("/api/v4/main-account/balance", body);
 	}
 
 	public static @NonNull SimpleHttpRequest futuresUsdtBalanceRequest() {
@@ -114,10 +92,7 @@ public class PrivateEndpoints {
 		return orderSide == OrderSide.LONG ? "long" : "short";
 	}
 
-	public static @NonNull SimpleHttpRequest placeFuturesOrderRequestSymbol(
-					String symbol,
-					FuturesOrder futuresOrder
-	) {
+	public static @NonNull SimpleHttpRequest placeFuturesOrderRequestSymbol(String symbol, FuturesOrder futuresOrder) {
 		Map<String, Object> body = new HashMap<>();
 		body.put("market", symbol);
 		body.put("side", mapSide(futuresOrder.orderSide(), futuresOrder.tradeSide()));
@@ -149,5 +124,17 @@ public class PrivateEndpoints {
 
 	public static @NonNull SimpleHttpRequest websocketTokenRequest() {
 		return privatePost("/api/v4/profile/websocket_token", null);
+	}
+
+	@SneakyThrows
+	public static @NonNull SimpleHttpRequest maxLeverageRequest() {
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v4/public/futures").build();
+		return new SimpleHttpRequest("GET", uri);
+	}
+
+	@SneakyThrows
+	public static @NonNull SimpleHttpRequest publicFeeRequest() {
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v4/public/fee").build();
+		return new SimpleHttpRequest("GET", uri);
 	}
 }
