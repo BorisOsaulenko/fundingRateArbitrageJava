@@ -57,7 +57,7 @@ class PrivateEndpoints {
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest spotUsdtBalanceRequest() {
 		URI uri = new URIBuilder(baseUrl)
-						.setPath("/api/v2/account/all-account-balance")
+						.setPath("/api/v2/spot/account/assets")
 						.addParameter("coin", "USDT")
 						.build();
 		return new SimpleHttpRequest("GET", uri);
@@ -68,7 +68,6 @@ class PrivateEndpoints {
 		URI uri = new URIBuilder(baseUrl)
 						.setPath("/api/v2/mix/account/accounts")
 						.addParameter("productType", productType)
-						.addParameter("marginCoin", marginCoin)
 						.build();
 		return new SimpleHttpRequest("GET", uri);
 	}

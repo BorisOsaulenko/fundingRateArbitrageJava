@@ -14,5 +14,6 @@ public record PartialFill(
     public PartialFill {
         Validations.requirePositive(baseAssetQty, "Base asset quantity");
         Validations.requirePositive(price, "Price");
+				if (fee != null) Validations.requirePositive(fee, "Fee");
     }
 }
