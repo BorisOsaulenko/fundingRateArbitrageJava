@@ -4,13 +4,14 @@ import com.boris.fundingarbitrage.model.arbitrage.ArbitrageSnapshot;
 import com.boris.fundingarbitrage.util.logger.Logger;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public abstract class ArbitrageStrategy {
 	private ArbitrageSnapshot enterSnapshot = null;
 	private final List<ArbitrageSnapshot> fundingSnapshots = new ArrayList<>();
 
-	public abstract boolean snapshotBetter(
+	public abstract int compareSnapshots(
 					ArbitrageSnapshot first,
 					ArbitrageSnapshot second
 	); // returns true if first snapshot is better than second
@@ -20,7 +21,7 @@ public abstract class ArbitrageStrategy {
 
 	public abstract boolean shouldExitTrade(ArbitrageSnapshot current);
 
-	public void setEnterSnapshot(ArbitrageSnapshot enterSnapshot) {
+	public final void setEnterSnapshot(ArbitrageSnapshot enterSnapshot) {
 		if (this.enterSnapshot != null) {
 			Logger.error("ArbitrageStrategy has already been entered.");
 			return;
@@ -28,7 +29,15 @@ public abstract class ArbitrageStrategy {
 		this.enterSnapshot = enterSnapshot;
 	}
 
-	public void addFundingSnapshot(ArbitrageSnapshot fundingSnapshot) {
+	public final void addFundingSnapshot(ArbitrageSnapshot fundingSnapshot) {
 		this.fundingSnapshots.add(fundingSnapshot);
+	}
+
+	protected final ArbitrageSnapshot getEnterSnapshot() {
+		return enterSnapshot;
+	}
+
+	protected final List<ArbitrageSnapshot> getFundingSnapshots() {
+		return Collections.unmodifiableList(fundingSnapshots);
 	}
 }

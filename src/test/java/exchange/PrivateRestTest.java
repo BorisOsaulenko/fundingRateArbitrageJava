@@ -68,7 +68,7 @@ public abstract class PrivateRestTest {
 	public void getSpotUsdtBalanceTest() throws Exception {
 		double spotBalance = getWithTimeout(privateRest().getSpotUsdtBalance());
 		assertFinite(spotBalance, "Spot USDT balance should be finite");
-		assertTrue(spotBalance >= 0, "Spot USDT balance should be non-negative");
+		assertTrue(spotBalance > 0, "Spot USDT balance should be non-negative");
 	}
 
 	@Tag("rest")

@@ -6,5 +6,5 @@ import com.boris.fundingarbitrage.model.contract.FundingRate;
 import com.boris.fundingarbitrage.model.contract.MarkPrice;
 
 public record ExchangeSnapshot(
-				BookTicker bookTicker, Fees fees, FundingRate fundingRate, MarkPrice markPrice
+				BookTicker bookTicker, Fees fees, FundingRate fundingRate, MarkPrice markPrice, double lotSize
 ) {}

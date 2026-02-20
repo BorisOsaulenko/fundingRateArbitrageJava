@@ -50,3 +50,21 @@
 
 - Never commit API keys, secrets, or local env files.
 - Keep credentials external; use local environment loading patterns (as in `scripts/run.sh`).
+
+## Financial Calculations
+
+- Financial operations are performed on ArbitrageSnapshot objects, which are immutable and represent a single point in time.
+- Find ArbitrageSnapshots under src/main/java/com/boris/fundingarbitrage/model/arbitrage/ArbitrageSnapshot.java.
+- The following formulas are used for the position size of 1 coin. The important parameters are `FSpread` and `OSpread` - they are independent of the number of coins.
+- Formula for applied funding fees (on one leg): `FundingFee` = `FundingFeeRate` * `MarkPrice`. Note: the funding fee is paid by longs to shorts. So, the gain for long leg would be `-FundingFeeRate`*`MarkPrice`.
+- Formula for notional size (notional exposure): `PerCoinNotional` = (`LongAskPrice` + `ShortBidPrice`)/2.
+- Formula for FSpread (funding spread): `FSpread` = (`ShortFundingFee` * `ShortMarkPrice` - `LongFundingFee` * `LongMarkPrice`) / `PerCoinNotional`.
+- Formula for OSpread (open spread): `OSpread` = (`ShortBidPrice` - `LongAskPrice`)/`PerCoinNotional`.
+- Variables used:
+- - `FundingFeeRate (%)` - fee paid periodically directly between traders. Represents the percentage of position that longs pay shorts. If negative, longs receive from shorts.
+- - `MarkPrice (usdt)` - represents the "true" price of the coin. Calculated by taking the average of prices among subset of big exchanges.
+- - `AskPrice (usdt)` - lowest price to buy the coin. Buying at the lowest ask.
+- - `BidPrice (usdt)` - highest price to sell the coin. Selling at the highest bid.
+- - `OSpread (%)` - represents the gain/loss due to price convergence effect.
+- - `FSpread (%)` - represents the gain/loss due to funding fees.
+

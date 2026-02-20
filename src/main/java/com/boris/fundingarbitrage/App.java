@@ -108,7 +108,7 @@ public class App {
 
 	private static final Set<String> coins = Set.of("SOL", "ETH", "XRP", "LTC", "ADA");
 
-	static void main(String[] args) throws Exception {
+	static void main2(String[] args) throws Exception {
 		CoinMonitor monitor = new CoinMonitor(coins);
 		Logger.init(Path.of("app.log"));
 		Logger.log("Initializing coin monitor and waiting for complete data...");
@@ -126,8 +126,7 @@ public class App {
 		Thread.sleep(40000);
 	}
 
-	static void main2(String[] args) throws ExecutionException, InterruptedException {
-		GateExchange exchange = new GateExchange();
-		exchange.publicHttpClient.getOnePullData(Set.of("SOL")).thenAccept(Logger::logCoinVector).get();
+	static void main(String[] args) throws ExecutionException, InterruptedException {
+
 	}
 }
