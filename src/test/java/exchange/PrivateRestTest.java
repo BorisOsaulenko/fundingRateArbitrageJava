@@ -73,7 +73,7 @@ public abstract class PrivateRestTest {
 
 	@Tag("rest")
 	@Test
-	public void changeLeverageTest() throws Exception {
+	public void changeLeverageTest() {
 		int leverage = 2;
 		assertTimeout(
 						Duration.ofSeconds(5),
@@ -87,12 +87,12 @@ public abstract class PrivateRestTest {
 	public void getFuturesUsdtBalanceTest() throws Exception {
 		double futuresBalance = getWithTimeout(privateRest().getFuturesUsdtBalance());
 		assertFinite(futuresBalance, "Futures USDT balance should be finite");
-		assertTrue(futuresBalance >= 0, "Futures USDT balance should be non-negative");
+		assertTrue(futuresBalance > 0, "Futures USDT balance should be non-negative");
 	}
 
 	@Test
 	@Tag("rest")
-	public void setMarginModeTest() throws Exception {
+	public void setMarginModeTest() {
 		MarginMode marginMode = MarginMode.CROSS;
 		assertTimeout(
 						Duration.ofSeconds(5),
