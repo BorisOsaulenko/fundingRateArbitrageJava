@@ -8,6 +8,7 @@ import com.boris.fundingarbitrage.model.contract.FundingRate;
 import com.boris.fundingarbitrage.util.https.PrettyHttpClient;
 import com.boris.fundingarbitrage.util.https.RequestProcessingClientWrapper;
 
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -30,7 +31,7 @@ public class BitgetPublicHttpClient extends PublicHttpClient {
 
 	@Override
 	protected CompletableFuture<Map<String, PublicOnePullData>> getPublicOnePullData() {
-		CompletableFuture<Map<String, Double>> lotSizesFuture = requestWrapper.processRequest(
+		CompletableFuture<Map<String, BigDecimal>> lotSizesFuture = requestWrapper.processRequest(
 						PublicEndpoints.contractConfigRequest(),
 						PublicResponses.ContractsResponse.class,
 						PublicResponses.ContractsResponse::getLotSizes

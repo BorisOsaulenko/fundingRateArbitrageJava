@@ -2,10 +2,10 @@ package com.boris.fundingarbitrage.exchange.impl.gate.publicrest;
 
 import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.FundingRate;
-import com.boris.fundingarbitrage.util.logger.Logger;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
@@ -14,15 +14,11 @@ import java.util.Map;
 class PublicResponses {
 	@JsonFormat(shape = JsonFormat.Shape.ARRAY)
 	public record ContractsResponse(List<ContractResponse> items) {
-		private record ContractResponse(
-						String name, double quanto_multiplier, double funding_rate, long funding_next_apply, int funding_interval
-		) {}
-
 		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
 		public ContractsResponse {}
 
-		public Map<String, Double> getLotSizes() {
-			Map<String, Double> result = new HashMap<>();
+		public Map<String, BigDecimal> getLotSizes() {
+			Map<String, BigDecimal> result = new HashMap<>();
 			for (ContractResponse item : items) result.put(item.name(), item.quanto_multiplier());
 			return result;
 		}
@@ -45,19 +41,18 @@ class PublicResponses {
 			}
 			return result;
 		}
+
+		private record ContractResponse(
+						String name,
+						BigDecimal quanto_multiplier,
+						double funding_rate,
+						long funding_next_apply,
+						int funding_interval
+		) {}
 	}
 
 	@JsonFormat(shape = JsonFormat.Shape.ARRAY)
 	public record TickersResponse(List<TickerResponse> items) {
-		private record TickerResponse(
-						String contract,
-						double volume_24h_quote,
-						double highest_bid,
-						double lowest_ask,
-						double highest_size,
-						double lowest_size
-		) {}
-
 		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
 		public TickersResponse {}
 
@@ -78,5 +73,14 @@ class PublicResponses {
 			for (TickerResponse item : items) result.put(item.contract(), item.volume_24h_quote());
 			return result;
 		}
+
+		private record TickerResponse(
+						String contract,
+						double volume_24h_quote,
+						double highest_bid,
+						double lowest_ask,
+						double highest_size,
+						double lowest_size
+		) {}
 	}
 }

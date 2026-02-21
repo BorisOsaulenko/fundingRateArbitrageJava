@@ -7,6 +7,7 @@ import com.boris.fundingarbitrage.model.contract.FundingRate;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
@@ -32,9 +33,8 @@ public abstract class PublicRestTest {
 
 	protected abstract PublicHttpClient publicRest();
 
-	void validateLotSize(double lotSize) {
-		assertFinite(lotSize, "Lot size should be finite");
-		assertTrue(lotSize > 0, "Lot size should be greater than 0");
+	void validateLotSize(BigDecimal lotSize) {
+		assertTrue(lotSize.compareTo(BigDecimal.ZERO) > 0, "Lot size should be greater than 0");
 	}
 
 	void validateBookTicker(BookTicker ticker) {

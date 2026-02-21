@@ -8,6 +8,7 @@ import com.boris.fundingarbitrage.model.contract.FundingRate;
 import com.boris.fundingarbitrage.util.https.PrettyHttpClient;
 import com.boris.fundingarbitrage.util.https.RequestProcessingClientWrapper;
 
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -31,7 +32,7 @@ public class BybitPublicHttpClient extends PublicHttpClient {
 
 	@Override
 	protected CompletableFuture<Map<String, PublicOnePullData>> getPublicOnePullData() {
-		Map<String, Double> lotSizes = new HashMap<>();
+		Map<String, BigDecimal> lotSizes = new HashMap<>();
 		Map<String, Integer> fundingGranularityHours = new HashMap<>();
 
 		CompletableFuture<Void> instrumentsResponseFuture = requestWrapper.processPaginatedRequest(

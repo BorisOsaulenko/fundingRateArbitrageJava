@@ -2,6 +2,7 @@ package com.boris.fundingarbitrage.logic;
 
 import com.boris.fundingarbitrage.coinfilter.CoinFilter;
 import com.boris.fundingarbitrage.coinfilter.CoinFilterConfig;
+import com.boris.fundingarbitrage.coinfilter.CoinFilterResult;
 import com.boris.fundingarbitrage.monitor.CoinMonitor;
 import com.boris.fundingarbitrage.strategy.ArbitrageStrategy;
 
@@ -19,9 +20,9 @@ public class ArbitrageLogic {
 		this.config = arbConfig;
 
 		CoinFilter filter = new CoinFilter(arbConfig.coins(), filterConfig);
-		filter.filterSync();
+		CoinFilterResult filtered = filter.filterSync();
 
-		this.monitor = new CoinMonitor(filter.getAvailableExchangesByCoin(), filter.getAvailableCoinsByExchange());
+		this.monitor = new CoinMonitor(filtered);
 	}
 
 	private void computeBestArbSnapshotForCoin(String coin) {

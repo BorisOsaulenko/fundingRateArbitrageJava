@@ -8,6 +8,7 @@ import com.boris.fundingarbitrage.model.contract.FundingRate;
 import com.boris.fundingarbitrage.util.https.PrettyHttpClient;
 import com.boris.fundingarbitrage.util.https.RequestProcessingClientWrapper;
 
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -30,17 +31,15 @@ public class WhitebitPublicHttpClient extends PublicHttpClient {
 
 	@Override
 	protected CompletableFuture<Map<String, PublicOnePullData>> getPublicOnePullData() {
-		CompletableFuture<PublicResponses.MarketsResponse> marketsResponseFuture = requestWrapper.getResponse(
-						PublicEndpoints.marketsRequest(),
+		CompletableFuture<PublicResponses.MarketsResponse> marketsResponseFuture = requestWrapper.getResponse(PublicEndpoints.marketsRequest(),
 						PublicResponses.MarketsResponse.class
 		);
-		CompletableFuture<PublicResponses.FuturesResponse> futuresResponseFuture = requestWrapper.getResponse(
-						PublicEndpoints.futuresRequest(),
+		CompletableFuture<PublicResponses.FuturesResponse> futuresResponseFuture = requestWrapper.getResponse(PublicEndpoints.futuresRequest(),
 						PublicResponses.FuturesResponse.class
 		);
 
 		return CompletableFuture.allOf(marketsResponseFuture, futuresResponseFuture).thenCompose(_ -> {
-			Map<String, Double> lotSizes = marketsResponseFuture.join().getLotSizes();
+			Map<String, BigDecimal> lotSizes = marketsResponseFuture.join().getLotSizes();
 			Map<String, Double> volumes24h = futuresResponseFuture.join().getVolume24h();
 			Map<String, Integer> fundingGranularityHours = futuresResponseFuture.join().getFundingGranularityHours();
 			Map<String, BookTicker> bookTickers = futuresResponseFuture.join().getBookTickers();

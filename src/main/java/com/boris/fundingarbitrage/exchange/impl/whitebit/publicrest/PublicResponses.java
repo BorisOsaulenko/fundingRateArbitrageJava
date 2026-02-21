@@ -5,24 +5,30 @@ import com.boris.fundingarbitrage.model.contract.FundingRate;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 class PublicResponses {
-	private record Market(String name, String type, String minAmount) {}
+	private static Instant parseFundingTimestamp(long ts) {
+		if (ts < 1_000_000_000_000L) return Instant.ofEpochSecond(ts);
+		return Instant.ofEpochMilli(ts);
+	}
+
+	private record Market(String name, String type, BigDecimal minAmount) {}
 
 	@JsonFormat(shape = JsonFormat.Shape.ARRAY)
 	public record MarketsResponse(List<Market> markets) {
 		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
 		public MarketsResponse {}
 
-		public Map<String, Double> getLotSizes() {
-			Map<String, Double> result = new HashMap<>();
+		public Map<String, BigDecimal> getLotSizes() {
+			Map<String, BigDecimal> result = new HashMap<>();
 			for (Market market : markets) {
 				if (!"futures".equalsIgnoreCase(market.type())) continue;
-				result.put(market.name(), Double.parseDouble(market.minAmount()));
+				result.put(market.name(), market.minAmount());
 			}
 			return result;
 		}
@@ -101,10 +107,5 @@ class PublicResponses {
 			}
 			return resultMap;
 		}
-	}
-
-	private static Instant parseFundingTimestamp(long ts) {
-		if (ts < 1_000_000_000_000L) return Instant.ofEpochSecond(ts);
-		return Instant.ofEpochMilli(ts);
 	}
 }

@@ -4,10 +4,11 @@ import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.exchange.Instances;
 import com.boris.fundingarbitrage.exchange.publichttp.PublicOnePullData;
 import com.boris.fundingarbitrage.model.exchange.ExchangeName;
+import com.boris.fundingarbitrage.monitor.ExchangeCoinMap;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import com.boris.fundingarbitrage.util.logger.Logger;
-import lombok.Getter;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -18,17 +19,17 @@ import java.util.concurrent.ConcurrentHashMap;
 public class CoinFilter {
 	private final Set<String> coins;
 	private final CoinFilterConfig config;
-	@Getter
+
 	private final CoinVector<Set<ExchangeName>> availableExchangesByCoin = new CoinVector<>();
-	@Getter
 	private final Map<BaseExchange, Set<String>> availableCoinsByExchange = new ConcurrentHashMap<>();
+	private final ExchangeCoinMap<BigDecimal> lotSizes = new ExchangeCoinMap<>();
 
 	public CoinFilter(Set<String> coins, CoinFilterConfig config) {
 		this.coins = coins;
 		this.config = config;
 	}
 
-	public void filterSync() {
+	public CoinFilterResult filterSync() {
 		for (String coin : coins) {
 			availableExchangesByCoin.put(coin, ConcurrentHashMap.newKeySet());
 		}
@@ -46,6 +47,7 @@ public class CoinFilter {
 					}
 					availableExchangesByCoin.get(coin).add(exchange.name);
 					availableCoinsByExchange.get(exchange).add(coin);
+					lotSizes.put(exchange.name, coin, data.lotSize());
 				});
 			}).exceptionally(err -> {
 				Logger.log("Failed to fetch available coins for " + exchange.name + ": " + err.getMessage());
@@ -56,6 +58,8 @@ public class CoinFilter {
 
 		CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
 		clearCoinsWithInsufficientExchanges();
+
+		return new CoinFilterResult(availableExchangesByCoin, availableCoinsByExchange, lotSizes);
 	}
 
 	private String shouldExcludeCoin(PublicOnePullData data) {
@@ -65,8 +69,11 @@ public class CoinFilter {
 		if (data.volume24h() < config.min24hVolumeUsdt()) {
 			return "Volume not enough: " + data.volume24h();
 		}
-		if (data.bookTicker().askPrice * data.lotSize() > config.maxAffordablePrice()) {
-			return "Price too high; min price step: " + data.bookTicker().askPrice * data.lotSize();
+
+		BigDecimal ask = BigDecimal.valueOf(data.bookTicker().askPrice);
+		BigDecimal minPriceStep = data.lotSize().multiply(ask);
+		if (minPriceStep.compareTo(config.maxAffordablePrice()) > 0) {
+			return "Price too high; min price step: " + minPriceStep;
 		}
 
 		return null;

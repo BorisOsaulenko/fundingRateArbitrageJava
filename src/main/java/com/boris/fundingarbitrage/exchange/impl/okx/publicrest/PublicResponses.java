@@ -3,18 +3,19 @@ package com.boris.fundingarbitrage.exchange.impl.okx.publicrest;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.FundingRate;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 class PublicResponses {
-	private record Instrument(String instId, String lotSz) {}
+	private record Instrument(String instId, BigDecimal lotSz) {}
 
 	public record InstrumentsResponse(int code, String msg, List<Instrument> data) {
-		public Map<String, Double> getLotSizes() {
-			Map<String, Double> result = new HashMap<>();
-			for (Instrument item : data) result.put(item.instId(), Double.parseDouble(item.lotSz()));
+		public Map<String, BigDecimal> getLotSizes() {
+			Map<String, BigDecimal> result = new HashMap<>();
+			for (Instrument item : data) result.put(item.instId(), item.lotSz());
 			return result;
 		}
 	}

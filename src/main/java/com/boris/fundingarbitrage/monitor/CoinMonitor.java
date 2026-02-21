@@ -1,6 +1,6 @@
 package com.boris.fundingarbitrage.monitor;
 
-import com.boris.fundingarbitrage.coinfilter.CoinFilterConfig;
+import com.boris.fundingarbitrage.coinfilter.CoinFilterResult;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.exchange.Instances;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
@@ -8,6 +8,7 @@ import com.boris.fundingarbitrage.model.contract.Fees;
 import com.boris.fundingarbitrage.model.contract.FundingRate;
 import com.boris.fundingarbitrage.model.contract.MarkPrice;
 import com.boris.fundingarbitrage.model.exchange.ExchangeName;
+import com.boris.fundingarbitrage.model.exchange.ExchangeSnapshot;
 import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
 import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
 import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
@@ -15,6 +16,7 @@ import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import com.boris.fundingarbitrage.util.logger.Logger;
 import lombok.Getter;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -32,13 +34,13 @@ public class CoinMonitor {
 	private static final int BIT_MARK = 1 << 2;
 	private static final int ALL_BITS = BIT_BOOK | BIT_FUNDING | BIT_MARK;
 
-	private static final CoinFilterConfig COIN_FILTER_CONFIG = new CoinFilterConfig(600_000, 20);
 	private static final int waitForDataSeconds = 60;
 
 	private final ExchangeCoinMap<FundingRate> fundingRates = new ExchangeCoinMap<>();
 	private final ExchangeCoinMap<BookTicker> bookTickers = new ExchangeCoinMap<>();
 	private final ExchangeCoinMap<MarkPrice> markPrices = new ExchangeCoinMap<>();
 	private final ExchangeCoinMap<Fees> fees = new ExchangeCoinMap<>();
+	private final ExchangeCoinMap<BigDecimal> lotSizes;
 
 	private final CoinVector<Set<ExchangeName>> availableExchangesByCoin;
 	private final Map<BaseExchange, Set<String>> availableCoinsByExchange;
@@ -52,11 +54,12 @@ public class CoinMonitor {
 	private final ConcurrentHashMap<ExchangeName, Consumer<MarkPricePatch>> initMarkHandlers = new ConcurrentHashMap<>();
 
 	public CoinMonitor(
-					CoinVector<Set<ExchangeName>> availableExchangesByCoin,
-					Map<BaseExchange, Set<String>> availableCoinsByExchange
+					CoinFilterResult filterResult
 	) {
-		this.availableExchangesByCoin = availableExchangesByCoin;
-		this.availableCoinsByExchange = availableCoinsByExchange;
+		this.availableExchangesByCoin = filterResult.availableExchangesByCoin();
+		this.availableCoinsByExchange = filterResult.availableCoinsByExchange();
+		this.lotSizes = filterResult.lotSizes();
+
 		this.initFuture = CompletableFuture.runAsync(() -> {
 			initFees();
 			fillEmptyData();
@@ -363,5 +366,15 @@ public class CoinMonitor {
 		for (BaseExchange exchange : availableCoinsByExchange.keySet()) {
 			exchange.publicWsClient.close();
 		}
+	}
+
+	public ExchangeSnapshot getSnapshot(ExchangeName exchangeName, String coin) {
+		BookTicker ticker = bookTickers.get(exchangeName, coin);
+		MarkPrice markPrice = markPrices.get(exchangeName, coin);
+		FundingRate fundingRate = fundingRates.get(exchangeName, coin);
+		Fees fee = fees.get(exchangeName, coin);
+		BigDecimal lotSize = lotSizes.get(exchangeName, coin);
+
+		return new ExchangeSnapshot(ticker, fee, fundingRate, markPrice, lotSize);
 	}
 }

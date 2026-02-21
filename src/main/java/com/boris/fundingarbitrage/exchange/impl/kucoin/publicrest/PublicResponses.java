@@ -3,6 +3,7 @@ package com.boris.fundingarbitrage.exchange.impl.kucoin.publicrest;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.FundingRate;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
@@ -11,7 +12,7 @@ import java.util.Map;
 class PublicResponses {
 	private record ActiveContract(
 					String symbol,
-					double multiplier,
+					BigDecimal multiplier,
 					double volumeOf24h,
 					double fundingFeeRate,
 					long nextFundingRateDateTime,
@@ -19,8 +20,8 @@ class PublicResponses {
 	) {}
 
 	public record ActiveContractsResponse(String code, String msg, List<ActiveContract> data) {
-		public Map<String, Double> getLotSizes() {
-			Map<String, Double> result = new HashMap<>();
+		public Map<String, BigDecimal> getLotSizes() {
+			Map<String, BigDecimal> result = new HashMap<>();
 			for (ActiveContract contract : data) result.put(contract.symbol(), contract.multiplier());
 			return result;
 		}

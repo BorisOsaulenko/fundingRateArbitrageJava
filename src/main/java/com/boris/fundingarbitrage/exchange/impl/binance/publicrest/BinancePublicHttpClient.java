@@ -9,6 +9,7 @@ import com.boris.fundingarbitrage.util.https.PrettyHttpClient;
 import com.boris.fundingarbitrage.util.https.RequestProcessingClientWrapper;
 import com.boris.fundingarbitrage.util.logger.Logger;
 
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -31,7 +32,7 @@ public class BinancePublicHttpClient extends PublicHttpClient {
 
 	@Override
 	protected CompletableFuture<Map<String, PublicOnePullData>> getPublicOnePullData() {
-		CompletableFuture<Map<String, Double>> lotSizesFuture = requestWrapper.processRequest(
+		CompletableFuture<Map<String, BigDecimal>> lotSizesFuture = requestWrapper.processRequest(
 						PublicEndpoints.exchangeInfoRequest(),
 						PublicResponses.ExchangeInfoResponse.class,
 						PublicResponses.ExchangeInfoResponse::getLotSizes
@@ -61,7 +62,7 @@ public class BinancePublicHttpClient extends PublicHttpClient {
 							Map<String, PublicOnePullData> data = new HashMap<>();
 							for (String symbol : lotSizesFuture.join().keySet()) {
 								try {
-									double lotSize = lotSizesFuture.join().get(symbol);
+									BigDecimal lotSize = lotSizesFuture.join().get(symbol);
 									double volume24h = volumes24hFuture.join().get(symbol);
 									BookTicker ticker = bookTickersFuture.join().get(symbol);
 									int fundingGranularity = fundingGranularityFuture.join().get(symbol);

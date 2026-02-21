@@ -3,6 +3,7 @@ package com.boris.fundingarbitrage.exchange.impl.bitget.publicrest;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.FundingRate;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
@@ -10,20 +11,16 @@ import java.util.Map;
 
 class PublicResponses {
 	public record ContractsResponse(String code, String msg, long requestTime, List<Contract> data) {
-		private record Contract(String symbol, double sizeMultiplier) {}
-
-		public Map<String, Double> getLotSizes() {
-			Map<String, Double> result = new HashMap<>();
+		public Map<String, BigDecimal> getLotSizes() {
+			Map<String, BigDecimal> result = new HashMap<>();
 			for (Contract contract : data) result.put(contract.symbol(), contract.sizeMultiplier());
 			return result;
 		}
+
+		private record Contract(String symbol, BigDecimal sizeMultiplier) {}
 	}
 
 	public record TickerResponse(String code, String msg, long requestTime, List<Ticker> data) {
-		private record Ticker(
-						String symbol, double bidPr, double askPr, double bidSz, double askSz, double usdtVolume
-		) {}
-
 		public Map<String, BookTicker> getBookTickers() {
 			Map<String, BookTicker> result = new HashMap<>();
 			for (Ticker item : data) {
@@ -44,13 +41,15 @@ class PublicResponses {
 			for (Ticker item : data) result.put(item.symbol, item.usdtVolume);
 			return result;
 		}
+
+		private record Ticker(
+						String symbol, double bidPr, double askPr, double bidSz, double askSz, double usdtVolume
+		) {}
 	}
 
 	public record CurrentFundingRateResponse(
 					String code, String msg, long requestTime, List<FundingRateItem> data
 	) {
-		private record FundingRateItem(String symbol, String fundingRateInterval, double fundingRate, long nextUpdate) {}
-
 		public Map<String, Integer> getFundingGranularity() {
 			Map<String, Integer> result = new HashMap<>();
 			for (var ticker : data) result.put(ticker.symbol(), Integer.parseInt(ticker.fundingRateInterval()));
@@ -65,5 +64,7 @@ class PublicResponses {
 			}
 			return result;
 		}
+
+		private record FundingRateItem(String symbol, String fundingRateInterval, double fundingRate, long nextUpdate) {}
 	}
 }

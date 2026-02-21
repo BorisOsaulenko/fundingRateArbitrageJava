@@ -8,6 +8,7 @@ import com.boris.fundingarbitrage.model.contract.FundingRate;
 import com.boris.fundingarbitrage.util.https.PrettyHttpClient;
 import com.boris.fundingarbitrage.util.https.RequestProcessingClientWrapper;
 
+import java.math.BigDecimal;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
@@ -32,17 +33,15 @@ public class KucoinPublicHttpClient extends PublicHttpClient {
 
 	@Override
 	protected CompletableFuture<Map<String, PublicOnePullData>> getPublicOnePullData() {
-		CompletableFuture<PublicResponses.ActiveContractsResponse> contractsResponseFuture = requestWrapper.getResponse(
-						PublicEndpoints.activeContractsRequest(),
+		CompletableFuture<PublicResponses.ActiveContractsResponse> contractsResponseFuture = requestWrapper.getResponse(PublicEndpoints.activeContractsRequest(),
 						PublicResponses.ActiveContractsResponse.class
 		);
-		CompletableFuture<PublicResponses.AllTickersResponse> tickersResponseFuture = requestWrapper.getResponse(
-						PublicEndpoints.allTickersRequestSymbols(),
+		CompletableFuture<PublicResponses.AllTickersResponse> tickersResponseFuture = requestWrapper.getResponse(PublicEndpoints.allTickersRequestSymbols(),
 						PublicResponses.AllTickersResponse.class
 		);
 
 		return CompletableFuture.allOf(contractsResponseFuture, tickersResponseFuture).thenApply(_ -> {
-			Map<String, Double> lotSizes = contractsResponseFuture.join().getLotSizes();
+			Map<String, BigDecimal> lotSizes = contractsResponseFuture.join().getLotSizes();
 			Map<String, Integer> fundingGranularityHours = contractsResponseFuture.join().getFundingGranularityHours();
 			Map<String, Double> volumes24h = contractsResponseFuture.join().getVolume24h();
 			Map<String, BookTicker> bookTickers = tickersResponseFuture.join().getBookTickers();
@@ -61,11 +60,13 @@ public class KucoinPublicHttpClient extends PublicHttpClient {
 	}
 
 	public CompletableFuture<URI> fetchPublicWsEndpoint() {
-		return requestWrapper.getResponse(PublicEndpoints.publicWsToken(), PublicResponses.PublicWsTokenResponse.class).thenApply(resp -> {
-			String token = resp.token();
-			String endpoint = resp.endpoint();
-			String connectId = UUID.randomUUID().toString();
-			return URI.create(endpoint + "?token=" + token + "&connectId=" + connectId);
-		});
+		return requestWrapper
+						.getResponse(PublicEndpoints.publicWsToken(), PublicResponses.PublicWsTokenResponse.class)
+						.thenApply(resp -> {
+							String token = resp.token();
+							String endpoint = resp.endpoint();
+							String connectId = UUID.randomUUID().toString();
+							return URI.create(endpoint + "?token=" + token + "&connectId=" + connectId);
+						});
 	}
 }

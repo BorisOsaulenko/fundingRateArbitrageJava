@@ -4,6 +4,7 @@ import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.FundingRate;
 import com.boris.fundingarbitrage.util.https.PaginatedResponse;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
@@ -13,14 +14,8 @@ class PublicResponses {
 	public record InstrumentsInfoSymbolsResponse(
 					int retCode, String retMsg, long time, InstrumentsInfoResult result
 	) implements PaginatedResponse {
-		private record LotSizeFilter(double qtyStep) {}
-
-		private record InstrumentInfo(String symbol, LotSizeFilter lotSizeFilter, int fundingInterval) {}
-
-		private record InstrumentsInfoResult(String category, List<InstrumentInfo> list, String nextPageCursor) {}
-
-		public Map<String, Double> getLotSizes() {
-			Map<String, Double> resultMap = new HashMap<>();
+		public Map<String, BigDecimal> getLotSizes() {
+			Map<String, BigDecimal> resultMap = new HashMap<>();
 			for (InstrumentInfo item : result.list()) resultMap.put(item.symbol(), item.lotSizeFilter().qtyStep());
 			return resultMap;
 		}
@@ -34,22 +29,15 @@ class PublicResponses {
 		public String getPaginationIndex() {
 			return result.nextPageCursor();
 		}
+
+		private record LotSizeFilter(BigDecimal qtyStep) {}
+
+		private record InstrumentInfo(String symbol, LotSizeFilter lotSizeFilter, int fundingInterval) {}
+
+		private record InstrumentsInfoResult(String category, List<InstrumentInfo> list, String nextPageCursor) {}
 	}
 
 	public record TickersResponseSymbols(int retCode, String retMsg, long time, TickersResult result) {
-		private record Ticker(
-						String symbol,
-						double bid1Price,
-						double bid1Size,
-						double ask1Price,
-						double ask1Size,
-						double volume24h,
-						double fundingRate,
-						long nextFundingTime
-		) {}
-
-		private record TickersResult(String category, List<Ticker> list) {}
-
 		public Map<String, BookTicker> getBookTickers() {
 			Map<String, BookTicker> resultMap = new HashMap<>();
 			for (Ticker item : result.list()) {
@@ -84,5 +72,18 @@ class PublicResponses {
 			}
 			return resultMap;
 		}
+
+		private record Ticker(
+						String symbol,
+						double bid1Price,
+						double bid1Size,
+						double ask1Price,
+						double ask1Size,
+						double volume24h,
+						double fundingRate,
+						long nextFundingTime
+		) {}
+
+		private record TickersResult(String category, List<Ticker> list) {}
 	}
 }
