@@ -1,15 +1,21 @@
 package com.boris.fundingarbitrage;
 
-import com.boris.fundingarbitrage.coinfilter.CoinFilter;
 import com.boris.fundingarbitrage.coinfilter.CoinFilterConfig;
 import com.boris.fundingarbitrage.exchange.impl.binance.BinanceExchange;
-import com.boris.fundingarbitrage.monitor.CoinMonitor;
+import com.boris.fundingarbitrage.logic.ArbitrageBotConfig;
+import com.boris.fundingarbitrage.logic.ArbitrageLogic;
+import com.boris.fundingarbitrage.strategy.ArbitrageStrategy;
+import com.boris.fundingarbitrage.strategy.ClassicArbitrageStrategy;
+import com.boris.fundingarbitrage.util.logger.Logger;
 
 import java.math.BigDecimal;
+import java.nio.file.Path;
+import java.time.Duration;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
 public class App {
+	private static final Set<String> coins2 = Set.of("RON", "BEAT", "BIRB", "BIO", "AGLD", "OM", "ORCA", "SOPH");
 	static Set<String> coins = Set.of(
 					"ETH",
 					"SOL",
@@ -106,17 +112,27 @@ public class App {
 					"BLUAI" // 92 coins
 	);
 
-//	private static final Set<String> coins = Set.of("SOL", "ETH", "XRP", "LTC", "ADA");
-
 	static void main(String[] args) throws Exception {
-		CoinFilterConfig config = new CoinFilterConfig(500_000, BigDecimal.valueOf(50));
-		CoinFilter filter = new CoinFilter(coins, config);
-		var result = filter.filterSync();
+		Logger.init(Path.of("app.log"));
+		ArbitrageStrategy strategy = new ClassicArbitrageStrategy();
+		ArbitrageBotConfig arbConfig = new ArbitrageBotConfig(
+						coins2,
+						30,
+						1,
+						Duration.ofMinutes(15),
+						Duration.ofSeconds(5),
+						Duration.ofSeconds(5),
+						30,
+						3
+		);
+		CoinFilterConfig filterConfig = new CoinFilterConfig(500_000, BigDecimal.valueOf(30));
 
-		CoinMonitor monitor = new CoinMonitor(result);
-		monitor.getInitFuture().join();
+		ArbitrageLogic logic = new ArbitrageLogic(strategy, arbConfig, filterConfig);
+		logic.start();
 
-		Thread.sleep(40000);
+		Thread.sleep(300_000);
+
+		logic.stop();
 	}
 
 	static void main2(String[] args) throws ExecutionException, InterruptedException {

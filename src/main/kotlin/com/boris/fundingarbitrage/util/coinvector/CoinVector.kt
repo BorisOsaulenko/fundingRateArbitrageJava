@@ -14,7 +14,7 @@ class CoinVector<T> : MutableMap<String, T> by ConcurrentHashMap() {
         }
     }
 
-    fun <R : Number> transform(op: (T, String?) -> R): CoinVector<R> {
+    fun <R> transform(op: (T, String?) -> R): CoinVector<R> {
         val result = CoinVector<R>()
         for ((key, value) in this) {
             result[key] = op(value, key)
@@ -123,6 +123,11 @@ class CoinVector<T> : MutableMap<String, T> by ConcurrentHashMap() {
                 }
             }
         }
+    }
+
+    fun sort(comparator: Comparator<T>): List<Map.Entry<String, T>> {
+        val sortedEntries = this.entries.sortedWith { a, b -> comparator.compare(a.value, b.value) }
+        return sortedEntries
     }
 
     fun getMaxEntry(comparator: Comparator<T>): Map.Entry<String, T>? =

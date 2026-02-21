@@ -24,6 +24,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 public class CoinMonitor {
 	private static final int BIT_BOOK = 1;
@@ -75,7 +76,10 @@ public class CoinMonitor {
 			}
 
 			Logger.log("Coin monitor initialized:");
-			Logger.logCoinVector(availableExchangesByCoin);
+			Logger.logCoinVector(availableExchangesByCoin.transform((exchanges, _) -> exchanges
+							.stream()
+							.map(exchange -> exchange.name)
+							.collect(Collectors.toSet())));
 			switchToSteadyStateHandlers();
 		});
 	}

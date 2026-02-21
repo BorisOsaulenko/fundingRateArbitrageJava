@@ -5,13 +5,17 @@ import java.util.Set;
 
 public record ArbitrageBotConfig(
 				Set<String> coins,
+				// the size of trade on one leg.
 				double legUsdtAmount,
-// the size of trade on one leg.
 				int leverage,
+				// Bot will move assets to the long and short exchanges. Withdrawals + deposit registration take time. ~ 20 min recommended
 				Duration timeForWithdrawals,
-// Bot will move assets to the long and short exchanges. Withdrawals + deposit registration take time. ~ 20 min recommended
+				// The trades are entered in (settlement - beforeEnter) timestamp
 				Duration beforeEnter,
-// The trades are entered in (settlement - beforeEnter) timestamp
-				Duration afterEnter
-// Some exchanges only apply funding only some time after the settlement
+				// Some exchanges only apply funding only some time after the settlement
+				Duration afterEnter,
+				// Bot will log the current best arb snapshots for coins + best arb snapshot overall. Set to 0 to disable logging
+				int loggingIntervalSeconds,
+				// Bot logs logBestArbSnapshotsAmount of the best arbitrage opportunities
+				int logBestArbSnapshotsAmount
 ) {}
