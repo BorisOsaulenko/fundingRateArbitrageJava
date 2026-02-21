@@ -15,9 +15,7 @@ public record FundingRate(
 
 	public static boolean isPartiallyEmpty(FundingRate fundingRate) {
 		return fundingRate.rate() == emptyRateValue ||
-					 fundingRate.settlement() == null ||
 					 Instant.EPOCH.equals(fundingRate.settlement()) ||
-					 fundingRate.timestamp() == null ||
 					 Instant.EPOCH.equals(fundingRate.timestamp());
 	}
 }

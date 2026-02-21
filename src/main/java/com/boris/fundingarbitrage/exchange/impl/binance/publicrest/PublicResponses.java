@@ -12,7 +12,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class PublicResponses {
+class PublicResponses {
 
 	public record ExchangeInfoResponse(List<SymbolInfo> symbols) {
 		public Map<String, BigDecimal> getLotSizes() {

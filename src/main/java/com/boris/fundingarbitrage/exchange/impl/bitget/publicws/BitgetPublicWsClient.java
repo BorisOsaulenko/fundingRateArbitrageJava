@@ -1,8 +1,7 @@
 package com.boris.fundingarbitrage.exchange.impl.bitget.publicws;
 
-import com.boris.fundingarbitrage.exchange.ExchangeContext;
+import com.boris.fundingarbitrage.exchange.impl.bitget.BitgetContext;
 import com.boris.fundingarbitrage.exchange.impl.bitget.publicrest.BitgetPublicHttpClient;
-import com.boris.fundingarbitrage.exchange.impl.bitget.publicws.pojos.WsRequest;
 import com.boris.fundingarbitrage.exchange.publicws.PublicWsClient;
 
 import java.net.URI;
@@ -18,7 +17,7 @@ public class BitgetPublicWsClient extends PublicWsClient {
 	private static final String tickerChannel = "ticker";
 	private final ScheduledExecutorService pingExecutor = new ScheduledThreadPoolExecutor(1);
 
-	public BitgetPublicWsClient(ExchangeContext context, BitgetPublicHttpClient publicHttp) {
+	public BitgetPublicWsClient(BitgetContext context, BitgetPublicHttpClient publicHttp) {
 		BitgetPublicMessageHandler messageHandler = new BitgetPublicMessageHandler(context);
 		super(context, endpoint, messageHandler, publicHttp);
 		pingExecutor.scheduleAtFixedRate(this::sendPing, 5, 30, TimeUnit.SECONDS);

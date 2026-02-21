@@ -2,8 +2,6 @@ package com.boris.fundingarbitrage.exchange.impl.okx.privatews;
 
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.ExchangeCredentials;
-import com.boris.fundingarbitrage.exchange.impl.okx.privatews.pojos.LoginRequest;
-import com.boris.fundingarbitrage.exchange.impl.okx.privatews.pojos.WsRequest;
 import com.boris.fundingarbitrage.exchange.privatews.PrivateWsClient;
 import com.boris.fundingarbitrage.util.cryptography.Signers;
 
@@ -27,7 +25,7 @@ public class OkxPrivateWsClient extends PrivateWsClient {
 		String payload = timestamp + "GET" + "/users/self/verify";
 		String sign = Signers.signHmacSha256Base64(payload, credentials.apiSecret());
 		LoginRequest.Arg[] args = new LoginRequest.Arg[]{
-					new LoginRequest.Arg(credentials.apiKey(), credentials.passphrase(), timestamp, sign)
+						new LoginRequest.Arg(credentials.apiKey(), credentials.passphrase(), timestamp, sign)
 		};
 		return new LoginRequest("login", args).toJson();
 	}

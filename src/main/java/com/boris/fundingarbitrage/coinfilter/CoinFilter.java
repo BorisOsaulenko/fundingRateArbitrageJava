@@ -3,7 +3,6 @@ package com.boris.fundingarbitrage.coinfilter;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.exchange.Instances;
 import com.boris.fundingarbitrage.exchange.publichttp.PublicOnePullData;
-import com.boris.fundingarbitrage.model.exchange.ExchangeName;
 import com.boris.fundingarbitrage.monitor.ExchangeCoinMap;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import com.boris.fundingarbitrage.util.logger.Logger;
@@ -20,7 +19,7 @@ public class CoinFilter {
 	private final Set<String> coins;
 	private final CoinFilterConfig config;
 
-	private final CoinVector<Set<ExchangeName>> availableExchangesByCoin = new CoinVector<>();
+	private final CoinVector<Set<BaseExchange>> availableExchangesByCoin = new CoinVector<>();
 	private final Map<BaseExchange, Set<String>> availableCoinsByExchange = new ConcurrentHashMap<>();
 	private final ExchangeCoinMap<BigDecimal> lotSizes = new ExchangeCoinMap<>();
 
@@ -42,12 +41,12 @@ public class CoinFilter {
 					String excludedMsg = shouldExcludeCoin(data);
 					if (excludedMsg != null) {
 						Logger.log("Excluding " + coin + " - " + exchange.name + " from monitoring: " + excludedMsg);
-						forgetCoinExchange(coin, exchange.name);
+						forgetCoinExchange(coin, exchange);
 						return;
 					}
-					availableExchangesByCoin.get(coin).add(exchange.name);
+					availableExchangesByCoin.get(coin).add(exchange);
 					availableCoinsByExchange.get(exchange).add(coin);
-					lotSizes.put(exchange.name, coin, data.lotSize());
+					lotSizes.put(exchange, coin, data.lotSize());
 				});
 			}).exceptionally(err -> {
 				Logger.log("Failed to fetch available coins for " + exchange.name + ": " + err.getMessage());
@@ -81,7 +80,7 @@ public class CoinFilter {
 
 	private void clearCoinsWithInsufficientExchanges() {
 		for (String coin : availableExchangesByCoin.keySet()) {
-			Set<ExchangeName> exchanges = availableExchangesByCoin.get(coin);
+			Set<BaseExchange> exchanges = availableExchangesByCoin.get(coin);
 			if (exchanges == null || exchanges.size() < 2) {
 				Logger.warn("Not enough exchanges support " + coin + ". Removing from monitoring.");
 				forgetCoin(coin);
@@ -89,25 +88,19 @@ public class CoinFilter {
 		}
 	}
 
-	private void forgetCoinExchange(String coin, ExchangeName name) {
-		BaseExchange exchange = Instances.getExchange(name);
-
-		Set<ExchangeName> available = availableExchangesByCoin.get(coin);
-		if (available != null) {
-			available.remove(name);
-		}
+	private void forgetCoinExchange(String coin, BaseExchange exchange) {
+		Set<BaseExchange> available = availableExchangesByCoin.get(coin);
+		if (available != null) available.remove(exchange);
 
 		Set<String> subscribedCoins = availableCoinsByExchange.get(exchange);
-		if (subscribedCoins != null) {
-			subscribedCoins.remove(coin);
-		}
+		if (subscribedCoins != null) subscribedCoins.remove(coin);
 	}
 
 	private void forgetCoin(String coin) {
-		Set<ExchangeName> available = availableExchangesByCoin.get(coin);
+		Set<BaseExchange> available = availableExchangesByCoin.get(coin);
 		if (available != null) {
-			for (ExchangeName name : available) {
-				forgetCoinExchange(coin, name);
+			for (BaseExchange exchange : available) {
+				forgetCoinExchange(coin, exchange);
 			}
 		}
 

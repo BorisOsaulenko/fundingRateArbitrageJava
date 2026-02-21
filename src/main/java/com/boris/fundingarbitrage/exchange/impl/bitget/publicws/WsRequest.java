@@ -1,11 +1,11 @@
-package com.boris.fundingarbitrage.exchange.impl.bitget.publicws.pojos;
+package com.boris.fundingarbitrage.exchange.impl.bitget.publicws;
 
 import com.boris.fundingarbitrage.ObjectMapperSingleton;
 import lombok.SneakyThrows;
 
 import java.util.List;
 
-public record WsRequest(String op, List<Arg> args) {
+record WsRequest(String op, List<Arg> args) {
 	@SneakyThrows
 	public String toJson() {
 		return ObjectMapperSingleton.getInstance().writeValueAsString(this);

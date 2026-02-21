@@ -1,8 +1,7 @@
 package com.boris.fundingarbitrage.exchange.impl.binance.privaterest;
 
-import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.ExchangeCredentials;
-import com.boris.fundingarbitrage.exchange.privatehttp.PrivateHttpClient;
+import com.boris.fundingarbitrage.exchange.impl.binance.BinanceContext;
 import com.boris.fundingarbitrage.model.assetops.*;
 import com.boris.fundingarbitrage.model.contract.Fees;
 import com.boris.fundingarbitrage.model.contract.PartialFill;
@@ -16,6 +15,7 @@ import com.boris.fundingarbitrage.util.https.RequestProcessingClientWrapper;
 import com.boris.fundingarbitrage.util.logger.Logger;
 import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
 import org.apache.hc.core5.net.URIBuilder;
+import privatehttp.PrivateHttpClient;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -29,7 +29,7 @@ public class BinancePrivateHttpClient extends PrivateHttpClient {
 	private final ExchangeCredentials credentials;
 	private final RequestProcessingClientWrapper requestWrapper = new RequestProcessingClientWrapper(this.client);
 
-	public BinancePrivateHttpClient(ExchangeContext context) {
+	public BinancePrivateHttpClient(BinanceContext context) {
 		super(context, PrettyHttpClient.getINSTANCE());
 		this.credentials = context.credentials;
 	}

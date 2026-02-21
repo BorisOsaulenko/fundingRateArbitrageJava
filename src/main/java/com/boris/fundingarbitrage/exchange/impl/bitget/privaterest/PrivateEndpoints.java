@@ -1,4 +1,4 @@
-package com.boris.fundingarbitrage.exchange.impl.bitget.privaterest;
+package impl.bitget.privaterest;
 
 import com.boris.fundingarbitrage.ObjectMapperSingleton;
 import com.boris.fundingarbitrage.model.assetops.*;
@@ -56,10 +56,7 @@ class PrivateEndpoints {
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest spotUsdtBalanceRequest() {
-		URI uri = new URIBuilder(baseUrl)
-						.setPath("/api/v2/spot/account/assets")
-						.addParameter("coin", "USDT")
-						.build();
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v2/spot/account/assets").addParameter("coin", "USDT").build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 

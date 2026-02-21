@@ -9,7 +9,6 @@ import com.boris.fundingarbitrage.model.exchange.ExchangeSnapshot;
 import com.boris.fundingarbitrage.strategy.ArbitrageStrategy;
 import org.junit.jupiter.api.Test;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -32,8 +31,8 @@ public abstract class ArbitrageStrategyTest {
 		FundingRate shortFunding = new FundingRate(shortFundingRate, now.plusSeconds(3600), now);
 		MarkPrice longMark = markPrice(longMarkPrice, now);
 		MarkPrice shortMark = markPrice(shortMarkPrice, now);
-		ExchangeSnapshot longExchange = new ExchangeSnapshot(longBook, fees, longFunding, longMark, BigDecimal.ONE);
-		ExchangeSnapshot shortExchange = new ExchangeSnapshot(shortBook, fees, shortFunding, shortMark, BigDecimal.ONE);
+		ExchangeSnapshot longExchange = new ExchangeSnapshot(longBook, fees, longFunding, longMark);
+		ExchangeSnapshot shortExchange = new ExchangeSnapshot(shortBook, fees, shortFunding, shortMark);
 		return new ArbitrageSnapshot(longExchange, shortExchange);
 	}
 

@@ -1,4 +1,4 @@
-package com.boris.fundingarbitrage.exchange.impl.bybit.privaterest;
+package impl.bybit.privaterest;
 
 import com.boris.fundingarbitrage.model.assetops.SupportedChain;
 import com.boris.fundingarbitrage.model.contract.Fees;

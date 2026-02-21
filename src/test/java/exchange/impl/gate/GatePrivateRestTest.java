@@ -2,9 +2,9 @@ package exchange.impl.gate;
 
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.impl.gate.GateContext;
-import com.boris.fundingarbitrage.exchange.impl.gate.privaterest.GatePrivateHttpClient;
-import com.boris.fundingarbitrage.exchange.privatehttp.PrivateHttpClient;
 import exchange.PrivateRestTest;
+import impl.gate.privaterest.GatePrivateHttpClient;
+import privatehttp.PrivateHttpClient;
 
 public class GatePrivateRestTest extends PrivateRestTest {
 	private static final ExchangeContext context = new GateContext();

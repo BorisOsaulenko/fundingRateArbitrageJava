@@ -2,8 +2,6 @@ package com.boris.fundingarbitrage.exchange.impl.bitget.privatews;
 
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.ExchangeCredentials;
-import com.boris.fundingarbitrage.exchange.impl.bitget.privatews.pojos.LoginRequest;
-import com.boris.fundingarbitrage.exchange.impl.bitget.privatews.pojos.WsRequest;
 import com.boris.fundingarbitrage.exchange.privatews.PrivateWsClient;
 import com.boris.fundingarbitrage.util.cryptography.Signers;
 

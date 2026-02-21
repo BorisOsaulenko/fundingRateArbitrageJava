@@ -1,4 +1,4 @@
-package com.boris.fundingarbitrage.exchange.impl.whitebit.privaterest;
+package impl.whitebit.privaterest;
 
 import com.boris.fundingarbitrage.model.assetops.SupportedChain;
 import com.boris.fundingarbitrage.model.contract.Fees;
@@ -14,7 +14,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 
 class PrivateResponses {
 	@JsonIgnoreProperties(ignoreUnknown = true)
@@ -39,10 +38,7 @@ class PrivateResponses {
 	}
 
 	public record SupportedChainsResponseEntry(
-					String ticker,
-					boolean is_api_depositable,
-					boolean is_api_withdrawal,
-					SupportedChainsWithdrawInfo withdraw
+					String ticker, boolean is_api_depositable, boolean is_api_withdrawal, SupportedChainsWithdrawInfo withdraw
 	) {}
 
 	public record SupportedChainsWithdrawInfo(double fixed, double min_amount) {}

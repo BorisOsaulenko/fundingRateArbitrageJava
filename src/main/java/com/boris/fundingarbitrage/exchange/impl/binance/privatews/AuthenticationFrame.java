@@ -5,11 +5,9 @@ import lombok.SneakyThrows;
 
 import java.util.UUID;
 
-record Params(String apiKey, String signature, long timestamp) {}
-
-record AuthenticationFrame(String id, String method, Params params) {
+record AuthenticationFrame(String id, String method, AuthParams params) {
 	public AuthenticationFrame(String apiKey, String signature) {
-		this(UUID.randomUUID().toString(), "session.logon", new Params(apiKey, signature, System.currentTimeMillis()));
+		this(UUID.randomUUID().toString(), "session.logon", new AuthParams(apiKey, signature, System.currentTimeMillis()));
 	}
 
 	@SneakyThrows

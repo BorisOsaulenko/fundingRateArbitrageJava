@@ -1,4 +1,4 @@
-package com.boris.fundingarbitrage.exchange.impl.okx.privaterest;
+package impl.okx.privaterest;
 
 import com.boris.fundingarbitrage.ObjectMapperSingleton;
 import com.boris.fundingarbitrage.model.assetops.*;

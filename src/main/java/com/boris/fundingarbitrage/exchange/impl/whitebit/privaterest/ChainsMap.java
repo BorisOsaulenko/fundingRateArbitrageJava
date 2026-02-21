@@ -1,4 +1,4 @@
-package com.boris.fundingarbitrage.exchange.impl.whitebit.privaterest;
+package impl.whitebit.privaterest;
 
 import com.boris.fundingarbitrage.model.assetops.SupportedChain;
 

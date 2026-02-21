@@ -2,7 +2,6 @@ package com.boris.fundingarbitrage.monitor;
 
 import com.boris.fundingarbitrage.coinfilter.CoinFilterResult;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
-import com.boris.fundingarbitrage.exchange.Instances;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.Fees;
 import com.boris.fundingarbitrage.model.contract.FundingRate;
@@ -16,8 +15,6 @@ import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import com.boris.fundingarbitrage.util.logger.Logger;
 import lombok.Getter;
 
-import java.math.BigDecimal;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -40,9 +37,8 @@ public class CoinMonitor {
 	private final ExchangeCoinMap<BookTicker> bookTickers = new ExchangeCoinMap<>();
 	private final ExchangeCoinMap<MarkPrice> markPrices = new ExchangeCoinMap<>();
 	private final ExchangeCoinMap<Fees> fees = new ExchangeCoinMap<>();
-	private final ExchangeCoinMap<BigDecimal> lotSizes;
 
-	private final CoinVector<Set<ExchangeName>> availableExchangesByCoin;
+	private final CoinVector<Set<BaseExchange>> availableExchangesByCoin;
 	private final Map<BaseExchange, Set<String>> availableCoinsByExchange;
 	@Getter
 	private final CompletableFuture<Void> initFuture;
@@ -58,7 +54,6 @@ public class CoinMonitor {
 	) {
 		this.availableExchangesByCoin = filterResult.availableExchangesByCoin();
 		this.availableCoinsByExchange = filterResult.availableCoinsByExchange();
-		this.lotSizes = filterResult.lotSizes();
 
 		this.initFuture = CompletableFuture.runAsync(() -> {
 			initFees();
@@ -88,7 +83,7 @@ public class CoinMonitor {
 	private void initCompletionTracking() {
 		int pending = 0;
 		for (var entry : bookTickers.entrySet()) {
-			initStateBits.put(entry.name(), entry.coin(), 0);
+			initStateBits.put(entry.exchange(), entry.coin(), 0);
 			pending += 3;
 		}
 		initPendingSignals.set(pending);
@@ -98,29 +93,44 @@ public class CoinMonitor {
 	private void checkDataCompleteness() {
 		for (var entry : bookTickers.entrySet()) {
 			if (BookTicker.isPartiallyEmpty(entry.value())) {
-				Logger.warn("Book ticker data is incomplete for " + entry.name() + " " + entry.coin() + ": " + entry.value());
-				forgetCoinExchange(entry.coin(), entry.name());
+				Logger.warn("Book ticker data is incomplete for " +
+										entry.exchange().name +
+										" " +
+										entry.coin() +
+										": " +
+										entry.value());
+				forgetCoinExchange(entry.coin(), entry.exchange());
 			}
 		}
 
 		for (var entry : fundingRates.entrySet()) {
 			if (FundingRate.isPartiallyEmpty(entry.value())) {
-				Logger.warn("Funding rate is incomplete for " + entry.name() + " " + entry.coin() + ": " + entry.value());
-				forgetCoinExchange(entry.coin(), entry.name());
+				Logger.warn("Funding rate is incomplete for " +
+										entry.exchange().name +
+										" " +
+										entry.coin() +
+										": " +
+										entry.value());
+				forgetCoinExchange(entry.coin(), entry.exchange());
 			}
 		}
 
 		for (var entry : markPrices.entrySet()) {
 			if (MarkPrice.isPartiallyEmpty(entry.value())) {
-				Logger.warn("Mark price is incomplete for " + entry.name() + " " + entry.coin() + ": " + entry.value());
-				forgetCoinExchange(entry.coin(), entry.name());
+				Logger.warn("Mark price is incomplete for " +
+										entry.exchange().name +
+										" " +
+										entry.coin() +
+										": " +
+										entry.value());
+				forgetCoinExchange(entry.coin(), entry.exchange());
 			}
 		}
 	}
 
 	private void clearCoinsWithInsufficientExchanges() {
 		for (String coin : availableExchangesByCoin.keySet()) {
-			Set<ExchangeName> exchanges = availableExchangesByCoin.get(coin);
+			Set<BaseExchange> exchanges = availableExchangesByCoin.get(coin);
 			if (exchanges == null || exchanges.size() < 2) {
 				Logger.warn("Not enough exchanges support " + coin + ". Removing from monitoring.");
 				forgetCoin(coin);
@@ -138,7 +148,7 @@ public class CoinMonitor {
 							.getTradingFees(entry.getValue())
 							.thenAccept(result -> {
 								result.forEach((coin, fee) -> {
-									fees.put(exchange.name, coin, fee);
+									fees.put(exchange, coin, fee);
 								});
 							})
 							.exceptionally(t -> {
@@ -153,10 +163,10 @@ public class CoinMonitor {
 
 	private void fillEmptyData() {
 		availableExchangesByCoin.forEach((coin, names) -> {
-			for (ExchangeName exchangeName : names) {
-				fundingRates.put(exchangeName, coin, FundingRate.empty());
-				bookTickers.put(exchangeName, coin, BookTicker.empty());
-				markPrices.put(exchangeName, coin, MarkPrice.empty());
+			for (BaseExchange exchange : names) {
+				fundingRates.put(exchange, coin, FundingRate.empty());
+				bookTickers.put(exchange, coin, BookTicker.empty());
+				markPrices.put(exchange, coin, MarkPrice.empty());
 			}
 		});
 	}
@@ -167,9 +177,9 @@ public class CoinMonitor {
 			List<String> supportedCoins = entry.getValue().stream().toList();
 			if (supportedCoins.isEmpty()) continue;
 
-			Consumer<BookTickerPatch> bookHandler = createInitBookHandler(exchange.name);
-			Consumer<FundingRatePatch> fundingHandler = createInitFundingHandler(exchange.name);
-			Consumer<MarkPricePatch> markHandler = createInitMarkHandler(exchange.name);
+			Consumer<BookTickerPatch> bookHandler = createInitBookHandler(exchange);
+			Consumer<FundingRatePatch> fundingHandler = createInitFundingHandler(exchange);
+			Consumer<MarkPricePatch> markHandler = createInitMarkHandler(exchange);
 
 			initBookHandlers.put(exchange.name, bookHandler);
 			initFundingHandlers.put(exchange.name, fundingHandler);
@@ -181,9 +191,9 @@ public class CoinMonitor {
 		}
 	}
 
-	private Consumer<BookTickerPatch> createInitBookHandler(ExchangeName exchangeName) {
+	private Consumer<BookTickerPatch> createInitBookHandler(BaseExchange exchange) {
 		return tickerPatch -> bookTickers.compute(
-						exchangeName, tickerPatch.coin(), (k, v) -> {
+						exchange, tickerPatch.coin(), (k, v) -> {
 							if (v == null) return null;
 							BookTicker updated = new BookTicker(
 											tickerPatch.bidPrice() != null ? tickerPatch.bidPrice() : v.bidPrice(),
@@ -192,39 +202,39 @@ public class CoinMonitor {
 											tickerPatch.askSize() != null ? tickerPatch.askSize() : v.askSize(),
 											tickerPatch.timestamp()
 							);
-							tryMarkComplete(exchangeName, tickerPatch.coin(), BIT_BOOK, isBookComplete(updated));
+							tryMarkComplete(exchange, tickerPatch.coin(), BIT_BOOK, !BookTicker.isPartiallyEmpty(v));
 							return updated;
 						}
 		);
 	}
 
-	private Consumer<FundingRatePatch> createInitFundingHandler(ExchangeName exchangeName) {
+	private Consumer<FundingRatePatch> createInitFundingHandler(BaseExchange exchange) {
 		return ratePatch -> fundingRates.compute(
-						exchangeName, ratePatch.coin(), (k, v) -> {
+						exchange, ratePatch.coin(), (k, v) -> {
 							if (v == null) return null;
 							FundingRate updated = new FundingRate(
 											ratePatch.rate() != null ? ratePatch.rate() : v.rate(),
 											ratePatch.settlement() != null ? ratePatch.settlement() : v.settlement(),
 											ratePatch.timestamp()
 							);
-							tryMarkComplete(exchangeName, ratePatch.coin(), BIT_FUNDING, isFundingComplete(updated));
+							tryMarkComplete(exchange, ratePatch.coin(), BIT_FUNDING, !FundingRate.isPartiallyEmpty(v));
 							return updated;
 						}
 		);
 	}
 
-	private Consumer<MarkPricePatch> createInitMarkHandler(ExchangeName exchangeName) {
+	private Consumer<MarkPricePatch> createInitMarkHandler(BaseExchange exchange) {
 		return markPricePatch -> markPrices.compute(
-						exchangeName, markPricePatch.coin(), (k, v) -> {
+						exchange, markPricePatch.coin(), (k, v) -> {
 							if (v == null) return null;
 							MarkPrice updated = new MarkPrice(markPricePatch.price(), markPricePatch.timestamp());
-							tryMarkComplete(exchangeName, markPricePatch.coin(), BIT_MARK, isMarkComplete(updated));
+							tryMarkComplete(exchange, markPricePatch.coin(), BIT_MARK, !MarkPrice.isPartiallyEmpty(v));
 							return updated;
 						}
 		);
 	}
 
-	private Consumer<BookTickerPatch> createSteadyBookHandler(ExchangeName exchangeName) {
+	private Consumer<BookTickerPatch> createSteadyBookHandler(BaseExchange exchangeName) {
 		return tickerPatch -> bookTickers.compute(
 						exchangeName, tickerPatch.coin(), (k, v) -> {
 							if (v == null) return null;
@@ -239,7 +249,7 @@ public class CoinMonitor {
 		);
 	}
 
-	private Consumer<FundingRatePatch> createSteadyFundingHandler(ExchangeName exchangeName) {
+	private Consumer<FundingRatePatch> createSteadyFundingHandler(BaseExchange exchangeName) {
 		return ratePatch -> fundingRates.compute(
 						exchangeName, ratePatch.coin(), (k, v) -> {
 							if (v == null) return null;
@@ -252,7 +262,7 @@ public class CoinMonitor {
 		);
 	}
 
-	private Consumer<MarkPricePatch> createSteadyMarkHandler(ExchangeName exchangeName) {
+	private Consumer<MarkPricePatch> createSteadyMarkHandler(BaseExchange exchangeName) {
 		return markPricePatch -> markPrices.compute(
 						exchangeName, markPricePatch.coin(), (k, v) -> {
 							if (v == null) return null;
@@ -267,9 +277,9 @@ public class CoinMonitor {
 			List<String> subscribedCoins = entry.getValue().stream().toList();
 			if (subscribedCoins.isEmpty()) continue;
 
-			exchange.publicWsClient.subscribeBookTicker(subscribedCoins, createSteadyBookHandler(exchange.name));
-			exchange.publicWsClient.subscribeFundingRates(subscribedCoins, createSteadyFundingHandler(exchange.name));
-			exchange.publicWsClient.subscribeMarkPrice(subscribedCoins, createSteadyMarkHandler(exchange.name));
+			exchange.publicWsClient.subscribeBookTicker(subscribedCoins, createSteadyBookHandler(exchange));
+			exchange.publicWsClient.subscribeFundingRates(subscribedCoins, createSteadyFundingHandler(exchange));
+			exchange.publicWsClient.subscribeMarkPrice(subscribedCoins, createSteadyMarkHandler(exchange));
 
 			Consumer<BookTickerPatch> initBook = initBookHandlers.remove(exchange.name);
 			if (initBook != null) {
@@ -288,11 +298,11 @@ public class CoinMonitor {
 		}
 	}
 
-	private void tryMarkComplete(ExchangeName exchangeName, String coin, int bit, boolean isComplete) {
+	private void tryMarkComplete(BaseExchange exchange, String coin, int bit, boolean isComplete) {
 		if (!isComplete) return;
 
 		initStateBits.compute(
-						exchangeName, coin, (k, bits) -> {
+						exchange, coin, (k, bits) -> {
 							if (bits == null || (bits & bit) != 0) return bits;
 
 							int updated = bits | bit;
@@ -304,9 +314,9 @@ public class CoinMonitor {
 		);
 	}
 
-	private void dropInitTracking(ExchangeName exchangeName, String coin) {
+	private void dropInitTracking(BaseExchange exchange, String coin) {
 		initStateBits.compute(
-						exchangeName, coin, (k, bits) -> {
+						exchange, coin, (k, bits) -> {
 							if (bits == null) return null;
 
 							int remainingForEntry = 3 - Integer.bitCount(bits & ALL_BITS);
@@ -320,44 +330,27 @@ public class CoinMonitor {
 		);
 	}
 
-	private boolean isBookComplete(BookTicker ticker) {
-		return ticker.bidPrice() > 0 &&
-					 ticker.bidSize() > 0 &&
-					 ticker.askPrice() > 0 &&
-					 ticker.askSize() > 0 &&
-					 !Instant.EPOCH.equals(ticker.timestamp());
-	}
+	private void forgetCoinExchange(String coin, BaseExchange exchange) {
+		dropInitTracking(exchange, coin);
 
-	private boolean isFundingComplete(FundingRate rate) {
-		return rate.settlement() != null && !Instant.EPOCH.equals(rate.settlement());
-	}
-
-	private boolean isMarkComplete(MarkPrice price) {
-		return price.price() > 0 && !Instant.EPOCH.equals(price.timestamp());
-	}
-
-	private void forgetCoinExchange(String coin, ExchangeName name) {
-		BaseExchange exchange = Instances.getExchange(name);
-		dropInitTracking(name, coin);
-
-		Set<ExchangeName> available = availableExchangesByCoin.get(coin);
-		if (available != null) available.remove(name);
+		Set<BaseExchange> available = availableExchangesByCoin.get(coin);
+		if (available != null) available.remove(exchange);
 
 		Set<String> subscribedCoins = availableCoinsByExchange.get(exchange);
 		if (subscribedCoins != null) subscribedCoins.remove(coin);
 
 		exchange.publicWsClient.unsubscribeCoin(coin);
 
-		fundingRates.remove(name, coin);
-		bookTickers.remove(name, coin);
-		markPrices.remove(name, coin);
-		fees.remove(name, coin);
+		fundingRates.remove(exchange, coin);
+		bookTickers.remove(exchange, coin);
+		markPrices.remove(exchange, coin);
+		fees.remove(exchange, coin);
 	}
 
 	private void forgetCoin(String coin) {
-		Set<ExchangeName> available = availableExchangesByCoin.get(coin);
+		Set<BaseExchange> available = availableExchangesByCoin.get(coin);
 		if (available != null) {
-			for (ExchangeName name : available) {
+			for (BaseExchange name : available) {
 				forgetCoinExchange(coin, name);
 			}
 		}
@@ -371,13 +364,12 @@ public class CoinMonitor {
 		}
 	}
 
-	public ExchangeSnapshot getSnapshot(ExchangeName exchangeName, String coin) {
-		BookTicker ticker = bookTickers.get(exchangeName, coin);
-		MarkPrice markPrice = markPrices.get(exchangeName, coin);
-		FundingRate fundingRate = fundingRates.get(exchangeName, coin);
-		Fees fee = fees.get(exchangeName, coin);
-		BigDecimal lotSize = lotSizes.get(exchangeName, coin);
+	public ExchangeSnapshot getSnapshot(BaseExchange exchange, String coin) {
+		BookTicker ticker = bookTickers.get(exchange, coin);
+		MarkPrice markPrice = markPrices.get(exchange, coin);
+		FundingRate fundingRate = fundingRates.get(exchange, coin);
+		Fees fee = fees.get(exchange, coin);
 
-		return new ExchangeSnapshot(ticker, fee, fundingRate, markPrice, lotSize);
+		return new ExchangeSnapshot(ticker, fee, fundingRate, markPrice);
 	}
 }

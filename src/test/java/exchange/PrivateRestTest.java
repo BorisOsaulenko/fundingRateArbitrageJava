@@ -1,6 +1,5 @@
 package exchange;
 
-import com.boris.fundingarbitrage.exchange.privatehttp.PrivateHttpClient;
 import com.boris.fundingarbitrage.model.assetops.MarginMode;
 import com.boris.fundingarbitrage.model.assetops.SupportedChain;
 import com.boris.fundingarbitrage.model.contract.Fees;
@@ -9,6 +8,7 @@ import com.boris.fundingarbitrage.model.exchange.WalletAddress;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import privatehttp.PrivateHttpClient;
 
 import java.time.Duration;
 import java.time.Instant;

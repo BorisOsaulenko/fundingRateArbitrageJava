@@ -1,4 +1,4 @@
-package com.boris.fundingarbitrage.exchange.impl.bitget.privaterest;
+package impl.bitget.privaterest;
 
 import com.boris.fundingarbitrage.model.assetops.SupportedChain;
 import com.boris.fundingarbitrage.model.contract.Fees;
@@ -7,7 +7,6 @@ import com.boris.fundingarbitrage.model.exchange.ExchangeChains;
 import com.boris.fundingarbitrage.model.exchange.ExchangeChainsBuilder;
 import com.boris.fundingarbitrage.model.exchange.WalletAddress;
 import com.boris.fundingarbitrage.model.exchange.WithdrawChain;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -37,13 +36,13 @@ class PrivateResponses {
 	) {}
 
 	public record SpotUsdtBalanceResponse(String code, String message, long requestTime, List<SpotBalanceEntry> data) {
-		private record SpotBalanceEntry(String coin, double available) {}
-
 		public double get() {
 			SpotBalanceEntry entry = data.getFirst();
 			if (!"usdt".equalsIgnoreCase(entry.coin)) throw new IllegalStateException("Unexpected USDT balance entry");
 			return entry.available;
 		}
+
+		private record SpotBalanceEntry(String coin, double available) {}
 	}
 
 	private record FuturesAccount(
@@ -90,11 +89,7 @@ class PrivateResponses {
 	}
 
 	private record ChainInfo(
-					String chain,
-					Boolean withdrawable,
-					Boolean rechargeable,
-					double withdrawFee,
-					double minWithdrawAmount
+					String chain, Boolean withdrawable, Boolean rechargeable, double withdrawFee, double minWithdrawAmount
 	) {}
 
 	private record CoinInfo(
@@ -117,8 +112,9 @@ class PrivateResponses {
 				if (mapped == null) continue;
 
 				if (chain.rechargeable) builder.addDepositableChain(mapped);
-				if (chain.withdrawable)
+				if (chain.withdrawable) {
 					builder.addWithdrawableChain(new WithdrawChain(mapped, chain.withdrawFee(), chain.minWithdrawAmount()));
+				}
 			}
 
 			return builder.build();
@@ -131,7 +127,9 @@ class PrivateResponses {
 					String code, String msg, long requestTime, WalletAddressData data
 	) {
 		public WalletAddress get(SupportedChain chain) {
-			if (data == null || data.address == null || data.address.isEmpty()) throw new IllegalStateException("Bitget wallet address missing");
+			if (data == null || data.address == null || data.address.isEmpty()) {
+				throw new IllegalStateException("Bitget wallet address missing");
+			}
 
 			String address = data.address;
 			String tag = data.tag;
