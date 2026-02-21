@@ -1,11 +1,5 @@
 package com.boris.fundingarbitrage;
 
-import com.boris.fundingarbitrage.exchange.impl.gate.GateExchange;
-import com.boris.fundingarbitrage.exchange.impl.whitebit.WhitebitExchange;
-import com.boris.fundingarbitrage.monitor.CoinMonitor;
-import com.boris.fundingarbitrage.util.logger.Logger;
-
-import java.nio.file.Path;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
@@ -109,19 +103,6 @@ public class App {
 	private static final Set<String> coins = Set.of("SOL", "ETH", "XRP", "LTC", "ADA");
 
 	static void main2(String[] args) throws Exception {
-		CoinMonitor monitor = new CoinMonitor(coins);
-		Logger.init(Path.of("app.log"));
-		Logger.log("Initializing coin monitor and waiting for complete data...");
-
-		try {
-			monitor.getInitFuture().get();
-			Logger.log("Coin monitor initialized successfully with complete data. Starting arbitrage logic...");
-		} catch (Exception e) {
-			Logger.error("Failed to initialize coin monitor: " + e.getMessage());
-			throw new RuntimeException("Coin monitor initialization failed", e);
-		} finally {
-			monitor.shutdown();
-		}
 
 		Thread.sleep(40000);
 	}
