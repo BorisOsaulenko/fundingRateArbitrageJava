@@ -38,17 +38,17 @@ public abstract class PrivateRestTest {
 
 	private void assertValidFees(Fees fees) {
 		assertNotNull(fees, "Fees should not be null");
-		assertFinite(fees.openTaker, "Open taker fee should be finite");
-		assertFinite(fees.closeTaker, "Close taker fee should be finite");
-		assertTrue(fees.openTaker >= 0, "Open taker fee should be non-negative");
-		assertTrue(fees.closeTaker >= 0, "Open maker fee should be non-negative");
-		assertTrue(fees.openTaker < MAX_ABS_FEE, "Open taker fee should be < " + MAX_ABS_FEE);
-		assertTrue(fees.closeTaker < MAX_ABS_FEE, "Close taker fee should be < " + MAX_ABS_FEE);
+		assertFinite(fees.openTaker(), "Open taker fee should be finite");
+		assertFinite(fees.closeTaker(), "Close taker fee should be finite");
+		assertTrue(fees.openTaker() >= 0, "Open taker fee should be non-negative");
+		assertTrue(fees.closeTaker() >= 0, "Open maker fee should be non-negative");
+		assertTrue(fees.openTaker() < MAX_ABS_FEE, "Open taker fee should be < " + MAX_ABS_FEE);
+		assertTrue(fees.closeTaker() < MAX_ABS_FEE, "Close taker fee should be < " + MAX_ABS_FEE);
 
 		Instant now = Instant.now();
 		assertTrue(
-						Duration.between(fees.timestamp, now).compareTo(timestampTolerance) < 0,
-						"Fees timestamp should be recent. Difference: " + Duration.between(fees.timestamp, now).toMillis() + " ms"
+						Duration.between(fees.timestamp(), now).compareTo(timestampTolerance) < 0,
+						"Fees timestamp should be recent. Difference: " + Duration.between(fees.timestamp(), now).toMillis() + " ms"
 		);
 	}
 

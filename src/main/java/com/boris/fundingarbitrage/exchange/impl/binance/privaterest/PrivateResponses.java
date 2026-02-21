@@ -103,7 +103,7 @@ class PrivateResponses {
 			ExchangeChainsBuilder builder = new ExchangeChainsBuilder();
 
 			for (CoinInfo coinInfo : chains) {
-				if (coinInfo.coin.equals("USDT")) {
+				if (coinInfo.coin.equals("USDC")) {
 					for (NetworkListItem network : coinInfo.networkList) {
 						SupportedChain chain = ChainsMap.getInverse(network.network);
 						if (chain == null) continue;

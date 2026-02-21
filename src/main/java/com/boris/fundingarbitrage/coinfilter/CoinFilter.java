@@ -70,7 +70,7 @@ public class CoinFilter {
 			return "Volume not enough: " + data.volume24h();
 		}
 
-		BigDecimal ask = BigDecimal.valueOf(data.bookTicker().askPrice);
+		BigDecimal ask = BigDecimal.valueOf(data.bookTicker().askPrice());
 		BigDecimal minPriceStep = data.lotSize().multiply(ask);
 		if (minPriceStep.compareTo(config.maxAffordablePrice()) > 0) {
 			return "Price too high; min price step: " + minPriceStep;

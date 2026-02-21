@@ -44,7 +44,7 @@ public abstract class FullFundingViaRest extends PublicWsClient {
 			if (err != null) return; // Imitate websocket behavior - if REST call fails, just skip this update cycle.
 			rates.forEach((coin, rate) -> {
 				if (rate == null) return;
-				FundingRatePatch patch = new FundingRatePatch(coin, rate.rate, rate.settlement, rate.timestamp);
+				FundingRatePatch patch = new FundingRatePatch(coin, rate.rate(), rate.settlement(), rate.timestamp());
 				dispatchPatchToHandlers(patch, fundingRateHandlers);
 			});
 		});

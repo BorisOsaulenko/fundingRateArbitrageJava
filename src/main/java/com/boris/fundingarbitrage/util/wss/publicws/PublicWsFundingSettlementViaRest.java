@@ -35,7 +35,7 @@ public abstract class PublicWsFundingSettlementViaRest extends PublicWsClient {
 			updatingSettlements = false;
 			rates.forEach((coin, rate) -> {
 				if (rate == null) return;
-				settlementVector.put(coin, rate.settlement);
+				settlementVector.put(coin, rate.settlement());
 			});
 		});
 	}

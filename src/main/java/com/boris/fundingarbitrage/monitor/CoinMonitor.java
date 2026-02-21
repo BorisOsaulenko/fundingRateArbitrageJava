@@ -185,13 +185,15 @@ public class CoinMonitor {
 		return tickerPatch -> bookTickers.compute(
 						exchangeName, tickerPatch.coin(), (k, v) -> {
 							if (v == null) return null;
-							if (tickerPatch.bidSize() != null) v.bidSize = tickerPatch.bidSize();
-							if (tickerPatch.bidPrice() != null) v.bidPrice = tickerPatch.bidPrice();
-							if (tickerPatch.askPrice() != null) v.askPrice = tickerPatch.askPrice();
-							if (tickerPatch.askSize() != null) v.askSize = tickerPatch.askSize();
-							v.timestamp = tickerPatch.timestamp();
-							tryMarkComplete(exchangeName, tickerPatch.coin(), BIT_BOOK, isBookComplete(v));
-							return v;
+							BookTicker updated = new BookTicker(
+											tickerPatch.bidPrice() != null ? tickerPatch.bidPrice() : v.bidPrice(),
+											tickerPatch.bidSize() != null ? tickerPatch.bidSize() : v.bidSize(),
+											tickerPatch.askPrice() != null ? tickerPatch.askPrice() : v.askPrice(),
+											tickerPatch.askSize() != null ? tickerPatch.askSize() : v.askSize(),
+											tickerPatch.timestamp()
+							);
+							tryMarkComplete(exchangeName, tickerPatch.coin(), BIT_BOOK, isBookComplete(updated));
+							return updated;
 						}
 		);
 	}
@@ -200,11 +202,13 @@ public class CoinMonitor {
 		return ratePatch -> fundingRates.compute(
 						exchangeName, ratePatch.coin(), (k, v) -> {
 							if (v == null) return null;
-							if (ratePatch.rate() != null) v.rate = ratePatch.rate();
-							if (ratePatch.settlement() != null) v.settlement = ratePatch.settlement();
-							v.timestamp = ratePatch.timestamp();
-							tryMarkComplete(exchangeName, ratePatch.coin(), BIT_FUNDING, isFundingComplete(v));
-							return v;
+							FundingRate updated = new FundingRate(
+											ratePatch.rate() != null ? ratePatch.rate() : v.rate(),
+											ratePatch.settlement() != null ? ratePatch.settlement() : v.settlement(),
+											ratePatch.timestamp()
+							);
+							tryMarkComplete(exchangeName, ratePatch.coin(), BIT_FUNDING, isFundingComplete(updated));
+							return updated;
 						}
 		);
 	}
@@ -213,10 +217,9 @@ public class CoinMonitor {
 		return markPricePatch -> markPrices.compute(
 						exchangeName, markPricePatch.coin(), (k, v) -> {
 							if (v == null) return null;
-							v.price = markPricePatch.price();
-							v.timestamp = markPricePatch.timestamp();
-							tryMarkComplete(exchangeName, markPricePatch.coin(), BIT_MARK, isMarkComplete(v));
-							return v;
+							MarkPrice updated = new MarkPrice(markPricePatch.price(), markPricePatch.timestamp());
+							tryMarkComplete(exchangeName, markPricePatch.coin(), BIT_MARK, isMarkComplete(updated));
+							return updated;
 						}
 		);
 	}
@@ -225,12 +228,13 @@ public class CoinMonitor {
 		return tickerPatch -> bookTickers.compute(
 						exchangeName, tickerPatch.coin(), (k, v) -> {
 							if (v == null) return null;
-							if (tickerPatch.bidSize() != null) v.bidSize = tickerPatch.bidSize();
-							if (tickerPatch.bidPrice() != null) v.bidPrice = tickerPatch.bidPrice();
-							if (tickerPatch.askPrice() != null) v.askPrice = tickerPatch.askPrice();
-							if (tickerPatch.askSize() != null) v.askSize = tickerPatch.askSize();
-							v.timestamp = tickerPatch.timestamp();
-							return v;
+							return new BookTicker(
+											tickerPatch.bidPrice() != null ? tickerPatch.bidPrice() : v.bidPrice(),
+											tickerPatch.bidSize() != null ? tickerPatch.bidSize() : v.bidSize(),
+											tickerPatch.askPrice() != null ? tickerPatch.askPrice() : v.askPrice(),
+											tickerPatch.askSize() != null ? tickerPatch.askSize() : v.askSize(),
+											tickerPatch.timestamp()
+							);
 						}
 		);
 	}
@@ -239,10 +243,11 @@ public class CoinMonitor {
 		return ratePatch -> fundingRates.compute(
 						exchangeName, ratePatch.coin(), (k, v) -> {
 							if (v == null) return null;
-							if (ratePatch.rate() != null) v.rate = ratePatch.rate();
-							if (ratePatch.settlement() != null) v.settlement = ratePatch.settlement();
-							v.timestamp = ratePatch.timestamp();
-							return v;
+							return new FundingRate(
+											ratePatch.rate() != null ? ratePatch.rate() : v.rate(),
+											ratePatch.settlement() != null ? ratePatch.settlement() : v.settlement(),
+											ratePatch.timestamp()
+							);
 						}
 		);
 	}
@@ -251,9 +256,7 @@ public class CoinMonitor {
 		return markPricePatch -> markPrices.compute(
 						exchangeName, markPricePatch.coin(), (k, v) -> {
 							if (v == null) return null;
-							v.price = markPricePatch.price();
-							v.timestamp = markPricePatch.timestamp();
-							return v;
+							return new MarkPrice(markPricePatch.price(), markPricePatch.timestamp());
 						}
 		);
 	}
@@ -318,19 +321,19 @@ public class CoinMonitor {
 	}
 
 	private boolean isBookComplete(BookTicker ticker) {
-		return ticker.bidPrice > 0 &&
-					 ticker.bidSize > 0 &&
-					 ticker.askPrice > 0 &&
-					 ticker.askSize > 0 &&
-					 ticker.timestamp != Instant.EPOCH;
+		return ticker.bidPrice() > 0 &&
+					 ticker.bidSize() > 0 &&
+					 ticker.askPrice() > 0 &&
+					 ticker.askSize() > 0 &&
+					 !Instant.EPOCH.equals(ticker.timestamp());
 	}
 
 	private boolean isFundingComplete(FundingRate rate) {
-		return rate.settlement != null && rate.settlement != Instant.EPOCH;
+		return rate.settlement() != null && !Instant.EPOCH.equals(rate.settlement());
 	}
 
 	private boolean isMarkComplete(MarkPrice price) {
-		return price.price > 0 && price.timestamp != Instant.EPOCH;
+		return price.price() > 0 && !Instant.EPOCH.equals(price.timestamp());
 	}
 
 	private void forgetCoinExchange(String coin, ExchangeName name) {

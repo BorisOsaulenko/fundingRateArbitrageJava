@@ -38,10 +38,7 @@ public abstract class ArbitrageStrategyTest {
 	}
 
 	private static MarkPrice markPrice(double price, Instant timestamp) {
-		MarkPrice markPrice = MarkPrice.empty();
-		markPrice.price = price;
-		markPrice.timestamp = timestamp;
-		return markPrice;
+		return new MarkPrice(price, timestamp);
 	}
 
 	protected abstract ArbitrageStrategy strategy();
