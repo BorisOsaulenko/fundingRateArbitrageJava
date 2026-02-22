@@ -5,22 +5,21 @@ import jakarta.websocket.CloseReason;
 import lombok.NonNull;
 import org.glassfish.tyrus.client.ClientManager;
 
-import java.net.URI;
 import java.util.function.BooleanSupplier;
 
 public class PrettyWsReconnectHandler extends ClientManager.ReconnectHandler {
-	private final URI endpointUri;
+	private final String clientName;
 	private final int maxAttempts;
 	private final BooleanSupplier allowReconnect; // e.g., () -> !closeRequested
 
 	private int attempts = 0;
 
 	public PrettyWsReconnectHandler(
-					@NonNull URI endpointUri,
+					@NonNull String clientName,
 					int maxAttempts,
 					@NonNull BooleanSupplier allowReconnect
 	) {
-		this.endpointUri = endpointUri;
+		this.clientName = clientName;
 		this.maxAttempts = maxAttempts;
 		this.allowReconnect = allowReconnect;
 	}
@@ -39,13 +38,13 @@ public class PrettyWsReconnectHandler extends ClientManager.ReconnectHandler {
 
 	@Override
 	public boolean onDisconnect(CloseReason closeReason) {
-		Logger.warn(String.format("%s on %s", closeReason, endpointUri));
+		Logger.warn(String.format("%s on %s", closeReason, clientName));
 		return shouldReconnect();
 	}
 
 	@Override
 	public boolean onConnectFailure(Exception exception) {
-		Logger.warn(String.format("%s on %s", exception, endpointUri));
+		Logger.warn(String.format("%s on %s", exception, clientName));
 		return shouldReconnect();
 	}
 

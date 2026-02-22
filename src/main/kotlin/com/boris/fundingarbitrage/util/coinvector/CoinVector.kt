@@ -130,6 +130,11 @@ class CoinVector<T> : MutableMap<String, T> by ConcurrentHashMap() {
         return sortedEntries
     }
 
+    fun sortDesc(comparator: Comparator<T>): List<Map.Entry<String, T>> {
+        val sortedEntries = this.entries.sortedWith { a, b -> comparator.compare(b.value, a.value) }
+        return sortedEntries
+    }
+
     fun getMaxEntry(comparator: Comparator<T>): Map.Entry<String, T>? =
         this.entries.maxWithOrNull { a, b -> comparator.compare(a.value, b.value) }
 }

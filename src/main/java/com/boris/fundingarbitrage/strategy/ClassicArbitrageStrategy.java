@@ -9,8 +9,73 @@ import com.boris.fundingarbitrage.model.exchange.ExchangeSnapshot;
 import java.time.Instant;
 
 public class ClassicArbitrageStrategy extends ArbitrageStrategy {
-	private static final double MIN_F_SPREAD = 0.005; // 0.5%
+	private static final double MIN_F_SPREAD = 0; // 0%
 	private static final double CLOSE_F_SPREAD_EPS = 1e-6;
+
+	private static double perCoinNotional(ArbitrageSnapshot snapshot) {
+		ExchangeSnapshot longExchange = snapshot.longExchange();
+		ExchangeSnapshot shortExchange = snapshot.shortExchange();
+		double longAsk = longExchange.bookTicker().askPrice();
+		double shortBid = shortExchange.bookTicker().bidPrice();
+		return (longAsk + shortBid) / 2.0;
+	}
+
+	private static double oSpread(ArbitrageSnapshot snapshot) {
+		ExchangeSnapshot longExchange = snapshot.longExchange();
+		ExchangeSnapshot shortExchange = snapshot.shortExchange();
+		double longAsk = longExchange.bookTicker().askPrice();
+		double shortBid = shortExchange.bookTicker().bidPrice();
+		double perCoinNotional = perCoinNotional(snapshot);
+		if (perCoinNotional == 0) {
+			return 0;
+		}
+		return (shortBid - longAsk) / perCoinNotional;
+	}
+
+	private static double fSpread(ArbitrageSnapshot snapshot) {
+		double perCoinNotional = perCoinNotional(snapshot);
+		if (perCoinNotional == 0) {
+			return 0;
+		}
+		return fundingGainPerCoin(snapshot) / perCoinNotional;
+	}
+
+	private static double fundingGainPerCoin(ArbitrageSnapshot snapshot) {
+		ExchangeSnapshot longExchange = snapshot.longExchange();
+		ExchangeSnapshot shortExchange = snapshot.shortExchange();
+		FundingRate longFunding = longExchange.fundingRate();
+		FundingRate shortFunding = shortExchange.fundingRate();
+		Instant longSettlement = longFunding.settlement();
+		Instant shortSettlement = shortFunding.settlement();
+		Instant nextSettlement = longSettlement.isBefore(shortSettlement) ? longSettlement : shortSettlement;
+		boolean applyLong = longSettlement.equals(nextSettlement);
+		boolean applyShort = shortSettlement.equals(nextSettlement);
+
+		double shortFundingGain = 0;
+		if (applyShort) {
+			shortFundingGain = shortFunding.rate() * markPrice(shortExchange);
+		}
+		double longFundingLoss = 0;
+		if (applyLong) {
+			longFundingLoss = longFunding.rate() * markPrice(longExchange);
+		}
+		return shortFundingGain - longFundingLoss;
+	}
+
+	private static double markPrice(ExchangeSnapshot exchangeSnapshot) {
+		MarkPrice markPrice = exchangeSnapshot.markPrice();
+		return markPrice.price();
+	}
+
+	private static double priceGainPerCoin(ArbitrageSnapshot entry, ArbitrageSnapshot current) {
+		BookTicker entryLongBook = entry.longExchange().bookTicker();
+		BookTicker entryShortBook = entry.shortExchange().bookTicker();
+		BookTicker currentLongBook = current.longExchange().bookTicker();
+		BookTicker currentShortBook = current.shortExchange().bookTicker();
+		double longGain = currentLongBook.bidPrice() - entryLongBook.askPrice();
+		double shortGain = entryShortBook.bidPrice() - currentShortBook.askPrice();
+		return longGain + shortGain;
+	}
 
 	@Override
 	public int compareSnapshots(ArbitrageSnapshot first, ArbitrageSnapshot second) {
@@ -48,70 +113,5 @@ public class ClassicArbitrageStrategy extends ArbitrageStrategy {
 		}
 		return priceGain + fundingGain > 0;
 		//TODO: also check if the trade is going against us and need to exit before losses
-	}
-	private static double perCoinNotional(ArbitrageSnapshot snapshot) {
-		ExchangeSnapshot longExchange = snapshot.longExchange();
-		ExchangeSnapshot shortExchange = snapshot.shortExchange();
-		double longAsk = longExchange.bookTicker().askPrice();
-		double shortBid = shortExchange.bookTicker().bidPrice();
-		return (longAsk + shortBid) / 2.0;
-	}
-
-	private static double oSpread(ArbitrageSnapshot snapshot) {
-		ExchangeSnapshot longExchange = snapshot.longExchange();
-		ExchangeSnapshot shortExchange = snapshot.shortExchange();
-		double longAsk = longExchange.bookTicker().askPrice();
-		double shortBid = shortExchange.bookTicker().bidPrice();
-		double perCoinNotional = perCoinNotional(snapshot);
-		if (perCoinNotional == 0) {
-			return 0;
-		}
-		return (shortBid - longAsk) / perCoinNotional;
-	}
-
-	private static double fSpread(ArbitrageSnapshot snapshot) {
-		double perCoinNotional = perCoinNotional(snapshot);
-		if (perCoinNotional == 0) {
-			return 0;
-		}
-		return fundingGainPerCoin(snapshot) / perCoinNotional;
-	}
-
-	private static double fundingGainPerCoin(ArbitrageSnapshot snapshot) {
-		ExchangeSnapshot longExchange = snapshot.longExchange();
-		ExchangeSnapshot shortExchange = snapshot.shortExchange();
-		FundingRate longFunding = longExchange.fundingRate();
-		FundingRate shortFunding = shortExchange.fundingRate();
-		Instant longSettlement = longFunding.settlement();
-		Instant shortSettlement = shortFunding.settlement();
-		Instant nextSettlement =
-						longSettlement.isBefore(shortSettlement) ? longSettlement : shortSettlement;
-		boolean applyLong = longSettlement.equals(nextSettlement);
-		boolean applyShort = shortSettlement.equals(nextSettlement);
-
-		double shortFundingGain = 0;
-		if (applyShort) {
-			shortFundingGain = shortFunding.rate() * markPrice(shortExchange);
-		}
-		double longFundingLoss = 0;
-		if (applyLong) {
-			longFundingLoss = longFunding.rate() * markPrice(longExchange);
-		}
-		return shortFundingGain - longFundingLoss;
-	}
-
-	private static double markPrice(ExchangeSnapshot exchangeSnapshot) {
-		MarkPrice markPrice = exchangeSnapshot.markPrice();
-		return markPrice.price();
-	}
-
-	private static double priceGainPerCoin(ArbitrageSnapshot entry, ArbitrageSnapshot current) {
-		BookTicker entryLongBook = entry.longExchange().bookTicker();
-		BookTicker entryShortBook = entry.shortExchange().bookTicker();
-		BookTicker currentLongBook = current.longExchange().bookTicker();
-		BookTicker currentShortBook = current.shortExchange().bookTicker();
-		double longGain = currentLongBook.bidPrice() - entryLongBook.askPrice();
-		double shortGain = entryShortBook.bidPrice() - currentShortBook.askPrice();
-		return longGain + shortGain;
 	}
 }

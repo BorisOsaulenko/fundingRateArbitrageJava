@@ -46,6 +46,7 @@ public abstract class PublicWsClient {
 		this.publicHttpClient = publicHttp;
 		this.prettyWsClientFuture = CompletableFuture.completedFuture(new PrettyWsClient(
 						endpoint,
+						this.getClass().getSimpleName(),
 						this::handleMessage,
 						this::onConnect,
 						null
@@ -64,6 +65,7 @@ public abstract class PublicWsClient {
 		this.publicHttpClient = publicHttpClient;
 		this.prettyWsClientFuture = endpointFuture.thenApply(endpoint -> new PrettyWsClient(
 						endpoint,
+						this.getClass().getSimpleName(),
 						this::handleMessage,
 						this::onConnect,
 						null

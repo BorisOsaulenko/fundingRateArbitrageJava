@@ -111,17 +111,20 @@ public class ArbitrageLogic {
 
 	private void logData() {
 		Logger.log("The best arbitrage opportunities:");
-		bestArbSnapshots.sort(strategy::compareSnapshots).subList(0, config.logBestArbSnapshotsAmount()).forEach(entry -> {
-			var bestCoinExchanges = bestArbExchanges.get(entry.getKey());
-			assert bestCoinExchanges != null;
+		bestArbSnapshots
+						.sortDesc(strategy::compareSnapshots)
+						.subList(0, config.logBestArbSnapshotsAmount())
+						.forEach(entry -> {
+							var bestCoinExchanges = bestArbExchanges.get(entry.getKey());
+							assert bestCoinExchanges != null;
 
-			Logger.log(entry.getKey() +
-								 ": " +
-								 bestCoinExchanges.getFirst().name +
-								 " (long) / " +
-								 bestCoinExchanges.getSecond().name +
-								 " (short) - " +
-								 (strategy.snapshotGoodEnough(entry.getValue()) ? "GOOD" : "BAD"));
-		});
+							Logger.log(entry.getKey() +
+												 ": " +
+												 bestCoinExchanges.getFirst().name +
+												 " (long) / " +
+												 bestCoinExchanges.getSecond().name +
+												 " (short) - " +
+												 (strategy.snapshotGoodEnough(entry.getValue()) ? "GOOD" : "BAD"));
+						});
 	}
 }
