@@ -15,7 +15,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
 public class App {
-	private static final Set<String> coins2 = Set.of("RON", "BEAT", "BIRB", "BIO", "AGLD", "OM", "ORCA", "SOPH");
+	private static final Set<String> coins2 = Set.of("BERA", "FOLKS", "GAIB", "OM", "AZTEC");
 	static Set<String> coins = Set.of(
 					"ETH",
 					"SOL",

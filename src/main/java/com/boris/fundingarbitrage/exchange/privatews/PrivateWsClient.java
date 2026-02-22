@@ -47,7 +47,6 @@ public abstract class PrivateWsClient {
 						this::onConnect,
 						null
 		));
-		this.prettyWsClientFuture.thenAccept(PrettyWsClient::connect);
 	}
 
 	public final void close() {
