@@ -40,6 +40,13 @@ public class ClassicArbitrageStrategy extends ArbitrageStrategy {
 		return fundingGainPerCoin(snapshot) / perCoinNotional;
 	}
 
+	private static double totalFees(ArbitrageSnapshot snapshot) {
+		return snapshot.longExchange().fees().openTaker() +
+					 snapshot.shortExchange().fees().openTaker() +
+					 snapshot.longExchange().fees().closeTaker() +
+					 snapshot.shortExchange().fees().closeTaker();
+	}
+
 	private static double fundingGainPerCoin(ArbitrageSnapshot snapshot) {
 		ExchangeSnapshot longExchange = snapshot.longExchange();
 		ExchangeSnapshot shortExchange = snapshot.shortExchange();
@@ -98,7 +105,7 @@ public class ClassicArbitrageStrategy extends ArbitrageStrategy {
 
 	@Override
 	public boolean snapshotGoodEnough(ArbitrageSnapshot snapshot) {
-		return oSpread(snapshot) >= 0 && fSpread(snapshot) >= MIN_F_SPREAD;
+		return oSpread(snapshot) >= 0 && fSpread(snapshot) >= totalFees(snapshot) + MIN_F_SPREAD;
 	}
 
 	@Override
