@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 class PrivateEndpoints {
+	private static final BitgetChainsMap chainsMap = new BitgetChainsMap();
 	private static final String baseUrl = "https://api.bitget.com";
 	private static final String productType = "USDT-FUTURES";
 	private static final String marginCoin = "USDT";
@@ -89,7 +90,7 @@ class PrivateEndpoints {
 		URI uri = new URIBuilder(baseUrl)
 						.setPath("/api/v2/spot/wallet/deposit-address")
 						.addParameter("coin", "USDT")
-						.addParameter("chain", ChainsMap.get(chain))
+						.addParameter("chain", chainsMap.get(chain))
 						.build();
 		return new SimpleHttpRequest("GET", uri);
 	}
@@ -97,7 +98,7 @@ class PrivateEndpoints {
 	public static @NonNull SimpleHttpRequest withdrawUsdtRequest(Withdrawal withdrawal) {
 		Map<String, Object> body = new HashMap<>();
 		body.put("coin", "USDT");
-		body.put("chain", ChainsMap.get(withdrawal.address().chain()));
+		body.put("chain", chainsMap.get(withdrawal.address().chain()));
 		body.put("address", withdrawal.address().address());
 		body.put("amount", String.valueOf(withdrawal.amount()));
 		if (withdrawal.address().memo() != null && !withdrawal.address().memo().isEmpty()) {

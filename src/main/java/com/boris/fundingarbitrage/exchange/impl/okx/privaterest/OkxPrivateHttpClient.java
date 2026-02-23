@@ -170,14 +170,10 @@ public class OkxPrivateHttpClient extends PrivateHttpClient {
 	@Override
 	public CompletableFuture<Void> withdrawUsdt(Withdrawal withdrawal) {
 		return processRequest(
-						PrivateEndpoints.supportedChainsRequest(),
-						PrivateResponses.CurrencyInfoResponse.class,
-						(resp) -> resp.minFee(withdrawal.address().chain())
-		).thenCompose(fee -> processRequest(
-						PrivateEndpoints.withdrawUsdtRequest(withdrawal, fee),
+						PrivateEndpoints.withdrawUsdtRequest(withdrawal),
 						PrivateResponses.WithdrawUsdtResponse.class,
-						(resp) -> null
-		));
+						(_) -> null
+		);
 	}
 
 	@Override

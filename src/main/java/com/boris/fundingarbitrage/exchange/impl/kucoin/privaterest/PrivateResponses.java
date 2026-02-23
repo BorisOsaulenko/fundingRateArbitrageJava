@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 
 public class PrivateResponses {
+	private static final KucoinChainsMap chainsMap = new KucoinChainsMap();
 	private static final String expectedSuccessCode = "200000";
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
@@ -165,7 +166,7 @@ public class PrivateResponses {
 			for (CurrencyChainData chain : chains) {
 				String chainId = chain.chainId;
 				if (chainId == null || chainId.isEmpty()) continue;
-				SupportedChain mapped = ChainsMap.getInverse(chainId);
+				SupportedChain mapped = chainsMap.getInverse(chainId);
 				if (mapped == null) continue;
 
 				if (chain.isDepositEnabled) builder.addDepositableChain(mapped);
@@ -192,7 +193,7 @@ public class PrivateResponses {
 				throw new IllegalStateException("KuCoin deposit address data missing");
 			}
 
-			String targetChainId = ChainsMap.get(chain);
+			String targetChainId = chainsMap.get(chain);
 			for (DepositAddressData entry : data) {
 				String chainId = entry.chainId;
 				if (chainId == null || chainId.isEmpty() || !chainId.equalsIgnoreCase(targetChainId)) continue;

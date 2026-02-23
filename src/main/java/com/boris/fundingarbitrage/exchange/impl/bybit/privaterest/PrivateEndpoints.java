@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 class PrivateEndpoints {
+	private static final BybitChainsMap chainsMap = new BybitChainsMap();
 	private static final String baseUrl = "https://api.bybit.com";
 	private static final String category = "linear";
 
@@ -91,7 +92,7 @@ class PrivateEndpoints {
 		URI uri = new URIBuilder(baseUrl)
 						.setPath("/v5/asset/deposit/query-address")
 						.addParameter("coin", "USDT")
-						.addParameter("chainType", ChainsMap.get(chain))
+						.addParameter("chainType", chainsMap.get(chain))
 						.build();
 		return new SimpleHttpRequest("GET", uri);
 	}
@@ -101,7 +102,7 @@ class PrivateEndpoints {
 		body.put("timestamp", System.currentTimeMillis());
 		body.put("accountType", "FUND");
 		body.put("coin", "USDT");
-		body.put("chain", ChainsMap.get(withdrawal.address().chain()));
+		body.put("chain", chainsMap.get(withdrawal.address().chain()));
 		body.put("address", withdrawal.address().address());
 		body.put("amount", String.valueOf(withdrawal.amount()));
 		if (withdrawal.address().memo() != null && !withdrawal.address().memo().isEmpty()) {
@@ -133,8 +134,7 @@ class PrivateEndpoints {
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest orderRecordRequest(String orderId, String symbol, TradeSide tradeSide) {
-		URI uri = new URIBuilder(baseUrl).setPath("/v5/execution/list").addParameter("category", category).addParameter(
-						"symbol",
+		URI uri = new URIBuilder(baseUrl).setPath("/v5/execution/list").addParameter("category", category).addParameter("symbol",
 						symbol
 		).addParameter("orderId", orderId).build();
 		return new SimpleHttpRequest("GET", uri);

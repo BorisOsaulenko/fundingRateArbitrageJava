@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.UUID;
 
 class PrivateEndpoints {
+	private static final WhitebitChainsMap chainsMap = new WhitebitChainsMap();
 	private static final String baseUrl = "https://whitebit.com";
 
 	@SneakyThrows
@@ -62,7 +63,7 @@ class PrivateEndpoints {
 	public static @NonNull SimpleHttpRequest usdtWalletAddressRequest(SupportedChain chain) {
 		Map<String, Object> body = new HashMap<>();
 		body.put("ticker", "USDT");
-		body.put("network", ChainsMap.get(chain));
+		body.put("network", chainsMap.get(chain));
 		return privatePost("/api/v4/main-account/address", body);
 	}
 
@@ -72,7 +73,7 @@ class PrivateEndpoints {
 		body.put("amount", String.valueOf(withdrawal.amount()));
 		body.put("address", withdrawal.address().address());
 		body.put("uniqueId", UUID.randomUUID().toString());
-		body.put("network", ChainsMap.get(withdrawal.address().chain()));
+		body.put("network", chainsMap.get(withdrawal.address().chain()));
 		String memo = withdrawal.address().memo();
 		if (memo != null && !memo.isEmpty()) {
 			body.put("memo", memo);

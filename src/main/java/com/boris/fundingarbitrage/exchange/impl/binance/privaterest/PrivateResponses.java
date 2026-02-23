@@ -16,6 +16,8 @@ import java.util.List;
 import java.util.Map;
 
 class PrivateResponses {
+	protected static final BinanceChainsMap chainsMap = new BinanceChainsMap();
+
 	public record ChangeLeverageResponseSymbol(String symbol, double leverage) {}
 
 	public record SetMarginModeResponse(Integer code, String msg) {
@@ -105,7 +107,7 @@ class PrivateResponses {
 			for (CoinInfo coinInfo : chains) {
 				if (coinInfo.coin.equals("USDC")) {
 					for (NetworkListItem network : coinInfo.networkList) {
-						SupportedChain chain = ChainsMap.getInverse(network.network);
+						SupportedChain chain = chainsMap.getInverse(network.network);
 						if (chain == null) continue;
 
 						if (network.depositEnable) builder.addDepositableChain(chain);

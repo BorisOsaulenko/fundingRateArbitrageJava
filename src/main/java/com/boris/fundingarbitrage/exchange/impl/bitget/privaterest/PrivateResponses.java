@@ -7,6 +7,7 @@ import com.boris.fundingarbitrage.model.exchange.ExchangeChains;
 import com.boris.fundingarbitrage.model.exchange.ExchangeChainsBuilder;
 import com.boris.fundingarbitrage.model.exchange.WalletAddress;
 import com.boris.fundingarbitrage.model.exchange.WithdrawChain;
+import com.boris.fundingarbitrage.util.logger.Logger;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -15,6 +16,8 @@ import java.util.List;
 import java.util.Map;
 
 class PrivateResponses {
+	private static final BitgetChainsMap chainsMap = new BitgetChainsMap();
+
 	public record ChangeLeverageResponse(String code, String msg, long requestTime) {
 		public ChangeLeverageResponse {
 			if (!"00000".equals(code)) {
@@ -108,7 +111,8 @@ class PrivateResponses {
 			if (chains == null) throw new IllegalStateException("USDT chains missing");
 
 			for (ChainInfo chain : chains) {
-				SupportedChain mapped = ChainsMap.getInverse(chain.chain);
+				SupportedChain mapped = chainsMap.getInverse(chain.chain);
+				Logger.log(chain.chain + ": " + mapped);
 				if (mapped == null) continue;
 
 				if (chain.rechargeable) builder.addDepositableChain(mapped);

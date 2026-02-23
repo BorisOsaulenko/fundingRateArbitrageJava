@@ -1,7 +1,8 @@
 package com.boris.fundingarbitrage;
 
 import com.boris.fundingarbitrage.coinfilter.CoinFilterConfig;
-import com.boris.fundingarbitrage.exchange.impl.binance.BinanceExchange;
+import com.boris.fundingarbitrage.exchange.BaseExchange;
+import com.boris.fundingarbitrage.exchange.Instances;
 import com.boris.fundingarbitrage.logic.ArbitrageBotConfig;
 import com.boris.fundingarbitrage.logic.ArbitrageLogic;
 import com.boris.fundingarbitrage.strategy.ArbitrageStrategy;
@@ -11,8 +12,10 @@ import com.boris.fundingarbitrage.util.logger.Logger;
 import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.CompletableFuture;
 
 public class App {
 	private static final Set<String> coins2 = Set.of("BERA", "FOLKS", "GAIB", "OM", "AZTEC");
@@ -112,7 +115,7 @@ public class App {
 					"BLUAI" // 92 coins
 	);
 
-	static void main(String[] args) throws Exception {
+	static void main2(String[] args) throws Exception {
 		Logger.init(Path.of("app.log"));
 		ArbitrageStrategy strategy = new ClassicArbitrageStrategy();
 		ArbitrageBotConfig arbConfig = new ArbitrageBotConfig(
@@ -135,9 +138,16 @@ public class App {
 		logic.stop();
 	}
 
-	static void main2(String[] args) throws ExecutionException, InterruptedException {
-		BinanceExchange exchange = new BinanceExchange();
+	static void main(String[] args) {
+		List<CompletableFuture<Void>> futures = new ArrayList<>();
+		for (BaseExchange exchange : Instances.getExchangeArray()) {
+			var future = exchange.privateHttpClient.getSupportedChains().thenAccept(res -> {
+				Logger.log(exchange.name + ": " + res.withdrawableChains().stream().map(c -> c.chain().name()).toList());
+			});
+			futures.add(future);
+		}
 
+		CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
 	}
 }
 

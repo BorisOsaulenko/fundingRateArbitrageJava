@@ -14,6 +14,8 @@ import java.util.List;
 import java.util.Map;
 
 class PrivateResponses {
+	private static final GateChainsMap chainsMap = new GateChainsMap();
+
 	public record TradingFeesSymbolsResponse(
 					double taker_fee, double maker_fee, double futures_taker_fee, double futures_maker_fee
 	) {
@@ -88,7 +90,7 @@ class PrivateResponses {
 			String tag = memo;
 			if (multichain_addresses != null) {
 				for (MultichainAddress entry : multichain_addresses) {
-					SupportedChain mapped = ChainsMap.getInverse(entry.chain);
+					SupportedChain mapped = chainsMap.getInverse(entry.chain);
 					if (mapped == chain) {
 						addr = entry.address;
 						tag = entry.memo;
@@ -179,7 +181,7 @@ class PrivateResponses {
 					throw new IllegalStateException("Withdrawal fees chains info not found");
 				}
 
-				String gateChain = ChainsMap.get(chain);
+				String gateChain = chainsMap.get(chain);
 				String fee = chains.get(gateChain);
 
 				if (fee == null || fee.isEmpty()) {

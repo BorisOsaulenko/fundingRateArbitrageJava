@@ -17,6 +17,8 @@ import java.util.List;
 import java.util.Map;
 
 class PrivateResponses {
+	private static final BybitChainsMap chainsMap = new BybitChainsMap();
+
 	@JsonIgnoreProperties(ignoreUnknown = true)
 	public record TradingFeesResponse(int retCode, String retMsg, long time, TradingFeesResult result) {
 		public Map<String, Fees> getFeesBySymbols() {
@@ -133,7 +135,7 @@ class PrivateResponses {
 				if (coin.chains == null) continue;
 				for (SupportedChainInfo chain : coin.chains) {
 					String chainName = chain.chain;
-					SupportedChain mapped = ChainsMap.getInverse(chainName);
+					SupportedChain mapped = chainsMap.getInverse(chainName);
 					if (mapped == null) continue;
 					boolean depositEnable = "1".equals(chain.chainDeposit);
 					boolean withdrawEnable = "1".equals(chain.chainWithdraw);
@@ -175,7 +177,7 @@ class PrivateResponses {
 			}
 			for (WalletItem item : result.chains) {
 				String chainName = item.chain;
-				SupportedChain mapped = ChainsMap.getInverse(chainName);
+				SupportedChain mapped = chainsMap.getInverse(chainName);
 				if (mapped == chain) {
 					String address = item.addressDeposit;
 					String tag = item.tagDeposit;

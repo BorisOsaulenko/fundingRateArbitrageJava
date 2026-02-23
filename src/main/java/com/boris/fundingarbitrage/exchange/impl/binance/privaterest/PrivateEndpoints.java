@@ -9,16 +9,15 @@ import org.apache.hc.core5.net.URIBuilder;
 import java.net.URI;
 
 class PrivateEndpoints {
+	private static final BinanceChainsMap chainsMap = new BinanceChainsMap();
 	private static final String futuresBaseUrl = "https://fapi.binance.com";
 	private static final String spotBaseUrl = "https://api.binance.com";
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest changeLeverageRequestSymbol(String symbol, int leverage) {
-		URI uri = new URIBuilder(futuresBaseUrl)
-						.setPath("/fapi/v1/leverage")
-						.addParameter("symbol", symbol)
-						.addParameter("leverage", String.valueOf(leverage))
-						.build();
+		URI uri = new URIBuilder(futuresBaseUrl).setPath("/fapi/v1/leverage").addParameter("symbol", symbol).addParameter("leverage",
+						String.valueOf(leverage)
+		).build();
 
 		return new SimpleHttpRequest("POST", uri);
 	}
@@ -26,11 +25,9 @@ class PrivateEndpoints {
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest setMarginModeRequestSymbol(String symbol, MarginMode marginMode) {
 		String marginModeStr = marginMode == MarginMode.CROSS ? "CROSSED" : "ISOLATED";
-		URI uri = new URIBuilder(futuresBaseUrl)
-						.setPath("/fapi/v1/marginType")
-						.addParameter("symbol", symbol)
-						.addParameter("marginType", marginModeStr)
-						.build();
+		URI uri = new URIBuilder(futuresBaseUrl).setPath("/fapi/v1/marginType").addParameter("symbol", symbol).addParameter("marginType",
+						marginModeStr
+		).build();
 
 		return new SimpleHttpRequest("POST", uri);
 	}
@@ -64,19 +61,20 @@ class PrivateEndpoints {
 		URI uri = new URIBuilder(spotBaseUrl)
 						.setPath("/sapi/v1/capital/deposit/address")
 						.addParameter("coin", "USDT")
-						.addParameter("network", ChainsMap.get(chain))
+						.addParameter("network", chainsMap.get(chain))
 						.build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest withdrawUsdtRequest(Withdrawal withdrawal) {
-		URIBuilder uriBuilder = new URIBuilder(spotBaseUrl)
-						.setPath("/sapi/v1/capital/withdraw/apply")
-						.addParameter("coin", "USDT")
-						.addParameter("network", ChainsMap.get(withdrawal.address().chain()))
-						.addParameter("address", withdrawal.address().address())
-						.addParameter("amount", String.valueOf(withdrawal.amount()));
+		URIBuilder uriBuilder = new URIBuilder(spotBaseUrl).setPath("/sapi/v1/capital/withdraw/apply").addParameter(
+						"coin",
+						"USDT"
+		).addParameter("network", chainsMap.get(withdrawal.address().chain())).addParameter(
+						"address",
+						withdrawal.address().address()
+		).addParameter("amount", String.valueOf(withdrawal.amount()));
 
 		String memo = withdrawal.address().memo();
 		if (memo != null && !memo.isEmpty()) {
@@ -106,11 +104,9 @@ class PrivateEndpoints {
 					String symbol,
 					TradeSide tradeSide
 	) {
-		URI uri = new URIBuilder(futuresBaseUrl)
-						.setPath("/fapi/v1/userTrades")
-						.addParameter("symbol", symbol)
-						.addParameter("orderId", orderId)
-						.build();
+		URI uri = new URIBuilder(futuresBaseUrl).setPath("/fapi/v1/userTrades").addParameter("symbol", symbol).addParameter("orderId",
+						orderId
+		).build();
 
 		return new SimpleHttpRequest("GET", uri);
 	}
@@ -127,12 +123,12 @@ class PrivateEndpoints {
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest internalTransferRequest(InternalTransfer internalTransfer) {
-		URI uri = new URIBuilder(spotBaseUrl)
-						.setPath("/sapi/v1/asset/transfer")
-						.addParameter("asset", "USDT")
-						.addParameter("amount", String.valueOf(internalTransfer.amount()))
-						.addParameter("type", getInternalTransferType(internalTransfer))
-						.build();
+		URI uri = new URIBuilder(spotBaseUrl).setPath("/sapi/v1/asset/transfer").addParameter("asset", "USDT").addParameter("amount",
+						String.valueOf(internalTransfer.amount())
+		).addParameter(
+						"type",
+						getInternalTransferType(internalTransfer)
+		).build();
 		return new SimpleHttpRequest("POST", uri);
 	}
 }

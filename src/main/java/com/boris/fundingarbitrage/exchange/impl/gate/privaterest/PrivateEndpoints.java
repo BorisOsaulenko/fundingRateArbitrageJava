@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 class PrivateEndpoints {
+	private static final GateChainsMap chainsMap = new GateChainsMap();
 	private static final String baseUrl = "https://api.gateio.ws";
 	private static final String settle = "usdt";
 
@@ -85,7 +86,7 @@ class PrivateEndpoints {
 		URI uri = new URIBuilder(baseUrl)
 						.setPath("/api/v4/wallet/deposit_address")
 						.addParameter("currency", "USDT")
-						.addParameter("chain", ChainsMap.get(chain))
+						.addParameter("chain", chainsMap.get(chain))
 						.build();
 		return new SimpleHttpRequest("GET", uri);
 	}
@@ -95,7 +96,7 @@ class PrivateEndpoints {
 		body.put("currency", "USDT");
 		body.put("address", withdrawal.address().address());
 		body.put("amount", String.valueOf(withdrawal.amount()));
-		body.put("chain", ChainsMap.get(withdrawal.address().chain()));
+		body.put("chain", chainsMap.get(withdrawal.address().chain()));
 		String memo = withdrawal.address().memo();
 		if (memo != null && !memo.isEmpty()) {
 			body.put("memo", memo);

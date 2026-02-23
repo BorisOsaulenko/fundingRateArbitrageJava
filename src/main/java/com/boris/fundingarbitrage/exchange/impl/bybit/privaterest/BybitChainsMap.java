@@ -1,15 +1,10 @@
 package com.boris.fundingarbitrage.exchange.impl.bybit.privaterest;
 
+import com.boris.fundingarbitrage.exchange.ExchangeChainsMap;
 import com.boris.fundingarbitrage.model.assetops.SupportedChain;
 
-import java.util.HashMap;
-import java.util.Map;
-
-class ChainsMap {
-	private static final Map<SupportedChain, String> forward = new HashMap<>();
-	private static final Map<String, SupportedChain> inverse = new HashMap<>();
-
-	static {
+class BybitChainsMap extends ExchangeChainsMap {
+	public BybitChainsMap() {
 		register(SupportedChain.ERC, "ETH");
 		register(SupportedChain.TRX, "TRX");
 		register(SupportedChain.BSC, "BSC");
@@ -20,18 +15,5 @@ class ChainsMap {
 		register(SupportedChain.APTOS, "APTOS");
 		register(SupportedChain.NEAR, "NEAR");
 		register(SupportedChain.TON, "TON");
-	}
-
-	private static void register(SupportedChain chain, String name) {
-		forward.put(chain, name);
-		inverse.put(name, chain);
-	}
-
-	public static String get(SupportedChain chain) {
-		return forward.get(chain);
-	}
-
-	public static SupportedChain getInverse(String chainName) {
-		return inverse.get(chainName);
 	}
 }

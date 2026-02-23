@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.UUID;
 
 public final class PrivateEndpoints {
+	private static final KucoinChainsMap chainsMap = new KucoinChainsMap();
 	private static final String baseUrlFutures = "https://api-futures.kucoin.com";
 	private static final String baseUrlSpot = "https://api.kucoin.com";
 
@@ -50,8 +51,7 @@ public final class PrivateEndpoints {
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest spotUsdtBalanceRequest() {
-		URI uri = new URIBuilder(baseUrlSpot).setPath("/api/v1/accounts").addParameter("currency", "USDT").addParameter(
-						"type",
+		URI uri = new URIBuilder(baseUrlSpot).setPath("/api/v1/accounts").addParameter("currency", "USDT").addParameter("type",
 						"main"
 		).build();
 		return new SimpleHttpRequest("GET", uri);
@@ -133,8 +133,7 @@ public final class PrivateEndpoints {
 					String symbol,
 					TradeSide tradeSide
 	) {
-		URI uri = new URIBuilder(baseUrlFutures).setPath("/api/v1/fills").addParameter("orderId", orderId).addParameter(
-						"symbol",
+		URI uri = new URIBuilder(baseUrlFutures).setPath("/api/v1/fills").addParameter("orderId", orderId).addParameter("symbol",
 						symbol
 		).build();
 		return new SimpleHttpRequest("GET", uri);
@@ -159,7 +158,7 @@ public final class PrivateEndpoints {
 	}
 
 	private static String requireChainId(SupportedChain chain) {
-		String chainId = ChainsMap.get(chain);
+		String chainId = chainsMap.get(chain);
 		if (chainId == null || chainId.isEmpty()) {
 			throw new IllegalArgumentException("Unsupported chain: " + chain);
 		}

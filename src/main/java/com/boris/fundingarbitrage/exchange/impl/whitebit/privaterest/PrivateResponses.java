@@ -16,6 +16,8 @@ import java.util.List;
 import java.util.Map;
 
 class PrivateResponses {
+	private static final WhitebitChainsMap chainsMap = new WhitebitChainsMap();
+
 	@JsonIgnoreProperties(ignoreUnknown = true)
 	public record TradingFeesSymbolsResponse(double futures_maker, double futures_taker) {
 		public Fees getAccountFees() {
@@ -60,7 +62,7 @@ class PrivateResponses {
 
 			for (var entry : entries.entrySet()) {
 				if (!"USDT".equalsIgnoreCase(entry.getValue().ticker())) continue;
-				SupportedChain chain = ChainsMap.getInverse(extractNetwork(entry.getKey()));
+				SupportedChain chain = chainsMap.getInverse(extractNetwork(entry.getKey()));
 				if (chain == null) continue;
 
 				if (entry.getValue().is_api_depositable()) depositable.add(chain);

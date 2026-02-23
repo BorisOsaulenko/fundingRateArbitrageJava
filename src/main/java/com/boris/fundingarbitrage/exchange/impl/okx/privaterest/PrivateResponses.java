@@ -16,6 +16,8 @@ import java.util.List;
 import java.util.Map;
 
 class PrivateResponses {
+	private static final OkxChainsMap chainsMap = new OkxChainsMap();
+
 	private static void ensureOk(String code, String msg) {
 		if (!"0".equals(code)) {
 			throw new RuntimeException(String.format("OKX private request failed: %s, %s", code, msg));
@@ -166,7 +168,7 @@ class PrivateResponses {
 			for (SupportedChainInfo item : data) {
 				String chain = item.chain;
 				if (chain == null || chain.isEmpty()) continue;
-				SupportedChain mapped = ChainsMap.getInverse(chain);
+				SupportedChain mapped = chainsMap.getInverse(chain);
 				if (mapped == null) continue;
 				boolean canDep = item.canDep;
 				boolean canWd = item.canWd;
@@ -195,7 +197,7 @@ class PrivateResponses {
 			if (data == null || data.isEmpty()) {
 				throw new IllegalStateException("OKX deposit address data missing");
 			}
-			String chainName = ChainsMap.get(chain);
+			String chainName = chainsMap.get(chain);
 			for (WalletAddressItem item : data) {
 				if (!chainName.equalsIgnoreCase(item.chain)) continue;
 				String addr = item.addr;
@@ -278,23 +280,16 @@ class PrivateResponses {
 	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
-	private record CurrencyInfoItem(String chain, String minFee) {}
+	private record CurrencyInfoItem(String chain, double minFee) {}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
 	public record CurrencyInfoResponse(String code, String msg, List<CurrencyInfoItem> data) {
-		public String minFee(SupportedChain chain) {
+		public double minFee(SupportedChain chain) {
 			ensureOk(code, msg);
-			if (data == null) {
-				throw new IllegalStateException("OKX currencies data missing");
-			}
-			String chainName = ChainsMap.get(chain);
+			String chainName = chainsMap.get(chain);
 			for (CurrencyInfoItem item : data) {
 				if (!chainName.equalsIgnoreCase(item.chain)) continue;
-				String minFee = item.minFee;
-				if (minFee == null || minFee.isEmpty()) {
-					throw new IllegalStateException("OKX minFee missing for chain: " + chain);
-				}
-				return minFee;
+				return item.minFee;
 			}
 			throw new IllegalStateException("OKX currency info not found for chain: " + chain);
 		}

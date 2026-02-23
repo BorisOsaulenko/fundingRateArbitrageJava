@@ -25,6 +25,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
 public class GatePrivateHttpClient extends PrivateHttpClient {
+	private final GateChainsMap chainsMap = new GateChainsMap();
 	private final ExchangeCredentials credentials;
 	private final RequestProcessingClientWrapper requestWrapper = new RequestProcessingClientWrapper(this.client);
 
@@ -153,7 +154,7 @@ public class GatePrivateHttpClient extends PrivateHttpClient {
 							ExchangeChainsBuilder builder = new ExchangeChainsBuilder();
 							for (var gateChain : chainsResp.chains()) {
 								if (gateChain.is_disabled() != 0) continue;
-								SupportedChain chain = ChainsMap.getInverse(gateChain.chain());
+								SupportedChain chain = chainsMap.getInverse(gateChain.chain());
 								if (chain == null) continue;
 
 								if (gateChain.is_deposit_disabled() == 0) builder.addDepositableChain(chain);

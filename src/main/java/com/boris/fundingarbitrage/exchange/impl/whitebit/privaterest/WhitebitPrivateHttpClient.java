@@ -20,6 +20,7 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 public class WhitebitPrivateHttpClient extends PrivateHttpClient {
+	private final WhitebitChainsMap chainsMap = new WhitebitChainsMap();
 	private final ExchangeCredentials credentials;
 	private final RequestProcessingClientWrapper requestWrapper = new RequestProcessingClientWrapper(this.client);
 
@@ -121,10 +122,10 @@ public class WhitebitPrivateHttpClient extends PrivateHttpClient {
 						PrivateResponses.SupportedChainsResponse::getChains
 		);
 	}
-
+	
 	@Override
 	public CompletableFuture<WalletAddress> getUsdtWalletAddress(SupportedChain chain) {
-		if (ChainsMap.get(chain) == null) {
+		if (chainsMap.get(chain) == null) {
 			throw new IllegalArgumentException("Unsupported chain for Whitebit: " + chain);
 		}
 		return requestWrapper.processRequest(
