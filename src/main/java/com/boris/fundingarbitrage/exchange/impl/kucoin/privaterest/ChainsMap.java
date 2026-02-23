@@ -1,4 +1,4 @@
-package impl.kucoin.privaterest;
+package com.boris.fundingarbitrage.exchange.impl.kucoin.privaterest;
 
 import com.boris.fundingarbitrage.model.assetops.SupportedChain;
 

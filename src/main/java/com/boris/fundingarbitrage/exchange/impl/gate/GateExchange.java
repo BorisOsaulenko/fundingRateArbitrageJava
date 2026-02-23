@@ -1,11 +1,11 @@
 package com.boris.fundingarbitrage.exchange.impl.gate;
 
 import com.boris.fundingarbitrage.exchange.BaseExchange;
+import com.boris.fundingarbitrage.exchange.impl.gate.privaterest.GatePrivateHttpClient;
 import com.boris.fundingarbitrage.exchange.impl.gate.privatews.GatePrivateWsClient;
 import com.boris.fundingarbitrage.exchange.impl.gate.publicrest.GatePublicHttpClient;
 import com.boris.fundingarbitrage.exchange.impl.gate.publicws.GatePublicWsClient;
 import com.boris.fundingarbitrage.model.exchange.ExchangeName;
-import impl.gate.privaterest.GatePrivateHttpClient;
 
 public class GateExchange extends BaseExchange {
 	private static final ExchangeName name = ExchangeName.GATE;

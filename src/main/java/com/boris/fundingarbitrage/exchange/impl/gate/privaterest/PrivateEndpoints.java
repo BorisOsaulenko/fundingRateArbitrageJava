@@ -1,4 +1,4 @@
-package impl.gate.privaterest;
+package com.boris.fundingarbitrage.exchange.impl.gate.privaterest;
 
 import com.boris.fundingarbitrage.ObjectMapperSingleton;
 import com.boris.fundingarbitrage.model.assetops.*;
@@ -127,11 +127,10 @@ class PrivateEndpoints {
 					String symbol,
 					TradeSide tradeSide
 	) {
-		URI uri = new URIBuilder(baseUrl)
-						.setPath("/api/v4/futures/" + settle + "/my_trades")
-						.addParameter("contract", symbol)
-						.addParameter("order", orderId)
-						.build();
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v4/futures/" + settle + "/my_trades").addParameter(
+						"contract",
+						symbol
+		).addParameter("order", orderId).build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 

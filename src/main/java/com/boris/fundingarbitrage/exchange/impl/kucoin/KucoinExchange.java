@@ -1,11 +1,11 @@
 package com.boris.fundingarbitrage.exchange.impl.kucoin;
 
 import com.boris.fundingarbitrage.exchange.BaseExchange;
+import com.boris.fundingarbitrage.exchange.impl.kucoin.privaterest.KucoinPrivateHttpClient;
 import com.boris.fundingarbitrage.exchange.impl.kucoin.privatews.KucoinPrivateWsClient;
 import com.boris.fundingarbitrage.exchange.impl.kucoin.publicrest.KucoinPublicHttpClient;
 import com.boris.fundingarbitrage.exchange.impl.kucoin.publicws.KucoinPublicWsClient;
 import com.boris.fundingarbitrage.model.exchange.ExchangeName;
-import impl.kucoin.privaterest.KucoinPrivateHttpClient;
 
 public class KucoinExchange extends BaseExchange {
 	private static final ExchangeName name = ExchangeName.KUCOIN;

@@ -1,7 +1,8 @@
-package impl.whitebit.privaterest;
+package com.boris.fundingarbitrage.exchange.impl.whitebit.privaterest;
 
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.ExchangeCredentials;
+import com.boris.fundingarbitrage.exchange.privatehttp.PrivateHttpClient;
 import com.boris.fundingarbitrage.model.assetops.*;
 import com.boris.fundingarbitrage.model.contract.Fees;
 import com.boris.fundingarbitrage.model.contract.PartialFill;
@@ -13,7 +14,6 @@ import com.boris.fundingarbitrage.util.https.PrettyHttpClient;
 import com.boris.fundingarbitrage.util.https.RequestProcessingClientWrapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
-import privatehttp.PrivateHttpClient;
 
 import java.nio.charset.StandardCharsets;
 import java.util.*;

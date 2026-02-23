@@ -1,4 +1,4 @@
-package impl.kucoin.privaterest;
+package com.boris.fundingarbitrage.exchange.impl.kucoin.privaterest;
 
 import com.boris.fundingarbitrage.ObjectMapperSingleton;
 import com.boris.fundingarbitrage.model.assetops.*;
@@ -50,11 +50,10 @@ public final class PrivateEndpoints {
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest spotUsdtBalanceRequest() {
-		URI uri = new URIBuilder(baseUrlSpot)
-						.setPath("/api/v1/accounts")
-						.addParameter("currency", "USDT")
-						.addParameter("type", "main")
-						.build();
+		URI uri = new URIBuilder(baseUrlSpot).setPath("/api/v1/accounts").addParameter("currency", "USDT").addParameter(
+						"type",
+						"main"
+		).build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
@@ -134,11 +133,10 @@ public final class PrivateEndpoints {
 					String symbol,
 					TradeSide tradeSide
 	) {
-		URI uri = new URIBuilder(baseUrlFutures)
-						.setPath("/api/v1/fills")
-						.addParameter("orderId", orderId)
-						.addParameter("symbol", symbol)
-						.build();
+		URI uri = new URIBuilder(baseUrlFutures).setPath("/api/v1/fills").addParameter("orderId", orderId).addParameter(
+						"symbol",
+						symbol
+		).build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 

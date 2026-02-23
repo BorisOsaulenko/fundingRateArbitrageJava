@@ -1,4 +1,4 @@
-package impl.okx.privaterest;
+package com.boris.fundingarbitrage.exchange.impl.okx.privaterest;
 
 import com.boris.fundingarbitrage.model.assetops.SupportedChain;
 

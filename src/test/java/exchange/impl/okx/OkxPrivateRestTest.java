@@ -1,9 +1,9 @@
 package exchange.impl.okx;
 
 import com.boris.fundingarbitrage.exchange.impl.okx.OkxContext;
+import com.boris.fundingarbitrage.exchange.impl.okx.privaterest.OkxPrivateHttpClient;
+import com.boris.fundingarbitrage.exchange.privatehttp.PrivateHttpClient;
 import exchange.PrivateRestTest;
-import impl.okx.privaterest.OkxPrivateHttpClient;
-import privatehttp.PrivateHttpClient;
 
 public class OkxPrivateRestTest extends PrivateRestTest {
 	private static final OkxContext context = new OkxContext();

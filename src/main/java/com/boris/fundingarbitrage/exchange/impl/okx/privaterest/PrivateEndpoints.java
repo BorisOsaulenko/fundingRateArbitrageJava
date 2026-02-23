@@ -1,4 +1,4 @@
-package impl.okx.privaterest;
+package com.boris.fundingarbitrage.exchange.impl.okx.privaterest;
 
 import com.boris.fundingarbitrage.ObjectMapperSingleton;
 import com.boris.fundingarbitrage.model.assetops.*;
@@ -75,11 +75,10 @@ class PrivateEndpoints {
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest usdtWalletAddressRequest(SupportedChain chain) {
-		URI uri = new URIBuilder(baseUrl)
-						.setPath("/api/v5/asset/deposit-address")
-						.addParameter("ccy", "USDT")
-						.addParameter("chain", ChainsMap.get(chain))
-						.build();
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v5/asset/deposit-address").addParameter("ccy", "USDT").addParameter(
+						"chain",
+						ChainsMap.get(chain)
+		).build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
