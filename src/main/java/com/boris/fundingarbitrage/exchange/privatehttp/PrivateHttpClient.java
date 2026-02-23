@@ -1,4 +1,4 @@
-package privatehttp;
+package com.boris.fundingarbitrage.exchange.privatehttp;
 
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.model.assetops.*;

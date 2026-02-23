@@ -2,8 +2,8 @@ package exchange.impl.binance;
 
 import com.boris.fundingarbitrage.exchange.impl.binance.BinanceContext;
 import com.boris.fundingarbitrage.exchange.impl.binance.privaterest.BinancePrivateHttpClient;
+import com.boris.fundingarbitrage.exchange.privatehttp.PrivateHttpClient;
 import exchange.PrivateRestTest;
-import privatehttp.PrivateHttpClient;
 
 public class BinancePrivateRestTest extends PrivateRestTest {
 	private static final BinanceContext context = new BinanceContext();

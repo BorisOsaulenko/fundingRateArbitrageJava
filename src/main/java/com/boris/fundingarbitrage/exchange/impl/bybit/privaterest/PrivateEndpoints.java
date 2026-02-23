@@ -1,4 +1,4 @@
-package impl.bybit.privaterest;
+package com.boris.fundingarbitrage.exchange.impl.bybit.privaterest;
 
 import com.boris.fundingarbitrage.ObjectMapperSingleton;
 import com.boris.fundingarbitrage.model.assetops.*;
@@ -69,10 +69,10 @@ class PrivateEndpoints {
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest maxLeverageRequest(String paginationIndex) {
-		URIBuilder uriBuilder = new URIBuilder(baseUrl)
-						.setPath("/v5/market/instruments-info")
-						.addParameter("category", category)
-						.addParameter("limit", "1000");
+		URIBuilder uriBuilder = new URIBuilder(baseUrl).setPath("/v5/market/instruments-info").addParameter(
+						"category",
+						category
+		).addParameter("limit", "1000");
 
 		if (paginationIndex != null) uriBuilder.addParameter("cursor", paginationIndex);
 
@@ -133,12 +133,10 @@ class PrivateEndpoints {
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest orderRecordRequest(String orderId, String symbol, TradeSide tradeSide) {
-		URI uri = new URIBuilder(baseUrl)
-						.setPath("/v5/execution/list")
-						.addParameter("category", category)
-						.addParameter("symbol", symbol)
-						.addParameter("orderId", orderId)
-						.build();
+		URI uri = new URIBuilder(baseUrl).setPath("/v5/execution/list").addParameter("category", category).addParameter(
+						"symbol",
+						symbol
+		).addParameter("orderId", orderId).build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 

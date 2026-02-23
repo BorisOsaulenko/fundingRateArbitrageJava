@@ -1,9 +1,9 @@
 package exchange.impl.whitebit;
 
 import com.boris.fundingarbitrage.exchange.impl.whitebit.WhitebitContext;
+import com.boris.fundingarbitrage.exchange.impl.whitebit.privaterest.WhitebitPrivateHttpClient;
+import com.boris.fundingarbitrage.exchange.privatehttp.PrivateHttpClient;
 import exchange.PrivateRestTest;
-import impl.whitebit.privaterest.WhitebitPrivateHttpClient;
-import privatehttp.PrivateHttpClient;
 
 public class WhitebitPrivateRestTest extends PrivateRestTest {
 	private static final WhitebitContext context = new WhitebitContext();

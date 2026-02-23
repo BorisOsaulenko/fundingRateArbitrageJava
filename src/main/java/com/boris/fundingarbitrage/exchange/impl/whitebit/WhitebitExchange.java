@@ -1,11 +1,11 @@
 package com.boris.fundingarbitrage.exchange.impl.whitebit;
 
 import com.boris.fundingarbitrage.exchange.BaseExchange;
+import com.boris.fundingarbitrage.exchange.impl.whitebit.privaterest.WhitebitPrivateHttpClient;
 import com.boris.fundingarbitrage.exchange.impl.whitebit.privatews.WhitebitPrivateWsClient;
 import com.boris.fundingarbitrage.exchange.impl.whitebit.publicrest.WhitebitPublicHttpClient;
 import com.boris.fundingarbitrage.exchange.impl.whitebit.publicws.WhitebitPublicWsClient;
 import com.boris.fundingarbitrage.model.exchange.ExchangeName;
-import impl.whitebit.privaterest.WhitebitPrivateHttpClient;
 
 import java.util.concurrent.CompletableFuture;
 

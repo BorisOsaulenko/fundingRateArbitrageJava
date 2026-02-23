@@ -2,6 +2,7 @@ package com.boris.fundingarbitrage.exchange.impl.binance.privaterest;
 
 import com.boris.fundingarbitrage.exchange.ExchangeCredentials;
 import com.boris.fundingarbitrage.exchange.impl.binance.BinanceContext;
+import com.boris.fundingarbitrage.exchange.privatehttp.PrivateHttpClient;
 import com.boris.fundingarbitrage.model.assetops.*;
 import com.boris.fundingarbitrage.model.contract.Fees;
 import com.boris.fundingarbitrage.model.contract.PartialFill;
@@ -15,7 +16,6 @@ import com.boris.fundingarbitrage.util.https.RequestProcessingClientWrapper;
 import com.boris.fundingarbitrage.util.logger.Logger;
 import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
 import org.apache.hc.core5.net.URIBuilder;
-import privatehttp.PrivateHttpClient;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -79,14 +79,15 @@ public class BinancePrivateHttpClient extends PrivateHttpClient {
 
 	@Override
 	protected CompletableFuture<Void> setMarginModeSymbol(String symbol, MarginMode marginMode) {
-		return requestWrapper
-						.getResponseNoCodeCheck(
-										signRequest(PrivateEndpoints.setMarginModeRequestSymbol(symbol, marginMode)),
-										PrivateResponses.SetMarginModeResponse.class
-						)
-						.thenAccept((resp) -> {
-							if (resp.code() != -4046 && resp.code() != 200) throw new RuntimeException("Failed to set margin mode");
-						});
+		return requestWrapper.getResponseNoCodeCheck(
+						signRequest(PrivateEndpoints.setMarginModeRequestSymbol(
+										symbol,
+										marginMode
+						)),
+						PrivateResponses.SetMarginModeResponse.class
+		).thenAccept((resp) -> {
+			if (resp.code() != -4046 && resp.code() != 200) throw new RuntimeException("Failed to set margin mode");
+		});
 	}
 
 	@Override

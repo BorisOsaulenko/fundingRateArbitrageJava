@@ -1,11 +1,11 @@
 package com.boris.fundingarbitrage.exchange.impl.bitget;
 
 import com.boris.fundingarbitrage.exchange.BaseExchange;
+import com.boris.fundingarbitrage.exchange.impl.bitget.privaterest.BitgetPrivateHttpClient;
 import com.boris.fundingarbitrage.exchange.impl.bitget.privatews.BitgetPrivateWsClient;
 import com.boris.fundingarbitrage.exchange.impl.bitget.publicrest.BitgetPublicHttpClient;
 import com.boris.fundingarbitrage.exchange.impl.bitget.publicws.BitgetPublicWsClient;
 import com.boris.fundingarbitrage.model.exchange.ExchangeName;
-import impl.bitget.privaterest.BitgetPrivateHttpClient;
 
 public class BitgetExchange extends BaseExchange {
 	private static final ExchangeName name = ExchangeName.BITGET;
