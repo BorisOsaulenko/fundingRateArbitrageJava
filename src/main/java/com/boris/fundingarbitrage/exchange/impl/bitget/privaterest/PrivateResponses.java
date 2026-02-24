@@ -7,7 +7,6 @@ import com.boris.fundingarbitrage.model.exchange.ExchangeChains;
 import com.boris.fundingarbitrage.model.exchange.ExchangeChainsBuilder;
 import com.boris.fundingarbitrage.model.exchange.WalletAddress;
 import com.boris.fundingarbitrage.model.exchange.WithdrawChain;
-import com.boris.fundingarbitrage.util.logger.Logger;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -112,7 +111,6 @@ class PrivateResponses {
 
 			for (ChainInfo chain : chains) {
 				SupportedChain mapped = chainsMap.getInverse(chain.chain);
-				Logger.log(chain.chain + ": " + mapped);
 				if (mapped == null) continue;
 
 				if (chain.rechargeable) builder.addDepositableChain(mapped);

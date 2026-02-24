@@ -142,7 +142,7 @@ class PrivateResponses {
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
 	private record WithdrawalFeeItem(
-					String currency, String withdraw_amount_mini, Map<String, String> withdraw_fix_on_chains
+					String currency, String withdraw_amount_mini, Map<String, Double> withdraw_fix_on_chains
 	) {}
 
 	@JsonFormat(shape = JsonFormat.Shape.ARRAY)
@@ -151,10 +151,6 @@ class PrivateResponses {
 		public WithdrawalFeeResponse {}
 
 		public double getMinWithdraw() {
-			if (items == null) {
-				throw new IllegalStateException("Withdrawal fees info not found");
-			}
-
 			for (WithdrawalFeeItem item : items) {
 				if (!"USDT".equalsIgnoreCase(item.currency)) continue;
 				String minWithdraw = item.withdraw_amount_mini;
@@ -170,25 +166,17 @@ class PrivateResponses {
 		}
 
 		public double getFeeForChain(SupportedChain chain) {
-			if (items == null) {
-				throw new IllegalStateException("Withdrawal fees info not found");
-			}
-
+			if (items == null) throw new IllegalStateException("Withdrawal fees info not found");
 			for (WithdrawalFeeItem item : items) {
 				if (!"USDT".equalsIgnoreCase(item.currency)) continue;
-				Map<String, String> chains = item.withdraw_fix_on_chains;
-				if (chains == null) {
-					throw new IllegalStateException("Withdrawal fees chains info not found");
-				}
+				Map<String, Double> chains = item.withdraw_fix_on_chains;
+				if (chains == null) throw new IllegalStateException("Withdrawal fees chains info not found");
 
 				String gateChain = chainsMap.get(chain);
-				String fee = chains.get(gateChain);
+				String key = chains.keySet().stream().filter(gateChain::equalsIgnoreCase).findFirst().orElse(null);
+				if (key == null) throw new IllegalStateException("Withdrawal fee not found for chain: " + gateChain);
 
-				if (fee == null || fee.isEmpty()) {
-					throw new IllegalStateException("Withdrawal fee not found for chain: " + gateChain);
-				}
-
-				return Double.parseDouble(fee);
+				return chains.get(key);
 			}
 
 			throw new IllegalStateException("USDT withdrawal fee info not found");

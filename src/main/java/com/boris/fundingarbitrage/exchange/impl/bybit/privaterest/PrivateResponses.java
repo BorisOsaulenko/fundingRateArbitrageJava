@@ -122,13 +122,11 @@ class PrivateResponses {
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
 	public record SupportedChainsResponse(int retCode, String retMsg, long time, SupportedChainsResult result) {
-		public ExchangeChains get() {
+		public ExchangeChains getSupportedChains() {
 			if (result == null) throw new IllegalStateException("Supported chains info not found");
 			ExchangeChainsBuilder builder = new ExchangeChainsBuilder();
 			List<SupportedCoin> rows = result.rows;
-			if (rows == null) {
-				throw new IllegalStateException("Supported chains info not found");
-			}
+			if (rows == null) throw new IllegalStateException("Supported chains info not found");
 
 			for (SupportedCoin coin : rows) {
 				if (!"USDT".equalsIgnoreCase(coin.coin)) continue;

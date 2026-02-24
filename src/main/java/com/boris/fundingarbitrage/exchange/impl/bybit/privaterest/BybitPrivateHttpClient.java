@@ -123,7 +123,7 @@ public class BybitPrivateHttpClient extends PrivateHttpClient {
 		return requestWrapper.processRequest(
 						signRequest(PrivateEndpoints.supportedChainsRequest()),
 						PrivateResponses.SupportedChainsResponse.class,
-						PrivateResponses.SupportedChainsResponse::get
+						PrivateResponses.SupportedChainsResponse::getSupportedChains
 		);
 	}
 
