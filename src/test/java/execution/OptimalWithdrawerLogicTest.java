@@ -65,8 +65,8 @@ public class OptimalWithdrawerLogicTest {
 		OptimalWithdrawerLogic.InputItem bestShort = new OptimalWithdrawerLogic.InputItem(
 						new TestExchange(ExchangeName.BITGET),
 						70,
-						2,
-						0,
+						2.0,
+						0.0,
 						15.0,
 						15.0
 		);
@@ -204,12 +204,8 @@ public class OptimalWithdrawerLogicTest {
 						5.0
 		);
 		OptimalWithdrawerLogic.InputItem expensiveLongNoise = new OptimalWithdrawerLogic.InputItem(
-						new TestExchange(ExchangeName.GATE),
-						100,
-						5.0,
-						6.0,
-						5.0,
-						5.0
+						new TestExchange(
+						ExchangeName.GATE), 100, 5.0, 6.0, 5.0, 5.0
 		);
 		input.add(splitExchange);
 		input.add(extraShort);

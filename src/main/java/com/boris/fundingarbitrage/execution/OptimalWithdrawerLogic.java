@@ -34,7 +34,7 @@ public class OptimalWithdrawerLogic {
 			InputItem item = params.availableToWd().get(processed);
 			processBase4Encoding(processed + 1, 4 * processedBase4State, cumFee, minL, minS, freeL, freeS, freeD); // state 0
 
-			if (item.balance() > item.minShortWd() + item.shortFee()) {
+			if (item.shortFee() != null && item.balance() > item.minShortWd() + item.shortFee()) {
 				processBase4Encoding(
 								processed + 1,
 								4 * processedBase4State + 1,
@@ -47,7 +47,7 @@ public class OptimalWithdrawerLogic {
 				); // state 1 - only short
 			}
 
-			if (item.balance() > item.minShortWd() + item.shortFee() + item.minLongWd() + item.longFee()) {
+			if (item.shortFee() != null && item.longFee() != null && item.balance() > item.minShortWd() + item.shortFee() + item.minLongWd() + item.longFee()) {
 				processBase4Encoding(
 								processed + 1,
 								4 * processedBase4State + 2,
@@ -60,7 +60,7 @@ public class OptimalWithdrawerLogic {
 				);
 			} // state 2 - both / diagonal
 
-			if (item.balance() > item.minLongWd() + item.longFee()) {
+			if (item.longFee() != null && item.balance() > item.minLongWd() + item.longFee()) {
 				processBase4Encoding(
 								processed + 1,
 								4 * processedBase4State + 3,
@@ -184,15 +184,12 @@ public class OptimalWithdrawerLogic {
 	}
 
 	public record InputItem(
-					BaseExchange ex, double balance, double longFee, double shortFee, double minLongWd, double minShortWd
-	) {
-	}
+					BaseExchange ex, double balance, Double longFee, Double shortFee, Double minLongWd, Double minShortWd
+	) {}
 
-	public record InputParams(double topUpLong, double topUpShort, List<InputItem> availableToWd) {
-	}
+	public record InputParams(double topUpLong, double topUpShort, List<InputItem> availableToWd) {}
 
-	public record OutputItem(BaseExchange ex, double amount, double fee, boolean toLong) {
-	}
+	public record OutputItem(BaseExchange ex, double amount, double fee, boolean toLong) {}
 
 	private static class WithdrawEntry {
 		long status;
