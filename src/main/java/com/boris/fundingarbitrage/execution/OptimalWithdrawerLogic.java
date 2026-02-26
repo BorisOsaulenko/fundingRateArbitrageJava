@@ -12,7 +12,7 @@ public class OptimalWithdrawerLogic {
 	private final List<WithdrawEntry> withdrawEntries = new ArrayList<>();
 	private double minFee = 100000;
 	private InputParams params;
-	private long optimalBase4;
+	private long optimalBase4 = 0;
 	private double longLeft;
 	private double shortLeft;
 
@@ -171,9 +171,13 @@ public class OptimalWithdrawerLogic {
 		return result;
 	}
 
-	public List<OutputItem> processBestBase4Representation(InputParams params) {
+	public List<OutputItem> getOptimalWdPath(InputParams params) {
 		this.params = params;
 		processBase4Encoding(0, 0, 0, 0, 0, 0, 0, 0);
+		if (optimalBase4 == 0) {
+			return null;
+		}
+
 		parseWithdrawEntries();
 		fullfillWithdrawEntries();
 		return formatOutput();

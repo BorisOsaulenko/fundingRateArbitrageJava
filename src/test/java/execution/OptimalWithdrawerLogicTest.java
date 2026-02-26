@@ -10,8 +10,8 @@ import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasItem;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class OptimalWithdrawerLogicTest {
 	private final OptimalWithdrawerLogic logic = new OptimalWithdrawerLogic();
@@ -27,7 +27,7 @@ public class OptimalWithdrawerLogicTest {
 		input.add(item3);
 		OptimalWithdrawerLogic.InputParams params = new OptimalWithdrawerLogic.InputParams(20, 40, input);
 
-		var result = logic.processBestBase4Representation(params);
+		var result = logic.getOptimalWdPath(params);
 		var expected1 = new OptimalWithdrawerLogic.OutputItem(item3.ex(), 30, 2.0, false);
 		var expected2 = new OptimalWithdrawerLogic.OutputItem(item1.ex(), 20, 0.0, true);
 		var expected3 = new OptimalWithdrawerLogic.OutputItem(item1.ex(), 10, 1.0, false);
@@ -84,7 +84,7 @@ public class OptimalWithdrawerLogicTest {
 
 		OptimalWithdrawerLogic.InputParams params = new OptimalWithdrawerLogic.InputParams(topUpLong, topUpShort, input);
 
-		List<OptimalWithdrawerLogic.OutputItem> result = logic.processBestBase4Representation(params);
+		List<OptimalWithdrawerLogic.OutputItem> result = logic.getOptimalWdPath(params);
 		assertEquals(2, result.size());
 		assertThat(result, hasItem(expectedShort));
 		assertThat(result, hasItem(expectedLong));
@@ -133,7 +133,7 @@ public class OptimalWithdrawerLogicTest {
 		input.add(shortPart2);
 		input.add(expensiveNoise);
 
-		var result = logic.processBestBase4Representation(new OptimalWithdrawerLogic.InputParams(topUpLong, topUpShort, input));
+		var result = logic.getOptimalWdPath(new OptimalWithdrawerLogic.InputParams(topUpLong, topUpShort, input));
 
 		assertEquals(3, result.size());
 		OptimalWithdrawerLogic.OutputItem longOutput = findOutput(result, longOnlyBest.ex(), true);
@@ -174,7 +174,7 @@ public class OptimalWithdrawerLogicTest {
 		input.add(splitExchange);
 		input.add(expensiveAlt);
 
-		var result = logic.processBestBase4Representation(new OptimalWithdrawerLogic.InputParams(topUpLong, topUpShort, input));
+		var result = logic.getOptimalWdPath(new OptimalWithdrawerLogic.InputParams(topUpLong, topUpShort, input));
 
 		assertEquals(2, result.size());
 		assertThat(result, hasItem(new OptimalWithdrawerLogic.OutputItem(splitExchange.ex(), 30, 0.1, true)));
@@ -215,7 +215,7 @@ public class OptimalWithdrawerLogicTest {
 		input.add(extraShort);
 		input.add(expensiveLongNoise);
 
-		var result = logic.processBestBase4Representation(new OptimalWithdrawerLogic.InputParams(topUpLong, topUpShort, input));
+		var result = logic.getOptimalWdPath(new OptimalWithdrawerLogic.InputParams(topUpLong, topUpShort, input));
 
 		OptimalWithdrawerLogic.OutputItem splitLong = findOutput(result, splitExchange.ex(), true);
 		OptimalWithdrawerLogic.OutputItem splitShort = findOutput(result, splitExchange.ex(), false);
