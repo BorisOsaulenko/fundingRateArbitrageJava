@@ -3,8 +3,10 @@ package com.boris.fundingarbitrage;
 import com.boris.fundingarbitrage.coinfilter.CoinFilterConfig;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.exchange.Instances;
+import com.boris.fundingarbitrage.execution.OptimalWithdrawer;
 import com.boris.fundingarbitrage.logic.ArbitrageBotConfig;
 import com.boris.fundingarbitrage.logic.ArbitrageLogic;
+import com.boris.fundingarbitrage.model.exchange.ExchangeName;
 import com.boris.fundingarbitrage.strategy.ArbitrageStrategy;
 import com.boris.fundingarbitrage.strategy.ClassicArbitrageStrategy;
 import com.boris.fundingarbitrage.util.logger.Logger;
@@ -12,10 +14,7 @@ import com.boris.fundingarbitrage.util.logger.Logger;
 import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 
 public class App {
 	private static final Set<String> coins2 = Set.of("BERA", "FOLKS", "GAIB", "OM", "AZTEC");
@@ -139,15 +138,10 @@ public class App {
 	}
 
 	static void main(String[] args) {
-		List<CompletableFuture<Void>> futures = new ArrayList<>();
-		for (BaseExchange exchange : Instances.getExchangeArray()) {
-			var future = exchange.privateHttpClient.getSupportedChains().thenAccept(res -> {
-				Logger.log(exchange.name + ": " + res.withdrawableChains().stream().map(c -> c.chain().name()).toList());
-			});
-			futures.add(future);
-		}
-
-		CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+		BaseExchange bybit = Instances.getExchange(ExchangeName.BYBIT);
+		BaseExchange whitebit = Instances.getExchange(ExchangeName.WHITEBIT);
+		OptimalWithdrawer wd = new OptimalWithdrawer(bybit, whitebit, 30.3);
+		wd.withdrawUsdtToExchanges().join();
 	}
 }
 

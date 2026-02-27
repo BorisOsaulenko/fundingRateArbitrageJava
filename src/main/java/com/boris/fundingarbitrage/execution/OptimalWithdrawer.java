@@ -3,10 +3,9 @@ package com.boris.fundingarbitrage.execution;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.exchange.Instances;
 import com.boris.fundingarbitrage.model.assetops.SupportedChain;
-import com.boris.fundingarbitrage.model.assetops.Withdrawal;
 import com.boris.fundingarbitrage.model.exchange.ExchangeChains;
-import com.boris.fundingarbitrage.model.exchange.WalletAddress;
 import com.boris.fundingarbitrage.model.exchange.WithdrawChain;
+import com.boris.fundingarbitrage.util.logger.Logger;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -18,7 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class OptimalWithdrawer {
 	private final BaseExchange longExchange;
 	private final BaseExchange shortExchange;
-	private final int usdtAmount;
+	private final double usdtAmount;
 
 	private final List<BaseExchange> otherExchanges;
 
@@ -32,7 +31,7 @@ public class OptimalWithdrawer {
 
 	private final OptimalWithdrawerLogic logic = new OptimalWithdrawerLogic();
 
-	public OptimalWithdrawer(BaseExchange longExchange, BaseExchange shortExchange, int usdtAmount) {
+	public OptimalWithdrawer(BaseExchange longExchange, BaseExchange shortExchange, double usdtAmount) {
 		this.longExchange = longExchange;
 		this.shortExchange = shortExchange;
 		this.usdtAmount = usdtAmount;
@@ -84,19 +83,21 @@ public class OptimalWithdrawer {
 			if (depositToLongAmount == 0 && depositToShortAmount == 0) return CompletableFuture.completedFuture(null);
 
 			List<OptimalWithdrawerLogic.OutputItem> optimalPath = delegateToLogic(depositToLongAmount, depositToShortAmount);
-			if (optimalPath == null) throw new IllegalStateException("Optimal path not found");
+			if (optimalPath == null) throw new IllegalStateException(
+							"Optimal withdraw path not found. Probably not enough USDT on exchanges");
+			Logger.log(optimalPath.toString());
 
 			List<CompletableFuture<Void>> futures = new ArrayList<>();
-			for (var item : optimalPath) {
-				BaseExchange destination = item.toLong() ? longExchange : shortExchange;
-				WithdrawChain chain = item.toLong() ? optimalChainToLong.get(item.ex()) : optimalChainToShort.get(item.ex());
-				CompletableFuture<WalletAddress> addressFuture = destination.privateHttpClient.getUsdtWalletAddress(chain.chain());
-
-				futures.add(addressFuture.thenCompose(address -> {
-					Withdrawal wdParams = new Withdrawal(item.amount(), item.fee(), address);
-					return item.ex().privateHttpClient.withdrawUsdt(wdParams);
-				}));
-			}
+			//			for (var item : optimalPath) {
+			//				BaseExchange destination = item.toLong() ? longExchange : shortExchange;
+			//				WithdrawChain chain = item.toLong() ? optimalChainToLong.get(item.ex()) : optimalChainToShort.get(item.ex());
+			//				CompletableFuture<WalletAddress> addressFuture = destination.privateHttpClient.getUsdtWalletAddress(chain.chain());
+			//
+			//				futures.add(addressFuture.thenCompose(address -> {
+			//					Withdrawal wdParams = new Withdrawal(item.amount(), item.fee(), address);
+			//					return item.ex().privateHttpClient.withdrawUsdt(wdParams);
+			//				}));
+			//			}
 
 			return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
 		});
