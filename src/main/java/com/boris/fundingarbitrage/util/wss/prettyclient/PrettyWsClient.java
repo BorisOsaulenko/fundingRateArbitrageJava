@@ -148,4 +148,8 @@ public class PrettyWsClient {
 			connecting = new CompletableFuture<>();
 		};
 	}
+
+	public boolean isConnected() {
+		return lastSession != null && lastSession.isOpen();
+	}
 }

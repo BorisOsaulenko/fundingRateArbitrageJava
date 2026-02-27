@@ -36,10 +36,12 @@ class PrivateResponses {
 	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
-	private record TradingFeesResult(List<TradingFeeItem> list) {}
+	private record TradingFeesResult(List<TradingFeeItem> list) {
+	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
-	private record TradingFeeItem(String symbol, String makerFeeRate, String takerFeeRate) {}
+	private record TradingFeeItem(String symbol, String makerFeeRate, String takerFeeRate) {
+	}
 
 	public record ChangeLeverageResponse(int retCode, String retMsg) {
 		public ChangeLeverageResponse {
@@ -50,11 +52,29 @@ class PrivateResponses {
 	}
 
 	public record SetMarginModeResponse(int retCode, String retMsg) {
-		public SetMarginModeResponse {}
+		public SetMarginModeResponse {
+		}
 	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
-	public record SpotUsdtBalanceResponse(int retCode, String retMsg, long time, BalanceResult result) {
+	public record SpotUsdtBalanceResponse(int retCode, String retMsg, long time, SpotBalanceResult result) {
+		public double get() {
+			for (BalanceItem item : result.balance()) {
+				if (!"USDT".equalsIgnoreCase(item.coin())) continue;
+				return item.walletBalance();
+			}
+			throw new IllegalStateException("Bybit spot USDT balance not found");
+		}
+
+		private record BalanceItem(String coin, double walletBalance) {
+		}
+
+		private record SpotBalanceResult(List<BalanceItem> balance) {
+		}
+	}
+
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	public record FuturesUsdtBalanceResponse(int retCode, String retMsg, long time, FuturesBalanceResult result) {
 		public double get() {
 			List<BalanceAccount> list = result == null ? null : result.list;
 			if (list == null) return 0.0;
@@ -65,31 +85,19 @@ class PrivateResponses {
 					return Double.parseDouble(coin.walletBalance);
 				}
 			}
-			return 0.0;
+			throw new IllegalStateException("Bybit futures USDT balance not found");
+		}
+
+		private record FuturesBalanceResult(List<BalanceAccount> list) {
+		}
+
+		private record BalanceAccount(List<BalanceCoin> coin) {
+		}
+
+		private record BalanceCoin(String coin, String walletBalance) {
 		}
 	}
 
-	@JsonIgnoreProperties(ignoreUnknown = true)
-	public record FuturesUsdtBalanceResponse(int retCode, String retMsg, long time, BalanceResult result) {
-		public double get() {
-			List<BalanceAccount> list = result == null ? null : result.list;
-			if (list == null) return 0.0;
-			for (BalanceAccount account : list) {
-				if (account.coin == null) continue;
-				for (BalanceCoin coin : account.coin) {
-					if (!"USDT".equalsIgnoreCase(coin.coin)) continue;
-					return Double.parseDouble(coin.walletBalance);
-				}
-			}
-			return 0.0;
-		}
-	}
-
-	private record BalanceResult(List<BalanceAccount> list) {}
-
-	private record BalanceAccount(List<BalanceCoin> coin) {}
-
-	private record BalanceCoin(String coin, String walletBalance) {}
 
 	public record MaxLeverageResponse(int retCode, String retMsg, long time, MaxLeverageResult result) implements
 					PaginatedResponse {
@@ -112,13 +120,16 @@ class PrivateResponses {
 	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
-	private record MaxLeverageResult(List<MaxLeverageItem> list, String nextPageCursor) {}
+	private record MaxLeverageResult(List<MaxLeverageItem> list, String nextPageCursor) {
+	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
-	private record MaxLeverageItem(String symbol, LeverageFilter leverageFilter) {}
+	private record MaxLeverageItem(String symbol, LeverageFilter leverageFilter) {
+	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
-	private record LeverageFilter(String maxLeverage) {}
+	private record LeverageFilter(String maxLeverage) {
+	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
 	public record SupportedChainsResponse(int retCode, String retMsg, long time, SupportedChainsResult result) {
@@ -154,17 +165,22 @@ class PrivateResponses {
 		}
 	}
 
-	private record SupportedChainsResult(List<SupportedCoin> rows) {}
+	private record SupportedChainsResult(List<SupportedCoin> rows) {
+	}
 
-	private record SupportedCoin(String coin, List<SupportedChainInfo> chains) {}
+	private record SupportedCoin(String coin, List<SupportedChainInfo> chains) {
+	}
 
 	private record SupportedChainInfo(
 					String chain, String chainDeposit, String chainWithdraw, String withdrawFee, String withdrawMin
-	) {}
+	) {
+	}
 
-	private record WalletItem(String chain, String addressDeposit, String tagDeposit) {}
+	private record WalletItem(String chain, String addressDeposit, String tagDeposit) {
+	}
 
-	private record WalletResult(String coin, List<WalletItem> chains) {}
+	private record WalletResult(String coin, List<WalletItem> chains) {
+	}
 
 	public record UsdtWalletAddressResponse(
 					int retCode, String retMsg, long time, WalletResult result
@@ -188,7 +204,8 @@ class PrivateResponses {
 	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
-	private record WithdrawResult(String id) {}
+	private record WithdrawResult(String id) {
+	}
 
 	public record WithdrawUsdtResponse(int retCode, String retMsg, long time, WithdrawResult result) {
 		public WithdrawUsdtResponse {
@@ -196,7 +213,8 @@ class PrivateResponses {
 	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
-	private record PlaceFuturesOrderResult(String orderId, String orderLinkId) {}
+	private record PlaceFuturesOrderResult(String orderId, String orderLinkId) {
+	}
 
 	public record PlaceFuturesOrderResponse(int retCode, String retMsg, long time, PlaceFuturesOrderResult result) {
 		public String orderId() {
@@ -208,7 +226,8 @@ class PrivateResponses {
 	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
-	private record OrderRecordsResult(List<OrderRecordItem> list) {}
+	private record OrderRecordsResult(List<OrderRecordItem> list) {
+	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
 	private record OrderRecordItem(
@@ -219,7 +238,8 @@ class PrivateResponses {
 					String execFee,
 					String feeCurrency,
 					long execTime
-	) {}
+	) {
+	}
 
 	public record GetOrderRecordResponse(int retCode, String retMsg, long time, OrderRecordsResult result) {
 		public List<PartialFill> get() {
@@ -243,7 +263,8 @@ class PrivateResponses {
 	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
-	private record InternalTransferResult(String transferId, String status) {}
+	private record InternalTransferResult(String transferId, String status) {
+	}
 
 	public record InternalTransferResponse(int retCode, String retMsg, long time, InternalTransferResult result) {
 		public InternalTransferResponse {

@@ -142,6 +142,10 @@ public class App {
 		BaseExchange whitebit = Instances.getExchange(ExchangeName.WHITEBIT);
 		OptimalWithdrawer wd = new OptimalWithdrawer(bybit, whitebit, 30.3);
 		wd.withdrawUsdtToExchanges().join();
+
+		//		BaseExchange okx = Instances.getExchange(ExchangeName.OKX);
+		//		var result = okx.privateHttpClient.getSpotUsdtBalance().join();
+		//		Logger.log(result.toString());
 	}
 }
 

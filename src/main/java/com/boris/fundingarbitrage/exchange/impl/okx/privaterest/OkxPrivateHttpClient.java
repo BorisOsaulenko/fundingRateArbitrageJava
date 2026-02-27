@@ -22,7 +22,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
 
 public class OkxPrivateHttpClient extends PrivateHttpClient {
 	private final ExchangeCredentials credentials;
@@ -63,24 +62,16 @@ public class OkxPrivateHttpClient extends PrivateHttpClient {
 		}
 	}
 
-	private <T, U> CompletableFuture<U> processRequest(
-					SimpleHttpRequest request,
-					Class<T> responseClass,
-					Function<T, U> parser
-	) {
-		return requestWrapper.processRequest(signRequest(request), responseClass, parser);
-	}
-
 	@Override
 	protected CompletableFuture<Map<String, Fees>> getTradingFeesSymbolBatch() {
-		CompletableFuture<Map<Integer, PrivateResponses.FeeGroup>> feeGroupMapFuture = processRequest(
-						PrivateEndpoints.tradingFeesRequest(),
+		CompletableFuture<Map<Integer, PrivateResponses.FeeGroup>> feeGroupMapFuture = requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.tradingFeesRequest()),
 						PrivateResponses.TradingFeesSymbolsResponse.class,
 						PrivateResponses.TradingFeesSymbolsResponse::getFeeGroups
 		);
 
-		CompletableFuture<Map<String, Integer>> instrumentsResponseFuture = processRequest(
-						PrivateEndpoints.instrumentsRequest(),
+		CompletableFuture<Map<String, Integer>> instrumentsResponseFuture = requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.instrumentsRequest()),
 						PrivateResponses.InstrumentsResponse.class,
 						PrivateResponses.InstrumentsResponse::getFeeGroupId
 		);
@@ -102,8 +93,8 @@ public class OkxPrivateHttpClient extends PrivateHttpClient {
 
 	@Override
 	protected CompletableFuture<Void> changeLeverageSymbol(String symbol, int leverage) {
-		return processRequest(
-						PrivateEndpoints.changeLeverageRequestSymbol(symbol, leverage, MarginMode.CROSS),
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.changeLeverageRequestSymbol(symbol, leverage, MarginMode.CROSS)),
 						PrivateResponses.ChangeLeverageResponse.class,
 						(resp) -> null
 		);
@@ -111,12 +102,12 @@ public class OkxPrivateHttpClient extends PrivateHttpClient {
 
 	@Override
 	protected CompletableFuture<Void> setMarginModeSymbol(String symbol, MarginMode marginMode) {
-		return processRequest(
-						PrivateEndpoints.leverageInfoRequestSymbol(symbol, marginMode),
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.leverageInfoRequestSymbol(symbol, marginMode)),
 						PrivateResponses.LeverageInfoResponse.class,
 						(resp) -> resp.getLever(symbol)
-		).thenCompose(lever -> processRequest(
-						PrivateEndpoints.changeLeverageRequestSymbol(symbol, lever, marginMode),
+		).thenCompose(lever -> requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.changeLeverageRequestSymbol(symbol, lever, marginMode)),
 						PrivateResponses.ChangeLeverageResponse.class,
 						(resp) -> null
 		));
@@ -124,8 +115,8 @@ public class OkxPrivateHttpClient extends PrivateHttpClient {
 
 	@Override
 	public CompletableFuture<Double> getSpotUsdtBalance() {
-		return processRequest(
-						PrivateEndpoints.spotUsdtBalanceRequest(),
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.spotUsdtBalanceRequest()),
 						PrivateResponses.SpotUsdtBalanceResponse.class,
 						PrivateResponses.SpotUsdtBalanceResponse::get
 		);
@@ -133,8 +124,8 @@ public class OkxPrivateHttpClient extends PrivateHttpClient {
 
 	@Override
 	public CompletableFuture<Double> getFuturesUsdtBalance() {
-		return processRequest(
-						PrivateEndpoints.futuresUsdtBalanceRequest(),
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.futuresUsdtBalanceRequest()),
 						PrivateResponses.FuturesUsdtBalanceResponse.class,
 						PrivateResponses.FuturesUsdtBalanceResponse::get
 		);
@@ -142,8 +133,8 @@ public class OkxPrivateHttpClient extends PrivateHttpClient {
 
 	@Override
 	protected CompletableFuture<Map<String, Integer>> getMaxLeverageSymbolBatch() {
-		return processRequest(
-						PrivateEndpoints.instrumentsRequest(),
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.instrumentsRequest()),
 						PrivateResponses.InstrumentsResponse.class,
 						PrivateResponses.InstrumentsResponse::getMaxLeverage
 		);
@@ -151,8 +142,8 @@ public class OkxPrivateHttpClient extends PrivateHttpClient {
 
 	@Override
 	public CompletableFuture<ExchangeChains> getSupportedChains() {
-		return processRequest(
-						PrivateEndpoints.supportedChainsRequest(),
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.supportedChainsRequest()),
 						PrivateResponses.SupportedChainsResponse.class,
 						PrivateResponses.SupportedChainsResponse::get
 		);
@@ -160,8 +151,8 @@ public class OkxPrivateHttpClient extends PrivateHttpClient {
 
 	@Override
 	public CompletableFuture<WalletAddress> getUsdtWalletAddress(SupportedChain chain) {
-		return processRequest(
-						PrivateEndpoints.usdtWalletAddressRequest(chain),
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.usdtWalletAddressRequest(chain)),
 						PrivateResponses.UsdtWalletAddressResponse.class,
 						(resp) -> resp.get(chain)
 		);
@@ -169,8 +160,8 @@ public class OkxPrivateHttpClient extends PrivateHttpClient {
 
 	@Override
 	public CompletableFuture<Void> withdrawUsdt(Withdrawal withdrawal) {
-		return processRequest(
-						PrivateEndpoints.withdrawUsdtRequest(withdrawal),
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.withdrawUsdtRequest(withdrawal)),
 						PrivateResponses.WithdrawUsdtResponse.class,
 						(_) -> null
 		);
@@ -178,8 +169,8 @@ public class OkxPrivateHttpClient extends PrivateHttpClient {
 
 	@Override
 	protected CompletableFuture<String> placeFuturesOrderSymbol(String symbol, FuturesOrder futuresOrder) {
-		return processRequest(
-						PrivateEndpoints.placeFuturesOrderRequestSymbol(symbol, futuresOrder),
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.placeFuturesOrderRequestSymbol(symbol, futuresOrder)),
 						PrivateResponses.PlaceFuturesOrderResponse.class,
 						PrivateResponses.PlaceFuturesOrderResponse::orderId
 		);
@@ -191,8 +182,8 @@ public class OkxPrivateHttpClient extends PrivateHttpClient {
 					String symbol,
 					TradeSide tradeSide
 	) {
-		return processRequest(
-						PrivateEndpoints.orderRecordRequestSymbol(orderId, symbol),
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.orderRecordRequestSymbol(orderId, symbol)),
 						PrivateResponses.GetOrderRecordResponse.class,
 						(resp) -> resp.get(orderId)
 		);
@@ -200,8 +191,8 @@ public class OkxPrivateHttpClient extends PrivateHttpClient {
 
 	@Override
 	public CompletableFuture<Void> internalTransfer(InternalTransfer internalTransfer) {
-		return processRequest(
-						PrivateEndpoints.internalTransferRequest(internalTransfer),
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.internalTransferRequest(internalTransfer)),
 						PrivateResponses.InternalTransferResponse.class,
 						(resp) -> null
 		);

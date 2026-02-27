@@ -63,7 +63,7 @@ public class KucoinPublicWsClient extends FullFundingViaRest {
 	}
 
 	private void sendPingFrame() {
-		this.sendObject(new PingFrame());
+		if (connected()) this.sendObject(new PingFrame());
 	}
 
 	@Override

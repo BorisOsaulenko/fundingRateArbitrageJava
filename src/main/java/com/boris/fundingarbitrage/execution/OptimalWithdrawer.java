@@ -77,6 +77,8 @@ public class OptimalWithdrawer {
 
 	public CompletableFuture<Void> withdrawUsdtToExchanges() {
 		return initFuture.thenCompose(_ -> {
+			Logger.log(balances.toString());
+			Logger.log(chains.toString());
 			double depositToLongAmount = Math.max(usdtAmount - balances.get(longExchange).total(), 0);
 			double depositToShortAmount = Math.max(usdtAmount - balances.get(shortExchange).total(), 0);
 
@@ -126,7 +128,7 @@ public class OptimalWithdrawer {
 			);
 			inputItems.add(item);
 		}
-
+		Logger.log(topUpLong + " " + topUpShort + " " + inputItems);
 		var params = new OptimalWithdrawerLogic.InputParams(topUpLong, topUpShort, inputItems);
 		return logic.getOptimalWdPath(params);
 	}

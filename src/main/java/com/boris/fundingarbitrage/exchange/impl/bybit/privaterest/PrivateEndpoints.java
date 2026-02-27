@@ -49,9 +49,8 @@ class PrivateEndpoints {
 	}
 
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest spotUsdtBalanceRequest() {
-		URI uri = new URIBuilder(baseUrl)
-						.setPath("/v5/account/wallet-balance")
+	public static @NonNull SimpleHttpRequest futuresUsdtBalanceRequest() {
+		URI uri = new URIBuilder(baseUrl).setPath("/v5/account/wallet-balance")
 						.addParameter("accountType", "UNIFIED")
 						.addParameter("coin", "USDT")
 						.build();
@@ -59,10 +58,9 @@ class PrivateEndpoints {
 	}
 
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest futuresUsdtBalanceRequest() {
-		URI uri = new URIBuilder(baseUrl)
-						.setPath("/v5/account/wallet-balance")
-						.addParameter("accountType", "UNIFIED")
+	public static @NonNull SimpleHttpRequest spotUsdtBalanceRequest() {
+		URI uri = new URIBuilder(baseUrl).setPath("/v5/asset/transfer/query-account-coins-balance")
+						.addParameter("accountType", "FUND")
 						.addParameter("coin", "USDT")
 						.build();
 		return new SimpleHttpRequest("GET", uri);
@@ -70,10 +68,9 @@ class PrivateEndpoints {
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest maxLeverageRequest(String paginationIndex) {
-		URIBuilder uriBuilder = new URIBuilder(baseUrl).setPath("/v5/market/instruments-info").addParameter(
-						"category",
-						category
-		).addParameter("limit", "1000");
+		URIBuilder uriBuilder = new URIBuilder(baseUrl).setPath("/v5/market/instruments-info")
+						.addParameter("category", category)
+						.addParameter("limit", "1000");
 
 		if (paginationIndex != null) uriBuilder.addParameter("cursor", paginationIndex);
 
@@ -89,8 +86,7 @@ class PrivateEndpoints {
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest usdtWalletAddressRequest(SupportedChain chain) {
-		URI uri = new URIBuilder(baseUrl)
-						.setPath("/v5/asset/deposit/query-address")
+		URI uri = new URIBuilder(baseUrl).setPath("/v5/asset/deposit/query-address")
 						.addParameter("coin", "USDT")
 						.addParameter("chainType", chainsMap.get(chain))
 						.build();
@@ -134,9 +130,11 @@ class PrivateEndpoints {
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest orderRecordRequest(String orderId, String symbol, TradeSide tradeSide) {
-		URI uri = new URIBuilder(baseUrl).setPath("/v5/execution/list").addParameter("category", category).addParameter("symbol",
-						symbol
-		).addParameter("orderId", orderId).build();
+		URI uri = new URIBuilder(baseUrl).setPath("/v5/execution/list")
+						.addParameter("category", category)
+						.addParameter("symbol", symbol)
+						.addParameter("orderId", orderId)
+						.build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 

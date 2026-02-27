@@ -51,7 +51,6 @@ public abstract class PublicWsClient {
 						this::onConnect,
 						null
 		));
-		this.prettyWsClientFuture.thenAccept(PrettyWsClient::connect);
 	}
 
 	public PublicWsClient(
@@ -70,7 +69,6 @@ public abstract class PublicWsClient {
 						this::onConnect,
 						null
 		));
-		this.prettyWsClientFuture.thenAccept(PrettyWsClient::connect);
 	}
 
 	public PublicWsClient(PublicWsClient client) {
@@ -291,7 +289,7 @@ public abstract class PublicWsClient {
 		} catch (JsonProcessingException ignored) {}
 
 		if (handlePingMessage(message)) s = true;
-//		if (!s) Logger.warn("Unrecognized public ws message: " + message);
+		//		if (!s) Logger.warn("Unrecognized public ws message: " + message);
 	}
 
 	public void onConnect(Session session) {
@@ -303,6 +301,10 @@ public abstract class PublicWsClient {
 
 		List<String> markPriceSymbols = markPriceHandlers.keySet().stream().map(context::getSymbol).toList();
 		if (!markPriceSymbols.isEmpty()) this.sendMessage(getSubscribeMarkPriceFrame(markPriceSymbols));
+	}
+
+	protected boolean connected() {
+		return this.prettyWsClientFuture.isDone() && this.prettyWsClientFuture.join().isConnected();
 	}
 
 	public void unsubscribeCoin(String coin) {
