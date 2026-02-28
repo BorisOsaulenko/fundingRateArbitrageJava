@@ -26,7 +26,7 @@ public class OptimalWithdrawerLogic {
 					double freeS,
 					double freeD
 	) {
-		if (cumFee >= minFee || minS >= params.topUpShort() || minL >= params.topUpLong()) {
+		if (cumFee >= minFee || minS > params.topUpShort() || minL > params.topUpLong()) {
 			return;
 		}
 
@@ -185,11 +185,14 @@ public class OptimalWithdrawerLogic {
 
 	public record InputItem(
 					BaseExchange ex, double balance, Double longFee, Double shortFee, Double minLongWd, Double minShortWd
-	) {}
+	) {
+	}
 
-	public record InputParams(double topUpLong, double topUpShort, List<InputItem> availableToWd) {}
+	public record InputParams(double topUpLong, double topUpShort, List<InputItem> availableToWd) {
+	}
 
-	public record OutputItem(BaseExchange ex, double amount, double fee, boolean toLong) {}
+	public record OutputItem(BaseExchange ex, double amount, double fee, boolean toLong) {
+	}
 
 	private static class WithdrawEntry {
 		long status;
