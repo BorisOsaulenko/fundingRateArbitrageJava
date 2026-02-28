@@ -8,6 +8,7 @@ import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
 import com.boris.fundingarbitrage.util.logger.Logger;
 import com.fasterxml.jackson.databind.JsonNode;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 
 class GatePublicMessageHandler implements PublicMessageHandler {
@@ -39,8 +40,9 @@ class GatePublicMessageHandler implements PublicMessageHandler {
 		if (symbol == null || symbol.isEmpty()) return null;
 		String coin = context.getSymbolInverse(symbol);
 
-		double rate = entry.path("funding_rate").asDouble();
-		if (rate == 0.0) return null;
+		JsonNode rateNode = entry.get("funding_rate");
+		BigDecimal rate = rateNode == null ? BigDecimal.ZERO : rateNode.decimalValue();
+		if (rate.compareTo(BigDecimal.ZERO) == 0) return null;
 
 		return new FundingRatePatch(coin, rate, null, Instant.ofEpochSecond(time));
 	}
@@ -60,8 +62,9 @@ class GatePublicMessageHandler implements PublicMessageHandler {
 		if (symbol == null || symbol.isEmpty()) return null;
 		String coin = context.getSymbolInverse(symbol);
 
-		double mark = entry.path("mark_price").asDouble();
-		if (mark == 0.0) return null;
+		JsonNode markNode = entry.get("mark_price");
+		BigDecimal mark = markNode == null ? BigDecimal.ZERO : markNode.decimalValue();
+		if (mark.compareTo(BigDecimal.ZERO) == 0) return null;
 
 		return new MarkPricePatch(coin, mark, Instant.ofEpochSecond(time));
 	}
@@ -78,12 +81,20 @@ class GatePublicMessageHandler implements PublicMessageHandler {
 		if (symbol == null || symbol.isEmpty()) return null;
 		String coin = context.getSymbolInverse(symbol);
 
-		double bidPrice = result.path("b").asDouble();
-		double bidSize = result.path("B").asDouble();
-		double askPrice = result.path("a").asDouble();
-		double askSize = result.path("A").asDouble();
+		JsonNode bidPriceNode = result.get("b");
+		JsonNode bidSizeNode = result.get("B");
+		JsonNode askPriceNode = result.get("a");
+		JsonNode askSizeNode = result.get("A");
+		BigDecimal bidPrice = bidPriceNode == null ? BigDecimal.ZERO : bidPriceNode.decimalValue();
+		BigDecimal bidSize = bidSizeNode == null ? BigDecimal.ZERO : bidSizeNode.decimalValue();
+		BigDecimal askPrice = askPriceNode == null ? BigDecimal.ZERO : askPriceNode.decimalValue();
+		BigDecimal askSize = askSizeNode == null ? BigDecimal.ZERO : askSizeNode.decimalValue();
 
-		boolean nonePresent = bidPrice == 0.0 && bidSize == 0.0 && askPrice == 0.0 && askSize == 0.0;
+		boolean nonePresent =
+						bidPrice.compareTo(BigDecimal.ZERO) == 0 &&
+						bidSize.compareTo(BigDecimal.ZERO) == 0 &&
+						askPrice.compareTo(BigDecimal.ZERO) == 0 &&
+						askSize.compareTo(BigDecimal.ZERO) == 0;
 		if (nonePresent) return null;
 
 		long time = result.path("t").asLong();

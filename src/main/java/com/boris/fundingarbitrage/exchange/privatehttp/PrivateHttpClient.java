@@ -10,6 +10,7 @@ import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import com.boris.fundingarbitrage.util.https.PrettyHttpClient;
 import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -35,9 +36,9 @@ public abstract class PrivateHttpClient {
 
 	protected abstract CompletableFuture<Void> setMarginModeSymbol(String symbol, MarginMode marginMode);
 
-	public abstract CompletableFuture<Double> getSpotUsdtBalance();
+	public abstract CompletableFuture<BigDecimal> getSpotUsdtBalance();
 
-	public abstract CompletableFuture<Double> getFuturesUsdtBalance();
+	public abstract CompletableFuture<BigDecimal> getFuturesUsdtBalance();
 
 	protected abstract CompletableFuture<Map<String, Integer>> getMaxLeverageSymbolBatch();
 

@@ -8,6 +8,7 @@ import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
 import com.boris.fundingarbitrage.util.logger.Logger;
 import com.fasterxml.jackson.databind.JsonNode;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 
 class BybitPublicMessageHandler implements PublicMessageHandler {
@@ -30,8 +31,9 @@ class BybitPublicMessageHandler implements PublicMessageHandler {
 		String symbol = data.path("symbol").asText();
 		if (symbol.isEmpty()) return null;
 
-		double markPrice = data.path("markPrice").asDouble();
-		if (markPrice == 0.0) return null;
+		JsonNode markPriceNode = data.get("markPrice");
+		BigDecimal markPrice = markPriceNode == null ? BigDecimal.ZERO : markPriceNode.decimalValue();
+		if (markPrice.compareTo(BigDecimal.ZERO) == 0) return null;
 
 		String coin = context.getSymbolInverse(symbol);
 		return new MarkPricePatch(coin, markPrice, parseTimestamp(root));
@@ -41,19 +43,27 @@ class BybitPublicMessageHandler implements PublicMessageHandler {
 		JsonNode data = root.get("data");
 		if (data == null) return null;
 		String symbol = data.path("symbol").asText();
+		if (symbol == null || symbol.isEmpty()) return null;
 		String coin = context.getSymbolInverse(symbol);
-		double bidPr = data.path("bid1Price").asDouble();
-		double bidSz = data.path("bid1Size").asDouble();
-		double askPr = data.path("ask1Price").asDouble();
-		double askSz = data.path("ask1Size").asDouble();
+		JsonNode bidPrNode = data.get("bid1Price");
+		JsonNode bidSzNode = data.get("bid1Size");
+		JsonNode askPrNode = data.get("ask1Price");
+		JsonNode askSzNode = data.get("ask1Size");
+		BigDecimal bidPr = bidPrNode == null ? BigDecimal.ZERO : bidPrNode.decimalValue();
+		BigDecimal bidSz = bidSzNode == null ? BigDecimal.ZERO : bidSzNode.decimalValue();
+		BigDecimal askPr = askPrNode == null ? BigDecimal.ZERO : askPrNode.decimalValue();
+		BigDecimal askSz = askSzNode == null ? BigDecimal.ZERO : askSzNode.decimalValue();
 		Instant timestamp = parseTimestamp(root);
-		if (bidPr == 0.0 && bidSz == 0.0 && askPr == 0.0 && askSz == 0.0) return null;
+		if (bidPr.compareTo(BigDecimal.ZERO) == 0 &&
+				bidSz.compareTo(BigDecimal.ZERO) == 0 &&
+				askPr.compareTo(BigDecimal.ZERO) == 0 &&
+				askSz.compareTo(BigDecimal.ZERO) == 0) return null;
 		return new BookTickerPatch(
 						coin,
-						bidPr == 0.0 ? null : bidPr,
-						bidSz == 0.0 ? null : bidSz,
-						askPr == 0.0 ? null : askPr,
-						askSz == 0.0 ? null : askSz,
+						bidPr.compareTo(BigDecimal.ZERO) == 0 ? null : bidPr,
+						bidSz.compareTo(BigDecimal.ZERO) == 0 ? null : bidSz,
+						askPr.compareTo(BigDecimal.ZERO) == 0 ? null : askPr,
+						askSz.compareTo(BigDecimal.ZERO) == 0 ? null : askSz,
 						timestamp
 		);
 	}

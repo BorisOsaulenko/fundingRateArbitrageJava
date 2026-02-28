@@ -12,25 +12,26 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 
 class BitgetPrivateMessageHandler implements PrivateMessageHandler {
 	private final ObjectMapper mapper = ObjectMapperSingleton.getInstance();
 
-	private static double parseDouble(JsonNode node, String... fields) {
+	private static BigDecimal parseBigDecimal(JsonNode node, String... fields) {
 		for (String field : fields) {
 			JsonNode val = node.get(field);
 			if (val != null && !val.isNull()) {
 				String text = val.asText();
 				if (text != null && !text.isEmpty()) {
 					try {
-						return Double.parseDouble(text);
+						return new BigDecimal(text);
 					} catch (NumberFormatException ignored) {
 					}
 				}
 			}
 		}
-		return 0.0;
+		return BigDecimal.ZERO;
 	}
 
 	private static Instant parseInstant(JsonNode node, String... fields) {
@@ -58,8 +59,8 @@ class BitgetPrivateMessageHandler implements PrivateMessageHandler {
 		JsonNode entry = data.get(0);
 		String marginCoin = entry.path("marginCoin").asText();
 		if (!"USDT".equalsIgnoreCase(marginCoin)) return null;
-		double available = parseDouble(entry, "available", "availableBalance", "availableEquity", "maxAvailable");
-		if (available <= 0) return null;
+		BigDecimal available = parseBigDecimal(entry, "available", "availableBalance", "availableEquity", "maxAvailable");
+		if (available.compareTo(BigDecimal.ZERO) <= 0) return null;
 		Instant ts = parseInstant(entry, "ts", "timestamp");
 		return new DepositPatch(available, ts);
 	}
@@ -74,11 +75,11 @@ class BitgetPrivateMessageHandler implements PrivateMessageHandler {
 		String orderId = entry.path("orderId").asText();
 		if (orderId == null || orderId.isEmpty()) return null;
 		String symbol = entry.path("symbol").asText();
-		double size = parseDouble(entry, "size", "tradeSize", "baseVolume");
-		double price = parseDouble(entry, "price", "tradePrice");
-		double fee = parseDouble(entry, "fee");
+		BigDecimal size = parseBigDecimal(entry, "size", "tradeSize", "baseVolume");
+		BigDecimal price = parseBigDecimal(entry, "price", "tradePrice");
+		BigDecimal fee = parseBigDecimal(entry, "fee");
 		String feeCoin = entry.path("feeCoin").asText();
-		Double feeValue = "USDT".equalsIgnoreCase(feeCoin) ? fee : null;
+		BigDecimal feeValue = "USDT".equalsIgnoreCase(feeCoin) ? fee : null;
 		Instant ts = parseInstant(entry, "ts", "fillTime", "cTime");
 		return new PartialFill(orderId, symbol, size, price, feeValue, ts);
 	}

@@ -113,17 +113,19 @@ public class App {
 	static void main2(String[] args) throws Exception {
 		Logger.init(Path.of("app.log"));
 		ArbitrageStrategy strategy = new ClassicArbitrageStrategy();
-		ArbitrageBotConfig arbConfig = new ArbitrageBotConfig(
-						coins2,
-						30,
-						1,
-						Duration.ofMinutes(15),
-						Duration.ofSeconds(5),
-						Duration.ofSeconds(5),
-						30,
-						3
-		);
-		CoinFilterConfig filterConfig = new CoinFilterConfig(500_000, BigDecimal.valueOf(30));
+		ArbitrageBotConfig
+						arbConfig =
+						new ArbitrageBotConfig(
+										coins2,
+										30,
+										1,
+										Duration.ofMinutes(15),
+										Duration.ofSeconds(5),
+										Duration.ofSeconds(5),
+										30,
+										3
+						);
+		CoinFilterConfig filterConfig = new CoinFilterConfig(BigDecimal.valueOf(500_000), BigDecimal.valueOf(30));
 
 		ArbitrageLogic logic = new ArbitrageLogic(strategy, arbConfig, filterConfig);
 		logic.start();

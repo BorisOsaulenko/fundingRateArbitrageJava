@@ -35,7 +35,8 @@ public class BinancePrivateHttpClient extends PrivateHttpClient {
 		this.credentials = context.credentials;
 	}
 
-	@Override protected SimpleHttpRequest signRequest(SimpleHttpRequest request) {
+	@Override
+	protected SimpleHttpRequest signRequest(SimpleHttpRequest request) {
 		try {
 			URI
 							withCredentials =
@@ -55,11 +56,13 @@ public class BinancePrivateHttpClient extends PrivateHttpClient {
 		}
 	}
 
-	@Override protected CompletableFuture<Map<String, Fees>> getTradingFeesSymbolBatch() {
+	@Override
+	protected CompletableFuture<Map<String, Fees>> getTradingFeesSymbolBatch() {
 		return null;
 	}
 
-	@Override public CompletableFuture<CoinVector<Fees>> getTradingFees(Set<String> coins) {
+	@Override
+	public CompletableFuture<CoinVector<Fees>> getTradingFees(Set<String> coins) {
 		CoinVector<Fees> fees = new CoinVector<>();
 		BigDecimal maker = new BigDecimal("0.0002");
 		BigDecimal taker = new BigDecimal("0.0005");
@@ -70,7 +73,8 @@ public class BinancePrivateHttpClient extends PrivateHttpClient {
 		return CompletableFuture.completedFuture(fees);
 	}
 
-	@Override protected CompletableFuture<Void> changeLeverageSymbol(String symbol, int leverage) {
+	@Override
+	protected CompletableFuture<Void> changeLeverageSymbol(String symbol, int leverage) {
 		return requestWrapper.processRequest(
 						signRequest(PrivateEndpoints.changeLeverageRequestSymbol(symbol, leverage)),
 						PrivateResponses.ChangeLeverageResponseSymbol.class,
@@ -78,7 +82,8 @@ public class BinancePrivateHttpClient extends PrivateHttpClient {
 		);
 	}
 
-	@Override protected CompletableFuture<Void> setMarginModeSymbol(String symbol, MarginMode marginMode) {
+	@Override
+	protected CompletableFuture<Void> setMarginModeSymbol(String symbol, MarginMode marginMode) {
 		return requestWrapper.getResponseNoCodeCheck(
 						signRequest(PrivateEndpoints.setMarginModeRequestSymbol(
 										symbol,
@@ -90,7 +95,8 @@ public class BinancePrivateHttpClient extends PrivateHttpClient {
 		});
 	}
 
-	@Override public CompletableFuture<Double> getSpotUsdtBalance() {
+	@Override
+	public CompletableFuture<BigDecimal> getSpotUsdtBalance() {
 		return requestWrapper.processRequest(
 						signRequest(PrivateEndpoints.spotUsdtBalanceRequest()),
 						PrivateResponses.SpotUsdtBalanceResponse.class,
@@ -98,7 +104,8 @@ public class BinancePrivateHttpClient extends PrivateHttpClient {
 		);
 	}
 
-	@Override public CompletableFuture<Double> getFuturesUsdtBalance() {
+	@Override
+	public CompletableFuture<BigDecimal> getFuturesUsdtBalance() {
 		return requestWrapper.processRequest(
 						signRequest(PrivateEndpoints.futuresUsdtBalanceRequest()),
 						PrivateResponses.FuturesUsdtBalanceResponse.class,
@@ -106,7 +113,8 @@ public class BinancePrivateHttpClient extends PrivateHttpClient {
 		);
 	}
 
-	@Override protected CompletableFuture<Map<String, Integer>> getMaxLeverageSymbolBatch() {
+	@Override
+	protected CompletableFuture<Map<String, Integer>> getMaxLeverageSymbolBatch() {
 		return requestWrapper.processRequest(
 						signRequest(PrivateEndpoints.maxLeverageRequest()),
 						PrivateResponses.MaxLeverageResponse.class,
@@ -114,7 +122,8 @@ public class BinancePrivateHttpClient extends PrivateHttpClient {
 		);
 	}
 
-	@Override public CompletableFuture<ExchangeChains> getSupportedChains() {
+	@Override
+	public CompletableFuture<ExchangeChains> getSupportedChains() {
 		return requestWrapper.processRequest(
 						signRequest(PrivateEndpoints.supportedChainsRequest()),
 						PrivateResponses.SupportedChainsResponse.class,
@@ -122,7 +131,8 @@ public class BinancePrivateHttpClient extends PrivateHttpClient {
 		);
 	}
 
-	@Override public CompletableFuture<WalletAddress> getUsdtWalletAddress(SupportedChain chain) {
+	@Override
+	public CompletableFuture<WalletAddress> getUsdtWalletAddress(SupportedChain chain) {
 		return requestWrapper.processRequest(
 						signRequest(PrivateEndpoints.usdtWalletAddressRequest(chain)),
 						PrivateResponses.UsdtWalletAddressResponse.class,
@@ -130,7 +140,8 @@ public class BinancePrivateHttpClient extends PrivateHttpClient {
 		);
 	}
 
-	@Override public CompletableFuture<Void> withdrawUsdt(Withdrawal withdrawal) {
+	@Override
+	public CompletableFuture<Void> withdrawUsdt(Withdrawal withdrawal) {
 		return requestWrapper.processRequest(
 						signRequest(PrivateEndpoints.withdrawUsdtRequest(withdrawal)),
 						PrivateResponses.WithdrawUsdtResponse.class,
@@ -138,7 +149,8 @@ public class BinancePrivateHttpClient extends PrivateHttpClient {
 		);
 	}
 
-	@Override protected CompletableFuture<String> placeFuturesOrderSymbol(String symbol, FuturesOrder futuresOrder) {
+	@Override
+	protected CompletableFuture<String> placeFuturesOrderSymbol(String symbol, FuturesOrder futuresOrder) {
 		return requestWrapper.processRequest(
 						signRequest(PrivateEndpoints.placeFuturesOrderRequestSymbol(symbol, futuresOrder)),
 						PrivateResponses.PlaceFuturesOrderResponse.class,
@@ -159,7 +171,8 @@ public class BinancePrivateHttpClient extends PrivateHttpClient {
 		);
 	}
 
-	@Override public CompletableFuture<Void> internalTransfer(InternalTransfer internalTransfer) {
+	@Override
+	public CompletableFuture<Void> internalTransfer(InternalTransfer internalTransfer) {
 		return requestWrapper.processRequest(
 						signRequest(PrivateEndpoints.internalTransferRequest(internalTransfer)),
 						PrivateResponses.InternalTransferResponse.class,

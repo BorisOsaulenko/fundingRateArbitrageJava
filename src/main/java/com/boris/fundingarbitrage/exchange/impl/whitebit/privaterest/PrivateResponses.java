@@ -9,6 +9,7 @@ import com.boris.fundingarbitrage.model.exchange.WithdrawChain;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -19,35 +20,39 @@ class PrivateResponses {
 	private static final WhitebitChainsMap chainsMap = new WhitebitChainsMap();
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
-	public record TradingFeesSymbolsResponse(double futures_maker, double futures_taker) {
+	public record TradingFeesSymbolsResponse(BigDecimal futures_maker, BigDecimal futures_taker) {
 		public Fees getAccountFees() {
-			double maker = futures_maker / 100;
-			double taker = futures_taker / 100;
+			BigDecimal divider = BigDecimal.valueOf(100);
+			BigDecimal maker = futures_maker.divide(divider);
+			BigDecimal taker = futures_taker.divide(divider);
 			return new Fees(maker, taker, maker, taker, Instant.now());
 		}
 	}
 
-	public record SpotBalanceResponse(double main_balance) {
-		public double usdtAvailable() {
+	public record SpotBalanceResponse(BigDecimal main_balance) {
+		public BigDecimal usdtAvailable() {
 			return main_balance;
 		}
 	}
 
-	public record CollateralSummaryResponse(double USDT) {
-		public double futuresBalance() {
+	public record CollateralSummaryResponse(BigDecimal USDT) {
+		public BigDecimal futuresBalance() {
 			return USDT;
 		}
 	}
 
 	public record SupportedChainsResponseEntry(
 					String ticker, boolean is_api_depositable, boolean is_api_withdrawal, SupportedChainsWithdrawInfo withdraw
-	) {}
+	) {
+	}
 
-	public record SupportedChainsWithdrawInfo(double fixed, double min_amount) {}
+	public record SupportedChainsWithdrawInfo(BigDecimal fixed, BigDecimal min_amount) {
+	}
 
 	public record SupportedChainsResponse(Map<String, SupportedChainsResponseEntry> entries) {
 		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
-		public SupportedChainsResponse {}
+		public SupportedChainsResponse {
+		}
 
 		private String extractNetwork(String key) {
 			int start = key.indexOf('(');
@@ -67,8 +72,8 @@ class PrivateResponses {
 
 				if (entry.getValue().is_api_depositable()) depositable.add(chain);
 				if (entry.getValue().is_api_withdrawal()) {
-					double minWidthdraw = entry.getValue().withdraw().min_amount();
-					double fee = entry.getValue().withdraw().fixed();
+					BigDecimal minWidthdraw = entry.getValue().withdraw().min_amount();
+					BigDecimal fee = entry.getValue().withdraw().fixed();
 					withdrawable.add(new WithdrawChain(chain, fee, minWidthdraw));
 				}
 			}
@@ -78,7 +83,8 @@ class PrivateResponses {
 	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
-	private record WalletAccount(String address, String memo) {}
+	private record WalletAccount(String address, String memo) {
+	}
 
 	public record WalletAddressResponse(WalletAccount account) {
 		public WalletAddress get(SupportedChain chain) {
@@ -100,8 +106,15 @@ class PrivateResponses {
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
 	private record OrderDealRecord(
-					String dealOrderId, String market, double amount, double price, double fee, String feeAsset, long time
-	) {}
+					String dealOrderId,
+					String market,
+					BigDecimal amount,
+					BigDecimal price,
+					BigDecimal fee,
+					String feeAsset,
+					long time
+	) {
+	}
 
 	public record OrderDealsResponse(List<OrderDealRecord> records) {
 		public List<PartialFill> get() {
@@ -114,7 +127,7 @@ class PrivateResponses {
 				if (orderId == null || orderId.isEmpty()) continue;
 				String symbol = item.market;
 				if (symbol == null || symbol.isEmpty()) throw new IllegalStateException("Missing market");
-				Double feeValue = "USDT".equalsIgnoreCase(item.feeAsset) ? item.fee : null;
+				BigDecimal feeValue = "USDT".equalsIgnoreCase(item.feeAsset) ? item.fee : null;
 				Instant ts = Instant.ofEpochSecond(item.time);
 				result.add(new PartialFill(orderId, symbol, item.amount, item.price, feeValue, ts));
 			}
@@ -122,7 +135,8 @@ class PrivateResponses {
 		}
 	}
 
-	private record MaxLeverageResponseEntry(String ticker_id, int max_leverage) {}
+	private record MaxLeverageResponseEntry(String ticker_id, int max_leverage) {
+	}
 
 	public record MaxLeverageResponse(boolean success, String message, List<MaxLeverageResponseEntry> result) {
 		public Map<String, Integer> get() {
@@ -132,5 +146,6 @@ class PrivateResponses {
 		}
 	}
 
-	public record TokenResponse(String websocket_token) {}
+	public record TokenResponse(String websocket_token) {
+	}
 }

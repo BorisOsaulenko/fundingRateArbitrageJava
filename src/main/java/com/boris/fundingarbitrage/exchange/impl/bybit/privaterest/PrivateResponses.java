@@ -10,6 +10,7 @@ import com.boris.fundingarbitrage.model.exchange.WithdrawChain;
 import com.boris.fundingarbitrage.util.https.PaginatedResponse;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -27,8 +28,8 @@ class PrivateResponses {
 			if (list == null) return feesBySymbol;
 			for (TradingFeeItem item : list) {
 				String symbol = item.symbol;
-				double maker = Double.parseDouble(item.makerFeeRate);
-				double taker = Double.parseDouble(item.takerFeeRate);
+				BigDecimal maker = new BigDecimal(item.makerFeeRate);
+				BigDecimal taker = new BigDecimal(item.takerFeeRate);
 				feesBySymbol.put(symbol, new Fees(maker, taker, maker, taker, Instant.ofEpochMilli(time)));
 			}
 			return feesBySymbol;
@@ -52,13 +53,11 @@ class PrivateResponses {
 	}
 
 	public record SetMarginModeResponse(int retCode, String retMsg) {
-		public SetMarginModeResponse {
-		}
 	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
 	public record SpotUsdtBalanceResponse(int retCode, String retMsg, long time, SpotBalanceResult result) {
-		public double get() {
+		public BigDecimal get() {
 			for (BalanceItem item : result.balance()) {
 				if (!"USDT".equalsIgnoreCase(item.coin())) continue;
 				return item.walletBalance();
@@ -66,7 +65,7 @@ class PrivateResponses {
 			throw new IllegalStateException("Bybit spot USDT balance not found");
 		}
 
-		private record BalanceItem(String coin, double walletBalance) {
+		private record BalanceItem(String coin, BigDecimal walletBalance) {
 		}
 
 		private record SpotBalanceResult(List<BalanceItem> balance) {
@@ -75,14 +74,12 @@ class PrivateResponses {
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
 	public record FuturesUsdtBalanceResponse(int retCode, String retMsg, long time, FuturesBalanceResult result) {
-		public double get() {
-			List<BalanceAccount> list = result == null ? null : result.list;
-			if (list == null) return 0.0;
-			for (BalanceAccount account : list) {
+		public BigDecimal get() {
+			for (BalanceAccount account : result.list) {
 				if (account.coin == null) continue;
 				for (BalanceCoin coin : account.coin) {
 					if (!"USDT".equalsIgnoreCase(coin.coin)) continue;
-					return Double.parseDouble(coin.walletBalance);
+					return coin.walletBalance;
 				}
 			}
 			throw new IllegalStateException("Bybit futures USDT balance not found");
@@ -94,7 +91,7 @@ class PrivateResponses {
 		private record BalanceAccount(List<BalanceCoin> coin) {
 		}
 
-		private record BalanceCoin(String coin, String walletBalance) {
+		private record BalanceCoin(String coin, BigDecimal walletBalance) {
 		}
 	}
 
@@ -106,9 +103,10 @@ class PrivateResponses {
 
 			for (MaxLeverageItem item : result.list) {
 				String symbol = item.symbol;
-				double maxLeverage = Double.parseDouble(item.leverageFilter.maxLeverage);
-				if (maxLeverage == 0) throw new IllegalStateException("Invalid max leverage for symbol: " + symbol);
-				maxLeverageBySymbol.put(symbol, (int) Math.floor(maxLeverage));
+				BigDecimal maxLeverage = new BigDecimal(item.leverageFilter.maxLeverage);
+				if (maxLeverage.compareTo(BigDecimal.ZERO) == 0)
+					throw new IllegalStateException("Invalid max leverage for symbol: " + symbol);
+				maxLeverageBySymbol.put(symbol, maxLeverage.intValue());
 			}
 
 			return maxLeverageBySymbol;
@@ -150,9 +148,9 @@ class PrivateResponses {
 					boolean withdrawEnable = "1".equals(chain.chainWithdraw);
 					if (depositEnable) builder.addDepositableChain(mapped);
 					if (withdrawEnable) {
-						double fee = Double.parseDouble(chain.withdrawFee);
-						double min = Double.parseDouble(chain.withdrawMin);
-						if (fee >= 0 && min >= 0) {
+						BigDecimal fee = new BigDecimal(chain.withdrawFee);
+						BigDecimal min = new BigDecimal(chain.withdrawMin);
+						if (fee.compareTo(BigDecimal.ZERO) >= 0 && min.compareTo(BigDecimal.ZERO) >= 0) {
 							builder.addWithdrawableChain(new WithdrawChain(mapped, fee, min));
 						} else {
 							throw new IllegalStateException("Invalid withdraw fee/min for chain: " + chainName);
@@ -250,11 +248,11 @@ class PrivateResponses {
 				String orderId = item.orderId;
 				if (orderId == null || orderId.isEmpty()) continue;
 				String symbol = item.symbol;
-				double qty = Double.parseDouble(item.execQuantity);
-				double price = Double.parseDouble(item.execPrice);
-				double fee = Double.parseDouble(item.execFee);
+				BigDecimal qty = new BigDecimal(item.execQuantity);
+				BigDecimal price = new BigDecimal(item.execPrice);
+				BigDecimal fee = new BigDecimal(item.execFee);
 				String feeCoin = item.feeCurrency;
-				Double feeValue = "USDT".equalsIgnoreCase(feeCoin) ? fee : null;
+				BigDecimal feeValue = "USDT".equalsIgnoreCase(feeCoin) ? fee : null;
 				Instant ts = Instant.ofEpochMilli(item.execTime);
 				fills.add(new PartialFill(orderId, symbol, qty, price, feeValue, ts));
 			}

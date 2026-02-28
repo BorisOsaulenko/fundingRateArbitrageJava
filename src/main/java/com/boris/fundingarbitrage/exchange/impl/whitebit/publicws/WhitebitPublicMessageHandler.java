@@ -11,6 +11,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 
 class WhitebitPublicMessageHandler implements PublicMessageHandler {
@@ -33,14 +34,17 @@ class WhitebitPublicMessageHandler implements PublicMessageHandler {
 		if (symbol == null || symbol.isEmpty()) return null;
 		String coin = context.getSymbolInverse(symbol);
 
-		double bidPrice = data.get(4).asDouble();
-		double bidSize = data.get(5).asDouble();
-		double askPrice = data.get(6).asDouble();
-		double askSize = data.get(7).asDouble();
-		if (bidPrice == 0.0 || bidSize == 0.0 || askPrice == 0.0 || askSize == 0.0) return null;
+		BigDecimal bidPrice = new BigDecimal(data.get(4).asText());
+		BigDecimal bidSize = new BigDecimal(data.get(5).asText());
+		BigDecimal askPrice = new BigDecimal(data.get(6).asText());
+		BigDecimal askSize = new BigDecimal(data.get(7).asText());
+		if (bidPrice.compareTo(BigDecimal.ZERO) == 0 ||
+				bidSize.compareTo(BigDecimal.ZERO) == 0 ||
+				askPrice.compareTo(BigDecimal.ZERO) == 0 ||
+				askSize.compareTo(BigDecimal.ZERO) == 0) return null;
 
-		double messageTime = data.get(1).asDouble();
-		long tsMillis = (long) (messageTime * 1000.0);
+		BigDecimal messageTime = new BigDecimal(data.get(1).asText());
+		long tsMillis = messageTime.multiply(BigDecimal.valueOf(1000L)).longValue();
 		Instant ts = Instant.ofEpochMilli(tsMillis);
 
 		return new BookTickerPatch(coin, bidPrice, bidSize, askPrice, askSize, ts);
@@ -56,8 +60,8 @@ class WhitebitPublicMessageHandler implements PublicMessageHandler {
 		if (symbol == null || symbol.isEmpty()) return null;
 		String coin = context.getSymbolInverse(symbol);
 
-		double lastPrice = Double.parseDouble(params.get(1).asText());
-		if (lastPrice == 0.0) return null;
+		BigDecimal lastPrice = new BigDecimal(params.get(1).asText());
+		if (lastPrice.compareTo(BigDecimal.ZERO) == 0) return null;
 		return new MarkPricePatch(coin, lastPrice, Instant.now());
 	}
 

@@ -5,6 +5,7 @@ import com.boris.fundingarbitrage.execution.withdrawer.OptimalWithdrawerLogic;
 import com.boris.fundingarbitrage.model.exchange.ExchangeName;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,18 +20,41 @@ public class OptimalWithdrawerLogicTest {
 	@Test
 	void shouldGiveCorrectAnswer() {
 		List<OptimalWithdrawerLogic.InputItem> input = new ArrayList<>();
-		var item1 = new OptimalWithdrawerLogic.InputItem(new TestExchange(ExchangeName.OKX), 31, 0.0, 1.0, 5.0, 5.0);
-		var item2 = new OptimalWithdrawerLogic.InputItem(new TestExchange(ExchangeName.BITGET), 11, 1.0, 2.0, 5.0, 5.0);
-		var item3 = new OptimalWithdrawerLogic.InputItem(new TestExchange(ExchangeName.BINANCE), 32, 2.0, 2.0, 5.0, 5.0);
+		var item1 = new OptimalWithdrawerLogic.InputItem(
+						new TestExchange(ExchangeName.OKX),
+						BigDecimal.valueOf(31),
+						BigDecimal.ZERO,
+						BigDecimal.ONE,
+						BigDecimal.valueOf(5),
+						BigDecimal.valueOf(5)
+		);
+		var item2 = new OptimalWithdrawerLogic.InputItem(
+						new TestExchange(ExchangeName.BITGET),
+						BigDecimal.valueOf(11),
+						BigDecimal.ZERO,
+						BigDecimal.TWO,
+						BigDecimal.valueOf(5),
+						BigDecimal.valueOf(5)
+		);
+		var item3 = new OptimalWithdrawerLogic.InputItem(
+						new TestExchange(ExchangeName.BINANCE),
+						BigDecimal.valueOf(32),
+						BigDecimal.TWO,
+						BigDecimal.TWO,
+						BigDecimal.valueOf(5),
+						BigDecimal.valueOf(5)
+		);
 		input.add(item1);
 		input.add(item2);
 		input.add(item3);
-		OptimalWithdrawerLogic.InputParams params = new OptimalWithdrawerLogic.InputParams(20, 40, input);
+		OptimalWithdrawerLogic.InputParams
+						params =
+						new OptimalWithdrawerLogic.InputParams(BigDecimal.valueOf(20), BigDecimal.valueOf(40), input);
 
 		var result = logic.getOptimalWdPath(params);
-		var expected1 = new OptimalWithdrawerLogic.OutputItem(item3.ex(), 30, 2.0, false);
-		var expected2 = new OptimalWithdrawerLogic.OutputItem(item1.ex(), 20, 0.0, true);
-		var expected3 = new OptimalWithdrawerLogic.OutputItem(item1.ex(), 10, 1.0, false);
+		var expected1 = new OptimalWithdrawerLogic.OutputItem(item3.ex(), BigDecimal.valueOf(30), BigDecimal.TWO, false);
+		var expected2 = new OptimalWithdrawerLogic.OutputItem(item1.ex(), BigDecimal.valueOf(20), BigDecimal.ZERO, true);
+		var expected3 = new OptimalWithdrawerLogic.OutputItem(item1.ex(), BigDecimal.valueOf(10), BigDecimal.ONE, false);
 
 		assertEquals(3, result.size());
 		assertThat(result, hasItem(expected1));
@@ -41,41 +65,30 @@ public class OptimalWithdrawerLogicTest {
 	@Test
 	void singleBestExchangesForLongAndShort() {
 		List<OptimalWithdrawerLogic.InputItem> input = new ArrayList<>();
-		double topUpLong = 40;
-		double topUpShort = 50;
+		BigDecimal topUpLong = BigDecimal.valueOf(40);
+		BigDecimal topUpShort = BigDecimal.valueOf(50);
 
 		// Single best for long
 		OptimalWithdrawerLogic.InputItem bestLong = new OptimalWithdrawerLogic.InputItem(
 						new TestExchange(ExchangeName.OKX),
-						60,
-						0.5,
-						1.0,
-						15.0,
-						15.0
+						BigDecimal.valueOf(60),
+						BigDecimal.valueOf(0.5),
+						BigDecimal.ONE,
+						BigDecimal.valueOf(15),
+						BigDecimal.valueOf(15)
 		);
-		OptimalWithdrawerLogic.OutputItem expectedLong = new OptimalWithdrawerLogic.OutputItem(
-						bestLong.ex(),
-						40,
-						0.5,
-						true
-		);
+		OptimalWithdrawerLogic.OutputItem
+						expectedLong =
+						new OptimalWithdrawerLogic.OutputItem(bestLong.ex(), BigDecimal.valueOf(40), BigDecimal.valueOf(0.5), true);
 		input.add(bestLong);
 
 		// Single best for short
-		OptimalWithdrawerLogic.InputItem bestShort = new OptimalWithdrawerLogic.InputItem(
-						new TestExchange(ExchangeName.BITGET),
-						70,
-						2.0,
-						0.0,
-						15.0,
-						15.0
-		);
-		OptimalWithdrawerLogic.OutputItem expectedShort = new OptimalWithdrawerLogic.OutputItem(
-						bestShort.ex(),
-						50,
-						0,
-						false
-		);
+		OptimalWithdrawerLogic.InputItem
+						bestShort =
+						new OptimalWithdrawerLogic.InputItem(new TestExchange(ExchangeName.BITGET), 70, 2.0, 0.0, 15.0, 15.0);
+		OptimalWithdrawerLogic.OutputItem
+						expectedShort =
+						new OptimalWithdrawerLogic.OutputItem(bestShort.ex(), 50, 0, false);
 		input.add(bestShort);
 
 		// Generate random other exchanges with less balance / more fees
@@ -96,38 +109,18 @@ public class OptimalWithdrawerLogicTest {
 		double topUpLong = 20;
 		double topUpShort = 35;
 
-		OptimalWithdrawerLogic.InputItem longOnlyBest = new OptimalWithdrawerLogic.InputItem(
-						new TestExchange(ExchangeName.OKX),
-						45,
-						0.0,
-						5.0,
-						5.0,
-						5.0
-		);
-		OptimalWithdrawerLogic.InputItem shortPart1 = new OptimalWithdrawerLogic.InputItem(
-						new TestExchange(ExchangeName.BITGET),
-						18,
-						9.0,
-						0.0,
-						5.0,
-						5.0
-		);
-		OptimalWithdrawerLogic.InputItem shortPart2 = new OptimalWithdrawerLogic.InputItem(
-						new TestExchange(ExchangeName.BINANCE),
-						30,
-						8.0,
-						0.2,
-						5.0,
-						5.0
-		);
-		OptimalWithdrawerLogic.InputItem expensiveNoise = new OptimalWithdrawerLogic.InputItem(
-						new TestExchange(ExchangeName.BYBIT),
-						200,
-						3.0,
-						4.0,
-						5.0,
-						5.0
-		);
+		OptimalWithdrawerLogic.InputItem
+						longOnlyBest =
+						new OptimalWithdrawerLogic.InputItem(new TestExchange(ExchangeName.OKX), 45, 0.0, 5.0, 5.0, 5.0);
+		OptimalWithdrawerLogic.InputItem
+						shortPart1 =
+						new OptimalWithdrawerLogic.InputItem(new TestExchange(ExchangeName.BITGET), 18, 9.0, 0.0, 5.0, 5.0);
+		OptimalWithdrawerLogic.InputItem
+						shortPart2 =
+						new OptimalWithdrawerLogic.InputItem(new TestExchange(ExchangeName.BINANCE), 30, 8.0, 0.2, 5.0, 5.0);
+		OptimalWithdrawerLogic.InputItem
+						expensiveNoise =
+						new OptimalWithdrawerLogic.InputItem(new TestExchange(ExchangeName.BYBIT), 200, 3.0, 4.0, 5.0, 5.0);
 		input.add(longOnlyBest);
 		input.add(shortPart1);
 		input.add(shortPart2);
@@ -144,7 +137,7 @@ public class OptimalWithdrawerLogicTest {
 		assertNotNull(shortFromPart1);
 		assertNotNull(shortFromPart2);
 		assertEquals(20, longOutput.amount());
-		assertEquals(35, shortFromPart1.amount() + shortFromPart2.amount());
+		assertEquals(35, shortFromPart1.amount().add(shortFromPart2.amount()));
 		assertEquals(0.0, shortFromPart1.fee());
 		assertEquals(0.2, shortFromPart2.fee());
 	}
@@ -155,22 +148,12 @@ public class OptimalWithdrawerLogicTest {
 		double topUpLong = 30;
 		double topUpShort = 20;
 
-		OptimalWithdrawerLogic.InputItem splitExchange = new OptimalWithdrawerLogic.InputItem(
-						new TestExchange(ExchangeName.OKX),
-						70,
-						0.1,
-						0.1,
-						5.0,
-						5.0
-		);
-		OptimalWithdrawerLogic.InputItem expensiveAlt = new OptimalWithdrawerLogic.InputItem(
-						new TestExchange(ExchangeName.BITGET),
-						200,
-						4.0,
-						4.0,
-						5.0,
-						5.0
-		);
+		OptimalWithdrawerLogic.InputItem
+						splitExchange =
+						new OptimalWithdrawerLogic.InputItem(new TestExchange(ExchangeName.OKX), 70, 0.1, 0.1, 5.0, 5.0);
+		OptimalWithdrawerLogic.InputItem
+						expensiveAlt =
+						new OptimalWithdrawerLogic.InputItem(new TestExchange(ExchangeName.BITGET), 200, 4.0, 4.0, 5.0, 5.0);
 		input.add(splitExchange);
 		input.add(expensiveAlt);
 
@@ -187,26 +170,15 @@ public class OptimalWithdrawerLogicTest {
 		double topUpLong = 25;
 		double topUpShort = 25;
 
-		OptimalWithdrawerLogic.InputItem splitExchange = new OptimalWithdrawerLogic.InputItem(
-						new TestExchange(ExchangeName.OKX),
-						35,
-						0.0,
-						0.0,
-						5.0,
-						5.0
-		);
-		OptimalWithdrawerLogic.InputItem extraShort = new OptimalWithdrawerLogic.InputItem(
-						new TestExchange(ExchangeName.BINANCE),
-						20,
-						8.0,
-						0.1,
-						5.0,
-						5.0
-		);
-		OptimalWithdrawerLogic.InputItem expensiveLongNoise = new OptimalWithdrawerLogic.InputItem(
-						new TestExchange(
-						ExchangeName.GATE), 100, 5.0, 6.0, 5.0, 5.0
-		);
+		OptimalWithdrawerLogic.InputItem
+						splitExchange =
+						new OptimalWithdrawerLogic.InputItem(new TestExchange(ExchangeName.OKX), 35, 0.0, 0.0, 5.0, 5.0);
+		OptimalWithdrawerLogic.InputItem
+						extraShort =
+						new OptimalWithdrawerLogic.InputItem(new TestExchange(ExchangeName.BINANCE), 20, 8.0, 0.1, 5.0, 5.0);
+		OptimalWithdrawerLogic.InputItem
+						expensiveLongNoise =
+						new OptimalWithdrawerLogic.InputItem(new TestExchange(ExchangeName.GATE), 100, 5.0, 6.0, 5.0, 5.0);
 		input.add(splitExchange);
 		input.add(extraShort);
 		input.add(expensiveLongNoise);

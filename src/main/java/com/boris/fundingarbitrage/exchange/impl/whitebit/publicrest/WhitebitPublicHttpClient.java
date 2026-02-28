@@ -31,16 +31,16 @@ public class WhitebitPublicHttpClient extends PublicHttpClient {
 
 	@Override
 	protected CompletableFuture<Map<String, PublicOnePullData>> getPublicOnePullData() {
-		CompletableFuture<PublicResponses.MarketsResponse> marketsResponseFuture = requestWrapper.getResponse(PublicEndpoints.marketsRequest(),
-						PublicResponses.MarketsResponse.class
-		);
-		CompletableFuture<PublicResponses.FuturesResponse> futuresResponseFuture = requestWrapper.getResponse(PublicEndpoints.futuresRequest(),
-						PublicResponses.FuturesResponse.class
-		);
+		CompletableFuture<PublicResponses.MarketsResponse>
+						marketsResponseFuture =
+						requestWrapper.getResponse(PublicEndpoints.marketsRequest(), PublicResponses.MarketsResponse.class);
+		CompletableFuture<PublicResponses.FuturesResponse>
+						futuresResponseFuture =
+						requestWrapper.getResponse(PublicEndpoints.futuresRequest(), PublicResponses.FuturesResponse.class);
 
 		return CompletableFuture.allOf(marketsResponseFuture, futuresResponseFuture).thenCompose(_ -> {
 			Map<String, BigDecimal> lotSizes = marketsResponseFuture.join().getLotSizes();
-			Map<String, Double> volumes24h = futuresResponseFuture.join().getVolume24h();
+			Map<String, BigDecimal> volumes24h = futuresResponseFuture.join().getVolume24h();
 			Map<String, Integer> fundingGranularityHours = futuresResponseFuture.join().getFundingGranularityHours();
 			Map<String, BookTicker> bookTickers = futuresResponseFuture.join().getBookTickers();
 

@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 
 public class KucoinPrivateMessageHandler implements PrivateMessageHandler {
@@ -40,8 +41,8 @@ public class KucoinPrivateMessageHandler implements PrivateMessageHandler {
 		if (availableText == null || availableText.isEmpty()) return null;
 		if (timestampText == null || timestampText.isEmpty()) return null;
 
-		double available = Double.parseDouble(availableText);
-		if (available <= 0) return null;
+		BigDecimal available = new BigDecimal(availableText);
+		if (available.compareTo(BigDecimal.ZERO) <= 0) return null;
 		long ts = Long.parseLong(timestampText);
 		return new DepositPatch(available, Instant.ofEpochMilli(ts));
 	}
@@ -68,8 +69,8 @@ public class KucoinPrivateMessageHandler implements PrivateMessageHandler {
 		if (matchPriceText.isEmpty()) return null;
 		if (ts == 0) return null;
 
-		double size = Double.parseDouble(matchSizeText);
-		double price = Double.parseDouble(matchPriceText);
+		BigDecimal size = new BigDecimal(matchSizeText);
+		BigDecimal price = new BigDecimal(matchPriceText);
 		Instant timestamp = Instant.ofEpochMilli(ts / 1000_000); // KuCoin ts is in nanoseconds, convert to milliseconds
 		return new PartialFill(orderId, symbol, size, price, null, timestamp);
 	}

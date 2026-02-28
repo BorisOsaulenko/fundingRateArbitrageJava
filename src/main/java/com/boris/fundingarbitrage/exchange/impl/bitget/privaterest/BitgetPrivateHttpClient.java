@@ -14,6 +14,7 @@ import com.boris.fundingarbitrage.util.https.RequestProcessingClientWrapper;
 import com.boris.fundingarbitrage.util.logger.Logger;
 import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
 
+import java.math.BigDecimal;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
@@ -97,7 +98,7 @@ public class BitgetPrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
-	public CompletableFuture<Double> getSpotUsdtBalance() {
+	public CompletableFuture<BigDecimal> getSpotUsdtBalance() {
 		return processRequest(
 						PrivateEndpoints.spotUsdtBalanceRequest(),
 						PrivateResponses.SpotUsdtBalanceResponse.class,
@@ -106,7 +107,7 @@ public class BitgetPrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
-	public CompletableFuture<Double> getFuturesUsdtBalance() {
+	public CompletableFuture<BigDecimal> getFuturesUsdtBalance() {
 		return processRequest(
 						PrivateEndpoints.futuresUsdtBalanceRequest(),
 						PrivateResponses.FuturesUsdtBalanceResponse.class,

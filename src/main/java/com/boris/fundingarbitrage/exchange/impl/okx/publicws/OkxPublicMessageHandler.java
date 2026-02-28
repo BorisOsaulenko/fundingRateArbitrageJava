@@ -8,6 +8,7 @@ import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
 import com.boris.fundingarbitrage.util.logger.Logger;
 import com.fasterxml.jackson.databind.JsonNode;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 
 class OkxPublicMessageHandler implements PublicMessageHandler {
@@ -17,12 +18,12 @@ class OkxPublicMessageHandler implements PublicMessageHandler {
 		this.context = context;
 	}
 
-	private static Double parseDouble(JsonNode node, String field) {
+	private static BigDecimal parseBigDecimal(JsonNode node, String field) {
 		JsonNode val = node.get(field);
 		if (val == null || val.isNull()) return null;
 		String text = val.asText();
 		if (text == null || text.isEmpty()) return null;
-		return Double.parseDouble(text);
+		return new BigDecimal(text);
 	}
 
 	private static Instant parseInstantMillis(JsonNode node, String field) {
@@ -42,7 +43,7 @@ class OkxPublicMessageHandler implements PublicMessageHandler {
 		JsonNode data = dataArray.get(0);
 
 		String coin = context.getSymbolInverse(symbol);
-		Double rate = parseDouble(data, "fundingRate");
+		BigDecimal rate = parseBigDecimal(data, "fundingRate");
 		Instant nextFunding = parseInstantMillis(data, "nextFundingTime");
 		Instant ts = parseInstantMillis(data, "ts");
 		if (rate == null || nextFunding == null || ts == null) return null;
@@ -59,7 +60,7 @@ class OkxPublicMessageHandler implements PublicMessageHandler {
 		JsonNode data = dataArray.get(0);
 
 		String coin = context.getSymbolInverse(symbol);
-		Double markPx = parseDouble(data, "markPx");
+		BigDecimal markPx = parseBigDecimal(data, "markPx");
 		Instant ts = parseInstantMillis(data, "ts");
 		if (markPx == null || ts == null) return null;
 
@@ -75,10 +76,10 @@ class OkxPublicMessageHandler implements PublicMessageHandler {
 		JsonNode data = dataArray.get(0);
 
 		String coin = context.getSymbolInverse(symbol);
-		Double bidPx = parseDouble(data, "bidPx");
-		Double bidSz = parseDouble(data, "bidSz");
-		Double askPx = parseDouble(data, "askPx");
-		Double askSz = parseDouble(data, "askSz");
+		BigDecimal bidPx = parseBigDecimal(data, "bidPx");
+		BigDecimal bidSz = parseBigDecimal(data, "bidSz");
+		BigDecimal askPx = parseBigDecimal(data, "askPx");
+		BigDecimal askSz = parseBigDecimal(data, "askSz");
 		Instant ts = parseInstantMillis(data, "ts");
 		if (ts == null) return null;
 		if (bidPx == null && bidSz == null && askPx == null && askSz == null) return null;

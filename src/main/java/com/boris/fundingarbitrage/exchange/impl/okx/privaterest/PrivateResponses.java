@@ -9,6 +9,7 @@ import com.boris.fundingarbitrage.model.exchange.WalletAddress;
 import com.boris.fundingarbitrage.model.exchange.WithdrawChain;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -25,7 +26,8 @@ class PrivateResponses {
 	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
-	private record TradingFeeItem(double makerU, double takerU) {}
+	private record TradingFeeItem(BigDecimal makerU, BigDecimal takerU) {
+	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
 	public record TradingFeesResponse(String code, String msg, List<TradingFeeItem> data) {
@@ -36,22 +38,26 @@ class PrivateResponses {
 			}
 			TradingFeeItem item = data.get(0);
 
-			double taker = -item.takerU; // OKX returns negative values for fees
-			double maker = -item.makerU;
+			BigDecimal taker = item.takerU.negate(); // OKX returns negative values for fees
+			BigDecimal maker = item.makerU.negate();
 
 			return new Fees(maker, taker, maker, taker, Instant.now());
 		}
 	}
 
-	public record FeeGroup(int groupId, double maker, double taker) {}
+	public record FeeGroup(int groupId, BigDecimal maker, BigDecimal taker) {
+	}
 
-	private record TradingFeeGroupItem(List<FeeGroup> feeGroup) {}
+	private record TradingFeeGroupItem(List<FeeGroup> feeGroup) {
+	}
 
 	public record TradingFeesSymbolsResponse(String code, String msg, List<TradingFeeGroupItem> data) {
 		public Map<Integer, FeeGroup> getFeeGroups() {
 			Map<Integer, FeeGroup> feeGroups = new HashMap<>();
 			var entry = data.getFirst();
-			for (FeeGroup group : entry.feeGroup) {feeGroups.put(group.groupId, group);}
+			for (FeeGroup group : entry.feeGroup) {
+				feeGroups.put(group.groupId, group);
+			}
 			return feeGroups;
 		}
 	}
@@ -63,7 +69,8 @@ class PrivateResponses {
 	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
-	private record LeverageInfoItem(String instId, String lever) {}
+	private record LeverageInfoItem(String instId, String lever) {
+	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
 	public record LeverageInfoResponse(String code, String msg, List<LeverageInfoItem> data) {
@@ -72,66 +79,56 @@ class PrivateResponses {
 			for (LeverageInfoItem item : data) {
 				if (!symbol.equalsIgnoreCase(item.instId)) continue;
 				String lever = item.lever;
-				return (int) Math.floor(Double.parseDouble(lever));
+				return new BigDecimal(lever).intValue();
 			}
 			throw new IllegalStateException("OKX leverage info not found for symbol: " + symbol);
 		}
 	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
-	private record SpotBalanceItem(String ccy, String bal) {}
+	private record SpotBalanceItem(String ccy, BigDecimal bal) {
+	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
 	public record SpotUsdtBalanceResponse(String code, String msg, List<SpotBalanceItem> data) {
-		public double get() {
+		public BigDecimal get() {
 			ensureOk(code, msg);
-			if (data == null || data.isEmpty()) {
-				throw new IllegalStateException("OKX spot balance data missing");
-			}
+
 			for (SpotBalanceItem item : data) {
 				if (!"USDT".equalsIgnoreCase(item.ccy)) continue;
-				String bal = item.bal;
-				if (bal == null || bal.isEmpty()) {
-					throw new IllegalStateException("OKX spot balance missing for USDT");
-				}
-				return Double.parseDouble(bal);
+				return item.bal();
 			}
 			throw new IllegalStateException("OKX spot USDT balance not found");
 		}
 	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
-	private record FuturesBalanceDetail(String ccy, String eq) {}
+	private record FuturesBalanceDetail(String ccy, BigDecimal eq) {
+	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
-	private record FuturesBalanceAccount(List<FuturesBalanceDetail> details) {}
+	private record FuturesBalanceAccount(List<FuturesBalanceDetail> details) {
+	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
 	public record FuturesUsdtBalanceResponse(String code, String msg, List<FuturesBalanceAccount> data) {
-		public double get() {
+		public BigDecimal get() {
 			ensureOk(code, msg);
-			if (data == null || data.isEmpty()) {
-				throw new IllegalStateException("OKX futures balance data missing");
-			}
-			FuturesBalanceAccount account = data.get(0);
+
+			FuturesBalanceAccount account = data.getFirst();
 			List<FuturesBalanceDetail> details = account.details;
-			if (details == null) {
-				throw new IllegalStateException("OKX futures balance details missing");
-			}
+
 			for (FuturesBalanceDetail item : details) {
 				if (!"USDT".equalsIgnoreCase(item.ccy)) continue;
-				String eq = item.eq;
-				if (eq == null || eq.isEmpty()) {
-					throw new IllegalStateException("OKX futures equity missing for USDT");
-				}
-				return Double.parseDouble(eq);
+				return item.eq;
 			}
 			throw new IllegalStateException("OKX futures USDT balance not found");
 		}
 	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
-	private record InstrumentItem(String instId, String lever, int groupId) {}
+	private record InstrumentItem(String instId, String lever, int groupId) {
+	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
 	public record InstrumentsResponse(String code, String msg, List<InstrumentItem> data) {
@@ -139,8 +136,8 @@ class PrivateResponses {
 			Map<String, Integer> leverageBySymbol = new HashMap<>();
 			for (InstrumentItem item : data) {
 				String symbol = item.instId;
-				double lever = Double.parseDouble(item.lever);
-				leverageBySymbol.put(symbol, (int) Math.floor(lever));
+				BigDecimal lever = new BigDecimal(item.lever);
+				leverageBySymbol.put(symbol, lever.intValue());
 			}
 			return leverageBySymbol;
 		}
@@ -157,8 +154,9 @@ class PrivateResponses {
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
 	private record SupportedChainInfo(
-					String chain, boolean canDep, boolean canWd, double fee, double minWd
-	) {}
+					String chain, boolean canDep, boolean canWd, BigDecimal fee, BigDecimal minWd
+	) {
+	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
 	public record SupportedChainsResponse(String code, String msg, List<SupportedChainInfo> data) {
@@ -174,11 +172,15 @@ class PrivateResponses {
 				boolean canWd = item.canWd;
 				if (canDep) builder.addDepositableChain(mapped);
 				if (canWd) {
-					double fee = item.fee;
-					if (fee <= 0.0) throw new IllegalStateException("OKX chain fee missing for chain: " + chain);
+					BigDecimal fee = item.fee;
+					if (fee.compareTo(BigDecimal.ZERO) <= 0) {
+						throw new IllegalStateException("OKX chain fee missing for chain: " + chain);
+					}
 
-					double minWd = item.minWd;
-					if (minWd <= 0.0) throw new IllegalStateException("OKX chain minWd missing for chain: " + chain);
+					BigDecimal minWd = item.minWd;
+					if (minWd.compareTo(BigDecimal.ZERO) <= 0) {
+						throw new IllegalStateException("OKX chain minWd missing for chain: " + chain);
+					}
 
 					builder.addWithdrawableChain(new WithdrawChain(mapped, fee, minWd));
 				}
@@ -188,7 +190,8 @@ class PrivateResponses {
 	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
-	private record WalletAddressItem(String chain, String addr, String tag) {}
+	private record WalletAddressItem(String chain, String addr, String tag) {
+	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
 	public record UsdtWalletAddressResponse(String code, String msg, List<WalletAddressItem> data) {
@@ -219,7 +222,8 @@ class PrivateResponses {
 	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
-	private record PlaceOrderItem(String ordId) {}
+	private record PlaceOrderItem(String ordId) {
+	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
 	public record PlaceFuturesOrderResponse(String code, String msg, List<PlaceOrderItem> data) {
@@ -239,7 +243,8 @@ class PrivateResponses {
 	@JsonIgnoreProperties(ignoreUnknown = true)
 	private record OrderRecordItem(
 					String ordId, String instId, String fillSz, String fillPx, String fee, String feeCcy, String ts
-	) {}
+	) {
+	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
 	public record GetOrderRecordResponse(String code, String msg, List<OrderRecordItem> data) {
@@ -260,11 +265,11 @@ class PrivateResponses {
 				if (szText == null || szText.isEmpty()) continue;
 				if (pxText == null || pxText.isEmpty()) continue;
 				if (tsText == null || tsText.isEmpty()) continue;
-				double qty = Double.parseDouble(szText);
-				double price = Double.parseDouble(pxText);
-				Double fee = null;
+				BigDecimal qty = new BigDecimal(szText);
+				BigDecimal price = new BigDecimal(pxText);
+				BigDecimal fee = null;
 				if (feeText != null && !feeText.isEmpty() && "USDT".equalsIgnoreCase(feeCcy)) {
-					fee = Double.parseDouble(feeText);
+					fee = new BigDecimal(feeText);
 				}
 				Instant ts = Instant.ofEpochMilli(Long.parseLong(tsText));
 				fills.add(new PartialFill(orderId, symbol, qty, price, fee, ts));
@@ -280,11 +285,12 @@ class PrivateResponses {
 	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
-	private record CurrencyInfoItem(String chain, double minFee) {}
+	private record CurrencyInfoItem(String chain, BigDecimal minFee) {
+	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
 	public record CurrencyInfoResponse(String code, String msg, List<CurrencyInfoItem> data) {
-		public double minFee(SupportedChain chain) {
+		public BigDecimal minFee(SupportedChain chain) {
 			ensureOk(code, msg);
 			String chainName = chainsMap.get(chain);
 			for (CurrencyInfoItem item : data) {

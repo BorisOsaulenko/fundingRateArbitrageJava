@@ -17,6 +17,7 @@ import com.boris.fundingarbitrage.util.https.RequestProcessingClientWrapper;
 import com.boris.fundingarbitrage.util.logger.Logger;
 import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
 
+import java.math.BigDecimal;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
@@ -46,15 +47,9 @@ public class GatePrivateHttpClient extends PrivateHttpClient {
 			if (body == null) body = "";
 			String hashedBody = Signers.signSha512Hex(body);
 
-			String payload = method +
-											 "\n" +
-											 path +
-											 "\n" +
-											 (query == null ? "" : query) +
-											 "\n" +
-											 hashedBody +
-											 "\n" +
-											 timestamp;
+			String
+							payload =
+							method + "\n" + path + "\n" + (query == null ? "" : query) + "\n" + hashedBody + "\n" + timestamp;
 			String signature = Signers.signHmacSha512Hex(payload, credentials.apiSecret());
 
 			request.setHeader("KEY", credentials.apiKey());
@@ -109,7 +104,7 @@ public class GatePrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
-	public CompletableFuture<Double> getSpotUsdtBalance() {
+	public CompletableFuture<BigDecimal> getSpotUsdtBalance() {
 		return processRequest(
 						PrivateEndpoints.spotUsdtBalanceRequest(),
 						PrivateResponses.SpotUsdtBalanceResponse.class,
@@ -118,7 +113,7 @@ public class GatePrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
-	public CompletableFuture<Double> getFuturesUsdtBalance() {
+	public CompletableFuture<BigDecimal> getFuturesUsdtBalance() {
 		return processRequest(
 						PrivateEndpoints.futuresUsdtBalanceRequest(),
 						PrivateResponses.FuturesUsdtBalanceResponse.class,
@@ -140,14 +135,15 @@ public class GatePrivateHttpClient extends PrivateHttpClient {
 		var chainsRequest = PrivateEndpoints.supportedChainsRequest();
 		var withdrawalFeesRequest = PrivateEndpoints.withdrawalFeesRequest();
 
-		var chainsFuture = requestWrapper.getResponse(
-						signRequest(chainsRequest),
-						PrivateResponses.SupportedChainsResponse.class
-		);
-		var withdrawalFeesFuture = requestWrapper.getResponse(
-						signRequest(withdrawalFeesRequest),
-						PrivateResponses.WithdrawalFeeResponse.class
-		);
+		var
+						chainsFuture =
+						requestWrapper.getResponse(signRequest(chainsRequest), PrivateResponses.SupportedChainsResponse.class);
+		var
+						withdrawalFeesFuture =
+						requestWrapper.getResponse(
+										signRequest(withdrawalFeesRequest),
+										PrivateResponses.WithdrawalFeeResponse.class
+						);
 
 		return chainsFuture.thenCombine(
 						withdrawalFeesFuture, (chainsResp, feesResp) -> {
@@ -159,8 +155,8 @@ public class GatePrivateHttpClient extends PrivateHttpClient {
 
 								if (gateChain.is_deposit_disabled() == 0) builder.addDepositableChain(chain);
 								if (gateChain.is_withdraw_disabled() == 0) {
-									double fee = feesResp.getFeeForChain(chain);
-									double minWithdraw = feesResp.getMinWithdraw();
+									BigDecimal fee = feesResp.getFeeForChain(chain);
+									BigDecimal minWithdraw = feesResp.getMinWithdraw();
 									builder.addWithdrawableChain(new WithdrawChain(chain, fee, minWithdraw));
 								}
 							}

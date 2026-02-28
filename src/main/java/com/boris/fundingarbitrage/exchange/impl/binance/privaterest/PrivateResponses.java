@@ -33,39 +33,43 @@ class PrivateResponses {
 		}
 	}
 
-	private record SpotBalanceItem(String asset, String free) {
+	private record SpotBalanceItem(String asset, BigDecimal free) {
 	}
 
-	@JsonFormat(shape = JsonFormat.Shape.ARRAY) public record SpotUsdtBalanceResponse(SpotBalanceItem[] balances) {
-		@JsonCreator(mode = JsonCreator.Mode.DELEGATING) public SpotUsdtBalanceResponse {
+	@JsonFormat(shape = JsonFormat.Shape.ARRAY)
+	public record SpotUsdtBalanceResponse(SpotBalanceItem[] balances) {
+		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
+		public SpotUsdtBalanceResponse {
 		}
 
-		public double get() {
+		public BigDecimal get() {
 			for (SpotBalanceItem item : balances) {
 				if (item.asset.equals("USDT")) {
-					return Double.parseDouble(item.free);
+					return item.free;
 				}
 			}
 
-			return 0.0;
+			return BigDecimal.ZERO;
 		}
 	}
 
-	private record FuturesBalanceItem(String asset, String balance) {
+	private record FuturesBalanceItem(String asset, BigDecimal balance) {
 	}
 
-	@JsonFormat(shape = JsonFormat.Shape.ARRAY) public record FuturesUsdtBalanceResponse(FuturesBalanceItem[] assets) {
-		@JsonCreator(mode = JsonCreator.Mode.DELEGATING) public FuturesUsdtBalanceResponse {
+	@JsonFormat(shape = JsonFormat.Shape.ARRAY)
+	public record FuturesUsdtBalanceResponse(FuturesBalanceItem[] assets) {
+		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
+		public FuturesUsdtBalanceResponse {
 		}
 
-		public double get() {
+		public BigDecimal get() {
 			for (FuturesBalanceItem item : assets) {
 				if (item.asset.equals("USDT")) {
-					return Double.parseDouble(item.balance);
+					return (item.balance);
 				}
 			}
 
-			return 0.0;
+			return BigDecimal.ZERO;
 		}
 	}
 
@@ -75,8 +79,10 @@ class PrivateResponses {
 	private record LeverageBracketsItem(String symbol, LeverageBracket[] brackets) {
 	}
 
-	@JsonFormat(shape = JsonFormat.Shape.ARRAY) public record MaxLeverageResponse(LeverageBracketsItem[] items) {
-		@JsonCreator(mode = JsonCreator.Mode.DELEGATING) public MaxLeverageResponse {
+	@JsonFormat(shape = JsonFormat.Shape.ARRAY)
+	public record MaxLeverageResponse(LeverageBracketsItem[] items) {
+		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
+		public MaxLeverageResponse {
 		}
 
 		public Map<String, Integer> get() {
@@ -101,8 +107,10 @@ class PrivateResponses {
 	private record CoinInfo(String coin, NetworkListItem[] networkList) {
 	}
 
-	@JsonFormat(shape = JsonFormat.Shape.ARRAY) public record SupportedChainsResponse(CoinInfo[] chains) {
-		@JsonCreator(mode = JsonCreator.Mode.DELEGATING) public SupportedChainsResponse {
+	@JsonFormat(shape = JsonFormat.Shape.ARRAY)
+	public record SupportedChainsResponse(CoinInfo[] chains) {
+		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
+		public SupportedChainsResponse {
 		}
 
 		public ExchangeChains get() {

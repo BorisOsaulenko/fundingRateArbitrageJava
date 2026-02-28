@@ -65,11 +65,11 @@ public class CoinFilter {
 		if (data.isEmpty()) {
 			return "Coin does not exist";
 		}
-		if (data.volume24h() < config.min24hVolumeUsdt()) {
+		if (data.volume24h().compareTo(config.min24hVolumeUsdt()) < 0) {
 			return "Volume not enough: " + data.volume24h();
 		}
 
-		BigDecimal ask = BigDecimal.valueOf(data.bookTicker().askPrice());
+		BigDecimal ask = data.bookTicker().askPrice();
 		BigDecimal minPriceStep = data.lotSize().multiply(ask);
 		if (minPriceStep.compareTo(config.maxAffordablePrice()) > 0) {
 			return "Price too high; min price step: " + minPriceStep;

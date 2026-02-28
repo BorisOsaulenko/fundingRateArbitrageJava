@@ -8,6 +8,7 @@ import com.boris.fundingarbitrage.model.exchange.ExchangeChainsBuilder;
 import com.boris.fundingarbitrage.model.exchange.WalletAddress;
 import com.boris.fundingarbitrage.model.exchange.WithdrawChain;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -33,28 +34,26 @@ class PrivateResponses {
 		}
 	}
 
-	private record SpotAsset(
-					String coin, String available, String free, String availableBalance
-	) {}
-
 	public record SpotUsdtBalanceResponse(String code, String message, long requestTime, List<SpotBalanceEntry> data) {
-		public double get() {
+		public BigDecimal get() {
 			SpotBalanceEntry entry = data.getFirst();
 			if (!"usdt".equalsIgnoreCase(entry.coin)) throw new IllegalStateException("Unexpected USDT balance entry");
 			return entry.available;
 		}
 
-		private record SpotBalanceEntry(String coin, double available) {}
+		private record SpotBalanceEntry(String coin, BigDecimal available) {
+		}
 	}
 
 	private record FuturesAccount(
-					String marginCoin, double available
-	) {}
+					String marginCoin, BigDecimal available
+	) {
+	}
 
 	public record FuturesUsdtBalanceResponse(
 					String code, String msg, long requestTime, List<FuturesAccount> data
 	) {
-		public double get() {
+		public BigDecimal get() {
 			for (FuturesAccount account : data) {
 				String marginCoin = account.marginCoin;
 				if (!"USDT".equalsIgnoreCase(marginCoin)) continue;
@@ -64,7 +63,8 @@ class PrivateResponses {
 		}
 	}
 
-	private record ContractsItem(String symbol, int maxLever, double makerFeeRate, double takerFeeRate) {}
+	private record ContractsItem(String symbol, int maxLever, BigDecimal makerFeeRate, BigDecimal takerFeeRate) {
+	}
 
 	public record ContractsResponse(String code, String msg, long requestTime, List<ContractsItem> data) {
 		public Map<String, Integer> getMaxLeverages() {
@@ -91,12 +91,14 @@ class PrivateResponses {
 	}
 
 	private record ChainInfo(
-					String chain, Boolean withdrawable, Boolean rechargeable, double withdrawFee, double minWithdrawAmount
-	) {}
+					String chain, Boolean withdrawable, Boolean rechargeable, BigDecimal withdrawFee, BigDecimal minWithdrawAmount
+	) {
+	}
 
 	private record CoinInfo(
 					String coin, List<ChainInfo> chains
-	) {}
+	) {
+	}
 
 	public record SupportedChainsResponse(String code, String msg, long requestTime, List<CoinInfo> data) {
 		public ExchangeChains get() {
@@ -123,7 +125,8 @@ class PrivateResponses {
 		}
 	}
 
-	private record WalletAddressData(String address, String tag) {}
+	private record WalletAddressData(String address, String tag) {
+	}
 
 	public record UsdtWalletAddressResponse(
 					String code, String msg, long requestTime, WalletAddressData data
@@ -140,11 +143,14 @@ class PrivateResponses {
 		}
 	}
 
-	private record WithdrawUsdtData(String orderId, String clientOid) {}
+	private record WithdrawUsdtData(String orderId, String clientOid) {
+	}
 
-	public record WithdrawUsdtResponse(String code, String msg, long requestTime, WithdrawUsdtData data) {}
+	public record WithdrawUsdtResponse(String code, String msg, long requestTime, WithdrawUsdtData data) {
+	}
 
-	private record PlaceOrderData(String orderId, String orderIdStr) {}
+	private record PlaceOrderData(String orderId, String orderIdStr) {
+	}
 
 	public record PlaceFuturesOrderResponse(
 					String code, String msg, long requestTime, PlaceOrderData data
@@ -160,15 +166,16 @@ class PrivateResponses {
 	private record OrderRecordItem(
 					String orderId,
 					String symbol,
-					double size,
-					double baseVolume,
-					double tradeSize,
-					double price,
-					double tradePrice,
-					double fee,
+					BigDecimal size,
+					BigDecimal baseVolume,
+					BigDecimal tradeSize,
+					BigDecimal price,
+					BigDecimal tradePrice,
+					BigDecimal fee,
 					String feeCoin,
 					long cTime
-	) {}
+	) {
+	}
 
 	public record GetOrderRecordResponse(String code, String msg, long requestTime, List<OrderRecordItem> data) {
 		public List<PartialFill> get() {
@@ -176,7 +183,7 @@ class PrivateResponses {
 			ArrayList<PartialFill> result = new ArrayList<>();
 			for (OrderRecordItem item : data) {
 				String feeCoin = item.feeCoin;
-				Double feeValue = "USDT".equalsIgnoreCase(feeCoin) ? item.fee() : null;
+				BigDecimal feeValue = "USDT".equalsIgnoreCase(feeCoin) ? item.fee() : null;
 				Instant ts = Instant.ofEpochMilli(item.cTime());
 				result.add(new PartialFill(item.orderId(), item.symbol(), item.baseVolume(), item.price(), feeValue, ts));
 			}
@@ -184,7 +191,8 @@ class PrivateResponses {
 		}
 	}
 
-	private record InternalTransferData(String transferId, String status) {}
+	private record InternalTransferData(String transferId, String status) {
+	}
 
 	public record InternalTransferResponse(
 					String code, String msg, long requestTime, InternalTransferData data

@@ -6,12 +6,13 @@ import java.math.BigDecimal;
 
 // Represents the data we should pull from public rest once at the start of program
 public record PublicOnePullData(
-				BigDecimal lotSize, BookTicker bookTicker, double volume24h, int fundingInterval
+				BigDecimal lotSize, BookTicker bookTicker, BigDecimal volume24h, int fundingInterval
 ) {
-	public PublicOnePullData {}
+	public PublicOnePullData {
+	}
 
 	public static PublicOnePullData empty() {
-		return new PublicOnePullData(BigDecimal.ZERO, null, 0, 0);
+		return new PublicOnePullData(BigDecimal.ZERO, null, BigDecimal.ZERO, 0);
 	}
 
 	public boolean isEmpty() {

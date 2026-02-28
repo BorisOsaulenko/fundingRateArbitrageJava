@@ -14,6 +14,7 @@ import com.boris.fundingarbitrage.util.https.RequestProcessingClientWrapper;
 import com.boris.fundingarbitrage.util.logger.Logger;
 import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
 
+import java.math.BigDecimal;
 import java.net.URI;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
@@ -82,8 +83,8 @@ public class OkxPrivateHttpClient extends PrivateHttpClient {
 			Map<String, Fees> result = new HashMap<>();
 
 			instruments.forEach((String symbol, Integer feeGroupId) -> {
-				double maker = -feeGroupMap.get(feeGroupId).maker(); // okx expresses fees as negative
-				double taker = -feeGroupMap.get(feeGroupId).taker();
+				BigDecimal maker = feeGroupMap.get(feeGroupId).maker().negate(); // okx expresses fees as negative
+				BigDecimal taker = feeGroupMap.get(feeGroupId).taker().negate();
 				result.put(symbol, new Fees(maker, taker, maker, taker, Instant.now()));
 			});
 
@@ -114,7 +115,7 @@ public class OkxPrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
-	public CompletableFuture<Double> getSpotUsdtBalance() {
+	public CompletableFuture<BigDecimal> getSpotUsdtBalance() {
 		return requestWrapper.processRequest(
 						signRequest(PrivateEndpoints.spotUsdtBalanceRequest()),
 						PrivateResponses.SpotUsdtBalanceResponse.class,
@@ -123,7 +124,7 @@ public class OkxPrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
-	public CompletableFuture<Double> getFuturesUsdtBalance() {
+	public CompletableFuture<BigDecimal> getFuturesUsdtBalance() {
 		return requestWrapper.processRequest(
 						signRequest(PrivateEndpoints.futuresUsdtBalanceRequest()),
 						PrivateResponses.FuturesUsdtBalanceResponse.class,

@@ -17,34 +17,32 @@ class PublicResponses {
 			return result;
 		}
 
-		private record Contract(String symbol, BigDecimal sizeMultiplier) {}
+		private record Contract(String symbol, BigDecimal sizeMultiplier) {
+		}
 	}
 
 	public record TickerResponse(String code, String msg, long requestTime, List<Ticker> data) {
 		public Map<String, BookTicker> getBookTickers() {
 			Map<String, BookTicker> result = new HashMap<>();
 			for (Ticker item : data) {
-				BookTicker bt = new BookTicker(
-								item.bidPr,
-								item.bidSz,
-								item.askPr,
-								item.askSz,
-								Instant.ofEpochMilli(requestTime)
-				);
+				BookTicker
+								bt =
+								new BookTicker(item.bidPr, item.bidSz, item.askPr, item.askSz, Instant.ofEpochMilli(requestTime));
 				result.put(item.symbol, bt);
 			}
 			return result;
 		}
 
-		public Map<String, Double> getUsdtVolumes() {
-			Map<String, Double> result = new HashMap<>();
+		public Map<String, BigDecimal> getUsdtVolumes() {
+			Map<String, BigDecimal> result = new HashMap<>();
 			for (Ticker item : data) result.put(item.symbol, item.usdtVolume);
 			return result;
 		}
 
 		private record Ticker(
-						String symbol, double bidPr, double askPr, double bidSz, double askSz, double usdtVolume
-		) {}
+						String symbol, BigDecimal bidPr, BigDecimal askPr, BigDecimal bidSz, BigDecimal askSz, BigDecimal usdtVolume
+		) {
+		}
 	}
 
 	public record CurrentFundingRateResponse(
@@ -65,6 +63,9 @@ class PublicResponses {
 			return result;
 		}
 
-		private record FundingRateItem(String symbol, String fundingRateInterval, double fundingRate, long nextUpdate) {}
+		private record FundingRateItem(
+						String symbol, String fundingRateInterval, BigDecimal fundingRate, long nextUpdate
+		) {
+		}
 	}
 }

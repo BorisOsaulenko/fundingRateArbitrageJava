@@ -105,13 +105,13 @@ class PublicResponses {
 		public Statistics24hResponse {
 		}
 
-		public Map<String, Double> getVolume24h() {
-			Map<String, Double> result = new HashMap<>();
+		public Map<String, BigDecimal> getVolume24h() {
+			Map<String, BigDecimal> result = new HashMap<>();
 			for (Statistics24hItem item : items) result.put(item.symbol(), item.volume());
 			return result;
 		}
 
-		private record Statistics24hItem(String symbol, double volume) {
+		private record Statistics24hItem(String symbol, BigDecimal volume) {
 		}
 	}
 

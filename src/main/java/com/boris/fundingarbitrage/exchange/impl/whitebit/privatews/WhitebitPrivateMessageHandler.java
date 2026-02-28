@@ -9,6 +9,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 
 class WhitebitPrivateMessageHandler implements PrivateMessageHandler {
@@ -26,8 +27,8 @@ class WhitebitPrivateMessageHandler implements PrivateMessageHandler {
 		if (usdt == null || !usdt.isObject()) return null;
 		String available = usdt.path("available").asText();
 		if (available == null || available.isEmpty()) return null;
-		double free = Double.parseDouble(available);
-		if (free <= 0.0) return null;
+		BigDecimal free = new BigDecimal(available);
+		if (free.compareTo(BigDecimal.ZERO) <= 0) return null;
 		return new DepositPatch(free, Instant.now());
 	}
 
@@ -42,15 +43,15 @@ class WhitebitPrivateMessageHandler implements PrivateMessageHandler {
 		String orderId = params.get(3).asText();
 		if (orderId == null || orderId.isEmpty()) return null;
 
-		double price = Double.parseDouble(params.get(4).asText());
-		double amount = Double.parseDouble(params.get(5).asText());
-		if (price <= 0.0 || amount <= 0.0) return null;
-		double fee = Double.parseDouble(params.get(6).asText());
+		BigDecimal price = new BigDecimal(params.get(4).asText());
+		BigDecimal amount = new BigDecimal(params.get(5).asText());
+		if (price.compareTo(BigDecimal.ZERO) <= 0 || amount.compareTo(BigDecimal.ZERO) <= 0) return null;
+		BigDecimal fee = new BigDecimal(params.get(6).asText());
 		String feeAsset = params.size() > 10 ? params.get(10).asText() : null;
-		Double feeValue = "USDT".equalsIgnoreCase(feeAsset) ? fee : null;
+		BigDecimal feeValue = "USDT".equalsIgnoreCase(feeAsset) ? fee : null;
 
-		double time = Double.parseDouble(params.get(1).asText());
-		long timeMillis = (long) (time * 1000.0);
+		BigDecimal time = new BigDecimal(params.get(1).asText());
+		long timeMillis = time.multiply(BigDecimal.valueOf(1000L)).longValue();
 		Instant ts = Instant.ofEpochMilli(timeMillis);
 
 		return new PartialFill(orderId, market, amount, price, feeValue, ts);

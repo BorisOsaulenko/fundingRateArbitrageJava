@@ -33,17 +33,23 @@ public class KucoinPublicHttpClient extends PublicHttpClient {
 
 	@Override
 	protected CompletableFuture<Map<String, PublicOnePullData>> getPublicOnePullData() {
-		CompletableFuture<PublicResponses.ActiveContractsResponse> contractsResponseFuture = requestWrapper.getResponse(PublicEndpoints.activeContractsRequest(),
-						PublicResponses.ActiveContractsResponse.class
-		);
-		CompletableFuture<PublicResponses.AllTickersResponse> tickersResponseFuture = requestWrapper.getResponse(PublicEndpoints.allTickersRequestSymbols(),
-						PublicResponses.AllTickersResponse.class
-		);
+		CompletableFuture<PublicResponses.ActiveContractsResponse>
+						contractsResponseFuture =
+						requestWrapper.getResponse(
+										PublicEndpoints.activeContractsRequest(),
+										PublicResponses.ActiveContractsResponse.class
+						);
+		CompletableFuture<PublicResponses.AllTickersResponse>
+						tickersResponseFuture =
+						requestWrapper.getResponse(
+										PublicEndpoints.allTickersRequestSymbols(),
+										PublicResponses.AllTickersResponse.class
+						);
 
 		return CompletableFuture.allOf(contractsResponseFuture, tickersResponseFuture).thenApply(_ -> {
 			Map<String, BigDecimal> lotSizes = contractsResponseFuture.join().getLotSizes();
 			Map<String, Integer> fundingGranularityHours = contractsResponseFuture.join().getFundingGranularityHours();
-			Map<String, Double> volumes24h = contractsResponseFuture.join().getVolume24h();
+			Map<String, BigDecimal> volumes24h = contractsResponseFuture.join().getVolume24h();
 			Map<String, BookTicker> bookTickers = tickersResponseFuture.join().getBookTickers();
 
 			Map<String, PublicOnePullData> result = new HashMap<>();
@@ -60,8 +66,7 @@ public class KucoinPublicHttpClient extends PublicHttpClient {
 	}
 
 	public CompletableFuture<URI> fetchPublicWsEndpoint() {
-		return requestWrapper
-						.getResponse(PublicEndpoints.publicWsToken(), PublicResponses.PublicWsTokenResponse.class)
+		return requestWrapper.getResponse(PublicEndpoints.publicWsToken(), PublicResponses.PublicWsTokenResponse.class)
 						.thenApply(resp -> {
 							String token = resp.token();
 							String endpoint = resp.endpoint();
