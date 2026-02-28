@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public abstract class PublicRestTest {
 	private static final long REQUEST_TIMEOUT_SECONDS = 8;
-	private static final double MAX_ABS_FUNDING_RATE = 0.05;
+	private static final BigDecimal MAX_ABS_FUNDING_RATE = new BigDecimal("0.05");
 	private static final Duration MAX_FUNDING_SETTLEMENT_AHEAD = Duration.ofHours(8);
 	private final Set<String> coins = Set.of("SOL", "ETH", "XRP", "LTC", "ADA");
 
@@ -39,24 +39,23 @@ public abstract class PublicRestTest {
 
 	void validateBookTicker(BookTicker ticker) {
 		assertNotNull(ticker, "Book ticker should not be null");
-		assertFinite(ticker.askPrice(), "Ask price should be finite");
-		assertFinite(ticker.askSize(), "Ask volume should be finite");
-		assertFinite(ticker.bidPrice(), "Bid price should be finite");
-		assertFinite(ticker.bidSize(), "Bid volume should be finite");
-		assertTrue(ticker.askPrice() > 0, "Ask price should be greater than 0");
-		assertTrue(ticker.askSize() > 0, "Ask volume should be greater than 0");
-		assertTrue(ticker.bidPrice() > 0, "Bid price should be greater than 0");
-		assertTrue(ticker.bidSize() > 0, "Bid volume should be greater than 0");
-		assertTrue(ticker.askPrice() >= ticker.bidPrice(), "Ask price should be greater than or equal to bid price");
-		assertTrue(ticker.askPrice() - ticker.bidPrice() < 5, "Spread should be less than maxSpread");
+		assertTrue(ticker.askPrice().compareTo(BigDecimal.ZERO) > 0, "Ask price should be greater than 0");
+		assertTrue(ticker.askSize().compareTo(BigDecimal.ZERO) > 0, "Ask volume should be greater than 0");
+		assertTrue(ticker.bidPrice().compareTo(BigDecimal.ZERO) > 0, "Bid price should be greater than 0");
+		assertTrue(ticker.bidSize().compareTo(BigDecimal.ZERO) > 0, "Bid volume should be greater than 0");
+
+		boolean askGreaterThanBid = ticker.askPrice().compareTo(ticker.bidPrice()) >= 0;
+		assertTrue(askGreaterThanBid, "Ask price should be greater than or equal to bid price");
+
+		boolean askAndBidNotTooFarAway = ticker.askPrice().subtract(ticker.bidPrice()).compareTo(BigDecimal.valueOf(5)) < 0;
+		assertTrue(askAndBidNotTooFarAway, "Spread should be less than maxSpread");
 	}
 
 	void validateFundingRate(FundingRate fundingRate) {
 		assertNotNull(fundingRate, "Funding rate should not be null");
 		assertNotNull(fundingRate.settlement(), "Settlement time should not be null");
-		assertFinite(fundingRate.rate(), "Funding rate should be finite");
 		assertTrue(
-						Math.abs(fundingRate.rate()) < MAX_ABS_FUNDING_RATE,
+						fundingRate.rate().abs().compareTo(MAX_ABS_FUNDING_RATE) < 0,
 						"Funding rate absolute value should be less than " + MAX_ABS_FUNDING_RATE
 		);
 		Instant now = Instant.now();
@@ -78,10 +77,9 @@ public abstract class PublicRestTest {
 		}
 	}
 
-	void validateTradingVolume(double volume) {
-		assertFinite(volume, "24h trading volume should be finite");
+	void validateTradingVolume(BigDecimal volume) {
 		assertTrue(
-						volume > 10_000,
+						volume.compareTo(BigDecimal.valueOf(10_000)) > 0,
 						"24h trading volume should be not less than 10 000"
 		); // testing on popular coins, so we can expect some volume
 	}

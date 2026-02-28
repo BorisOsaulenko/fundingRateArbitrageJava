@@ -7,6 +7,7 @@ import com.boris.fundingarbitrage.model.contract.MarkPrice;
 import com.boris.fundingarbitrage.model.exchange.ExchangeSnapshot;
 
 import java.math.BigDecimal;
+import java.math.MathContext;
 import java.time.Instant;
 
 public class ClassicArbitrageStrategy extends ArbitrageStrategy {
@@ -19,7 +20,7 @@ public class ClassicArbitrageStrategy extends ArbitrageStrategy {
 		ExchangeSnapshot shortExchange = snapshot.shortExchange();
 		BigDecimal longAsk = longExchange.bookTicker().askPrice();
 		BigDecimal shortBid = shortExchange.bookTicker().bidPrice();
-		return longAsk.add(shortBid).divide(BigDecimal.TWO);
+		return longAsk.add(shortBid).divide(BigDecimal.TWO, MathContext.DECIMAL64);
 	}
 
 	private static BigDecimal oSpread(ArbitrageSnapshot snapshot) {
@@ -29,13 +30,12 @@ public class ClassicArbitrageStrategy extends ArbitrageStrategy {
 		BigDecimal shortBid = shortExchange.bookTicker().bidPrice();
 		BigDecimal perCoinNotional = perCoinNotional(snapshot);
 
-		return shortBid.subtract(longAsk).divide(perCoinNotional);
+		return shortBid.subtract(longAsk).divide(perCoinNotional, MathContext.DECIMAL64);
 	}
 
 	private static BigDecimal fSpread(ArbitrageSnapshot snapshot) {
 		BigDecimal perCoinNotional = perCoinNotional(snapshot);
-
-		return fundingGainPerCoin(snapshot).divide(perCoinNotional);
+		return fundingGainPerCoin(snapshot).divide(perCoinNotional, MathContext.DECIMAL64);
 	}
 
 	private static BigDecimal totalFees(ArbitrageSnapshot snapshot) {

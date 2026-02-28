@@ -9,6 +9,7 @@ import com.boris.fundingarbitrage.model.exchange.ExchangeSnapshot;
 import com.boris.fundingarbitrage.strategy.ArbitrageStrategy;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -16,17 +17,19 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 
 public abstract class ArbitrageStrategyTest {
 	private static ArbitrageSnapshot snapshot(
-					double longAsk,
-					double shortBid,
-					double longFundingRate,
-					double shortFundingRate,
-					double longMarkPrice,
-					double shortMarkPrice
+					BigDecimal longAsk,
+					BigDecimal shortBid,
+					BigDecimal longFundingRate,
+					BigDecimal shortFundingRate,
+					BigDecimal longMarkPrice,
+					BigDecimal shortMarkPrice
 	) {
+		BigDecimal delta = BigDecimal.valueOf(0.1);
+		BigDecimal feeEntry = BigDecimal.valueOf(0.0002);
 		Instant now = Instant.now();
-		BookTicker longBook = new BookTicker(longAsk - 0.1, 10, longAsk, 10, now);
-		BookTicker shortBook = new BookTicker(shortBid, 10, shortBid + 0.1, 10, now);
-		Fees fees = new Fees(0.0002, 0.0002, 0.0002, 0.0002, now);
+		BookTicker longBook = new BookTicker(longAsk.subtract(delta), BigDecimal.TEN, longAsk, BigDecimal.TEN, now);
+		BookTicker shortBook = new BookTicker(shortBid, BigDecimal.TEN, shortBid.add(delta), BigDecimal.TEN, now);
+		Fees fees = new Fees(feeEntry, feeEntry, feeEntry, feeEntry, now);
 		FundingRate longFunding = new FundingRate(longFundingRate, now.plusSeconds(3600), now);
 		FundingRate shortFunding = new FundingRate(shortFundingRate, now.plusSeconds(3600), now);
 		MarkPrice longMark = markPrice(longMarkPrice, now);
@@ -36,7 +39,7 @@ public abstract class ArbitrageStrategyTest {
 		return new ArbitrageSnapshot(longExchange, shortExchange);
 	}
 
-	private static MarkPrice markPrice(double price, Instant timestamp) {
+	private static MarkPrice markPrice(BigDecimal price, Instant timestamp) {
 		return new MarkPrice(price, timestamp);
 	}
 
@@ -44,28 +47,77 @@ public abstract class ArbitrageStrategyTest {
 
 	@Test
 	public void compareSnapshotsReturnsMinusOneWhenFirstIsWorse() {
-		ArbitrageSnapshot worse = snapshot(102, 100, 0.001, 0.0005, 101, 99);
-		ArbitrageSnapshot better = snapshot(100, 102, 0.001, 0.002, 100, 102);
-		assertEquals(-1, strategy().compareSnapshots(worse, better));
+		ArbitrageSnapshot worse = snapshot(
+						BigDecimal.valueOf(102),
+						BigDecimal.valueOf(100),
+						BigDecimal.valueOf(0.001),
+						BigDecimal.valueOf(0.0005),
+						BigDecimal.valueOf(101),
+						BigDecimal.valueOf(99)
+		);
+		ArbitrageSnapshot better = snapshot(
+						BigDecimal.valueOf(100),
+						BigDecimal.valueOf(102),
+						BigDecimal.valueOf(0.001),
+						BigDecimal.valueOf(0.002),
+						BigDecimal.valueOf(100),
+						BigDecimal.valueOf(102)
+		);
+		assertEquals(BigDecimal.ONE.negate().intValueExact(), strategy().compareSnapshots(worse, better));
 	}
 
 	@Test
 	public void compareSnapshotsReturnsZeroWhenEquivalent() {
-		ArbitrageSnapshot first = snapshot(100, 102, 0.0, 0.0, 100, 102);
-		ArbitrageSnapshot second = snapshot(100, 102, 0.0, 0.0, 100, 102);
-		assertEquals(0, strategy().compareSnapshots(first, second));
+		ArbitrageSnapshot first = snapshot(
+						BigDecimal.valueOf(100),
+						BigDecimal.valueOf(102),
+						BigDecimal.ZERO,
+						BigDecimal.ZERO,
+						BigDecimal.valueOf(100),
+						BigDecimal.valueOf(102)
+		);
+		ArbitrageSnapshot second = snapshot(
+						BigDecimal.valueOf(100),
+						BigDecimal.valueOf(102),
+						BigDecimal.ZERO,
+						BigDecimal.ZERO,
+						BigDecimal.valueOf(100),
+						BigDecimal.valueOf(102)
+		);
+		assertEquals(BigDecimal.ZERO.intValueExact(), strategy().compareSnapshots(first, second));
 	}
 
 	@Test
 	public void compareSnapshotsReturnsOneWhenFirstIsBetter() {
-		ArbitrageSnapshot better = snapshot(100, 102, 0.0, 0.0, 100, 102);
-		ArbitrageSnapshot worse = snapshot(101, 100, 0.0, 0.0, 101, 100);
-		assertEquals(1, strategy().compareSnapshots(better, worse));
+		ArbitrageSnapshot better = snapshot(
+						BigDecimal.valueOf(100),
+						BigDecimal.valueOf(102),
+						BigDecimal.ZERO,
+						BigDecimal.ZERO,
+						BigDecimal.valueOf(100),
+						BigDecimal.valueOf(102)
+		);
+		ArbitrageSnapshot worse = snapshot(
+						BigDecimal.valueOf(101),
+						BigDecimal.valueOf(100),
+						BigDecimal.ZERO,
+						BigDecimal.ZERO,
+						BigDecimal.valueOf(101),
+						BigDecimal.valueOf(100)
+		);
+		assertEquals(BigDecimal.ONE.intValueExact(), strategy().compareSnapshots(better, worse));
 	}
 
 	@Test
 	public void snapshotGoodEnoughReturnsFalseForNegativeGain() {
-		ArbitrageSnapshot negativeGain = snapshot(102, 100, 0.001, 0.0005, 101, 99);
+		ArbitrageSnapshot negativeGain = snapshot(
+						BigDecimal.valueOf(102),
+						BigDecimal.valueOf(100),
+						BigDecimal.valueOf(0.001),
+						BigDecimal.valueOf(0.0005),
+						BigDecimal.valueOf(101),
+						BigDecimal.valueOf(99)
+		);
 		assertFalse(strategy().snapshotGoodEnough(negativeGain));
 	}
 }

@@ -33,8 +33,8 @@ public class OptimalWithdrawerLogic {
 			return;
 		}
 
-		if (processed < params.availableToWd().size()) {
-			InputItem item = params.availableToWd().get(processed);
+		if (processed < params.withdrawExchanges().size()) {
+			InputItem item = params.withdrawExchanges().get(processed);
 			processBase4Encoding(processed + 1, 4 * processedBase4State, cumFee, minL, minS, freeL, freeS, freeD); // state 0
 
 			BigDecimal balanceRequiredForShort = item.minShortWd().add(item.shortFee());
@@ -98,7 +98,7 @@ public class OptimalWithdrawerLogic {
 
 	private void parseWithdrawEntries() {
 		long optimalCopy = optimalBase4;
-		int exchangeIdx = params.availableToWd().size() - 1;
+		int exchangeIdx = params.withdrawExchanges().size() - 1;
 		longLeft = params.topUpLong();
 		shortLeft = params.topUpShort();
 
@@ -110,7 +110,7 @@ public class OptimalWithdrawerLogic {
 				continue;
 			}
 
-			InputItem item = params.availableToWd().get(exchangeIdx);
+			InputItem item = params.withdrawExchanges().get(exchangeIdx);
 			WithdrawEntry longWd = new WithdrawEntry();
 			WithdrawEntry shortWd = new WithdrawEntry();
 
@@ -118,16 +118,16 @@ public class OptimalWithdrawerLogic {
 			longWd.ex = shortWd.ex = item.ex();
 
 			if (status == 1 || status == 2) {
-				shortWd.amount = params.availableToWd().get(exchangeIdx).minShortWd();
+				shortWd.amount = item.minShortWd();
 				shortLeft = shortLeft.subtract(shortWd.amount);
-				shortWd.fee = params.availableToWd().get(exchangeIdx).shortFee();
+				shortWd.fee = item.shortFee();
 				shortWd.toLong = false;
 				withdrawEntries.add(shortWd);
 			}
 			if (status == 2 || status == 3) {
-				longWd.amount = params.availableToWd().get(exchangeIdx).minLongWd();
+				longWd.amount = item.minLongWd();
 				longLeft = longLeft.subtract(longWd.amount);
-				longWd.fee = params.availableToWd().get(exchangeIdx).longFee();
+				longWd.fee = item.longFee();
 				longWd.toLong = true;
 				withdrawEntries.add(longWd);
 			}
@@ -213,7 +213,7 @@ public class OptimalWithdrawerLogic {
 	) {
 	}
 
-	public record InputParams(BigDecimal topUpLong, BigDecimal topUpShort, List<InputItem> availableToWd) {
+	public record InputParams(BigDecimal topUpLong, BigDecimal topUpShort, List<InputItem> withdrawExchanges) {
 	}
 
 	public record OutputItem(BaseExchange ex, BigDecimal amount, BigDecimal fee, boolean toLong) {
