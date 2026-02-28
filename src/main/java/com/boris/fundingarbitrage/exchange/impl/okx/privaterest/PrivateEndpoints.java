@@ -92,7 +92,6 @@ class PrivateEndpoints {
 			body.put("toAddr", withdrawal.address().address() + ":" + withdrawal.address().memo());
 		} else body.put("toAddr", withdrawal.address().address());
 
-
 		return postJson("/api/v5/asset/withdrawal", body);
 	}
 

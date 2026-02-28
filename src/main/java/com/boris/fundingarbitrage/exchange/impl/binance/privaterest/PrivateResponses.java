@@ -9,6 +9,7 @@ import com.boris.fundingarbitrage.model.exchange.WithdrawChain;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -35,10 +36,8 @@ class PrivateResponses {
 	private record SpotBalanceItem(String asset, String free) {
 	}
 
-	@JsonFormat(shape = JsonFormat.Shape.ARRAY)
-	public record SpotUsdtBalanceResponse(SpotBalanceItem[] balances) {
-		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
-		public SpotUsdtBalanceResponse {
+	@JsonFormat(shape = JsonFormat.Shape.ARRAY) public record SpotUsdtBalanceResponse(SpotBalanceItem[] balances) {
+		@JsonCreator(mode = JsonCreator.Mode.DELEGATING) public SpotUsdtBalanceResponse {
 		}
 
 		public double get() {
@@ -55,10 +54,8 @@ class PrivateResponses {
 	private record FuturesBalanceItem(String asset, String balance) {
 	}
 
-	@JsonFormat(shape = JsonFormat.Shape.ARRAY)
-	public record FuturesUsdtBalanceResponse(FuturesBalanceItem[] assets) {
-		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
-		public FuturesUsdtBalanceResponse {
+	@JsonFormat(shape = JsonFormat.Shape.ARRAY) public record FuturesUsdtBalanceResponse(FuturesBalanceItem[] assets) {
+		@JsonCreator(mode = JsonCreator.Mode.DELEGATING) public FuturesUsdtBalanceResponse {
 		}
 
 		public double get() {
@@ -78,10 +75,8 @@ class PrivateResponses {
 	private record LeverageBracketsItem(String symbol, LeverageBracket[] brackets) {
 	}
 
-	@JsonFormat(shape = JsonFormat.Shape.ARRAY)
-	public record MaxLeverageResponse(LeverageBracketsItem[] items) {
-		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
-		public MaxLeverageResponse {
+	@JsonFormat(shape = JsonFormat.Shape.ARRAY) public record MaxLeverageResponse(LeverageBracketsItem[] items) {
+		@JsonCreator(mode = JsonCreator.Mode.DELEGATING) public MaxLeverageResponse {
 		}
 
 		public Map<String, Integer> get() {
@@ -97,8 +92,8 @@ class PrivateResponses {
 					String network,
 					boolean depositEnable,
 					boolean withdrawEnable,
-					String withdrawFee,
-					String withdrawMin,
+					BigDecimal withdrawFee,
+					BigDecimal withdrawMin,
 					boolean withdrawTag
 	) {
 	}
@@ -106,10 +101,8 @@ class PrivateResponses {
 	private record CoinInfo(String coin, NetworkListItem[] networkList) {
 	}
 
-	@JsonFormat(shape = JsonFormat.Shape.ARRAY)
-	public record SupportedChainsResponse(CoinInfo[] chains) {
-		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
-		public SupportedChainsResponse {
+	@JsonFormat(shape = JsonFormat.Shape.ARRAY) public record SupportedChainsResponse(CoinInfo[] chains) {
+		@JsonCreator(mode = JsonCreator.Mode.DELEGATING) public SupportedChainsResponse {
 		}
 
 		public ExchangeChains get() {
@@ -123,11 +116,7 @@ class PrivateResponses {
 
 						if (network.depositEnable) builder.addDepositableChain(chain);
 						if (network.withdrawEnable) {
-							builder.addWithdrawableChain(new WithdrawChain(
-											chain,
-											Double.parseDouble(network.withdrawFee),
-											Double.parseDouble(network.withdrawMin)
-							));
+							builder.addWithdrawableChain(new WithdrawChain(chain, network.withdrawFee, network.withdrawMin));
 						}
 					}
 					return builder.build();
@@ -152,12 +141,12 @@ class PrivateResponses {
 	}
 
 	private record OrderRecordItem(
-					String commission,
+					BigDecimal commission,
 					String commissionAsset,
 					String orderId,
-					String price,
-					String qty,
-					String realizedPnl,
+					BigDecimal price,
+					BigDecimal qty,
+					BigDecimal realizedPnl,
 					String side,
 					String positionSide,
 					String symbol,
@@ -173,12 +162,12 @@ class PrivateResponses {
 
 			ArrayList<PartialFill> result = new ArrayList<>();
 			for (OrderRecordItem item : items) {
-				Double fee = item.commissionAsset().equals("USDT") ? Double.parseDouble(item.commission()) : null;
+				BigDecimal fee = item.commissionAsset().equals("USDT") ? item.commission() : null;
 				PartialFill partialFill = new PartialFill(
 								item.orderId(),
 								item.symbol(),
-								Double.parseDouble(item.qty()),
-								Double.parseDouble(item.price()),
+								item.qty(),
+								item.price(),
 								fee,
 								Instant.ofEpochMilli(Long.parseLong(item.time()))
 				);

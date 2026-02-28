@@ -36,63 +36,74 @@ class PublicResponses {
 			return result;
 		}
 
-		private record Filter(String filterType, String minQty, String maxQty, BigDecimal stepSize) {}
+		private record Filter(String filterType, String minQty, String maxQty, BigDecimal stepSize) {
+		}
 
-		private record SymbolInfo(String symbol, String status, String contractType, Filter[] filters) {}
+		private record SymbolInfo(String symbol, String status, String contractType, Filter[] filters) {
+		}
 	}
 
 	@JsonFormat(shape = JsonFormat.Shape.ARRAY)
 	public record PremiumIndexResponse(List<FundingRateResponseSymbol> items) {
 		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
-		public PremiumIndexResponse {}
+		public PremiumIndexResponse {
+		}
 
 		public Map<String, FundingRate> getFundingRates() {
 			Map<String, FundingRate> fundingBySymbol = new HashMap<>();
 			for (FundingRateResponseSymbol item : items) {
-				FundingRate fr = new FundingRate(
-								item.lastFundingRate(),
-								Instant.ofEpochMilli(item.nextFundingTime),
-								Instant.ofEpochMilli(item.time())
-				);
+				FundingRate
+								fr =
+								new FundingRate(
+												item.lastFundingRate(),
+												Instant.ofEpochMilli(item.nextFundingTime),
+												Instant.ofEpochMilli(item.time())
+								);
 				fundingBySymbol.put(item.symbol(), fr);
 			}
 			return fundingBySymbol;
 		}
 
 		private record FundingRateResponseSymbol(
-						String symbol, double lastFundingRate, long nextFundingTime, long time
-		) {}
+						String symbol, BigDecimal lastFundingRate, long nextFundingTime, long time
+		) {
+		}
 	}
 
 	@JsonFormat(shape = JsonFormat.Shape.ARRAY)
 	public record BookTickerResponse(List<BookTickerResponseSymbol> items) {
 		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
-		public BookTickerResponse {}
+		public BookTickerResponse {
+		}
 
 		public Map<String, BookTicker> getBookTickers() {
 			Map<String, BookTicker> result = new HashMap<>();
 			items.forEach(item -> {
-				BookTicker ticker = new BookTicker(
-								item.bidPrice,
-								item.bidQty,
-								item.askPrice,
-								item.askQty,
-								Instant.ofEpochMilli(item.time())
-				);
+				BookTicker
+								ticker =
+								new BookTicker(
+												item.bidPrice,
+												item.bidQty,
+												item.askPrice,
+												item.askQty,
+												Instant.ofEpochMilli(item.time())
+								);
 				result.put(item.symbol(), ticker);
 			});
 			return result;
 		}
 
 		public record BookTickerResponseSymbol(
-						String symbol, double bidPrice, double askPrice, double bidQty, double askQty, long time
-		) {}
+						String symbol, BigDecimal bidPrice, BigDecimal askPrice, BigDecimal bidQty, BigDecimal askQty, long time
+		) {
+		}
 	}
 
 	@JsonFormat(shape = JsonFormat.Shape.ARRAY)
 	public record Statistics24hResponse(List<Statistics24hItem> items) {
 		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
-		public Statistics24hResponse {}
+		public Statistics24hResponse {
+		}
 
 		public Map<String, Double> getVolume24h() {
 			Map<String, Double> result = new HashMap<>();
@@ -100,14 +111,15 @@ class PublicResponses {
 			return result;
 		}
 
-		private record Statistics24hItem(String symbol, double volume) {}
+		private record Statistics24hItem(String symbol, double volume) {
+		}
 	}
-
 
 	@JsonFormat(shape = JsonFormat.Shape.ARRAY)
 	public record FundingInfoResponse(List<FundingGranularityEntry> items) {
 		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
-		public FundingInfoResponse {}
+		public FundingInfoResponse {
+		}
 
 		public Map<String, Integer> getFundingGranularities() {
 			Map<String, Integer> result = new HashMap<>();
@@ -115,6 +127,7 @@ class PublicResponses {
 			return result;
 		}
 
-		private record FundingGranularityEntry(String symbol, int fundingIntervalHours) {}
+		private record FundingGranularityEntry(String symbol, int fundingIntervalHours) {
+		}
 	}
 }

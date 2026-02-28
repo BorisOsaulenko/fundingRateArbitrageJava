@@ -10,6 +10,7 @@ import com.boris.fundingarbitrage.util.logger.Logger;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 
 class BinancePublicMessageHandler implements PublicMessageHandler {
@@ -24,8 +25,9 @@ class BinancePublicMessageHandler implements PublicMessageHandler {
 		String symbol = root.path("s").asText();
 		if (symbol.isEmpty()) return null;
 
-		String rate = root.path("r").asText();
-		if (rate.isEmpty()) return null;
+		JsonNode rateNode = root.get("r");
+		if (rateNode == null) return null;
+		BigDecimal rate = rateNode.decimalValue();
 
 		long settlementTime = root.path("T").asLong();
 		if (settlementTime == 0) return null;
@@ -35,12 +37,7 @@ class BinancePublicMessageHandler implements PublicMessageHandler {
 
 		String coin = context.getSymbolInverse(symbol);
 
-		return new FundingRatePatch(
-						coin,
-						Double.parseDouble(rate),
-						Instant.ofEpochMilli(settlementTime),
-						Instant.ofEpochMilli(eventTime)
-		);
+		return new FundingRatePatch(coin, rate, Instant.ofEpochMilli(settlementTime), Instant.ofEpochMilli(eventTime));
 	}
 
 	private MarkPricePatch parseMarkPriceInternal(JsonNode root) {
@@ -50,28 +47,29 @@ class BinancePublicMessageHandler implements PublicMessageHandler {
 		long eventTime = root.path("E").asLong();
 		if (eventTime == 0) return null;
 
-		String markPrice = root.path("p").asText();
-		if (markPrice.isEmpty()) return null;
+		JsonNode markPriceNode = root.get("p");
+		if (markPriceNode == null) return null;
+		BigDecimal markPrice = markPriceNode.decimalValue();
 
 		String coin = context.getSymbolInverse(symbol);
-		return new MarkPricePatch(coin, Double.parseDouble(markPrice), Instant.ofEpochMilli(eventTime));
+		return new MarkPricePatch(coin, markPrice, Instant.ofEpochMilli(eventTime));
 	}
 
 	private BookTickerPatch parseBookTickerInternal(JsonNode root) {
-		String b = root.path("b").asText();
-		String B = root.path("B").asText();
-		String a = root.path("a").asText();
-		String A = root.path("A").asText();
+		JsonNode b = root.get("b");
+		JsonNode B = root.get("B");
+		JsonNode a = root.get("a");
+		JsonNode A = root.get("A");
 		String symbol = root.path("s").asText();
 		long eventTime = root.path("E").asLong();
 
 		if (symbol.isEmpty()) return null;
 		if (eventTime == 0) return null;
 
-		Double bbPrice = b.isEmpty() ? null : Double.parseDouble(b);
-		Double bbQty = B.isEmpty() ? null : Double.parseDouble(B);
-		Double baPrice = a.isEmpty() ? null : Double.parseDouble(a);
-		Double baQty = A.isEmpty() ? null : Double.parseDouble(A);
+		BigDecimal bbPrice = b == null ? null : b.decimalValue();
+		BigDecimal bbQty = B == null ? null : B.decimalValue();
+		BigDecimal baPrice = a == null ? null : a.decimalValue();
+		BigDecimal baQty = A == null ? null : A.decimalValue();
 
 		if (bbPrice == null && bbQty == null && baPrice == null && baQty == null) return null;
 

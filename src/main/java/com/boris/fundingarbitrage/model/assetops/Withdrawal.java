@@ -4,7 +4,9 @@ import com.boris.fundingarbitrage.model.Validations;
 import com.boris.fundingarbitrage.model.exchange.WalletAddress;
 import lombok.NonNull;
 
-public record Withdrawal(double amount, double fee, @NonNull WalletAddress address) {
+import java.math.BigDecimal;
+
+public record Withdrawal(BigDecimal amount, BigDecimal fee, @NonNull WalletAddress address) {
 	public Withdrawal {
 		Validations.requirePositive(amount, "Amount");
 	}
