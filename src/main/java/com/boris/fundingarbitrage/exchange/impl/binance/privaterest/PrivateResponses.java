@@ -18,7 +18,8 @@ import java.util.Map;
 class PrivateResponses {
 	protected static final BinanceChainsMap chainsMap = new BinanceChainsMap();
 
-	public record ChangeLeverageResponseSymbol(String symbol, double leverage) {}
+	public record ChangeLeverageResponseSymbol(String symbol, double leverage) {
+	}
 
 	public record SetMarginModeResponse(Integer code, String msg) {
 		public SetMarginModeResponse(Integer code, String msg) {
@@ -31,12 +32,14 @@ class PrivateResponses {
 		}
 	}
 
-	private record SpotBalanceItem(String asset, String free) {}
+	private record SpotBalanceItem(String asset, String free) {
+	}
 
 	@JsonFormat(shape = JsonFormat.Shape.ARRAY)
 	public record SpotUsdtBalanceResponse(SpotBalanceItem[] balances) {
 		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
-		public SpotUsdtBalanceResponse {}
+		public SpotUsdtBalanceResponse {
+		}
 
 		public double get() {
 			for (SpotBalanceItem item : balances) {
@@ -49,12 +52,14 @@ class PrivateResponses {
 		}
 	}
 
-	private record FuturesBalanceItem(String asset, String balance) {}
+	private record FuturesBalanceItem(String asset, String balance) {
+	}
 
 	@JsonFormat(shape = JsonFormat.Shape.ARRAY)
 	public record FuturesUsdtBalanceResponse(FuturesBalanceItem[] assets) {
 		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
-		public FuturesUsdtBalanceResponse {}
+		public FuturesUsdtBalanceResponse {
+		}
 
 		public double get() {
 			for (FuturesBalanceItem item : assets) {
@@ -67,14 +72,17 @@ class PrivateResponses {
 		}
 	}
 
-	private record LeverageBracket(int initialLeverage) {}
+	private record LeverageBracket(int initialLeverage) {
+	}
 
-	private record LeverageBracketsItem(String symbol, LeverageBracket[] brackets) {}
+	private record LeverageBracketsItem(String symbol, LeverageBracket[] brackets) {
+	}
 
 	@JsonFormat(shape = JsonFormat.Shape.ARRAY)
 	public record MaxLeverageResponse(LeverageBracketsItem[] items) {
 		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
-		public MaxLeverageResponse {}
+		public MaxLeverageResponse {
+		}
 
 		public Map<String, Integer> get() {
 			Map<String, Integer> result = new HashMap<>();
@@ -92,14 +100,17 @@ class PrivateResponses {
 					String withdrawFee,
 					String withdrawMin,
 					boolean withdrawTag
-	) {}
+	) {
+	}
 
-	private record CoinInfo(String coin, NetworkListItem[] networkList) {}
+	private record CoinInfo(String coin, NetworkListItem[] networkList) {
+	}
 
 	@JsonFormat(shape = JsonFormat.Shape.ARRAY)
 	public record SupportedChainsResponse(CoinInfo[] chains) {
 		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
-		public SupportedChainsResponse {}
+		public SupportedChainsResponse {
+		}
 
 		public ExchangeChains get() {
 			ExchangeChainsBuilder builder = new ExchangeChainsBuilder();
@@ -132,9 +143,13 @@ class PrivateResponses {
 		}
 	}
 
-	public record WithdrawUsdtResponse(String id) {}
+	public record WithdrawUsdtResponse(String id) {
+		public WithdrawUsdtResponse {
+		}
+	}
 
-	public record PlaceFuturesOrderResponse(int orderId) {}
+	public record PlaceFuturesOrderResponse(int orderId) {
+	}
 
 	private record OrderRecordItem(
 					String commission,
@@ -147,7 +162,8 @@ class PrivateResponses {
 					String positionSide,
 					String symbol,
 					String time
-	) {}
+	) {
+	}
 
 	public record GetOrderRecordResponse(OrderRecordItem[] items) {
 		public List<PartialFill> get() {
@@ -173,5 +189,6 @@ class PrivateResponses {
 		}
 	}
 
-	public record InternalTransferResponse(long tranId) {}
+	public record InternalTransferResponse(long tranId) {
+	}
 }

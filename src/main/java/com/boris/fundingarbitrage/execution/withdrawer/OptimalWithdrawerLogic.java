@@ -1,4 +1,4 @@
-package com.boris.fundingarbitrage.execution;
+package com.boris.fundingarbitrage.execution.withdrawer;
 
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 

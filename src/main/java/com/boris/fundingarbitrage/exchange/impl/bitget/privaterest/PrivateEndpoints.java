@@ -29,8 +29,7 @@ class PrivateEndpoints {
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest tradingFeesRequestSymbol(String symbol) {
-		URI uri = new URIBuilder(baseUrl)
-						.setPath("/api/v2/mix/market/contracts")
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v2/mix/market/contracts")
 						.addParameter("productType", productType)
 						.addParameter("symbol", symbol)
 						.build();
@@ -63,8 +62,7 @@ class PrivateEndpoints {
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest futuresUsdtBalanceRequest() {
-		URI uri = new URIBuilder(baseUrl)
-						.setPath("/api/v2/mix/account/accounts")
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v2/mix/account/accounts")
 						.addParameter("productType", productType)
 						.build();
 		return new SimpleHttpRequest("GET", uri);
@@ -72,8 +70,7 @@ class PrivateEndpoints {
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest contractsRequest() {
-		URI uri = new URIBuilder(baseUrl)
-						.setPath("/api/v2/mix/market/contracts")
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v2/mix/market/contracts")
 						.addParameter("productType", productType)
 						.build();
 		return new SimpleHttpRequest("GET", uri);
@@ -87,8 +84,7 @@ class PrivateEndpoints {
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest usdtWalletAddressRequest(SupportedChain chain) {
-		URI uri = new URIBuilder(baseUrl)
-						.setPath("/api/v2/spot/wallet/deposit-address")
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v2/spot/wallet/deposit-address")
 						.addParameter("coin", "USDT")
 						.addParameter("chain", chainsMap.get(chain))
 						.build();
@@ -99,8 +95,9 @@ class PrivateEndpoints {
 		Map<String, Object> body = new HashMap<>();
 		body.put("coin", "USDT");
 		body.put("chain", chainsMap.get(withdrawal.address().chain()));
+		body.put("transferType", "on_chain");
 		body.put("address", withdrawal.address().address());
-		body.put("amount", String.valueOf(withdrawal.amount()));
+		body.put("size", String.valueOf(withdrawal.amount()));
 		if (withdrawal.address().memo() != null && !withdrawal.address().memo().isEmpty()) {
 			body.put("tag", withdrawal.address().memo());
 		}
@@ -133,8 +130,7 @@ class PrivateEndpoints {
 					String symbol,
 					TradeSide tradeSide
 	) {
-		URI uri = new URIBuilder(baseUrl)
-						.setPath("/api/v2/mix/order/fills")
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v2/mix/order/fills")
 						.addParameter("productType", productType)
 						.addParameter("symbol", symbol)
 						.addParameter("orderId", orderId)

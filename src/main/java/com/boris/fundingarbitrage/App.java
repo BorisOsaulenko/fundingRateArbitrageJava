@@ -1,12 +1,8 @@
 package com.boris.fundingarbitrage;
 
 import com.boris.fundingarbitrage.coinfilter.CoinFilterConfig;
-import com.boris.fundingarbitrage.exchange.BaseExchange;
-import com.boris.fundingarbitrage.exchange.Instances;
-import com.boris.fundingarbitrage.execution.OptimalWithdrawer;
 import com.boris.fundingarbitrage.logic.ArbitrageBotConfig;
 import com.boris.fundingarbitrage.logic.ArbitrageLogic;
-import com.boris.fundingarbitrage.model.exchange.ExchangeName;
 import com.boris.fundingarbitrage.strategy.ArbitrageStrategy;
 import com.boris.fundingarbitrage.strategy.ClassicArbitrageStrategy;
 import com.boris.fundingarbitrage.util.logger.Logger;
@@ -138,14 +134,6 @@ public class App {
 	}
 
 	static void main(String[] args) {
-		BaseExchange bybit = Instances.getExchange(ExchangeName.BYBIT);
-		BaseExchange whitebit = Instances.getExchange(ExchangeName.WHITEBIT);
-		OptimalWithdrawer wd = new OptimalWithdrawer(bybit, whitebit, 30.3);
-		wd.withdrawUsdtToExchanges().join();
-
-		//		BaseExchange okx = Instances.getExchange(ExchangeName.OKX);
-		//		var result = okx.privateHttpClient.getSpotUsdtBalance().join();
-		//		Logger.log(result.toString());
 	}
 }
 

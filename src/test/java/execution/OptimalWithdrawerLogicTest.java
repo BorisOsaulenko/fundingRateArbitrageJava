@@ -1,7 +1,7 @@
 package execution;
 
 import com.boris.fundingarbitrage.exchange.BaseExchange;
-import com.boris.fundingarbitrage.execution.OptimalWithdrawerLogic;
+import com.boris.fundingarbitrage.execution.withdrawer.OptimalWithdrawerLogic;
 import com.boris.fundingarbitrage.model.exchange.ExchangeName;
 import org.junit.jupiter.api.Test;
 

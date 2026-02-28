@@ -18,7 +18,8 @@ public final class PrivateEndpoints {
 	private static final String baseUrlFutures = "https://api-futures.kucoin.com";
 	private static final String baseUrlSpot = "https://api.kucoin.com";
 
-	private PrivateEndpoints() {}
+	private PrivateEndpoints() {
+	}
 
 	@SneakyThrows
 	private static SimpleHttpRequest postJson(String baseUrl, String path, Object body) {
@@ -51,16 +52,16 @@ public final class PrivateEndpoints {
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest spotUsdtBalanceRequest() {
-		URI uri = new URIBuilder(baseUrlSpot).setPath("/api/v1/accounts").addParameter("currency", "USDT").addParameter("type",
-						"main"
-		).build();
+		URI uri = new URIBuilder(baseUrlSpot).setPath("/api/v1/accounts")
+						.addParameter("currency", "USDT")
+						.addParameter("type", "main")
+						.build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest futuresUsdtBalanceRequest() {
-		URI uri = new URIBuilder(baseUrlFutures)
-						.setPath("/api/v1/account-overview")
+		URI uri = new URIBuilder(baseUrlFutures).setPath("/api/v1/account-overview")
 						.addParameter("currency", "USDT")
 						.build();
 		return new SimpleHttpRequest("GET", uri);
@@ -81,8 +82,7 @@ public final class PrivateEndpoints {
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest usdtWalletAddressRequest(SupportedChain chain) {
 		String chainId = requireChainId(chain);
-		URI uri = new URIBuilder(baseUrlSpot)
-						.setPath("/api/v3/deposit-addresses")
+		URI uri = new URIBuilder(baseUrlSpot).setPath("/api/v3/deposit-addresses")
 						.addParameter("currency", "USDT")
 						.addParameter("chain", chainId)
 						.build();
@@ -97,7 +97,9 @@ public final class PrivateEndpoints {
 		body.put("toAddress", withdrawal.address().address());
 		body.put("withdrawType", "ADDRESS");
 		body.put("chain", chainId);
-		body.put("isInner", false);
+		if (withdrawal.address().memo() != null && !withdrawal.address().memo().isEmpty()) {
+			body.put("memo", withdrawal.address().memo());
+		}
 		return postJson(baseUrlSpot, "/api/v3/withdrawals", body);
 	}
 
@@ -133,9 +135,10 @@ public final class PrivateEndpoints {
 					String symbol,
 					TradeSide tradeSide
 	) {
-		URI uri = new URIBuilder(baseUrlFutures).setPath("/api/v1/fills").addParameter("orderId", orderId).addParameter("symbol",
-						symbol
-		).build();
+		URI uri = new URIBuilder(baseUrlFutures).setPath("/api/v1/fills")
+						.addParameter("orderId", orderId)
+						.addParameter("symbol", symbol)
+						.build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 

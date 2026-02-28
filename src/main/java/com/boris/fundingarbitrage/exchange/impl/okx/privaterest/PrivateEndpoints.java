@@ -42,8 +42,7 @@ class PrivateEndpoints {
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest leverageInfoRequestSymbol(String symbol, MarginMode mode) {
-		URI uri = new URIBuilder(baseUrl)
-						.setPath("/api/v5/account/leverage-info")
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v5/account/leverage-info")
 						.addParameter("instId", symbol)
 						.addParameter("mgnMode", mode == MarginMode.CROSS ? "cross" : "isolated")
 						.build();
@@ -76,9 +75,10 @@ class PrivateEndpoints {
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest usdtWalletAddressRequest(SupportedChain chain) {
-		URI uri = new URIBuilder(baseUrl).setPath("/api/v5/asset/deposit-address").addParameter("ccy", "USDT").addParameter("chain",
-						chainsMap.get(chain)
-		).build();
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v5/asset/deposit-address")
+						.addParameter("ccy", "USDT")
+						.addParameter("chain", chainsMap.get(chain))
+						.build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
@@ -90,9 +90,10 @@ class PrivateEndpoints {
 		body.put("chain", chainsMap.get(withdrawal.address().chain()));
 		if (withdrawal.address().memo() != null && !withdrawal.address().memo().isEmpty()) {
 			body.put("toAddr", withdrawal.address().address() + ":" + withdrawal.address().memo());
-		} else {body.put("toAddr", withdrawal.address().address());}
+		} else body.put("toAddr", withdrawal.address().address());
 
-		return postJson("/api/v4/main-account/withdraw", body);
+
+		return postJson("/api/v5/asset/withdrawal", body);
 	}
 
 	private static String sideFromOrder(OrderSide orderSide, TradeSide tradeSide) {
@@ -115,8 +116,7 @@ class PrivateEndpoints {
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest orderRecordRequestSymbol(String orderId, String symbol) {
-		URI uri = new URIBuilder(baseUrl)
-						.setPath("/api/v5/trade/fills")
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v5/trade/fills")
 						.addParameter("instId", symbol)
 						.addParameter("ordId", orderId)
 						.build();
