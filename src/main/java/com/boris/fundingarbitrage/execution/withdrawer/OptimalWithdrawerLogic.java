@@ -3,6 +3,7 @@ package com.boris.fundingarbitrage.execution.withdrawer;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -37,10 +38,15 @@ public class OptimalWithdrawerLogic {
 			InputItem item = params.withdrawExchanges().get(processed);
 			processBase4Encoding(processed + 1, 4 * processedBase4State, cumFee, minL, minS, freeL, freeS, freeD); // state 0
 
-			BigDecimal balanceRequiredForShort = item.minShortWd().add(item.shortFee());
-			BigDecimal balanceRequiredForLong = item.minLongWd().add(item.longFee());
+			BigDecimal takenFromFreeS = BigDecimal.ZERO;
+			if (item.shortFee() != null)
+				takenFromFreeS = item.minShortWd().add(item.shortFee()).setScale(item.wdPrecisionPoints(), RoundingMode.UP);
 
-			if (item.shortFee() != null && item.balance().compareTo(balanceRequiredForShort) >= 0) {
+			BigDecimal takenFromFreeL = BigDecimal.ZERO;
+			if (item.longFee() != null)
+				takenFromFreeL = item.minLongWd().add(item.longFee()).setScale(item.wdPrecisionPoints(), RoundingMode.UP);
+
+			if (item.shortFee() != null && item.balance().compareTo(item.minShortWd()) >= 0) {
 				processBase4Encoding(
 								processed + 1,
 								4 * processedBase4State + 1,
@@ -48,14 +54,14 @@ public class OptimalWithdrawerLogic {
 								minL,
 								minS.add(item.minShortWd()),
 								freeL,
-								freeS.add(item.balance()).subtract(balanceRequiredForShort),
+								freeS.add(item.balance()).subtract(takenFromFreeL),
 								freeD
 				); // state 1 - only short
 			}
 
 			if (item.shortFee() != null &&
 					item.longFee() != null &&
-					item.balance().compareTo(balanceRequiredForLong.add(balanceRequiredForShort)) >= 0) {
+					item.balance().compareTo(item.minShortWd().add(item.minLongWd())) >= 0) {
 				processBase4Encoding(
 								processed + 1,
 								4 * processedBase4State + 2,
@@ -64,18 +70,18 @@ public class OptimalWithdrawerLogic {
 								minS.add(item.minLongWd()),
 								freeL,
 								freeS,
-								freeD.add(item.balance()).subtract(balanceRequiredForLong).subtract(balanceRequiredForShort)
+								freeD.add(item.balance().subtract(takenFromFreeS).subtract(takenFromFreeL))
 				);
 			} // state 2 - both / diagonal
 
-			if (item.longFee() != null && item.balance().compareTo(balanceRequiredForLong) > 0) {
+			if (item.longFee() != null && item.balance().compareTo(item.minLongWd()) > 0) {
 				processBase4Encoding(
 								processed + 1,
 								4 * processedBase4State + 3,
 								cumFee.add(item.longFee()),
 								minL.add(item.minLongWd()),
 								minS,
-								freeL.add(item.balance()).subtract(balanceRequiredForLong),
+								freeL.add(item.balance()).subtract(takenFromFreeL),
 								freeS,
 								freeD
 				);
@@ -116,6 +122,7 @@ public class OptimalWithdrawerLogic {
 
 			longWd.status = shortWd.status = status;
 			longWd.ex = shortWd.ex = item.ex();
+			longWd.wdPrecisionPoints = shortWd.wdPrecisionPoints = item.wdPrecisionPoints();
 
 			if (status == 1 || status == 2) {
 				shortWd.amount = item.minShortWd();
@@ -134,7 +141,12 @@ public class OptimalWithdrawerLogic {
 
 			freeByExchanges.put(
 							longWd.ex,
-							item.balance().subtract(longWd.amount).subtract(shortWd.amount).subtract(longWd.fee).subtract(shortWd.fee)
+							item.balance()
+											.subtract(longWd.amount)
+											.subtract(shortWd.amount)
+											.subtract(longWd.fee)
+											.subtract(shortWd.fee)
+											.setScale(longWd.wdPrecisionPoints, RoundingMode.DOWN)
 			);
 
 			exchangeIdx--;
@@ -146,11 +158,11 @@ public class OptimalWithdrawerLogic {
 		for (WithdrawEntry wd : withdrawEntries) {
 			BigDecimal free = freeByExchanges.get(wd.ex);
 			if (wd.status == 1) {
-				BigDecimal additional = free.min(shortLeft);
+				BigDecimal additional = free.min(shortLeft).setScale(wd.wdPrecisionPoints, RoundingMode.DOWN);
 				wd.amount = wd.amount.add(additional);
 				shortLeft = shortLeft.subtract(additional);
 			} else if (wd.status == 3) {
-				BigDecimal additional = free.min(longLeft);
+				BigDecimal additional = free.min(longLeft).setScale(wd.wdPrecisionPoints, RoundingMode.DOWN);
 				wd.amount = wd.amount.add(additional);
 				longLeft = longLeft.subtract(additional);
 			}
@@ -160,12 +172,12 @@ public class OptimalWithdrawerLogic {
 			BigDecimal free = freeByExchanges.get(wd.ex);
 			if (wd.status == 2) {
 				if (wd.toLong) {
-					BigDecimal additional = free.min(longLeft);
+					BigDecimal additional = free.min(longLeft).setScale(wd.wdPrecisionPoints, RoundingMode.DOWN);
 					wd.amount = wd.amount.add(additional);
 					longLeft = longLeft.subtract(additional);
 					freeByExchanges.put(wd.ex, free.subtract(additional));
 				} else {
-					BigDecimal additional = free.min(shortLeft);
+					BigDecimal additional = free.min(shortLeft).setScale(wd.wdPrecisionPoints, RoundingMode.DOWN);
 					wd.amount = wd.amount.add(additional);
 					shortLeft = shortLeft.subtract(additional);
 					freeByExchanges.put(wd.ex, free.subtract(additional));
@@ -209,8 +221,27 @@ public class OptimalWithdrawerLogic {
 					BigDecimal longFee,
 					BigDecimal shortFee,
 					BigDecimal minLongWd,
-					BigDecimal minShortWd
+					BigDecimal minShortWd,
+					int wdPrecisionPoints
 	) {
+		public InputItem(
+						BaseExchange ex,
+						BigDecimal balance,
+						BigDecimal longFee,
+						BigDecimal shortFee,
+						BigDecimal minLongWd,
+						BigDecimal minShortWd,
+						int wdPrecisionPoints
+		) {
+			assert wdPrecisionPoints > 0;
+			this.ex = ex;
+			this.balance = balance.setScale(wdPrecisionPoints, RoundingMode.DOWN);
+			this.longFee = longFee;
+			this.shortFee = shortFee;
+			this.minLongWd = minLongWd.setScale(wdPrecisionPoints, RoundingMode.UP);
+			this.minShortWd = minShortWd.setScale(wdPrecisionPoints, RoundingMode.UP);
+			this.wdPrecisionPoints = wdPrecisionPoints;
+		}
 	}
 
 	public record InputParams(BigDecimal topUpLong, BigDecimal topUpShort, List<InputItem> withdrawExchanges) {
@@ -220,6 +251,7 @@ public class OptimalWithdrawerLogic {
 	}
 
 	private static class WithdrawEntry {
+		int wdPrecisionPoints;
 		long status;
 		BaseExchange ex;
 		BigDecimal amount;

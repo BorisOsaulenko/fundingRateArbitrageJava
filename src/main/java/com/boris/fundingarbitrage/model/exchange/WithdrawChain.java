@@ -6,9 +6,12 @@ import lombok.NonNull;
 
 import java.math.BigDecimal;
 
-public record WithdrawChain(@NonNull SupportedChain chain, BigDecimal withdrawFee, BigDecimal minWithdraw) {
+public record WithdrawChain(
+				@NonNull SupportedChain chain, BigDecimal withdrawFee, BigDecimal minWithdraw, int precisionPoints
+) {
 	public WithdrawChain {
 		Validations.requireNonNegative(withdrawFee, "Withdraw fee");
 		Validations.requireNonNegative(minWithdraw, "Minimum withdraw");
+		Validations.requirePositive(precisionPoints, "Precision points");
 	}
 }

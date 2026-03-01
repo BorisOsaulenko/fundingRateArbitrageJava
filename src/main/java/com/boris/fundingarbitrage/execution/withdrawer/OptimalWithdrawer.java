@@ -103,7 +103,8 @@ public class OptimalWithdrawer {
 							optimalLong == null ? null : optimalLong.withdrawFee(),
 							optimalShort == null ? null : optimalShort.withdrawFee(),
 							optimalLong == null ? null : optimalLong.minWithdraw(),
-							optimalShort == null ? null : optimalShort.minWithdraw()
+							optimalShort == null ? null : optimalShort.minWithdraw(),
+
 			);
 			inputItems.add(item);
 		}
