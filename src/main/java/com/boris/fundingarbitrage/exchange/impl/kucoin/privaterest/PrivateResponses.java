@@ -149,8 +149,18 @@ public class PrivateResponses {
 					boolean isDepositEnabled,
 					boolean isWithdrawEnabled,
 					String withdrawalMinFee,
-					String withdrawalMinSize
+					String withdrawalMinSize,
+					Integer withdrawPrecision
 	) {
+		int precisionPoints() {
+			if (withdrawPrecision == null) {
+				throw new IllegalStateException("KuCoin withdrawPrecision missing for chain: " + chainId);
+			}
+			if (withdrawPrecision <= 0) {
+				throw new IllegalStateException("KuCoin withdrawPrecision must be positive for chain: " + chainId);
+			}
+			return withdrawPrecision;
+		}
 	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
@@ -180,7 +190,7 @@ public class PrivateResponses {
 				if (chain.isWithdrawEnabled && chain.withdrawalMinFee != null && chain.withdrawalMinSize != null) {
 					BigDecimal fee = new BigDecimal(chain.withdrawalMinFee);
 					BigDecimal min = new BigDecimal(chain.withdrawalMinSize);
-					builder.addWithdrawableChain(new WithdrawChain(mapped, fee, min));
+					builder.addWithdrawableChain(new WithdrawChain(mapped, fee, min, chain.precisionPoints()));
 				}
 			}
 			return builder.build();

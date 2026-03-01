@@ -74,7 +74,7 @@ class PrivateResponses {
 				if (entry.getValue().is_api_withdrawal()) {
 					BigDecimal minWidthdraw = entry.getValue().withdraw().min_amount();
 					BigDecimal fee = entry.getValue().withdraw().fixed();
-					withdrawable.add(new WithdrawChain(chain, fee, minWidthdraw));
+					withdrawable.add(new WithdrawChain(chain, fee, minWidthdraw, 6)); // Whitebit usdt precision = 6 on all chains
 				}
 			}
 

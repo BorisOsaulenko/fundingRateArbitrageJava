@@ -38,11 +38,9 @@ public class BinancePrivateHttpClient extends PrivateHttpClient {
 	@Override
 	protected SimpleHttpRequest signRequest(SimpleHttpRequest request) {
 		try {
-			URI
-							withCredentials =
-							new URIBuilder(request.getUri()).addParameter("recvWindow", "5000")
-											.addParameter("timestamp", String.valueOf(System.currentTimeMillis()))
-											.build();
+			URI withCredentials = new URIBuilder(request.getUri()).addParameter("recvWindow", "5000")
+							.addParameter("timestamp", String.valueOf(System.currentTimeMillis()))
+							.build();
 			URI sortedParamsUri = Helpers.sortParamsAlphabetically(withCredentials);
 			String payload = sortedParamsUri.getRawQuery();
 			String signature = Signers.signEd25519(payload, credentials.privateKey());

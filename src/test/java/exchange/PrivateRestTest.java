@@ -6,6 +6,7 @@ import com.boris.fundingarbitrage.model.assetops.SupportedChain;
 import com.boris.fundingarbitrage.model.contract.Fees;
 import com.boris.fundingarbitrage.model.exchange.ExchangeChains;
 import com.boris.fundingarbitrage.model.exchange.WalletAddress;
+import com.boris.fundingarbitrage.model.exchange.WithdrawChain;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -29,10 +30,6 @@ public abstract class PrivateRestTest {
 
 	private static <T> T getWithTimeout(CompletableFuture<T> future) throws Exception {
 		return future.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-	}
-
-	private static void assertFinite(double value, String message) {
-		assertTrue(Double.isFinite(value), message);
 	}
 
 	protected abstract PrivateHttpClient privateRest();
@@ -119,6 +116,12 @@ public abstract class PrivateRestTest {
 		assertTrue(address.address().length() > 15, "Wallet address should have a valid length");
 	}
 
+	private void validateWithdrawChain(WithdrawChain chain) {
+		assertTrue(chain.minWithdraw().compareTo(BigDecimal.ZERO) >= 0, "Min withdraw should be non-negative");
+		assertTrue(chain.withdrawFee().compareTo(BigDecimal.ZERO) >= 0, "Withdraw fee should be non-negative");
+		assertTrue(chain.precisionPoints() >= 0, "Precision points should be non-negative");
+	}
+
 	@Test
 	@Tag("rest")
 	public void getSupportedChainsTest() throws Exception {
@@ -128,5 +131,9 @@ public abstract class PrivateRestTest {
 		assertNotNull(chains.withdrawableChains(), "Withdrawable chains should not be null");
 		assertFalse(chains.depositableChains().isEmpty(), "There should be at least one depositable chain");
 		assertFalse(chains.withdrawableChains().isEmpty(), "There should be at least one withdrawable chain");
+
+		for (WithdrawChain chain : chains.withdrawableChains()) {
+			validateWithdrawChain(chain);
+		}
 	}
 }

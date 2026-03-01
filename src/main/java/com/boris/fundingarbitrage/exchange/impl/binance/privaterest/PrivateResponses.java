@@ -100,7 +100,8 @@ class PrivateResponses {
 					boolean withdrawEnable,
 					BigDecimal withdrawFee,
 					BigDecimal withdrawMin,
-					boolean withdrawTag
+					boolean withdrawTag,
+					String withdrawIntegerMultiple
 	) {
 	}
 
@@ -124,7 +125,13 @@ class PrivateResponses {
 
 						if (network.depositEnable) builder.addDepositableChain(chain);
 						if (network.withdrawEnable) {
-							builder.addWithdrawableChain(new WithdrawChain(chain, network.withdrawFee, network.withdrawMin));
+							int precision = network.withdrawIntegerMultiple.length() - 2; // String like 0.001
+							builder.addWithdrawableChain(new WithdrawChain(
+											chain,
+											network.withdrawFee,
+											network.withdrawMin,
+											precision
+							));
 						}
 					}
 					return builder.build();

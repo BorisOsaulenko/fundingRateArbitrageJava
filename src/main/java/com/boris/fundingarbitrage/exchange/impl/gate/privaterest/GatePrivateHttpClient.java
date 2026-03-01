@@ -157,7 +157,12 @@ public class GatePrivateHttpClient extends PrivateHttpClient {
 								if (gateChain.is_withdraw_disabled() == 0) {
 									BigDecimal fee = feesResp.getFeeForChain(chain);
 									BigDecimal minWithdraw = feesResp.getMinWithdraw();
-									builder.addWithdrawableChain(new WithdrawChain(chain, fee, minWithdraw));
+									builder.addWithdrawableChain(new WithdrawChain(
+													chain,
+													fee,
+													minWithdraw,
+													gateChain.precisionPoints()
+									));
 								}
 							}
 
