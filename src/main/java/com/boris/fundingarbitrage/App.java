@@ -113,7 +113,7 @@ public class App {
 					"BLUAI" // 92 coins
 	);
 
-	static void main(String[] args) throws Exception {
+	static void main3(String[] args) throws Exception {
 		Logger.init(Path.of("app.log"));
 		ArbitrageStrategy strategy = new ClassicArbitrageStrategy();
 		ArbitrageBotConfig arbConfig = new ArbitrageBotConfig(
@@ -149,12 +149,9 @@ public class App {
 		monitor.shutdown();
 	}
 
-	static void main2() throws InterruptedException {
+	static void main() throws InterruptedException {
 		BinanceExchange binance = new BinanceExchange();
-		binance.publicWsClient.connect();
-		binance.publicWsClient.subscribeBookTicker("SOL", System.out::println);
-
-		Thread.sleep(30_000);
+		binance.privateHttpClient.getSupportedChains().thenAccept(System.out::println).join();
 	}
 }
 
