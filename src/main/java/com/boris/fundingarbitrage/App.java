@@ -1,8 +1,11 @@
 package com.boris.fundingarbitrage;
 
+import com.boris.fundingarbitrage.coinfilter.CoinFilter;
 import com.boris.fundingarbitrage.coinfilter.CoinFilterConfig;
+import com.boris.fundingarbitrage.exchange.impl.binance.BinanceExchange;
 import com.boris.fundingarbitrage.logic.ArbitrageBotConfig;
 import com.boris.fundingarbitrage.logic.ArbitrageLogic;
+import com.boris.fundingarbitrage.monitor.CoinMonitor;
 import com.boris.fundingarbitrage.strategy.ArbitrageStrategy;
 import com.boris.fundingarbitrage.strategy.ClassicArbitrageStrategy;
 import com.boris.fundingarbitrage.util.logger.Logger;
@@ -13,7 +16,7 @@ import java.time.Duration;
 import java.util.Set;
 
 public class App {
-	private static final Set<String> coins2 = Set.of("BERA", "FOLKS", "GAIB", "OM", "AZTEC");
+	private static final Set<String> coins2 = Set.of("ESP", "SAHARA", "STEEM", "ENSO", "SOPH");
 	static Set<String> coins = Set.of(
 					"ETH",
 					"SOL",
@@ -110,32 +113,48 @@ public class App {
 					"BLUAI" // 92 coins
 	);
 
-	static void main2(String[] args) throws Exception {
+	static void main(String[] args) throws Exception {
 		Logger.init(Path.of("app.log"));
 		ArbitrageStrategy strategy = new ClassicArbitrageStrategy();
-		ArbitrageBotConfig
-						arbConfig =
-						new ArbitrageBotConfig(
-										coins2,
-										30,
-										1,
-										Duration.ofMinutes(15),
-										Duration.ofSeconds(5),
-										Duration.ofSeconds(5),
-										30,
-										3
-						);
+		ArbitrageBotConfig arbConfig = new ArbitrageBotConfig(
+						coins,
+						30,
+						1,
+						Duration.ofMinutes(15),
+						Duration.ofSeconds(5),
+						Duration.ofSeconds(5),
+						30,
+						3
+		);
 		CoinFilterConfig filterConfig = new CoinFilterConfig(BigDecimal.valueOf(500_000), BigDecimal.valueOf(30));
 
 		ArbitrageLogic logic = new ArbitrageLogic(strategy, arbConfig, filterConfig);
 		logic.start();
 
-		Thread.sleep(300_000);
+		Thread.sleep(120_000);
 
 		logic.stop();
 	}
 
-	static void main(String[] args) {
+	static void main2(String[] args) throws InterruptedException {
+		Logger.init(Path.of("app.log"));
+		CoinFilterConfig filterConfig = new CoinFilterConfig(BigDecimal.valueOf(100_000), BigDecimal.valueOf(30));
+		CoinFilter filter = new CoinFilter(coins, filterConfig);
+		var result = filter.filterSync();
+
+		CoinMonitor monitor = new CoinMonitor(result);
+		monitor.getInitFuture().join();
+
+		Thread.sleep(60_000);
+		monitor.shutdown();
+	}
+
+	static void main2() throws InterruptedException {
+		BinanceExchange binance = new BinanceExchange();
+		binance.publicWsClient.connect();
+		binance.publicWsClient.subscribeBookTicker("SOL", System.out::println);
+
+		Thread.sleep(30_000);
 	}
 }
 

@@ -50,7 +50,6 @@ public abstract class PublicWsTest {
 	private void updateBookTickerPatch(BookTickerPatch patch) {
 		latestBookTickerPatches.merge(
 						patch.coin(), patch, (existing, incoming) -> {
-							if (existing == null) return incoming;
 							return new BookTickerPatch(
 											incoming.coin(),
 											incoming.bidPrice() != null ? incoming.bidPrice() : existing.bidPrice(),
@@ -66,7 +65,6 @@ public abstract class PublicWsTest {
 	private void updateFundingRatePatch(FundingRatePatch patch) {
 		latestFundingRatePatches.merge(
 						patch.coin(), patch, (existing, incoming) -> {
-							if (existing == null) return incoming;
 							return new FundingRatePatch(
 											incoming.coin(),
 											incoming.rate() != null ? incoming.rate() : existing.rate(),
@@ -110,6 +108,7 @@ public abstract class PublicWsTest {
 	@Test
 	@Tag("websocket")
 	public void testPublicWsClientSubscriptions() throws Exception {
+		publicWsClient().connect().join();
 		initializeMessageCounts();
 		subscribeToStreams();
 

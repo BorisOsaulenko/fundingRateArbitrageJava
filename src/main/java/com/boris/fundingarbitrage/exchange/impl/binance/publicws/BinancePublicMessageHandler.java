@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.function.Function;
 
 class BinancePublicMessageHandler implements PublicMessageHandler {
 	private final ExchangeContext context;
@@ -47,30 +48,28 @@ class BinancePublicMessageHandler implements PublicMessageHandler {
 		long eventTime = root.path("E").asLong();
 		if (eventTime == 0) return null;
 
-		JsonNode markPriceNode = root.get("p");
-		if (markPriceNode == null) return null;
-		BigDecimal markPrice = markPriceNode.decimalValue();
+		String markPriceNode = root.path("p").asText();
+		if (markPriceNode.isEmpty()) return null;
+		BigDecimal markPrice = new BigDecimal(markPriceNode);
 
 		String coin = context.getSymbolInverse(symbol);
 		return new MarkPricePatch(coin, markPrice, Instant.ofEpochMilli(eventTime));
 	}
 
 	private BookTickerPatch parseBookTickerInternal(JsonNode root) {
-		JsonNode b = root.get("b");
-		JsonNode B = root.get("B");
-		JsonNode a = root.get("a");
-		JsonNode A = root.get("A");
+		String bNode = root.path("b").asText();
+		String BNode = root.path("B").asText();
+		String aNode = root.path("a").asText();
+		String ANode = root.path("A").asText();
+		BigDecimal bbPrice = bNode.isEmpty() ? null : new BigDecimal(bNode);
+		BigDecimal bbQty = BNode.isEmpty() ? null : new BigDecimal(BNode);
+		BigDecimal baPrice = aNode.isEmpty() ? null : new BigDecimal(aNode);
+		BigDecimal baQty = ANode.isEmpty() ? null : new BigDecimal(ANode);
 		String symbol = root.path("s").asText();
 		long eventTime = root.path("E").asLong();
 
 		if (symbol.isEmpty()) return null;
 		if (eventTime == 0) return null;
-
-		BigDecimal bbPrice = b == null ? null : b.decimalValue();
-		BigDecimal bbQty = B == null ? null : B.decimalValue();
-		BigDecimal baPrice = a == null ? null : a.decimalValue();
-		BigDecimal baQty = A == null ? null : A.decimalValue();
-
 		if (bbPrice == null && bbQty == null && baPrice == null && baQty == null) return null;
 
 		String coin = context.getSymbolInverse(symbol);
@@ -92,12 +91,12 @@ class BinancePublicMessageHandler implements PublicMessageHandler {
 		return parseErrorHandled(this::parseMarkPriceInternal, root);
 	}
 
-	private <T> T parseErrorHandled(java.util.function.Function<JsonNode, T> parser, JsonNode root) {
+	private <T> T parseErrorHandled(Function<JsonNode, T> parser, JsonNode root) {
 		try {
 			return parser.apply(root);
 		} catch (IllegalArgumentException ex) {
-			Logger.log(ex.getMessage());
-			return null; // Not a BookTicker message
+			Logger.log(ex.toString());
+			return null;
 		} catch (Exception ex) {
 			return null;
 		}

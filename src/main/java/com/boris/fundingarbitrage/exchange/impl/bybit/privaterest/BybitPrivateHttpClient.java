@@ -121,7 +121,7 @@ public class BybitPrivateHttpClient extends PrivateHttpClient {
 	@Override
 	public CompletableFuture<ExchangeChains> getSupportedChains() {
 		return requestWrapper.processRequest(
-						signRequest(PrivateEndpoints.supportedChainsRequest()),
+						signRequest(PrivateEndpoints.chainsRequest()),
 						PrivateResponses.SupportedChainsResponse.class,
 						PrivateResponses.SupportedChainsResponse::getSupportedChains
 		);

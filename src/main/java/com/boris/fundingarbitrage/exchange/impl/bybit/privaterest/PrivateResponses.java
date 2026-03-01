@@ -132,10 +132,8 @@ class PrivateResponses {
 	@JsonIgnoreProperties(ignoreUnknown = true)
 	public record SupportedChainsResponse(int retCode, String retMsg, long time, SupportedChainsResult result) {
 		public ExchangeChains getSupportedChains() {
-			if (result == null) throw new IllegalStateException("Supported chains info not found");
 			ExchangeChainsBuilder builder = new ExchangeChainsBuilder();
 			List<SupportedCoin> rows = result.rows;
-			if (rows == null) throw new IllegalStateException("Supported chains info not found");
 
 			for (SupportedCoin coin : rows) {
 				if (!"USDT".equalsIgnoreCase(coin.coin)) continue;
@@ -184,18 +182,15 @@ class PrivateResponses {
 					int retCode, String retMsg, long time, WalletResult result
 	) {
 		public WalletAddress get(SupportedChain chain) {
-			if (result == null || result.chains == null) {
-				throw new IllegalStateException("USDT wallet address response missing");
-			}
 			for (WalletItem item : result.chains) {
 				String chainName = item.chain;
 				SupportedChain mapped = chainsMap.getInverse(chainName);
-				if (mapped == chain) {
-					String address = item.addressDeposit;
-					String tag = item.tagDeposit;
-					if (tag != null && tag.isEmpty()) tag = null;
-					return new WalletAddress(chain, address, tag);
-				}
+				if (!chain.equals(mapped)) continue;
+
+				String address = item.addressDeposit;
+				String tag = item.tagDeposit;
+				if (tag != null && tag.isEmpty()) tag = null;
+				return new WalletAddress(chain, address, tag);
 			}
 			throw new IllegalStateException("USDT wallet address not found for chain: " + chain);
 		}

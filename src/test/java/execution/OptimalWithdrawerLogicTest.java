@@ -175,8 +175,8 @@ public class OptimalWithdrawerLogicTest {
 		assertNotNull(longOutput);
 		assertNotNull(shortFromPart1);
 		assertNotNull(shortFromPart2);
-		assertEquals(BigDecimal.valueOf(20), longOutput.amount());
-		assertEquals(BigDecimal.valueOf(35), shortFromPart1.amount().add(shortFromPart2.amount()));
+		assertEquals(0, BigDecimal.valueOf(20).compareTo(longOutput.amount()));
+		assertEquals(0, BigDecimal.valueOf(35).compareTo(shortFromPart1.amount().add(shortFromPart2.amount())));
 		assertEquals(BigDecimal.ZERO, shortFromPart1.fee());
 		assertEquals(BigDecimal.valueOf(0.2), shortFromPart2.fee());
 	}

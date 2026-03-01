@@ -226,6 +226,11 @@ public class OptimalWithdrawerLogic {
 		BigDecimal fee;
 		boolean toLong;
 
+		WithdrawEntry() {
+			amount = BigDecimal.ZERO;
+			fee = BigDecimal.ZERO;
+		}
+
 		@Override
 		public String toString() {
 			return "WithdrawEntry{" + "ex=" + ex.name + ", amount=" + amount + ", fee=" + fee + ", toLong=" + toLong + "}\n";

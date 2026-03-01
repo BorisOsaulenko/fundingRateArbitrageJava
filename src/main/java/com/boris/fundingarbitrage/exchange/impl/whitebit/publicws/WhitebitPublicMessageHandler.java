@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.function.Function;
 
 class WhitebitPublicMessageHandler implements PublicMessageHandler {
 	private final ExchangeContext context;
@@ -34,14 +35,15 @@ class WhitebitPublicMessageHandler implements PublicMessageHandler {
 		if (symbol == null || symbol.isEmpty()) return null;
 		String coin = context.getSymbolInverse(symbol);
 
-		BigDecimal bidPrice = new BigDecimal(data.get(4).asText());
-		BigDecimal bidSize = new BigDecimal(data.get(5).asText());
-		BigDecimal askPrice = new BigDecimal(data.get(6).asText());
-		BigDecimal askSize = new BigDecimal(data.get(7).asText());
-		if (bidPrice.compareTo(BigDecimal.ZERO) == 0 ||
-				bidSize.compareTo(BigDecimal.ZERO) == 0 ||
-				askPrice.compareTo(BigDecimal.ZERO) == 0 ||
-				askSize.compareTo(BigDecimal.ZERO) == 0) return null;
+		String bidPriceNode = data.get(4).asText();
+		String bidSizeNode = data.get(5).asText();
+		String askPriceNode = data.get(6).asText();
+		String askSizeNode = data.get(7).asText();
+		BigDecimal bidPrice = bidPriceNode.isEmpty() ? null : new BigDecimal(bidPriceNode);
+		BigDecimal bidSize = bidSizeNode.isEmpty() ? null : new BigDecimal(bidSizeNode);
+		BigDecimal askPrice = askPriceNode.isEmpty() ? null : new BigDecimal(askPriceNode);
+		BigDecimal askSize = askSizeNode.isEmpty() ? null : new BigDecimal(askSizeNode);
+		if (bidPrice == null && bidSize == null && askPrice == null && askSize == null) return null;
 
 		BigDecimal messageTime = new BigDecimal(data.get(1).asText());
 		long tsMillis = messageTime.multiply(BigDecimal.valueOf(1000L)).longValue();
@@ -60,12 +62,14 @@ class WhitebitPublicMessageHandler implements PublicMessageHandler {
 		if (symbol == null || symbol.isEmpty()) return null;
 		String coin = context.getSymbolInverse(symbol);
 
-		BigDecimal lastPrice = new BigDecimal(params.get(1).asText());
-		if (lastPrice.compareTo(BigDecimal.ZERO) == 0) return null;
+		String lastPriceNode = params.get(1).asText(); // whitebit has no mark price indicator
+		BigDecimal lastPrice = lastPriceNode.isEmpty() ? null : new BigDecimal(lastPriceNode);
+		if (lastPrice == null) return null;
+
 		return new MarkPricePatch(coin, lastPrice, Instant.now());
 	}
 
-	private <T> T parseErrorHandled(java.util.function.Function<JsonNode, T> parser, JsonNode root) {
+	private <T> T parseErrorHandled(Function<JsonNode, T> parser, JsonNode root) {
 		try {
 			return parser.apply(root);
 		} catch (IllegalArgumentException ex) {

@@ -40,9 +40,9 @@ class GatePublicMessageHandler implements PublicMessageHandler {
 		if (symbol == null || symbol.isEmpty()) return null;
 		String coin = context.getSymbolInverse(symbol);
 
-		JsonNode rateNode = entry.get("funding_rate");
-		BigDecimal rate = rateNode == null ? BigDecimal.ZERO : rateNode.decimalValue();
-		if (rate.compareTo(BigDecimal.ZERO) == 0) return null;
+		String rateNode = entry.get("funding_rate").asText();
+		BigDecimal rate = rateNode.isEmpty() ? null : new BigDecimal(rateNode);
+		if (rate == null) return null;
 
 		return new FundingRatePatch(coin, rate, null, Instant.ofEpochSecond(time));
 	}
@@ -62,9 +62,9 @@ class GatePublicMessageHandler implements PublicMessageHandler {
 		if (symbol == null || symbol.isEmpty()) return null;
 		String coin = context.getSymbolInverse(symbol);
 
-		JsonNode markNode = entry.get("mark_price");
-		BigDecimal mark = markNode == null ? BigDecimal.ZERO : markNode.decimalValue();
-		if (mark.compareTo(BigDecimal.ZERO) == 0) return null;
+		String markNode = entry.path("mark_price").asText();
+		BigDecimal mark = markNode.isEmpty() ? null : new BigDecimal(markNode);
+		if (mark == null) return null;
 
 		return new MarkPricePatch(coin, mark, Instant.ofEpochSecond(time));
 	}
@@ -81,21 +81,16 @@ class GatePublicMessageHandler implements PublicMessageHandler {
 		if (symbol == null || symbol.isEmpty()) return null;
 		String coin = context.getSymbolInverse(symbol);
 
-		JsonNode bidPriceNode = result.get("b");
-		JsonNode bidSizeNode = result.get("B");
-		JsonNode askPriceNode = result.get("a");
-		JsonNode askSizeNode = result.get("A");
-		BigDecimal bidPrice = bidPriceNode == null ? BigDecimal.ZERO : bidPriceNode.decimalValue();
-		BigDecimal bidSize = bidSizeNode == null ? BigDecimal.ZERO : bidSizeNode.decimalValue();
-		BigDecimal askPrice = askPriceNode == null ? BigDecimal.ZERO : askPriceNode.decimalValue();
-		BigDecimal askSize = askSizeNode == null ? BigDecimal.ZERO : askSizeNode.decimalValue();
+		String bidPriceNode = result.path("b").asText();
+		String bidSizeNode = result.path("B").asText();
+		String askPriceNode = result.path("a").asText();
+		String askSizeNode = result.path("A").asText();
+		BigDecimal bidPrice = bidPriceNode.isEmpty() ? null : new BigDecimal(bidPriceNode);
+		BigDecimal bidSize = bidSizeNode.isEmpty() ? null : new BigDecimal(bidSizeNode);
+		BigDecimal askPrice = askPriceNode.isEmpty() ? null : new BigDecimal(askPriceNode);
+		BigDecimal askSize = askSizeNode.isEmpty() ? null : new BigDecimal(askSizeNode);
 
-		boolean nonePresent =
-						bidPrice.compareTo(BigDecimal.ZERO) == 0 &&
-						bidSize.compareTo(BigDecimal.ZERO) == 0 &&
-						askPrice.compareTo(BigDecimal.ZERO) == 0 &&
-						askSize.compareTo(BigDecimal.ZERO) == 0;
-		if (nonePresent) return null;
+		if (bidPrice == null && bidSize == null && askPrice == null && askSize == null) return null;
 
 		long time = result.path("t").asLong();
 		Instant ts = Instant.ofEpochMilli(time);
@@ -106,9 +101,9 @@ class GatePublicMessageHandler implements PublicMessageHandler {
 		try {
 			return parser.apply(root);
 		} catch (IllegalArgumentException ex) {
+			Logger.log(ex.getMessage());
 			return null;
 		} catch (Exception ex) {
-			Logger.error(ex.getMessage());
 			return null;
 		}
 	}

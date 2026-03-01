@@ -36,19 +36,17 @@ class KucoinPublicMessageHandler implements PublicMessageHandler {
 		String symbol = symbolFromTopic(topic);
 		if (symbol == null || symbol.isEmpty()) return null;
 
-		JsonNode bidPriceNode = data.get("bestBidPrice");
-		JsonNode bidSizeNode = data.get("bestBidSize");
-		JsonNode askPriceNode = data.get("bestAskPrice");
-		JsonNode askSizeNode = data.get("bestAskSize");
-		BigDecimal bidPrice = bidPriceNode == null ? BigDecimal.ZERO : bidPriceNode.decimalValue();
-		BigDecimal bidSize = bidSizeNode == null ? BigDecimal.ZERO : bidSizeNode.decimalValue();
-		BigDecimal askPrice = askPriceNode == null ? BigDecimal.ZERO : askPriceNode.decimalValue();
-		BigDecimal askSize = askSizeNode == null ? BigDecimal.ZERO : askSizeNode.decimalValue();
+		String bidPriceNode = data.path("bestBidPrice").asText();
+		String bidSizeNode = data.path("bestBidSize").asText();
+		String askPriceNode = data.path("bestAskPrice").asText();
+		String askSizeNode = data.path("bestAskSize").asText();
+		BigDecimal bidPrice = bidPriceNode.isEmpty() ? null : new BigDecimal(bidPriceNode);
+		BigDecimal bidSize = bidSizeNode.isEmpty() ? null : new BigDecimal(bidSizeNode);
+		BigDecimal askPrice = askPriceNode.isEmpty() ? null : new BigDecimal(askPriceNode);
+		BigDecimal askSize = askSizeNode.isEmpty() ? null : new BigDecimal(askSizeNode);
+		if (bidPrice == null && bidSize == null && askSize == null && askPrice == null) return null;
+
 		long ts = data.path("ts").asLong();
-		if (bidPrice.compareTo(BigDecimal.ZERO) == 0) return null;
-		if (bidSize.compareTo(BigDecimal.ZERO) == 0) return null;
-		if (askPrice.compareTo(BigDecimal.ZERO) == 0) return null;
-		if (askSize.compareTo(BigDecimal.ZERO) == 0) return null;
 		if (ts == 0L) return null;
 
 		Instant timestamp = Instant.ofEpochMilli(ts / 1000_000);
@@ -68,10 +66,11 @@ class KucoinPublicMessageHandler implements PublicMessageHandler {
 		String symbol = symbolFromTopic(topic);
 		if (symbol == null || symbol.isEmpty()) return null;
 
-		JsonNode markPriceNode = data.get("markPrice");
-		BigDecimal markPrice = markPriceNode == null ? BigDecimal.ZERO : markPriceNode.decimalValue();
+		String markPriceNode = data.path("markPrice").asText();
+		BigDecimal markPrice = markPriceNode.isEmpty() ? null : new BigDecimal(markPriceNode);
+		if (markPrice == null) return null;
+
 		long ts = data.path("timestamp").asLong();
-		if (markPrice.compareTo(BigDecimal.ZERO) == 0) return null;
 		if (ts == 0) return null;
 
 		Instant timestamp = Instant.ofEpochMilli(ts);
@@ -89,10 +88,11 @@ class KucoinPublicMessageHandler implements PublicMessageHandler {
 		String symbol = symbolFromTopic(topic);
 		if (symbol == null || symbol.isEmpty()) return null;
 
-		JsonNode rateNode = data.get("fundingRate");
-		BigDecimal rate = rateNode == null ? BigDecimal.ZERO : rateNode.decimalValue();
+		String rateNode = data.path("fundingRate").asText();
+		BigDecimal rate = rateNode.isEmpty() ? null : new BigDecimal(rateNode);
+		if (rate == null) return null;
+		
 		long ts = data.path("timestamp").asLong();
-		if (rate.compareTo(BigDecimal.ZERO) == 0) return null;
 		if (ts == 0) return null;
 
 		Instant timestamp = Instant.ofEpochMilli(ts);

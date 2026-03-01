@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.function.Function;
 
 class BybitPublicMessageHandler implements PublicMessageHandler {
 	private final ExchangeContext context;
@@ -31,9 +32,9 @@ class BybitPublicMessageHandler implements PublicMessageHandler {
 		String symbol = data.path("symbol").asText();
 		if (symbol.isEmpty()) return null;
 
-		JsonNode markPriceNode = data.get("markPrice");
-		BigDecimal markPrice = markPriceNode == null ? BigDecimal.ZERO : markPriceNode.decimalValue();
-		if (markPrice.compareTo(BigDecimal.ZERO) == 0) return null;
+		String markPriceNode = data.path("markPrice").asText();
+		BigDecimal markPrice = markPriceNode.isEmpty() ? null : new BigDecimal(markPriceNode);
+		if (markPrice == null) return null;
 
 		String coin = context.getSymbolInverse(symbol);
 		return new MarkPricePatch(coin, markPrice, parseTimestamp(root));
@@ -42,33 +43,26 @@ class BybitPublicMessageHandler implements PublicMessageHandler {
 	private BookTickerPatch parseBookTickerInternal(JsonNode root) {
 		JsonNode data = root.get("data");
 		if (data == null) return null;
+
 		String symbol = data.path("symbol").asText();
-		if (symbol == null || symbol.isEmpty()) return null;
+		if (symbol.isEmpty()) return null;
+
 		String coin = context.getSymbolInverse(symbol);
-		JsonNode bidPrNode = data.get("bid1Price");
-		JsonNode bidSzNode = data.get("bid1Size");
-		JsonNode askPrNode = data.get("ask1Price");
-		JsonNode askSzNode = data.get("ask1Size");
-		BigDecimal bidPr = bidPrNode == null ? BigDecimal.ZERO : bidPrNode.decimalValue();
-		BigDecimal bidSz = bidSzNode == null ? BigDecimal.ZERO : bidSzNode.decimalValue();
-		BigDecimal askPr = askPrNode == null ? BigDecimal.ZERO : askPrNode.decimalValue();
-		BigDecimal askSz = askSzNode == null ? BigDecimal.ZERO : askSzNode.decimalValue();
+		String bidPrNode = data.path("bid1Price").asText();
+		String bidSzNode = data.path("bid1Size").asText();
+		String askPrNode = data.path("ask1Price").asText();
+		String askSzNode = data.path("ask1Size").asText();
+		BigDecimal bidPr = bidPrNode.isEmpty() ? null : new BigDecimal(bidPrNode);
+		BigDecimal bidSz = bidSzNode.isEmpty() ? null : new BigDecimal(bidSzNode);
+		BigDecimal askPr = askPrNode.isEmpty() ? null : new BigDecimal(askPrNode);
+		BigDecimal askSz = askSzNode.isEmpty() ? null : new BigDecimal(askSzNode);
+
 		Instant timestamp = parseTimestamp(root);
-		if (bidPr.compareTo(BigDecimal.ZERO) == 0 &&
-				bidSz.compareTo(BigDecimal.ZERO) == 0 &&
-				askPr.compareTo(BigDecimal.ZERO) == 0 &&
-				askSz.compareTo(BigDecimal.ZERO) == 0) return null;
-		return new BookTickerPatch(
-						coin,
-						bidPr.compareTo(BigDecimal.ZERO) == 0 ? null : bidPr,
-						bidSz.compareTo(BigDecimal.ZERO) == 0 ? null : bidSz,
-						askPr.compareTo(BigDecimal.ZERO) == 0 ? null : askPr,
-						askSz.compareTo(BigDecimal.ZERO) == 0 ? null : askSz,
-						timestamp
-		);
+		if (bidPr == null && bidSz == null && askPr == null && askSz == null) return null;
+		return new BookTickerPatch(coin, bidPr, bidSz, askPr, askSz, timestamp);
 	}
 
-	private <T> T parseErrorHandled(java.util.function.Function<JsonNode, T> parser, JsonNode root) {
+	private <T> T parseErrorHandled(Function<JsonNode, T> parser, JsonNode root) {
 		try {
 			return parser.apply(root);
 		} catch (IllegalArgumentException ex) {

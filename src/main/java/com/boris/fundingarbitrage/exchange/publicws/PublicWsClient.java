@@ -286,7 +286,8 @@ public abstract class PublicWsClient {
 			if (tryHandle(root, messageHandler::parseBookTickerMessageSymbol, this::handleBookTickerPatch)) s = true;
 			if (tryHandle(root, messageHandler::parseMarkPriceMessageSymbol, this::handleMarkPricePatch)) s = true;
 			if (tryHandle(root, messageHandler::parseFundingRateMessageSymbol, this::handleFundingRatePatch)) s = true;
-		} catch (JsonProcessingException ignored) {}
+		} catch (JsonProcessingException ignored) {
+		}
 
 		if (handlePingMessage(message)) s = true;
 		//		if (!s) Logger.warn("Unrecognized public ws message: " + message);
@@ -305,6 +306,10 @@ public abstract class PublicWsClient {
 
 	protected boolean connected() {
 		return this.prettyWsClientFuture.isDone() && this.prettyWsClientFuture.join().isConnected();
+	}
+
+	public CompletableFuture<Void> connect() {
+		return this.prettyWsClientFuture.thenAccept(PrettyWsClient::connect);
 	}
 
 	public void unsubscribeCoin(String coin) {

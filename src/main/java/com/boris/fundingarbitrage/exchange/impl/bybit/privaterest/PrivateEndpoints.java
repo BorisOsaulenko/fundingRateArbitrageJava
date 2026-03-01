@@ -79,7 +79,7 @@ class PrivateEndpoints {
 	}
 
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest supportedChainsRequest() {
+	public static @NonNull SimpleHttpRequest chainsRequest() {
 		URI uri = new URIBuilder(baseUrl).setPath("/v5/asset/coin/query-info").addParameter("coin", "USDT").build();
 		return new SimpleHttpRequest("GET", uri);
 	}
@@ -88,7 +88,7 @@ class PrivateEndpoints {
 	public static @NonNull SimpleHttpRequest usdtWalletAddressRequest(SupportedChain chain) {
 		URI uri = new URIBuilder(baseUrl).setPath("/v5/asset/deposit/query-address")
 						.addParameter("coin", "USDT")
-						.addParameter("chainType", chainsMap.get(chain))
+						.addParameter("chainType", chainsMap.get(chain).toUpperCase())
 						.build();
 		return new SimpleHttpRequest("GET", uri);
 	}
