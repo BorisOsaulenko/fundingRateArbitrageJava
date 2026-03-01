@@ -149,7 +149,7 @@ class PrivateResponses {
 						BigDecimal fee = new BigDecimal(chain.withdrawFee);
 						BigDecimal min = new BigDecimal(chain.withdrawMin);
 						if (fee.compareTo(BigDecimal.ZERO) >= 0 && min.compareTo(BigDecimal.ZERO) >= 0) {
-							builder.addWithdrawableChain(new WithdrawChain(mapped, fee, min));
+							builder.addWithdrawableChain(new WithdrawChain(mapped, fee, min, chain.precisionPoints()));
 						} else {
 							throw new IllegalStateException("Invalid withdraw fee/min for chain: " + chainName);
 						}
@@ -168,8 +168,23 @@ class PrivateResponses {
 	}
 
 	private record SupportedChainInfo(
-					String chain, String chainDeposit, String chainWithdraw, String withdrawFee, String withdrawMin
+					String chain,
+					String chainDeposit,
+					String chainWithdraw,
+					String withdrawFee,
+					String withdrawMin,
+					String minAccuracy
 	) {
+		int precisionPoints() {
+			if (minAccuracy == null || minAccuracy.isEmpty()) {
+				throw new IllegalStateException("Bybit minAccuracy missing for chain: " + chain);
+			}
+			int precision = Integer.parseInt(minAccuracy);
+			if (precision <= 0) {
+				throw new IllegalStateException("Bybit minAccuracy must be positive for chain: " + chain);
+			}
+			return precision;
+		}
 	}
 
 	private record WalletItem(String chain, String addressDeposit, String tagDeposit) {

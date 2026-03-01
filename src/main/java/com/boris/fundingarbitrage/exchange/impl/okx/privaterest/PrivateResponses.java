@@ -154,7 +154,7 @@ class PrivateResponses {
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
 	private record SupportedChainInfo(
-					String chain, boolean canDep, boolean canWd, BigDecimal fee, BigDecimal minWd
+					String chain, boolean canDep, boolean canWd, BigDecimal fee, BigDecimal minWd, int wdTickSz
 	) {
 	}
 
@@ -165,13 +165,10 @@ class PrivateResponses {
 			ExchangeChainsBuilder builder = new ExchangeChainsBuilder();
 			for (SupportedChainInfo item : data) {
 				String chain = item.chain;
-				if (chain == null || chain.isEmpty()) continue;
 				SupportedChain mapped = chainsMap.getInverse(chain);
 				if (mapped == null) continue;
-				boolean canDep = item.canDep;
-				boolean canWd = item.canWd;
-				if (canDep) builder.addDepositableChain(mapped);
-				if (canWd) {
+				if (item.canDep()) builder.addDepositableChain(mapped);
+				if (item.canWd()) {
 					BigDecimal fee = item.fee;
 					if (fee.compareTo(BigDecimal.ZERO) <= 0) {
 						throw new IllegalStateException("OKX chain fee missing for chain: " + chain);
@@ -182,7 +179,7 @@ class PrivateResponses {
 						throw new IllegalStateException("OKX chain minWd missing for chain: " + chain);
 					}
 
-					builder.addWithdrawableChain(new WithdrawChain(mapped, fee, minWd));
+					builder.addWithdrawableChain(new WithdrawChain(mapped, fee, minWd, item.wdTickSz()));
 				}
 			}
 			return builder.build();

@@ -75,8 +75,23 @@ class PrivateResponses {
 	}
 
 	public record ChainEntry(
-					String chain, int is_disabled, int is_deposit_disabled, int is_withdraw_disabled, int is_tag
+					String chain,
+					String decimal,
+					int is_disabled,
+					int is_deposit_disabled,
+					int is_withdraw_disabled,
+					int is_tag
 	) {
+		public int precisionPoints() {
+			if (decimal == null || decimal.isEmpty()) {
+				throw new IllegalStateException("Gate decimal missing for chain: " + chain);
+			}
+			int precision = Integer.parseInt(decimal);
+			if (precision <= 0) {
+				throw new IllegalStateException("Gate decimal must be positive for chain: " + chain);
+			}
+			return precision;
+		}
 	}
 
 	@JsonFormat(shape = JsonFormat.Shape.ARRAY)

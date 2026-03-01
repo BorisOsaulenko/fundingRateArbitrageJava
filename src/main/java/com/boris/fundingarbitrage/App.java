@@ -2,9 +2,10 @@ package com.boris.fundingarbitrage;
 
 import com.boris.fundingarbitrage.coinfilter.CoinFilter;
 import com.boris.fundingarbitrage.coinfilter.CoinFilterConfig;
-import com.boris.fundingarbitrage.exchange.impl.binance.BinanceExchange;
+import com.boris.fundingarbitrage.exchange.impl.bitget.BitgetExchange;
 import com.boris.fundingarbitrage.logic.ArbitrageBotConfig;
 import com.boris.fundingarbitrage.logic.ArbitrageLogic;
+import com.boris.fundingarbitrage.model.exchange.WithdrawChain;
 import com.boris.fundingarbitrage.monitor.CoinMonitor;
 import com.boris.fundingarbitrage.strategy.ArbitrageStrategy;
 import com.boris.fundingarbitrage.strategy.ClassicArbitrageStrategy;
@@ -150,8 +151,15 @@ public class App {
 	}
 
 	static void main() throws InterruptedException {
-		BinanceExchange binance = new BinanceExchange();
-		binance.privateHttpClient.getSupportedChains().thenAccept(System.out::println).join();
+		BitgetExchange binance = new BitgetExchange();
+		binance.privateHttpClient.getSupportedChains()
+						.thenAccept(ch -> Logger.log(ch.withdrawableChains()
+										.stream()
+										.map(WithdrawChain::precisionPoints)
+										.toList()
+										.toString()))
+						.join();
+
 	}
 }
 

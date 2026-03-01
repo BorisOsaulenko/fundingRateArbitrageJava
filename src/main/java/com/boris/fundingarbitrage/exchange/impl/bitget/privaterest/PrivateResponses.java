@@ -91,8 +91,23 @@ class PrivateResponses {
 	}
 
 	private record ChainInfo(
-					String chain, Boolean withdrawable, Boolean rechargeable, BigDecimal withdrawFee, BigDecimal minWithdrawAmount
+					String chain,
+					Boolean withdrawable,
+					Boolean rechargeable,
+					BigDecimal withdrawFee,
+					BigDecimal minWithdrawAmount,
+					String withdrawMinScale
 	) {
+		int precisionPoints() {
+			if (withdrawMinScale == null || withdrawMinScale.isEmpty()) {
+				throw new IllegalStateException("Bitget withdrawMinScale missing for chain: " + chain);
+			}
+			int precision = Integer.parseInt(withdrawMinScale);
+			if (precision <= 0) {
+				throw new IllegalStateException("Bitget withdrawMinScale must be positive for chain: " + chain);
+			}
+			return precision;
+		}
 	}
 
 	private record CoinInfo(
@@ -117,7 +132,12 @@ class PrivateResponses {
 
 				if (chain.rechargeable) builder.addDepositableChain(mapped);
 				if (chain.withdrawable) {
-					builder.addWithdrawableChain(new WithdrawChain(mapped, chain.withdrawFee(), chain.minWithdrawAmount()));
+					builder.addWithdrawableChain(new WithdrawChain(
+									mapped,
+									chain.withdrawFee(),
+									chain.minWithdrawAmount(),
+									chain.precisionPoints()
+					));
 				}
 			}
 
