@@ -5,6 +5,7 @@ import com.boris.fundingarbitrage.exchange.Instances;
 import com.boris.fundingarbitrage.model.assetops.SupportedChain;
 import com.boris.fundingarbitrage.model.assetops.Withdrawal;
 import com.boris.fundingarbitrage.model.exchange.ExchangeChains;
+import com.boris.fundingarbitrage.model.exchange.ExchangeName;
 import com.boris.fundingarbitrage.model.exchange.WalletAddress;
 import com.boris.fundingarbitrage.model.exchange.WithdrawChain;
 
@@ -27,8 +28,8 @@ public class OptimalWithdrawer {
 	private final Map<BaseExchange, BigDecimal> futuresBalances;
 	private final Map<BaseExchange, ExchangeChains> chains;
 
-	private final Map<BaseExchange, WithdrawChain> optimalChainToLong = new ConcurrentHashMap<>();
-	private final Map<BaseExchange, WithdrawChain> optimalChainToShort = new ConcurrentHashMap<>();
+	private final Map<ExchangeName, WithdrawChain> optimalChainToLong = new ConcurrentHashMap<>();
+	private final Map<ExchangeName, WithdrawChain> optimalChainToShort = new ConcurrentHashMap<>();
 
 	private final OptimalWithdrawerLogic logic = new OptimalWithdrawerLogic();
 
@@ -44,11 +45,10 @@ public class OptimalWithdrawer {
 		this.shortExchange = shortExchange;
 		this.usdtAmount = usdtAmount;
 
-		this.otherExchanges =
-						Instances.getExchangeArray()
-										.stream()
-										.filter(ex -> ex != longExchange && ex != shortExchange)
-										.collect(java.util.stream.Collectors.toList());
+		this.otherExchanges = Instances.getExchangeArray()
+						.stream()
+						.filter(ex -> ex != longExchange && ex != shortExchange)
+						.collect(java.util.stream.Collectors.toList());
 
 		this.spotBalances = spotBalance;
 		this.futuresBalances = futuresBalance;
@@ -70,14 +70,15 @@ public class OptimalWithdrawer {
 		List<CompletableFuture<Void>> futures = new ArrayList<>();
 		for (var item : optimalPath) {
 			BaseExchange destination = item.toLong() ? longExchange : shortExchange;
-			WithdrawChain chain = item.toLong() ? optimalChainToLong.get(item.ex()) : optimalChainToShort.get(item.ex());
+			WithdrawChain chain = item.toLong() ?
+							optimalChainToLong.get(item.exName()) :
+							optimalChainToShort.get(item.exName());
 
-			CompletableFuture<WalletAddress>
-							addressFuture =
-							destination.privateHttpClient.getUsdtWalletAddress(chain.chain());
+			CompletableFuture<WalletAddress> addressFuture = destination.privateHttpClient.getUsdtWalletAddress(chain.chain());
 			futures.add(addressFuture.thenCompose(address -> {
 				Withdrawal wdParams = new Withdrawal(item.amount(), item.fee(), address);
-				return item.ex().privateHttpClient.withdrawUsdt(wdParams);
+				BaseExchange exchange = Instances.getExchange(item.exName());
+				return exchange.privateHttpClient.withdrawUsdt(wdParams);
 			}));
 		}
 
@@ -94,17 +95,18 @@ public class OptimalWithdrawer {
 			WithdrawChain optimalLong = getOptimalChain(exchange, longChains);
 			WithdrawChain optimalShort = getOptimalChain(exchange, shortChains);
 			if (optimalLong == null && optimalShort == null) continue;
-			if (optimalLong != null) optimalChainToLong.put(exchange, optimalLong);
-			if (optimalShort != null) optimalChainToShort.put(exchange, optimalShort);
+			if (optimalLong != null) optimalChainToLong.put(exchange.name, optimalLong);
+			if (optimalShort != null) optimalChainToShort.put(exchange.name, optimalShort);
 
 			var item = new OptimalWithdrawerLogic.InputItem(
-							exchange,
+							exchange.name,
 							balance,
 							optimalLong == null ? null : optimalLong.withdrawFee(),
 							optimalShort == null ? null : optimalShort.withdrawFee(),
 							optimalLong == null ? null : optimalLong.minWithdraw(),
 							optimalShort == null ? null : optimalShort.minWithdraw(),
-
+							optimalLong == null ? 0 : optimalLong.precisionPoints(),
+							optimalShort == null ? 0 : optimalShort.precisionPoints()
 			);
 			inputItems.add(item);
 		}
