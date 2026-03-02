@@ -2,7 +2,6 @@ package execution;
 
 import com.boris.fundingarbitrage.execution.withdrawer.OptimalWithdrawerLogic;
 import com.boris.fundingarbitrage.model.exchange.ExchangeName;
-import com.boris.fundingarbitrage.util.logger.Logger;
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeMatcher;
 import org.junit.jupiter.api.Test;
@@ -221,7 +220,6 @@ public class OptimalWithdrawerLogicTest {
 		input.add(expensiveNoise);
 
 		var result = logic.getOptimalWdPath(new OptimalWithdrawerLogic.InputParams(topUpLong, topUpShort, input));
-		Logger.log(result.toString());
 		assertEquals(3, result.size());
 		OptimalWithdrawerLogic.OutputItem longOutput = findOutput(result, longOnlyBest.exName(), true);
 		OptimalWithdrawerLogic.OutputItem shortFromPart1 = findOutput(result, shortPart1.exName(), false);

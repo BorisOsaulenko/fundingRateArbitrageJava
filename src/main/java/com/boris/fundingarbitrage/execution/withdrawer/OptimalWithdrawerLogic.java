@@ -1,7 +1,6 @@
 package com.boris.fundingarbitrage.execution.withdrawer;
 
 import com.boris.fundingarbitrage.model.exchange.ExchangeName;
-import com.boris.fundingarbitrage.util.logger.Logger;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -30,10 +29,6 @@ public class OptimalWithdrawerLogic {
 					BigDecimal freeS,
 					BigDecimal freeD
 	) {
-		if (Long.toBinaryString(processedBase4State).equals("11010100")) {
-			Logger.log(cumFee + " " + minL + " " + minS + " " + freeL + " " + freeS + " " + freeD);
-		}
-
 		if (cumFee.compareTo(minFee) >= 0 ||
 				minS.compareTo(params.topUpShort()) > 0 ||
 				minL.compareTo(params.topUpLong()) > 0) {
@@ -56,7 +51,7 @@ public class OptimalWithdrawerLogic {
 								4 * processedBase4State + 1,
 								cumFee.add(item.shortFee()),
 								minL,
-								minS.add(rb.requiredShortOnly()),
+								minS.add(rb.requiredShortOnly().subtract(item.shortFee())),
 								freeL,
 								freeS.add(item.balance()).subtract(rb.requiredShortOnly()),
 								freeD
@@ -68,8 +63,8 @@ public class OptimalWithdrawerLogic {
 								processed + 1,
 								4 * processedBase4State + 2,
 								cumFee.add(item.shortFee()).add(item.longFee()),
-								minL.add(rb.requiredLongOnly()),
-								minS.add(rb.requiredShortOnly()),
+								minL.add(rb.requiredLongOnly().subtract(item.longFee())),
+								minS.add(rb.requiredShortOnly()).subtract(item.shortFee()),
 								freeL,
 								freeS,
 								freeD.add(item.balance().subtract(rb.requiredDiagonal()))
@@ -81,7 +76,7 @@ public class OptimalWithdrawerLogic {
 								processed + 1,
 								4 * processedBase4State + 3,
 								cumFee.add(item.longFee()),
-								minL.add(rb.requiredLongOnly()),
+								minL.add(rb.requiredLongOnly().subtract(item.longFee())),
 								minS,
 								freeL.add(item.balance()).subtract(rb.requiredLongOnly()),
 								freeS,
@@ -131,17 +126,17 @@ public class OptimalWithdrawerLogic {
 			BigDecimal free = item.balance();
 
 			if (status == 1 || status == 2) {
-				shortWd.amount = rb.requiredShortOnly();
-				shortLeft = shortLeft.subtract(shortWd.amount);
+				shortWd.amount = rb.requiredShortOnly().subtract(item.shortFee());
 				shortWd.fee = item.shortFee();
+				shortLeft = shortLeft.subtract(shortWd.amount);
 				shortWd.toLong = false;
 				withdrawEntries.add(shortWd);
 				free = free.subtract(rb.requiredShortOnly());
 			}
 			if (status == 2 || status == 3) {
-				longWd.amount = rb.requiredLongOnly();
-				longLeft = longLeft.subtract(longWd.amount);
+				longWd.amount = rb.requiredLongOnly().subtract(item.longFee());
 				longWd.fee = item.longFee();
+				longLeft = longLeft.subtract(longWd.amount);
 				longWd.toLong = true;
 				withdrawEntries.add(longWd);
 				free = free.subtract(rb.requiredLongOnly());
@@ -180,12 +175,12 @@ public class OptimalWithdrawerLogic {
 				if (wd.toLong) {
 					BigDecimal additional = free.min(longLeftRounded);
 					wd.amount = wd.amount.add(additional);
-					longLeft = longLeft.subtract(additional);
+					longLeft = longLeft.subtract(additional).max(BigDecimal.ZERO);
 					freeByExchanges.put(wd.exName, free.subtract(additional).max(BigDecimal.ZERO));
 				} else {
 					BigDecimal additional = free.min(shortLeftRounded);
 					wd.amount = wd.amount.add(additional);
-					shortLeft = shortLeft.subtract(additional);
+					shortLeft = shortLeft.subtract(additional).max(BigDecimal.ZERO);
 					freeByExchanges.put(wd.exName, free.subtract(additional).max(BigDecimal.ZERO));
 				}
 			}
