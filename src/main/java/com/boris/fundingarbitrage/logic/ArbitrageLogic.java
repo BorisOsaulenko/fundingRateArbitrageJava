@@ -9,7 +9,6 @@ import com.boris.fundingarbitrage.monitor.CoinMonitor;
 import com.boris.fundingarbitrage.strategy.ArbitrageStrategy;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import com.boris.fundingarbitrage.util.logger.Logger;
-import kotlin.Pair;
 
 import java.util.Map;
 import java.util.Set;
@@ -29,9 +28,15 @@ public class ArbitrageLogic {
 	private final CoinVector<Set<BaseExchange>> availableExchangesByCoin;
 	private final Set<String> coins;
 
-	private final CoinVector<Pair<BaseExchange, BaseExchange>> bestArbExchanges = new CoinVector<>();
+	private final boolean enteredTrade = false;
+	private final boolean lockedOnPair = false;
+
+	private final CoinVector<ExchangePair> bestArbExchanges = new CoinVector<>();
 	private final CoinVector<ArbitrageSnapshot> bestArbSnapshots = new CoinVector<>();
-	private Map.Entry<String, ArbitrageSnapshot> bestCoinEntry;
+	private final String lockedCoin = null;
+	private final ExchangePair lockedPair = null;
+	private String bestOpportunityCoin;
+	private ArbitrageSnapshot bestOpportunitySnapshot;
 
 	public ArbitrageLogic(ArbitrageStrategy strategy, ArbitrageBotConfig arbConfig, CoinFilterConfig filterConfig) {
 		this.strategy = strategy;
@@ -60,7 +65,7 @@ public class ArbitrageLogic {
 				var arbSnapshot = new ArbitrageSnapshot(longSnapshot, shortSnapshot);
 				if (bestSnapshot == null || strategy.compareSnapshots(arbSnapshot, bestSnapshot) > 0) {
 					bestSnapshot = arbSnapshot;
-					bestArbExchanges.put(coin, new Pair<>(longEx, shortEx));
+					bestArbExchanges.put(coin, new ExchangePair(longEx, shortEx));
 				}
 			}
 		}
@@ -69,7 +74,9 @@ public class ArbitrageLogic {
 	}
 
 	private void computeBestArbSnapshots() {
-		bestCoinEntry = bestArbSnapshots.getMaxEntry(strategy::compareSnapshots);
+		var bestEntry = bestArbSnapshots.getMaxEntry(strategy::compareSnapshots);
+		bestOpportunityCoin = bestEntry.getKey();
+		bestOpportunitySnapshot = bestEntry.getValue();
 	}
 
 	public void start() {
@@ -100,6 +107,24 @@ public class ArbitrageLogic {
 		);
 	}
 
+	private void processTick() {
+
+	}
+
+	private void processPairs() {
+
+	}
+
+	private void lockOnBestPairIfShould() {
+		if (bestOpportunityCoin == null) return;
+		if (!strategy.shouldLockOnSnapshot(bestOpportunitySnapshot)) return;
+
+		for (Map.Entry<String, Set<BaseExchange>> entry : availableExchangesByCoin.entrySet()) {
+			monitor.
+		}
+
+	}
+
 	public void stop() {
 		logScheduler.shutdownNow();
 		scheduler.shutdownNow();
@@ -111,20 +136,23 @@ public class ArbitrageLogic {
 
 	private void logData() {
 		Logger.log("The best arbitrage opportunities:");
-		bestArbSnapshots
-						.sortDesc(strategy::compareSnapshots)
-						.subList(0, config.logBestArbSnapshotsAmount())
-						.forEach(entry -> {
-							var bestCoinExchanges = bestArbExchanges.get(entry.getKey());
-							assert bestCoinExchanges != null;
+		bestArbSnapshots.sortDesc(strategy::compareSnapshots)
+										.subList(0, config.logBestArbSnapshotsAmount())
+										.forEach(entry -> {
+											var bestCoinExchanges = bestArbExchanges.get(entry.getKey());
+											assert bestCoinExchanges != null;
 
-							Logger.log(entry.getKey() +
-												 ": " +
-												 bestCoinExchanges.getFirst().name +
-												 " (long) / " +
-												 bestCoinExchanges.getSecond().name +
-												 " (short) - " +
-												 (strategy.snapshotGoodEnough(entry.getValue()) ? "GOOD" : "BAD"));
-						});
+											Logger.log(entry.getKey() +
+																 ": " +
+																 bestCoinExchanges.longEx().name +
+																 " (long) / " +
+																 bestCoinExchanges.shortEx().name +
+																 " (short) - " +
+																 (strategy.snapshotGoodEnough(entry.getValue()) ? "GOOD" : "BAD"));
+										});
+	}
+
+	private record ExchangePair(BaseExchange longEx, BaseExchange shortEx) {
+
 	}
 }

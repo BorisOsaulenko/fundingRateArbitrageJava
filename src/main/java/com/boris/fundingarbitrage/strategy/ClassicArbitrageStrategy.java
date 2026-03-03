@@ -8,12 +8,14 @@ import com.boris.fundingarbitrage.model.exchange.ExchangeSnapshot;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
+import java.time.Duration;
 import java.time.Instant;
 
 public class ClassicArbitrageStrategy extends ArbitrageStrategy {
 	private static final BigDecimal MIN_F_SPREAD = new BigDecimal("0"); // 0%
 	private static final BigDecimal CLOSE_F_SPREAD_EPS = new BigDecimal("0.0001"); // 0.01%
 	private static final BigDecimal MIN_O_SPREAD = new BigDecimal("0");
+	private static final Duration timeNeededForTransferringToLongAndShort = Duration.ofMinutes(15);
 
 	private static BigDecimal perCoinNotional(ArbitrageSnapshot snapshot) {
 		ExchangeSnapshot longExchange = snapshot.longExchange();
@@ -105,6 +107,15 @@ public class ClassicArbitrageStrategy extends ArbitrageStrategy {
 		boolean fSpreadGood = fSpread(snapshot).compareTo(totalFees(snapshot).add(MIN_F_SPREAD)) >= 0;
 		boolean oSpreadGood = oSpread(snapshot).compareTo(MIN_O_SPREAD) >= 0;
 		return fSpreadGood && oSpreadGood;
+	}
+
+	@Override
+	public boolean shouldLockOnSnapshot(ArbitrageSnapshot snapshot) {
+		boolean enterClose = Instant.now()
+																.plus(timeNeededForTransferringToLongAndShort)
+																.isAfter(snapshot.closestSettlement());
+
+		return snapshotGoodEnough(snapshot) && enterClose;
 	}
 
 	@Override
