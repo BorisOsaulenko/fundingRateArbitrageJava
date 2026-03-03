@@ -45,8 +45,7 @@ public class CoinMonitor {
 
 	private final CoinVector<Set<ExchangeName>> availableExchangesByCoin = new CoinVector<>();
 	private final Map<BaseExchange, Set<String>> availableCoinsByExchange = new ConcurrentHashMap<>();
-	@Getter
-	private final CompletableFuture<Void> initFuture;
+	@Getter private final CompletableFuture<Void> initFuture;
 	private final ExchangeCoinMap<Integer> initStateBits = new ExchangeCoinMap<>();
 	private final AtomicInteger initPendingSignals = new AtomicInteger(0);
 	private final CompletableFuture<Void> initDataReady = new CompletableFuture<>();
@@ -65,8 +64,8 @@ public class CoinMonitor {
 			subscribeData();
 
 			CompletableFuture<Void> timeout = CompletableFuture.runAsync(
-							() -> {},
-							CompletableFuture.delayedExecutor(waitForDataSeconds, TimeUnit.SECONDS)
+							() -> {
+							}, CompletableFuture.delayedExecutor(waitForDataSeconds, TimeUnit.SECONDS)
 			);
 			CompletableFuture.anyOf(initDataReady, timeout).join();
 			if (!initDataReady.isDone()) {
@@ -96,21 +95,21 @@ public class CoinMonitor {
 		for (var entry : bookTickers.entrySet()) {
 			if (BookTicker.isPartiallyEmpty(entry.value())) {
 				Logger.warn("Book ticker data is incomplete for " + entry.name() + " " + entry.coin() + ": " + entry.value());
-				forgetCoinExchange(entry.coin(), entry.name());
+				unsubscribeCoinExchange(entry.coin(), entry.name());
 			}
 		}
 
 		for (var entry : fundingRates.entrySet()) {
 			if (FundingRate.isPartiallyEmpty(entry.value())) {
 				Logger.warn("Funding rate is incomplete for " + entry.name() + " " + entry.coin() + ": " + entry.value());
-				forgetCoinExchange(entry.coin(), entry.name());
+				unsubscribeCoinExchange(entry.coin(), entry.name());
 			}
 		}
 
 		for (var entry : markPrices.entrySet()) {
 			if (MarkPrice.isPartiallyEmpty(entry.value())) {
 				Logger.warn("Mark price is incomplete for " + entry.name() + " " + entry.coin() + ": " + entry.value());
-				forgetCoinExchange(entry.coin(), entry.name());
+				unsubscribeCoinExchange(entry.coin(), entry.name());
 			}
 		}
 	}
@@ -120,7 +119,7 @@ public class CoinMonitor {
 			Set<ExchangeName> exchanges = availableExchangesByCoin.get(coin);
 			if (exchanges == null || exchanges.size() < 2) {
 				Logger.warn("Not enough exchanges support " + coin + ". Removing from monitoring.");
-				forgetCoin(coin);
+				unsubscribeCoin(coin);
 			}
 		}
 	}
@@ -146,7 +145,7 @@ public class CoinMonitor {
 					String excludedMsg = shouldExcludeCoin(data);
 					if (excludedMsg != null) {
 						Logger.log("Excluding " + coin + " - " + exchange.name + " from monitoring: " + excludedMsg);
-						forgetCoinExchange(coin, exchange.name);
+						unsubscribeCoinExchange(coin, exchange.name);
 						return;
 					}
 					availableExchangesByCoin.get(coin).add(exchange.name);
@@ -170,17 +169,19 @@ public class CoinMonitor {
 			BaseExchange exchange = entry.getKey();
 			if (entry.getValue().isEmpty()) continue;
 
-			CompletableFuture<Void> future = exchange.privateHttpClient
-							.getTradingFees(entry.getValue())
-							.thenAccept(result -> {
-								result.forEach((coin, fee) -> {
-									fees.put(exchange.name, coin, fee);
-								});
-							})
-							.exceptionally(t -> {
-								Logger.error("Failed to fetch trading fees for " + exchange.name + ": " + t.getMessage());
-								throw new RuntimeException(t);
-							});
+			CompletableFuture<Void> future = exchange.privateHttpClient.getTradingFees(entry.getValue())
+																																 .thenAccept(result -> {
+																																	 result.forEach((coin, fee) -> {
+																																		 fees.put(exchange.name, coin, fee);
+																																	 });
+																																 })
+																																 .exceptionally(t -> {
+																																	 Logger.error("Failed to fetch trading fees for " +
+																																								exchange.name +
+																																								": " +
+																																								t.getMessage());
+																																	 throw new RuntimeException(t);
+																																 });
 
 			futures.add(future);
 		}
@@ -369,7 +370,7 @@ public class CoinMonitor {
 		return price.price > 0 && price.timestamp != Instant.EPOCH;
 	}
 
-	private void forgetCoinExchange(String coin, ExchangeName name) {
+	public void unsubscribeCoinExchange(String coin, ExchangeName name) {
 		BaseExchange exchange = Instances.getExchange(name);
 		dropInitTracking(name, coin);
 
@@ -387,11 +388,11 @@ public class CoinMonitor {
 		fees.remove(name, coin);
 	}
 
-	private void forgetCoin(String coin) {
+	public void unsubscribeCoin(String coin) {
 		Set<ExchangeName> available = availableExchangesByCoin.get(coin);
 		if (available != null) {
 			for (ExchangeName name : available) {
-				forgetCoinExchange(coin, name);
+				unsubscribeCoinExchange(coin, name);
 			}
 		}
 
