@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 class PrivateEndpoints {
+	private static final BybitChainsMap chainsMap = new BybitChainsMap();
 	private static final String baseUrl = "https://api.bybit.com";
 	private static final String category = "linear";
 
@@ -48,9 +49,8 @@ class PrivateEndpoints {
 	}
 
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest spotUsdtBalanceRequest() {
-		URI uri = new URIBuilder(baseUrl)
-						.setPath("/v5/account/wallet-balance")
+	public static @NonNull SimpleHttpRequest futuresUsdtBalanceRequest() {
+		URI uri = new URIBuilder(baseUrl).setPath("/v5/account/wallet-balance")
 						.addParameter("accountType", "UNIFIED")
 						.addParameter("coin", "USDT")
 						.build();
@@ -58,10 +58,9 @@ class PrivateEndpoints {
 	}
 
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest futuresUsdtBalanceRequest() {
-		URI uri = new URIBuilder(baseUrl)
-						.setPath("/v5/account/wallet-balance")
-						.addParameter("accountType", "UNIFIED")
+	public static @NonNull SimpleHttpRequest spotUsdtBalanceRequest() {
+		URI uri = new URIBuilder(baseUrl).setPath("/v5/asset/transfer/query-account-coins-balance")
+						.addParameter("accountType", "FUND")
 						.addParameter("coin", "USDT")
 						.build();
 		return new SimpleHttpRequest("GET", uri);
@@ -69,10 +68,9 @@ class PrivateEndpoints {
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest maxLeverageRequest(String paginationIndex) {
-		URIBuilder uriBuilder = new URIBuilder(baseUrl).setPath("/v5/market/instruments-info").addParameter(
-						"category",
-						category
-		).addParameter("limit", "1000");
+		URIBuilder uriBuilder = new URIBuilder(baseUrl).setPath("/v5/market/instruments-info")
+						.addParameter("category", category)
+						.addParameter("limit", "1000");
 
 		if (paginationIndex != null) uriBuilder.addParameter("cursor", paginationIndex);
 
@@ -81,17 +79,16 @@ class PrivateEndpoints {
 	}
 
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest supportedChainsRequest() {
+	public static @NonNull SimpleHttpRequest chainsRequest() {
 		URI uri = new URIBuilder(baseUrl).setPath("/v5/asset/coin/query-info").addParameter("coin", "USDT").build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest usdtWalletAddressRequest(SupportedChain chain) {
-		URI uri = new URIBuilder(baseUrl)
-						.setPath("/v5/asset/deposit/query-address")
+		URI uri = new URIBuilder(baseUrl).setPath("/v5/asset/deposit/query-address")
 						.addParameter("coin", "USDT")
-						.addParameter("chainType", ChainsMap.get(chain))
+						.addParameter("chainType", chainsMap.get(chain).toUpperCase())
 						.build();
 		return new SimpleHttpRequest("GET", uri);
 	}
@@ -101,7 +98,7 @@ class PrivateEndpoints {
 		body.put("timestamp", System.currentTimeMillis());
 		body.put("accountType", "FUND");
 		body.put("coin", "USDT");
-		body.put("chain", ChainsMap.get(withdrawal.address().chain()));
+		body.put("chain", chainsMap.get(withdrawal.address().chain()));
 		body.put("address", withdrawal.address().address());
 		body.put("amount", String.valueOf(withdrawal.amount()));
 		if (withdrawal.address().memo() != null && !withdrawal.address().memo().isEmpty()) {
@@ -133,10 +130,11 @@ class PrivateEndpoints {
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest orderRecordRequest(String orderId, String symbol, TradeSide tradeSide) {
-		URI uri = new URIBuilder(baseUrl).setPath("/v5/execution/list").addParameter("category", category).addParameter(
-						"symbol",
-						symbol
-		).addParameter("orderId", orderId).build();
+		URI uri = new URIBuilder(baseUrl).setPath("/v5/execution/list")
+						.addParameter("category", category)
+						.addParameter("symbol", symbol)
+						.addParameter("orderId", orderId)
+						.build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 

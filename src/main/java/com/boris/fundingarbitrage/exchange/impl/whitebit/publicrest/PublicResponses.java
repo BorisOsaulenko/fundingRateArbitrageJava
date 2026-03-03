@@ -17,12 +17,14 @@ class PublicResponses {
 		return Instant.ofEpochMilli(ts);
 	}
 
-	private record Market(String name, String type, BigDecimal minAmount) {}
+	private record Market(String name, String type, BigDecimal minAmount) {
+	}
 
 	@JsonFormat(shape = JsonFormat.Shape.ARRAY)
 	public record MarketsResponse(List<Market> markets) {
 		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
-		public MarketsResponse {}
+		public MarketsResponse {
+		}
 
 		public Map<String, BigDecimal> getLotSizes() {
 			Map<String, BigDecimal> result = new HashMap<>();
@@ -39,10 +41,10 @@ class PublicResponses {
 			List<String> bestBid = bids.get(0);
 			List<String> bestAsk = asks.get(0);
 			return new BookTicker(
-							Double.parseDouble(bestBid.get(0)),
-							Double.parseDouble(bestBid.get(1)),
-							Double.parseDouble(bestAsk.get(0)),
-							Double.parseDouble(bestAsk.get(1)),
+							new BigDecimal(bestBid.get(0)),
+							new BigDecimal(bestBid.get(1)),
+							new BigDecimal(bestAsk.get(0)),
+							new BigDecimal(bestAsk.get(1)),
 							Instant.ofEpochSecond(timestamp)
 			);
 		}
@@ -50,24 +52,25 @@ class PublicResponses {
 
 	private record FuturesEntry(
 					String ticker_id,
-					String money_volume,
-					String funding_rate,
-					double bid,
-					double ask,
+					BigDecimal money_volume,
+					BigDecimal funding_rate,
+					BigDecimal bid,
+					BigDecimal ask,
 					long next_funding_rate_timestamp,
 					int funding_interval_minutes
-	) {}
+	) {
+	}
 
 	public record FuturesResponse(boolean success, String message, List<FuturesEntry> result) {
 		private void requireSuccess() {
 			if (!success) throw new IllegalStateException("Whitebit futures response failed: " + message);
 		}
 
-		public Map<String, Double> getVolume24h() {
+		public Map<String, BigDecimal> getVolume24h() {
 			requireSuccess();
-			Map<String, Double> resultMap = new HashMap<>();
+			Map<String, BigDecimal> resultMap = new HashMap<>();
 			for (FuturesEntry entry : result) {
-				resultMap.put(entry.ticker_id(), Double.parseDouble(entry.money_volume()));
+				resultMap.put(entry.ticker_id(), entry.money_volume());
 			}
 			return resultMap;
 		}
@@ -78,11 +81,8 @@ class PublicResponses {
 			Instant now = Instant.now();
 			for (FuturesEntry entry : result) {
 				resultMap.put(
-								entry.ticker_id(), new FundingRate(
-												Double.parseDouble(entry.funding_rate()),
-												parseFundingTimestamp(entry.next_funding_rate_timestamp()),
-												now
-								)
+								entry.ticker_id(),
+								new FundingRate(entry.funding_rate(), parseFundingTimestamp(entry.next_funding_rate_timestamp()), now)
 				);
 			}
 			return resultMap;
@@ -102,7 +102,7 @@ class PublicResponses {
 			Map<String, BookTicker> resultMap = new HashMap<>();
 			for (FuturesEntry entry : result) {
 				// We use 10 because Whitebit does not provide the bid/ask sizes. Does not affect logic.
-				BookTicker ticker = new BookTicker(entry.bid(), 10, entry.ask(), 10, Instant.now());
+				BookTicker ticker = new BookTicker(entry.bid(), BigDecimal.TEN, entry.ask(), BigDecimal.TEN, Instant.now());
 				resultMap.put(entry.ticker_id(), ticker);
 			}
 			return resultMap;

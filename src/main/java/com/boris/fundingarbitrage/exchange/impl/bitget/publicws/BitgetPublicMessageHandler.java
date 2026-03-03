@@ -8,7 +8,9 @@ import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
 import com.boris.fundingarbitrage.util.logger.Logger;
 import com.fasterxml.jackson.databind.JsonNode;
 
+import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.function.Function;
 
 class BitgetPublicMessageHandler implements PublicMessageHandler {
 	private final ExchangeContext context;
@@ -27,9 +29,10 @@ class BitgetPublicMessageHandler implements PublicMessageHandler {
 		JsonNode data = dataArray.get(0);
 
 		String coin = context.getSymbolInverse(symbol);
-		double fundingRateStr = data.path("fundingRate").asDouble();
+		String fundingRateText = data.path("fundingRate").asText();
+		BigDecimal fundingRate = fundingRateText.isEmpty() ? null : new BigDecimal(fundingRateText);
 		long nextFundingTime = data.path("nextFundingTime").asLong();
-		if (fundingRateStr == 0.0 && nextFundingTime == 0) return null;
+		if (fundingRate == null && nextFundingTime == 0) return null;
 
 		Instant settlement = Instant.ofEpochMilli(nextFundingTime);
 
@@ -37,7 +40,7 @@ class BitgetPublicMessageHandler implements PublicMessageHandler {
 		if (ts == 0) return null;
 		Instant timestamp = Instant.ofEpochMilli(ts);
 
-		return new FundingRatePatch(coin, fundingRateStr, settlement, timestamp);
+		return new FundingRatePatch(coin, fundingRate, settlement, timestamp);
 	}
 
 	private MarkPricePatch parseMarkPriceInternal(JsonNode root) {
@@ -50,8 +53,9 @@ class BitgetPublicMessageHandler implements PublicMessageHandler {
 		JsonNode data = dataArray.get(0);
 
 		String coin = context.getSymbolInverse(symbol);
-		double markPrice = data.path("markPrice").asDouble();
-		if (markPrice == 0.0) return null;
+		String markPriceText = data.path("markPrice").asText();
+		BigDecimal markPrice = markPriceText.isEmpty() ? null : new BigDecimal(markPriceText);
+		if (markPrice == null) return null;
 
 		long ts = data.path("ts").asLong();
 		if (ts == 0) return null;
@@ -70,27 +74,24 @@ class BitgetPublicMessageHandler implements PublicMessageHandler {
 		JsonNode data = dataArray.get(0);
 
 		String coin = context.getSymbolInverse(symbol);
-		double bidPr = data.path("bidPr").asDouble();
-		double bidSz = data.path("bidSz").asDouble();
-		double askPr = data.path("askPr").asDouble();
-		double askSz = data.path("askSz").asDouble();
-		if (bidPr == 0.0 && bidSz == 0.0 && askPr == 0.0 && askSz == 0.0) return null;
+		String bidPrNode = data.get("bidPr").asText();
+		String bidSzNode = data.get("bidSz").asText();
+		String askPrNode = data.get("askPr").asText();
+		String askSzNode = data.get("askSz").asText();
+		BigDecimal bidPr = bidPrNode.isEmpty() ? null : new BigDecimal(bidPrNode);
+		BigDecimal bidSz = bidSzNode.isEmpty() ? null : new BigDecimal(bidSzNode);
+		BigDecimal askPr = askPrNode.isEmpty() ? null : new BigDecimal(askPrNode);
+		BigDecimal askSz = askSzNode.isEmpty() ? null : new BigDecimal(askSzNode);
+		if (bidPr == null && bidSz == null && askPr == null && askSz == null) return null;
 
 		long ts = data.path("ts").asLong();
 		if (ts == 0) return null;
 		Instant timestamp = Instant.ofEpochMilli(ts);
 
-		return new BookTickerPatch(
-						coin,
-						bidPr == 0.0 ? null : bidPr,
-						bidSz == 0.0 ? null : bidSz,
-						askPr == 0.0 ? null : askPr,
-						askSz == 0.0 ? null : askSz,
-						timestamp
-		);
+		return new BookTickerPatch(coin, bidPr, bidSz, askPr, askSz, timestamp);
 	}
 
-	private <T> T parseErrorHandled(java.util.function.Function<JsonNode, T> parser, JsonNode root) {
+	private <T> T parseErrorHandled(Function<JsonNode, T> parser, JsonNode root) {
 		try {
 			return parser.apply(root);
 		} catch (IllegalArgumentException ex) {

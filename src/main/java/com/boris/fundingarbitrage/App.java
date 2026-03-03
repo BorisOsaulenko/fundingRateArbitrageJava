@@ -1,9 +1,12 @@
 package com.boris.fundingarbitrage;
 
+import com.boris.fundingarbitrage.coinfilter.CoinFilter;
 import com.boris.fundingarbitrage.coinfilter.CoinFilterConfig;
-import com.boris.fundingarbitrage.exchange.impl.binance.BinanceExchange;
+import com.boris.fundingarbitrage.execution.withdrawer.OptimalWithdrawerLogic;
 import com.boris.fundingarbitrage.logic.ArbitrageBotConfig;
 import com.boris.fundingarbitrage.logic.ArbitrageLogic;
+import com.boris.fundingarbitrage.model.exchange.ExchangeName;
+import com.boris.fundingarbitrage.monitor.CoinMonitor;
 import com.boris.fundingarbitrage.strategy.ArbitrageStrategy;
 import com.boris.fundingarbitrage.strategy.ClassicArbitrageStrategy;
 import com.boris.fundingarbitrage.util.logger.Logger;
@@ -11,11 +14,12 @@ import com.boris.fundingarbitrage.util.logger.Logger;
 import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 
 public class App {
-	private static final Set<String> coins2 = Set.of("RON", "BEAT", "BIRB", "BIO", "AGLD", "OM", "ORCA", "SOPH");
+	private static final Set<String> coins2 = Set.of("ESP", "SAHARA", "STEEM", "ENSO", "SOPH");
 	static Set<String> coins = Set.of(
 					"ETH",
 					"SOL",
@@ -112,11 +116,11 @@ public class App {
 					"BLUAI" // 92 coins
 	);
 
-	static void main(String[] args) throws Exception {
+	static void main3(String[] args) throws Exception {
 		Logger.init(Path.of("app.log"));
 		ArbitrageStrategy strategy = new ClassicArbitrageStrategy();
 		ArbitrageBotConfig arbConfig = new ArbitrageBotConfig(
-						coins2,
+						coins,
 						30,
 						1,
 						Duration.ofMinutes(15),
@@ -125,19 +129,83 @@ public class App {
 						30,
 						3
 		);
-		CoinFilterConfig filterConfig = new CoinFilterConfig(500_000, BigDecimal.valueOf(30));
+		CoinFilterConfig filterConfig = new CoinFilterConfig(BigDecimal.valueOf(500_000), BigDecimal.valueOf(30));
 
 		ArbitrageLogic logic = new ArbitrageLogic(strategy, arbConfig, filterConfig);
 		logic.start();
 
-		Thread.sleep(300_000);
+		Thread.sleep(120_000);
 
 		logic.stop();
 	}
 
-	static void main2(String[] args) throws ExecutionException, InterruptedException {
-		BinanceExchange exchange = new BinanceExchange();
+	static void main2(String[] args) throws InterruptedException {
+		Logger.init(Path.of("app.log"));
+		CoinFilterConfig filterConfig = new CoinFilterConfig(BigDecimal.valueOf(100_000), BigDecimal.valueOf(30));
+		CoinFilter filter = new CoinFilter(coins, filterConfig);
+		var result = filter.filterSync();
 
+		CoinMonitor monitor = new CoinMonitor(result);
+		monitor.getInitFuture().join();
+
+		Thread.sleep(60_000);
+		monitor.shutdown();
+	}
+
+	static void main() throws InterruptedException {
+		List<OptimalWithdrawerLogic.InputItem> input = new ArrayList<>();
+		BigDecimal topUpLong = BigDecimal.valueOf(20);
+		BigDecimal topUpShort = BigDecimal.valueOf(35);
+
+		OptimalWithdrawerLogic.InputItem longOnlyBest = new OptimalWithdrawerLogic.InputItem(
+						ExchangeName.OKX,
+						BigDecimal.valueOf(45),
+						BigDecimal.ZERO,
+						BigDecimal.valueOf(5),
+						BigDecimal.valueOf(5),
+						BigDecimal.valueOf(5),
+						18,
+						18
+		);
+		OptimalWithdrawerLogic.InputItem shortPart1 = new OptimalWithdrawerLogic.InputItem(
+						ExchangeName.BITGET,
+						BigDecimal.valueOf(18),
+						BigDecimal.valueOf(9),
+						BigDecimal.ZERO,
+						BigDecimal.valueOf(5),
+						BigDecimal.valueOf(5),
+						18,
+						18
+		);
+		OptimalWithdrawerLogic.InputItem shortPart2 = new OptimalWithdrawerLogic.InputItem(
+						ExchangeName.BINANCE,
+						BigDecimal.valueOf(30),
+						BigDecimal.valueOf(8),
+						BigDecimal.valueOf(0.2),
+						BigDecimal.valueOf(5),
+						BigDecimal.valueOf(5),
+						18,
+						18
+		);
+		OptimalWithdrawerLogic.InputItem expensiveNoise = new OptimalWithdrawerLogic.InputItem(
+						ExchangeName.BYBIT,
+						BigDecimal.valueOf(200),
+						BigDecimal.valueOf(3),
+						BigDecimal.valueOf(4),
+						BigDecimal.valueOf(5),
+						BigDecimal.valueOf(5),
+						18,
+						18
+		);
+		input.add(longOnlyBest);
+		input.add(shortPart1);
+		input.add(shortPart2);
+		input.add(expensiveNoise);
+
+		OptimalWithdrawerLogic logic = new OptimalWithdrawerLogic();
+
+		var result = logic.getOptimalWdPath(new OptimalWithdrawerLogic.InputParams(topUpLong, topUpShort, input));
+		Logger.log(result.toString());
 	}
 }
 

@@ -31,22 +31,27 @@ public class OkxPublicHttpClient extends PublicHttpClient {
 
 	@Override
 	protected CompletableFuture<Map<String, PublicOnePullData>> getPublicOnePullData() {
-		CompletableFuture<PublicResponses.InstrumentsResponse> instrumentsResponseFuture = requestWrapper.getResponse(PublicEndpoints.instrumentsRequestSymbols(),
-						PublicResponses.InstrumentsResponse.class
-		);
-		CompletableFuture<PublicResponses.TickersResponse> tickersResponseFuture = requestWrapper.getResponse(PublicEndpoints.tickersRequestSymbols(),
-						PublicResponses.TickersResponse.class
-		);
-		CompletableFuture<PublicResponses.FundingRatesResponse> fundingResponseFuture = requestWrapper.getResponse(PublicEndpoints.fundingRateRequestSymbols(),
-						PublicResponses.FundingRatesResponse.class
-		);
+		CompletableFuture<PublicResponses.InstrumentsResponse>
+						instrumentsResponseFuture =
+						requestWrapper.getResponse(
+										PublicEndpoints.instrumentsRequestSymbols(),
+										PublicResponses.InstrumentsResponse.class
+						);
+		CompletableFuture<PublicResponses.TickersResponse>
+						tickersResponseFuture =
+						requestWrapper.getResponse(PublicEndpoints.tickersRequestSymbols(), PublicResponses.TickersResponse.class);
+		CompletableFuture<PublicResponses.FundingRatesResponse>
+						fundingResponseFuture =
+						requestWrapper.getResponse(
+										PublicEndpoints.fundingRateRequestSymbols(),
+										PublicResponses.FundingRatesResponse.class
+						);
 
-		return CompletableFuture
-						.allOf(instrumentsResponseFuture, tickersResponseFuture, fundingResponseFuture)
+		return CompletableFuture.allOf(instrumentsResponseFuture, tickersResponseFuture, fundingResponseFuture)
 						.thenApply(_ -> {
 							Map<String, BigDecimal> lotSizes = instrumentsResponseFuture.join().getLotSizes();
 							Map<String, BookTicker> bookTickers = tickersResponseFuture.join().getBookTickers();
-							Map<String, Double> volumes24h = tickersResponseFuture.join().getVolume24h();
+							Map<String, BigDecimal> volumes24h = tickersResponseFuture.join().getVolume24h();
 							Map<String, Integer> fundingGranularityHours = fundingResponseFuture.join().getFundingGranularityHours();
 
 							Map<String, PublicOnePullData> data = new HashMap<>();

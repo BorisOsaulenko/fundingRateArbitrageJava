@@ -12,18 +12,19 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 
 class OkxPrivateMessageHandler implements PrivateMessageHandler {
 	private final ObjectMapper mapper = ObjectMapperSingleton.getInstance();
 
-	private static Double parseDouble(JsonNode node, String field) {
+	private static BigDecimal parseBigDecimal(JsonNode node, String field) {
 		JsonNode val = node.get(field);
 		if (val == null || val.isNull()) return null;
 		String text = val.asText();
 		if (text == null || text.isEmpty()) return null;
-		double parsed = Double.parseDouble(text);
-		if (parsed == 0.0) return null;
+		BigDecimal parsed = new BigDecimal(text);
+		if (parsed.compareTo(BigDecimal.ZERO) == 0) return null;
 		return parsed;
 	}
 
@@ -43,7 +44,7 @@ class OkxPrivateMessageHandler implements PrivateMessageHandler {
 		if (data == null || !data.isArray() || data.isEmpty()) return null;
 		JsonNode entry = data.get(0);
 		if (!"USDT".equalsIgnoreCase(entry.path("ccy").asText())) return null;
-		Double amt = parseDouble(entry, "amt");
+		BigDecimal amt = parseBigDecimal(entry, "amt");
 		Instant ts = parseInstant(entry, "ts");
 		if (amt == null || ts == null) return null;
 		return new DepositPatch(amt, ts);
@@ -59,11 +60,11 @@ class OkxPrivateMessageHandler implements PrivateMessageHandler {
 		String orderId = entry.path("ordId").asText();
 		if (orderId == null || orderId.isEmpty()) return null;
 		String symbol = entry.path("instId").asText();
-		Double qty = parseDouble(entry, "fillSz");
-		Double price = parseDouble(entry, "fillPx");
-		Double fee = null;
+		BigDecimal qty = parseBigDecimal(entry, "fillSz");
+		BigDecimal price = parseBigDecimal(entry, "fillPx");
+		BigDecimal fee = null;
 		String feeCcy = entry.path("feeCcy").asText();
-		Double feeParsed = parseDouble(entry, "fee");
+		BigDecimal feeParsed = parseBigDecimal(entry, "fee");
 		if (feeParsed != null && "USDT".equalsIgnoreCase(feeCcy)) fee = feeParsed;
 		Instant ts = parseInstant(entry, "fillTime");
 		if (ts == null) ts = parseInstant(entry, "uTime");

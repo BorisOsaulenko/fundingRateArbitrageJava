@@ -13,11 +13,12 @@ class PublicResponses {
 	private record ActiveContract(
 					String symbol,
 					BigDecimal multiplier,
-					double volumeOf24h,
-					double fundingFeeRate,
+					BigDecimal volumeOf24h,
+					BigDecimal fundingFeeRate,
 					long nextFundingRateDateTime,
 					long fundingRateGranularity
-	) {}
+	) {
+	}
 
 	public record ActiveContractsResponse(String code, String msg, List<ActiveContract> data) {
 		public Map<String, BigDecimal> getLotSizes() {
@@ -26,8 +27,8 @@ class PublicResponses {
 			return result;
 		}
 
-		public Map<String, Double> getVolume24h() {
-			Map<String, Double> result = new HashMap<>();
+		public Map<String, BigDecimal> getVolume24h() {
+			Map<String, BigDecimal> result = new HashMap<>();
 			for (ActiveContract contract : data) result.put(contract.symbol(), contract.volumeOf24h());
 			return result;
 		}
@@ -58,8 +59,14 @@ class PublicResponses {
 	}
 
 	private record Ticker(
-					String symbol, double bestBidPrice, double bestBidSize, double bestAskPrice, double bestAskSize, long ts
-	) {}
+					String symbol,
+					BigDecimal bestBidPrice,
+					BigDecimal bestBidSize,
+					BigDecimal bestAskPrice,
+					BigDecimal bestAskSize,
+					long ts
+	) {
+	}
 
 	public record AllTickersResponse(String code, String msg, List<Ticker> data) {
 		public Map<String, BookTicker> getBookTickers() {
@@ -79,9 +86,11 @@ class PublicResponses {
 		}
 	}
 
-	private record WsServer(String endpoint) {}
+	private record WsServer(String endpoint) {
+	}
 
-	private record PublicWsTokenData(String token, List<WsServer> instanceServers) {}
+	private record PublicWsTokenData(String token, List<WsServer> instanceServers) {
+	}
 
 	public record PublicWsTokenResponse(String code, String msg, PublicWsTokenData data) {
 		public String token() {

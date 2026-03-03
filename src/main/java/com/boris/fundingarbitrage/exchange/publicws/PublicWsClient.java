@@ -46,11 +46,11 @@ public abstract class PublicWsClient {
 		this.publicHttpClient = publicHttp;
 		this.prettyWsClientFuture = CompletableFuture.completedFuture(new PrettyWsClient(
 						endpoint,
+						this.getClass().getSimpleName(),
 						this::handleMessage,
 						this::onConnect,
 						null
 		));
-		this.prettyWsClientFuture.thenAccept(PrettyWsClient::connect);
 	}
 
 	public PublicWsClient(
@@ -64,11 +64,11 @@ public abstract class PublicWsClient {
 		this.publicHttpClient = publicHttpClient;
 		this.prettyWsClientFuture = endpointFuture.thenApply(endpoint -> new PrettyWsClient(
 						endpoint,
+						this.getClass().getSimpleName(),
 						this::handleMessage,
 						this::onConnect,
 						null
 		));
-		this.prettyWsClientFuture.thenAccept(PrettyWsClient::connect);
 	}
 
 	public PublicWsClient(PublicWsClient client) {
@@ -286,10 +286,11 @@ public abstract class PublicWsClient {
 			if (tryHandle(root, messageHandler::parseBookTickerMessageSymbol, this::handleBookTickerPatch)) s = true;
 			if (tryHandle(root, messageHandler::parseMarkPriceMessageSymbol, this::handleMarkPricePatch)) s = true;
 			if (tryHandle(root, messageHandler::parseFundingRateMessageSymbol, this::handleFundingRatePatch)) s = true;
-		} catch (JsonProcessingException ignored) {}
+		} catch (JsonProcessingException ignored) {
+		}
 
 		if (handlePingMessage(message)) s = true;
-//		if (!s) Logger.warn("Unrecognized public ws message: " + message);
+		//		if (!s) Logger.warn("Unrecognized public ws message: " + message);
 	}
 
 	public void onConnect(Session session) {
@@ -301,6 +302,14 @@ public abstract class PublicWsClient {
 
 		List<String> markPriceSymbols = markPriceHandlers.keySet().stream().map(context::getSymbol).toList();
 		if (!markPriceSymbols.isEmpty()) this.sendMessage(getSubscribeMarkPriceFrame(markPriceSymbols));
+	}
+
+	protected boolean connected() {
+		return this.prettyWsClientFuture.isDone() && this.prettyWsClientFuture.join().isConnected();
+	}
+
+	public CompletableFuture<Void> connect() {
+		return this.prettyWsClientFuture.thenAccept(PrettyWsClient::connect);
 	}
 
 	public void unsubscribeCoin(String coin) {

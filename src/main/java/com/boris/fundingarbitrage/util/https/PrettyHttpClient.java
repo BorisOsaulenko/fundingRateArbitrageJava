@@ -15,8 +15,7 @@ import java.util.concurrent.CompletableFuture;
 
 public class PrettyHttpClient {
 	@Getter
-	private static final PrettyHttpClient INSTANCE = new ClientFactory()
-					.withRetries(5)
+	private static final PrettyHttpClient INSTANCE = new ClientFactory().withRetries(5)
 					.withRetryInterval(Duration.ofMillis(500))
 					.withTimeout(Duration.ofSeconds(10))
 					.client();
@@ -35,7 +34,7 @@ public class PrettyHttpClient {
 
 	private static String safeBody(SimpleHttpResponse response, int maxChars) {
 		String body = (response.getBody() == null) ? "" : response.getBodyText();
-		if (body.length() <= maxChars) return body;
+		if (maxChars == 0 || body.length() <= maxChars) return body;
 		return body.substring(0, maxChars) + "...(truncated)";
 	}
 
@@ -52,7 +51,7 @@ public class PrettyHttpClient {
 		String method = request.getMethod();
 		String url = safeUri(request);
 		String respHeaders = Arrays.toString(response.getHeaders());
-		String body = safeBody(response, 2_000);
+		String body = safeBody(response, 0);
 
 		String msg = String.format(
 						"HTTP error. %s %s%nStatus: %d%nResponse headers: %s%nBody:%n%s",
@@ -85,8 +84,7 @@ public class PrettyHttpClient {
 			@Override
 			public void failed(Exception ex) {
 				// Transport failure: no status/body exists here.
-				Logger
-								.warn("Request failed (transport). " + req.getMethod() + " " + safeUri(req) + " | " + ex);
+				Logger.warn("Request failed (transport). " + req.getMethod() + " " + safeUri(req) + " | " + ex);
 				cf.completeExceptionally(ex);
 			}
 

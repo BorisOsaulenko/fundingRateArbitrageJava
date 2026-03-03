@@ -14,6 +14,7 @@ import com.boris.fundingarbitrage.util.https.RequestProcessingClientWrapper;
 import com.boris.fundingarbitrage.util.logger.Logger;
 import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
 
+import java.math.BigDecimal;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
@@ -90,7 +91,7 @@ public class BybitPrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
-	public CompletableFuture<Double> getSpotUsdtBalance() {
+	public CompletableFuture<BigDecimal> getSpotUsdtBalance() {
 		return requestWrapper.processRequest(
 						signRequest(PrivateEndpoints.spotUsdtBalanceRequest()),
 						PrivateResponses.SpotUsdtBalanceResponse.class,
@@ -99,7 +100,7 @@ public class BybitPrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
-	public CompletableFuture<Double> getFuturesUsdtBalance() {
+	public CompletableFuture<BigDecimal> getFuturesUsdtBalance() {
 		return requestWrapper.processRequest(
 						signRequest(PrivateEndpoints.futuresUsdtBalanceRequest()),
 						PrivateResponses.FuturesUsdtBalanceResponse.class,
@@ -111,19 +112,18 @@ public class BybitPrivateHttpClient extends PrivateHttpClient {
 	protected CompletableFuture<Map<String, Integer>> getMaxLeverageSymbolBatch() {
 		Map<String, Integer> leverageMap = new java.util.HashMap<>();
 		return requestWrapper.processPaginatedRequest(
-						PrivateEndpoints::maxLeverageRequest,
-						PrivateResponses.MaxLeverageResponse.class,
-						(res) -> {leverageMap.putAll(res.getMaxLeverages());},
-						null
+						PrivateEndpoints::maxLeverageRequest, PrivateResponses.MaxLeverageResponse.class, (res) -> {
+							leverageMap.putAll(res.getMaxLeverages());
+						}, null
 		).thenApply(_ -> leverageMap);
 	}
 
 	@Override
 	public CompletableFuture<ExchangeChains> getSupportedChains() {
 		return requestWrapper.processRequest(
-						signRequest(PrivateEndpoints.supportedChainsRequest()),
+						signRequest(PrivateEndpoints.chainsRequest()),
 						PrivateResponses.SupportedChainsResponse.class,
-						PrivateResponses.SupportedChainsResponse::get
+						PrivateResponses.SupportedChainsResponse::getSupportedChains
 		);
 	}
 

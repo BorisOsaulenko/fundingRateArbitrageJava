@@ -26,6 +26,7 @@ public abstract class PrivateWsClient {
 		this.messageHandler = messageHandler;
 		this.prettyWsClientFuture = CompletableFuture.completedFuture(new PrettyWsClient(
 						endpoint,
+						this.getClass().getSimpleName(),
 						this::handleMessage,
 						this::onConnect,
 						null
@@ -41,11 +42,11 @@ public abstract class PrivateWsClient {
 		this.messageHandler = messageHandler;
 		this.prettyWsClientFuture = endpointFuture.thenApply(endpoint -> new PrettyWsClient(
 						endpoint,
+						this.getClass().getSimpleName(),
 						this::handleMessage,
 						this::onConnect,
 						null
 		));
-		this.prettyWsClientFuture.thenAccept(PrettyWsClient::connect);
 	}
 
 	public final void close() {

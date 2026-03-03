@@ -12,25 +12,26 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 
 class GatePrivateMessageHandler implements PrivateMessageHandler {
 	private final ObjectMapper mapper = ObjectMapperSingleton.getInstance();
 
-	private static double parseDouble(JsonNode node, String... fields) {
+	private static BigDecimal parseBigDecimal(JsonNode node, String... fields) {
 		for (String field : fields) {
 			JsonNode val = node.get(field);
 			if (val != null && !val.isNull()) {
 				String text = val.asText();
 				if (text != null && !text.isEmpty()) {
 					try {
-						return Double.parseDouble(text);
+						return new BigDecimal(text);
 					} catch (NumberFormatException ignored) {
 					}
 				}
 			}
 		}
-		return 0.0;
+		return BigDecimal.ZERO;
 	}
 
 	private static Instant parseInstant(JsonNode node, String... fields) {
@@ -63,8 +64,8 @@ class GatePrivateMessageHandler implements PrivateMessageHandler {
 		JsonNode entry = result.get(0);
 		String currency = entry.path("currency").asText();
 		if (!"USDT".equalsIgnoreCase(currency)) return null;
-		double balance = parseDouble(entry, "available", "balance", "total");
-		if (balance <= 0) return null;
+		BigDecimal balance = parseBigDecimal(entry, "available", "balance", "total");
+		if (balance.compareTo(BigDecimal.ZERO) <= 0) return null;
 		Instant ts = parseInstant(root, "time");
 		return new DepositPatch(balance, ts);
 	}
@@ -82,12 +83,12 @@ class GatePrivateMessageHandler implements PrivateMessageHandler {
 		String orderId = entry.path("order_id").asText();
 		if (orderId == null || orderId.isEmpty()) return null;
 		String symbol = entry.path("contract").asText();
-		double size = parseDouble(entry, "size");
-		double price = parseDouble(entry, "price");
-		double fee = parseDouble(entry, "fee");
+		BigDecimal size = parseBigDecimal(entry, "size");
+		BigDecimal price = parseBigDecimal(entry, "price");
+		BigDecimal fee = parseBigDecimal(entry, "fee");
 		Instant ts = parseInstant(entry, "create_time_ms", "create_time");
-		Double feeValue = fee > 0 ? fee : null;
-		return new PartialFill(orderId, symbol, Math.abs(size), price, feeValue, ts);
+		BigDecimal feeValue = fee.compareTo(BigDecimal.ZERO) > 0 ? fee : null;
+		return new PartialFill(orderId, symbol, size.abs(), price, feeValue, ts);
 	}
 
 	private <T> T parseErrorHandled(JsonParsingFunction<T> parser, String message) {

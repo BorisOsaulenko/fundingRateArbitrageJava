@@ -2,13 +2,13 @@ package com.boris.fundingarbitrage.exchange.impl.okx.publicws;
 
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.impl.okx.publicrest.OkxPublicHttpClient;
-import com.boris.fundingarbitrage.exchange.publicws.PublicWsClient;
+import com.boris.fundingarbitrage.util.wss.publicws.FullFundingViaRest;
 
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
-public class OkxPublicWsClient extends PublicWsClient {
+public class OkxPublicWsClient extends FullFundingViaRest {
 	private static final URI endpoint = URI.create("wss://ws.okx.com:8443/ws/v5/public");
 
 	public OkxPublicWsClient(ExchangeContext context, OkxPublicHttpClient publicHttp) {

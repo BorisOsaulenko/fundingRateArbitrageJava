@@ -15,11 +15,13 @@ import com.boris.fundingarbitrage.util.https.RequestProcessingClientWrapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
 
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 public class WhitebitPrivateHttpClient extends PrivateHttpClient {
+	private final WhitebitChainsMap chainsMap = new WhitebitChainsMap();
 	private final ExchangeCredentials credentials;
 	private final RequestProcessingClientWrapper requestWrapper = new RequestProcessingClientWrapper(this.client);
 
@@ -87,7 +89,7 @@ public class WhitebitPrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
-	public CompletableFuture<Double> getSpotUsdtBalance() {
+	public CompletableFuture<BigDecimal> getSpotUsdtBalance() {
 		return requestWrapper.processRequest(
 						signRequest(PrivateEndpoints.spotUsdtBalanceRequest()),
 						PrivateResponses.SpotBalanceResponse.class,
@@ -96,7 +98,7 @@ public class WhitebitPrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
-	public CompletableFuture<Double> getFuturesUsdtBalance() {
+	public CompletableFuture<BigDecimal> getFuturesUsdtBalance() {
 		return requestWrapper.processRequest(
 						signRequest(PrivateEndpoints.futuresUsdtBalanceRequest()),
 						PrivateResponses.CollateralSummaryResponse.class,
@@ -124,7 +126,7 @@ public class WhitebitPrivateHttpClient extends PrivateHttpClient {
 
 	@Override
 	public CompletableFuture<WalletAddress> getUsdtWalletAddress(SupportedChain chain) {
-		if (ChainsMap.get(chain) == null) {
+		if (chainsMap.get(chain) == null) {
 			throw new IllegalArgumentException("Unsupported chain for Whitebit: " + chain);
 		}
 		return requestWrapper.processRequest(

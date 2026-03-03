@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-DURATION_SECONDS=60
-POLL_INTERVAL_SECONDS=1
 OUT_DIR="build/metrics"
 RECORDING_NAME="app-profile"
 JFR_SETTINGS="profile"
@@ -17,8 +15,6 @@ Usage:
   scripts/profile_jcmd.sh [options] --match <pattern>
 
 Options:
-  --duration SEC   Recording duration in seconds (default: 60)
-  --poll SEC       PID polling interval in seconds (default: 0.1)
   --out DIR        Output directory (default: build/metrics)
   --name NAME      JFR recording name (default: app-profile)
   --settings NAME  JFR settings (default: profile)
@@ -26,7 +22,7 @@ Options:
   --match PATTERN  Attach to first Java process whose command line matches PATTERN
 
 Examples:
-  scripts/profile_jcmd.sh --duration 30 -- ./gradlew run
+  scripts/profile_jcmd.sh -- ./gradlew run
   scripts/profile_jcmd.sh --out build/metrics-fast -- java -cp build/classes/java/main com.boris.fundingarbitrage.App
   scripts/profile_jcmd.sh --pid 12345
   scripts/profile_jcmd.sh --match "fundingarbitrage"
@@ -40,14 +36,6 @@ fi
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --duration)
-      DURATION_SECONDS="$2"
-      shift 2
-      ;;
-    --poll)
-      POLL_INTERVAL_SECONDS="$2"
-      shift 2
-      ;;
     --out)
       OUT_DIR="$2"
       shift 2
@@ -145,7 +133,7 @@ else
     if JAVA_PID="$(pick_java_pid "$LAUNCHER_PID")"; then
       break
     fi
-    sleep "$POLL_INTERVAL_SECONDS"
+    sleep 0.1
   done
 
   if [[ -z "$JAVA_PID" ]]; then
@@ -166,18 +154,13 @@ echo "Profiling Java PID: $JAVA_PID"
 echo "Starting JFR recording: $RECORDING_NAME" | tee -a "$RUN_LOG"
 jcmd "$JAVA_PID" JFR.start name="$RECORDING_NAME" settings="$JFR_SETTINGS" filename="$JFR_FILE" >> "$RUN_LOG" 2>&1
 
-END_EPOCH=$(( $(date +%s) + DURATION_SECONDS ))
-while [[ $(date +%s) -lt "$END_EPOCH" ]]; do
-  if ! kill -0 "$JAVA_PID" 2>/dev/null; then
-    echo "Java process exited; stopping early." | tee -a "$RUN_LOG"
-    break
-  fi
+# Monitor the Java process and stop recording when it exits
+while kill -0 "$JAVA_PID" 2>/dev/null; do
   sleep 0.2
 done
 
-if kill -0 "$JAVA_PID" 2>/dev/null; then
-  jcmd "$JAVA_PID" JFR.stop name="$RECORDING_NAME" >> "$RUN_LOG" 2>&1 || true
-fi
+echo "Java process exited; stopping recording." | tee -a "$RUN_LOG"
+jcmd "$JAVA_PID" JFR.stop name="$RECORDING_NAME" >> "$RUN_LOG" 2>&1 || true
 
 echo "Finished. JFR output: $JFR_FILE"
 

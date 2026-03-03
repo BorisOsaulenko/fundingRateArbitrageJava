@@ -31,18 +31,21 @@ public class GatePublicHttpClient extends PublicHttpClient {
 
 	@Override
 	protected CompletableFuture<Map<String, PublicOnePullData>> getPublicOnePullData() {
-		CompletableFuture<PublicResponses.ContractsResponse> contractsResponseFuture = requestWrapper.getResponse(PublicEndpoints.contractsRequestSymbols(),
-						PublicResponses.ContractsResponse.class
-		);
-		CompletableFuture<PublicResponses.TickersResponse> tickersResponseFuture = requestWrapper.getResponse(PublicEndpoints.tickersRequestSymbols(),
-						PublicResponses.TickersResponse.class
-		);
+		CompletableFuture<PublicResponses.ContractsResponse>
+						contractsResponseFuture =
+						requestWrapper.getResponse(
+										PublicEndpoints.contractsRequestSymbols(),
+										PublicResponses.ContractsResponse.class
+						);
+		CompletableFuture<PublicResponses.TickersResponse>
+						tickersResponseFuture =
+						requestWrapper.getResponse(PublicEndpoints.tickersRequestSymbols(), PublicResponses.TickersResponse.class);
 
 		return CompletableFuture.allOf(contractsResponseFuture, tickersResponseFuture).thenApply(_ -> {
 			Map<String, BigDecimal> lotSizes = contractsResponseFuture.join().getLotSizes();
 			Map<String, Integer> fundingGranularityHours = contractsResponseFuture.join().getFundingGranularityHours();
 			Map<String, BookTicker> bookTickers = tickersResponseFuture.join().getBookTickers();
-			Map<String, Double> volumes24h = tickersResponseFuture.join().getVolume24h();
+			Map<String, BigDecimal> volumes24h = tickersResponseFuture.join().getVolume24h();
 
 			Map<String, PublicOnePullData> data = new HashMap<>();
 			for (String symbol : lotSizes.keySet()) {

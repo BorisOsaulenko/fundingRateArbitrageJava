@@ -41,13 +41,12 @@ public class BitgetPublicHttpClient extends PublicHttpClient {
 						PublicResponses.CurrentFundingRateResponse.class,
 						PublicResponses.CurrentFundingRateResponse::getFundingGranularity
 		);
-		CompletableFuture<PublicResponses.TickerResponse> tickersResponse = requestWrapper.getResponse(
-						PublicEndpoints.tickersRequest(),
-						PublicResponses.TickerResponse.class
-		);
+		CompletableFuture<PublicResponses.TickerResponse>
+						tickersResponse =
+						requestWrapper.getResponse(PublicEndpoints.tickersRequest(), PublicResponses.TickerResponse.class);
 
 		return CompletableFuture.allOf(lotSizesFuture, fundingGranularityFuture, tickersResponse).thenApply(_ -> {
-			Map<String, Double> volume24h = tickersResponse.join().getUsdtVolumes();
+			Map<String, BigDecimal> volume24h = tickersResponse.join().getUsdtVolumes();
 			Map<String, BookTicker> bookTickers = tickersResponse.join().getBookTickers();
 
 			Map<String, PublicOnePullData> data = new HashMap<>();

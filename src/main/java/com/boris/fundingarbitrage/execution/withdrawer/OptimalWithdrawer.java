@@ -1,0 +1,125 @@
+package com.boris.fundingarbitrage.execution.withdrawer;
+
+import com.boris.fundingarbitrage.exchange.BaseExchange;
+import com.boris.fundingarbitrage.exchange.Instances;
+import com.boris.fundingarbitrage.model.assetops.SupportedChain;
+import com.boris.fundingarbitrage.model.assetops.Withdrawal;
+import com.boris.fundingarbitrage.model.exchange.ExchangeChains;
+import com.boris.fundingarbitrage.model.exchange.ExchangeName;
+import com.boris.fundingarbitrage.model.exchange.WalletAddress;
+import com.boris.fundingarbitrage.model.exchange.WithdrawChain;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+
+public class OptimalWithdrawer {
+	private final BaseExchange longExchange;
+	private final BaseExchange shortExchange;
+	private final BigDecimal usdtAmount;
+
+	private final List<BaseExchange> otherExchanges;
+
+	private final Map<BaseExchange, BigDecimal> spotBalances;
+	private final Map<BaseExchange, BigDecimal> futuresBalances;
+	private final Map<BaseExchange, ExchangeChains> chains;
+
+	private final Map<ExchangeName, WithdrawChain> optimalChainToLong = new ConcurrentHashMap<>();
+	private final Map<ExchangeName, WithdrawChain> optimalChainToShort = new ConcurrentHashMap<>();
+
+	private final OptimalWithdrawerLogic logic = new OptimalWithdrawerLogic();
+
+	public OptimalWithdrawer(
+					BaseExchange longExchange,
+					BaseExchange shortExchange,
+					BigDecimal usdtAmount,
+					Map<BaseExchange, BigDecimal> spotBalance,
+					Map<BaseExchange, BigDecimal> futuresBalance,
+					Map<BaseExchange, ExchangeChains> chains
+	) {
+		this.longExchange = longExchange;
+		this.shortExchange = shortExchange;
+		this.usdtAmount = usdtAmount;
+
+		this.otherExchanges = Instances.getExchangeArray()
+						.stream()
+						.filter(ex -> ex != longExchange && ex != shortExchange)
+						.collect(java.util.stream.Collectors.toList());
+
+		this.spotBalances = spotBalance;
+		this.futuresBalances = futuresBalance;
+		this.chains = chains;
+	}
+
+	public CompletableFuture<Void> withdrawUsdtToExchanges() {
+		BigDecimal longTotalBalance = spotBalances.get(longExchange).add(futuresBalances.get(longExchange));
+		BigDecimal shortTotalBalance = spotBalances.get(shortExchange).add(futuresBalances.get(shortExchange));
+		BigDecimal depositToLongAmount = usdtAmount.subtract(longTotalBalance).max(BigDecimal.ZERO);
+		BigDecimal depositToShortAmount = usdtAmount.subtract(shortTotalBalance).max(BigDecimal.ZERO);
+
+		if (depositToLongAmount.equals(BigDecimal.ZERO) && depositToShortAmount.equals(BigDecimal.ZERO))
+			return CompletableFuture.completedFuture(null);
+
+		List<OptimalWithdrawerLogic.OutputItem> optimalPath = delegateToLogic(depositToLongAmount, depositToShortAmount);
+		if (optimalPath == null) return null;
+
+		List<CompletableFuture<Void>> futures = new ArrayList<>();
+		for (var item : optimalPath) {
+			BaseExchange destination = item.toLong() ? longExchange : shortExchange;
+			WithdrawChain chain = item.toLong() ?
+							optimalChainToLong.get(item.exName()) :
+							optimalChainToShort.get(item.exName());
+
+			CompletableFuture<WalletAddress> addressFuture = destination.privateHttpClient.getUsdtWalletAddress(chain.chain());
+			futures.add(addressFuture.thenCompose(address -> {
+				Withdrawal wdParams = new Withdrawal(item.amount(), item.fee(), address);
+				BaseExchange exchange = Instances.getExchange(item.exName());
+				return exchange.privateHttpClient.withdrawUsdt(wdParams);
+			}));
+		}
+
+		return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+	}
+
+	private List<OptimalWithdrawerLogic.OutputItem> delegateToLogic(BigDecimal topUpLong, BigDecimal topUpShort) {
+		List<OptimalWithdrawerLogic.InputItem> inputItems = new ArrayList<>();
+		List<SupportedChain> longChains = chains.get(longExchange).depositableChains();
+		List<SupportedChain> shortChains = chains.get(shortExchange).depositableChains();
+
+		for (BaseExchange exchange : otherExchanges) {
+			BigDecimal balance = spotBalances.get(exchange); // only spot is withdrawable
+			WithdrawChain optimalLong = getOptimalChain(exchange, longChains);
+			WithdrawChain optimalShort = getOptimalChain(exchange, shortChains);
+			if (optimalLong == null && optimalShort == null) continue;
+			if (optimalLong != null) optimalChainToLong.put(exchange.name, optimalLong);
+			if (optimalShort != null) optimalChainToShort.put(exchange.name, optimalShort);
+
+			var item = new OptimalWithdrawerLogic.InputItem(
+							exchange.name,
+							balance,
+							optimalLong == null ? null : optimalLong.withdrawFee(),
+							optimalShort == null ? null : optimalShort.withdrawFee(),
+							optimalLong == null ? null : optimalLong.minWithdraw(),
+							optimalShort == null ? null : optimalShort.minWithdraw(),
+							optimalLong == null ? 0 : optimalLong.precisionPoints(),
+							optimalShort == null ? 0 : optimalShort.precisionPoints()
+			);
+			inputItems.add(item);
+		}
+
+		var params = new OptimalWithdrawerLogic.InputParams(topUpLong, topUpShort, inputItems);
+		return logic.getOptimalWdPath(params);
+	}
+
+	private WithdrawChain getOptimalChain(BaseExchange fromExchange, List<SupportedChain> target) {
+		List<WithdrawChain> wdChains = chains.get(fromExchange).withdrawableChains();
+		return wdChains.stream()
+						.filter(wdCh -> target.contains(wdCh.chain()))
+						.min(Comparator.comparing(WithdrawChain::withdrawFee))
+						.orElse(null);
+	}
+}

@@ -17,6 +17,7 @@ import java.util.function.Consumer;
 
 public class PrettyWsClient {
 	private final URI endpointUri;
+	private final String endpointName;
 	private final PrettyWsReconnectHandler reconnectHandler;
 	private final Queue<String> messageQueue = new ConcurrentLinkedQueue<>();
 	private final PrettyWsEndpoint endpoint;
@@ -29,6 +30,7 @@ public class PrettyWsClient {
 
 	public PrettyWsClient(
 					@NonNull URI uri,
+					@NonNull String endpointName,
 					@NonNull Consumer<String> processMessage,
 					Consumer<Session> customOnOpenHook,
 					Consumer<Session> customOnCloseHook
@@ -36,16 +38,21 @@ public class PrettyWsClient {
 		this.customOnOpenHook = customOnOpenHook;
 		this.customOnCloseHook = customOnCloseHook;
 		this.endpointUri = uri;
+		this.endpointName = endpointName;
 		this.client = ClientManager.createClient();
-		
+
 		int maxReconnectAttempts = 5;
-		reconnectHandler = new PrettyWsReconnectHandler(endpointUri, maxReconnectAttempts, () -> !closeRequested);
+		reconnectHandler = new PrettyWsReconnectHandler(endpointName, maxReconnectAttempts, () -> !closeRequested);
 		client.getProperties().put(ClientProperties.RECONNECT_HANDLER, reconnectHandler);
 		this.endpoint = new PrettyWsEndpoint(processMessage, getOnOpenHook(), getOnCloseHook());
 	}
 
 	public PrettyWsClient(@NonNull URI uri, @NonNull Consumer<String> processMessage) {
-		this(uri, processMessage, null, null);
+		this(uri, uri.toString(), processMessage, null, null);
+	}
+
+	public PrettyWsClient(@NonNull URI uri, @NonNull String endpointName, @NonNull Consumer<String> processMessage) {
+		this(uri, endpointName, processMessage, null, null);
 	}
 
 	public void connect() {
@@ -64,7 +71,11 @@ public class PrettyWsClient {
 			lastSession.getAsyncRemote().sendText(
 							message, result -> {
 								if (!result.isOK()) {
-									String msg = String.format("Failed to send WebSocket message: %s", result.getException().toString());
+									String msg = String.format(
+													"[%s] Failed to send WebSocket message: %s",
+													endpointName,
+													result.getException().toString()
+									);
 									Logger.error(msg);
 								}
 							}
@@ -80,7 +91,7 @@ public class PrettyWsClient {
 			String json = ObjectMapperSingleton.getInstance().writeValueAsString(obj);
 			sendMessage(json);
 		} catch (IOException e) {
-			Logger.error("Failed to send object as JSON: " + e.getMessage());
+			Logger.error(String.format("[%s] Failed to send object as JSON: %s", endpointName, e.getMessage()));
 		}
 	}
 
@@ -91,7 +102,7 @@ public class PrettyWsClient {
 			try {
 				lastSession.close();
 			} catch (IOException e) {
-				Logger.error("Error closing WebSocket session: " + e.getMessage());
+				Logger.error(String.format("[%s] Error closing WebSocket session: %s", endpointName, e.getMessage()));
 			}
 		}
 
@@ -118,7 +129,7 @@ public class PrettyWsClient {
 				}
 			}
 
-			Logger.log("WebSocket connection established: " + endpointUri);
+			Logger.log("WebSocket connection established: " + endpointName);
 		};
 	}
 
@@ -127,7 +138,7 @@ public class PrettyWsClient {
 			if (customOnCloseHook != null) customOnCloseHook.accept(session);
 
 			if (closeRequested) {
-				Logger.log("WebSocket closed normally as requested.");
+				Logger.log("WebSocket closed normally as requested: " + endpointName);
 				lastSession = null;
 				connecting.completeExceptionally(new IllegalStateException("Client closed"));
 				return;
@@ -136,5 +147,9 @@ public class PrettyWsClient {
 			lastSession = null;
 			connecting = new CompletableFuture<>();
 		};
+	}
+
+	public boolean isConnected() {
+		return lastSession != null && lastSession.isOpen();
 	}
 }

@@ -6,10 +6,12 @@ import com.boris.fundingarbitrage.model.assetops.SupportedChain;
 import com.boris.fundingarbitrage.model.contract.Fees;
 import com.boris.fundingarbitrage.model.exchange.ExchangeChains;
 import com.boris.fundingarbitrage.model.exchange.WalletAddress;
+import com.boris.fundingarbitrage.model.exchange.WithdrawChain;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
@@ -21,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public abstract class PrivateRestTest {
 	private static final long REQUEST_TIMEOUT_SECONDS = 8;
-	private static final double MAX_ABS_FEE = 0.02;
+	private static final BigDecimal MAX_ABS_FEE = new BigDecimal("0.02");
 	private final String testCoin = "SOL";
 	private final Set<String> testCoins = Set.of("SOL", "ADA", "ETH");
 	private final Duration timestampTolerance = Duration.ofSeconds(2);
@@ -30,20 +32,14 @@ public abstract class PrivateRestTest {
 		return future.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
 	}
 
-	private static void assertFinite(double value, String message) {
-		assertTrue(Double.isFinite(value), message);
-	}
-
 	protected abstract PrivateHttpClient privateRest();
 
 	private void assertValidFees(Fees fees) {
 		assertNotNull(fees, "Fees should not be null");
-		assertFinite(fees.openTaker(), "Open taker fee should be finite");
-		assertFinite(fees.closeTaker(), "Close taker fee should be finite");
-		assertTrue(fees.openTaker() >= 0, "Open taker fee should be non-negative");
-		assertTrue(fees.closeTaker() >= 0, "Open maker fee should be non-negative");
-		assertTrue(fees.openTaker() < MAX_ABS_FEE, "Open taker fee should be < " + MAX_ABS_FEE);
-		assertTrue(fees.closeTaker() < MAX_ABS_FEE, "Close taker fee should be < " + MAX_ABS_FEE);
+		assertTrue(fees.openTaker().compareTo(BigDecimal.ZERO) >= 0, "Open taker fee should be non-negative");
+		assertTrue(fees.closeTaker().compareTo(BigDecimal.ZERO) >= 0, "Open maker fee should be non-negative");
+		assertTrue(fees.openTaker().compareTo(MAX_ABS_FEE) < 0, "Open taker fee should be < " + MAX_ABS_FEE);
+		assertTrue(fees.closeTaker().compareTo(MAX_ABS_FEE) < 0, "Close taker fee should be < " + MAX_ABS_FEE);
 
 		Instant now = Instant.now();
 		assertTrue(
@@ -66,9 +62,8 @@ public abstract class PrivateRestTest {
 	@Test
 	@Tag("rest")
 	public void getSpotUsdtBalanceTest() throws Exception {
-		double spotBalance = getWithTimeout(privateRest().getSpotUsdtBalance());
-		assertFinite(spotBalance, "Spot USDT balance should be finite");
-		assertTrue(spotBalance > 0, "Spot USDT balance should be non-negative");
+		BigDecimal spotBalance = getWithTimeout(privateRest().getSpotUsdtBalance());
+		assertTrue(spotBalance.compareTo(BigDecimal.ZERO) > 0, "Spot USDT balance should be non-negative");
 	}
 
 	@Tag("rest")
@@ -85,9 +80,8 @@ public abstract class PrivateRestTest {
 	@Test
 	@Tag("rest")
 	public void getFuturesUsdtBalanceTest() throws Exception {
-		double futuresBalance = getWithTimeout(privateRest().getFuturesUsdtBalance());
-		assertFinite(futuresBalance, "Futures USDT balance should be finite");
-		assertTrue(futuresBalance > 0, "Futures USDT balance should be non-negative");
+		BigDecimal futuresBalance = getWithTimeout(privateRest().getFuturesUsdtBalance());
+		assertTrue(futuresBalance.compareTo(BigDecimal.ZERO) > 0, "Futures USDT balance should be non-negative");
 	}
 
 	@Test
@@ -122,6 +116,12 @@ public abstract class PrivateRestTest {
 		assertTrue(address.address().length() > 15, "Wallet address should have a valid length");
 	}
 
+	private void validateWithdrawChain(WithdrawChain chain) {
+		assertTrue(chain.minWithdraw().compareTo(BigDecimal.ZERO) >= 0, "Min withdraw should be non-negative");
+		assertTrue(chain.withdrawFee().compareTo(BigDecimal.ZERO) >= 0, "Withdraw fee should be non-negative");
+		assertTrue(chain.precisionPoints() >= 0, "Precision points should be non-negative");
+	}
+
 	@Test
 	@Tag("rest")
 	public void getSupportedChainsTest() throws Exception {
@@ -131,5 +131,9 @@ public abstract class PrivateRestTest {
 		assertNotNull(chains.withdrawableChains(), "Withdrawable chains should not be null");
 		assertFalse(chains.depositableChains().isEmpty(), "There should be at least one depositable chain");
 		assertFalse(chains.withdrawableChains().isEmpty(), "There should be at least one withdrawable chain");
+
+		for (WithdrawChain chain : chains.withdrawableChains()) {
+			validateWithdrawChain(chain);
+		}
 	}
 }

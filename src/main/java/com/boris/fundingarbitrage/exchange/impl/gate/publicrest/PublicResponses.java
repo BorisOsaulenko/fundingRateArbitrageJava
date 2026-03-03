@@ -15,7 +15,8 @@ class PublicResponses {
 	@JsonFormat(shape = JsonFormat.Shape.ARRAY)
 	public record ContractsResponse(List<ContractResponse> items) {
 		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
-		public ContractsResponse {}
+		public ContractsResponse {
+		}
 
 		public Map<String, BigDecimal> getLotSizes() {
 			Map<String, BigDecimal> result = new HashMap<>();
@@ -32,11 +33,9 @@ class PublicResponses {
 		public Map<String, FundingRate> getFundingRates() {
 			Map<String, FundingRate> result = new HashMap<>();
 			for (ContractResponse item : items) {
-				FundingRate fr = new FundingRate(
-								item.funding_rate(),
-								Instant.ofEpochSecond(item.funding_next_apply()),
-								Instant.now()
-				);
+				FundingRate
+								fr =
+								new FundingRate(item.funding_rate(), Instant.ofEpochSecond(item.funding_next_apply()), Instant.now());
 				result.put(item.name(), fr);
 			}
 			return result;
@@ -45,16 +44,18 @@ class PublicResponses {
 		private record ContractResponse(
 						String name,
 						BigDecimal quanto_multiplier,
-						double funding_rate,
+						BigDecimal funding_rate,
 						long funding_next_apply,
 						int funding_interval
-		) {}
+		) {
+		}
 	}
 
 	@JsonFormat(shape = JsonFormat.Shape.ARRAY)
 	public record TickersResponse(List<TickerResponse> items) {
 		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
-		public TickersResponse {}
+		public TickersResponse {
+		}
 
 		public Map<String, BookTicker> getBookTickers() {
 			Map<String, BookTicker> result = new HashMap<>();
@@ -68,19 +69,20 @@ class PublicResponses {
 			return result;
 		}
 
-		public Map<String, Double> getVolume24h() {
-			Map<String, Double> result = new HashMap<>();
+		public Map<String, BigDecimal> getVolume24h() {
+			Map<String, BigDecimal> result = new HashMap<>();
 			for (TickerResponse item : items) result.put(item.contract(), item.volume_24h_quote());
 			return result;
 		}
 
 		private record TickerResponse(
 						String contract,
-						double volume_24h_quote,
-						double highest_bid,
-						double lowest_ask,
-						double highest_size,
-						double lowest_size
-		) {}
+						BigDecimal volume_24h_quote,
+						BigDecimal highest_bid,
+						BigDecimal lowest_ask,
+						BigDecimal highest_size,
+						BigDecimal lowest_size
+		) {
+		}
 	}
 }

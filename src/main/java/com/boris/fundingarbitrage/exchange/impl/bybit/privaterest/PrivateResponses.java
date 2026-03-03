@@ -10,6 +10,7 @@ import com.boris.fundingarbitrage.model.exchange.WithdrawChain;
 import com.boris.fundingarbitrage.util.https.PaginatedResponse;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -17,6 +18,8 @@ import java.util.List;
 import java.util.Map;
 
 class PrivateResponses {
+	private static final BybitChainsMap chainsMap = new BybitChainsMap();
+
 	@JsonIgnoreProperties(ignoreUnknown = true)
 	public record TradingFeesResponse(int retCode, String retMsg, long time, TradingFeesResult result) {
 		public Map<String, Fees> getFeesBySymbols() {
@@ -25,8 +28,8 @@ class PrivateResponses {
 			if (list == null) return feesBySymbol;
 			for (TradingFeeItem item : list) {
 				String symbol = item.symbol;
-				double maker = Double.parseDouble(item.makerFeeRate);
-				double taker = Double.parseDouble(item.takerFeeRate);
+				BigDecimal maker = new BigDecimal(item.makerFeeRate);
+				BigDecimal taker = new BigDecimal(item.takerFeeRate);
 				feesBySymbol.put(symbol, new Fees(maker, taker, maker, taker, Instant.ofEpochMilli(time)));
 			}
 			return feesBySymbol;
@@ -34,10 +37,12 @@ class PrivateResponses {
 	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
-	private record TradingFeesResult(List<TradingFeeItem> list) {}
+	private record TradingFeesResult(List<TradingFeeItem> list) {
+	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
-	private record TradingFeeItem(String symbol, String makerFeeRate, String takerFeeRate) {}
+	private record TradingFeeItem(String symbol, String makerFeeRate, String takerFeeRate) {
+	}
 
 	public record ChangeLeverageResponse(int retCode, String retMsg) {
 		public ChangeLeverageResponse {
@@ -48,46 +53,48 @@ class PrivateResponses {
 	}
 
 	public record SetMarginModeResponse(int retCode, String retMsg) {
-		public SetMarginModeResponse {}
 	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
-	public record SpotUsdtBalanceResponse(int retCode, String retMsg, long time, BalanceResult result) {
-		public double get() {
-			List<BalanceAccount> list = result == null ? null : result.list;
-			if (list == null) return 0.0;
-			for (BalanceAccount account : list) {
-				if (account.coin == null) continue;
-				for (BalanceCoin coin : account.coin) {
-					if (!"USDT".equalsIgnoreCase(coin.coin)) continue;
-					return Double.parseDouble(coin.walletBalance);
-				}
+	public record SpotUsdtBalanceResponse(int retCode, String retMsg, long time, SpotBalanceResult result) {
+		public BigDecimal get() {
+			for (BalanceItem item : result.balance()) {
+				if (!"USDT".equalsIgnoreCase(item.coin())) continue;
+				return item.walletBalance();
 			}
-			return 0.0;
+			throw new IllegalStateException("Bybit spot USDT balance not found");
+		}
+
+		private record BalanceItem(String coin, BigDecimal walletBalance) {
+		}
+
+		private record SpotBalanceResult(List<BalanceItem> balance) {
 		}
 	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
-	public record FuturesUsdtBalanceResponse(int retCode, String retMsg, long time, BalanceResult result) {
-		public double get() {
-			List<BalanceAccount> list = result == null ? null : result.list;
-			if (list == null) return 0.0;
-			for (BalanceAccount account : list) {
+	public record FuturesUsdtBalanceResponse(int retCode, String retMsg, long time, FuturesBalanceResult result) {
+		public BigDecimal get() {
+			for (BalanceAccount account : result.list) {
 				if (account.coin == null) continue;
 				for (BalanceCoin coin : account.coin) {
 					if (!"USDT".equalsIgnoreCase(coin.coin)) continue;
-					return Double.parseDouble(coin.walletBalance);
+					return coin.walletBalance;
 				}
 			}
-			return 0.0;
+			throw new IllegalStateException("Bybit futures USDT balance not found");
+		}
+
+		private record FuturesBalanceResult(List<BalanceAccount> list) {
+		}
+
+		private record BalanceAccount(List<BalanceCoin> coin) {
+		}
+
+		private record BalanceCoin(String coin, BigDecimal walletBalance) {
 		}
 	}
 
-	private record BalanceResult(List<BalanceAccount> list) {}
-
-	private record BalanceAccount(List<BalanceCoin> coin) {}
-
-	private record BalanceCoin(String coin, String walletBalance) {}
 
 	public record MaxLeverageResponse(int retCode, String retMsg, long time, MaxLeverageResult result) implements
 					PaginatedResponse {
@@ -96,9 +103,10 @@ class PrivateResponses {
 
 			for (MaxLeverageItem item : result.list) {
 				String symbol = item.symbol;
-				double maxLeverage = Double.parseDouble(item.leverageFilter.maxLeverage);
-				if (maxLeverage == 0) throw new IllegalStateException("Invalid max leverage for symbol: " + symbol);
-				maxLeverageBySymbol.put(symbol, (int) Math.floor(maxLeverage));
+				BigDecimal maxLeverage = new BigDecimal(item.leverageFilter.maxLeverage);
+				if (maxLeverage.compareTo(BigDecimal.ZERO) == 0)
+					throw new IllegalStateException("Invalid max leverage for symbol: " + symbol);
+				maxLeverageBySymbol.put(symbol, maxLeverage.intValue());
 			}
 
 			return maxLeverageBySymbol;
@@ -110,39 +118,38 @@ class PrivateResponses {
 	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
-	private record MaxLeverageResult(List<MaxLeverageItem> list, String nextPageCursor) {}
+	private record MaxLeverageResult(List<MaxLeverageItem> list, String nextPageCursor) {
+	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
-	private record MaxLeverageItem(String symbol, LeverageFilter leverageFilter) {}
+	private record MaxLeverageItem(String symbol, LeverageFilter leverageFilter) {
+	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
-	private record LeverageFilter(String maxLeverage) {}
+	private record LeverageFilter(String maxLeverage) {
+	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
 	public record SupportedChainsResponse(int retCode, String retMsg, long time, SupportedChainsResult result) {
-		public ExchangeChains get() {
-			if (result == null) throw new IllegalStateException("Supported chains info not found");
+		public ExchangeChains getSupportedChains() {
 			ExchangeChainsBuilder builder = new ExchangeChainsBuilder();
 			List<SupportedCoin> rows = result.rows;
-			if (rows == null) {
-				throw new IllegalStateException("Supported chains info not found");
-			}
 
 			for (SupportedCoin coin : rows) {
 				if (!"USDT".equalsIgnoreCase(coin.coin)) continue;
 				if (coin.chains == null) continue;
 				for (SupportedChainInfo chain : coin.chains) {
 					String chainName = chain.chain;
-					SupportedChain mapped = ChainsMap.getInverse(chainName);
+					SupportedChain mapped = chainsMap.getInverse(chainName);
 					if (mapped == null) continue;
 					boolean depositEnable = "1".equals(chain.chainDeposit);
 					boolean withdrawEnable = "1".equals(chain.chainWithdraw);
 					if (depositEnable) builder.addDepositableChain(mapped);
 					if (withdrawEnable) {
-						double fee = Double.parseDouble(chain.withdrawFee);
-						double min = Double.parseDouble(chain.withdrawMin);
-						if (fee >= 0 && min >= 0) {
-							builder.addWithdrawableChain(new WithdrawChain(mapped, fee, min));
+						BigDecimal fee = new BigDecimal(chain.withdrawFee);
+						BigDecimal min = new BigDecimal(chain.withdrawMin);
+						if (fee.compareTo(BigDecimal.ZERO) >= 0 && min.compareTo(BigDecimal.ZERO) >= 0) {
+							builder.addWithdrawableChain(new WithdrawChain(mapped, fee, min, chain.precisionPoints()));
 						} else {
 							throw new IllegalStateException("Invalid withdraw fee/min for chain: " + chainName);
 						}
@@ -154,41 +161,59 @@ class PrivateResponses {
 		}
 	}
 
-	private record SupportedChainsResult(List<SupportedCoin> rows) {}
+	private record SupportedChainsResult(List<SupportedCoin> rows) {
+	}
 
-	private record SupportedCoin(String coin, List<SupportedChainInfo> chains) {}
+	private record SupportedCoin(String coin, List<SupportedChainInfo> chains) {
+	}
 
 	private record SupportedChainInfo(
-					String chain, String chainDeposit, String chainWithdraw, String withdrawFee, String withdrawMin
-	) {}
+					String chain,
+					String chainDeposit,
+					String chainWithdraw,
+					String withdrawFee,
+					String withdrawMin,
+					String minAccuracy
+	) {
+		int precisionPoints() {
+			if (minAccuracy == null || minAccuracy.isEmpty()) {
+				throw new IllegalStateException("Bybit minAccuracy missing for chain: " + chain);
+			}
+			int precision = Integer.parseInt(minAccuracy);
+			if (precision <= 0) {
+				throw new IllegalStateException("Bybit minAccuracy must be positive for chain: " + chain);
+			}
+			return precision;
+		}
+	}
 
-	private record WalletItem(String chain, String addressDeposit, String tagDeposit) {}
+	private record WalletItem(String chain, String addressDeposit, String tagDeposit) {
+	}
 
-	private record WalletResult(String coin, List<WalletItem> chains) {}
+	private record WalletResult(String coin, List<WalletItem> chains) {
+	}
 
 	public record UsdtWalletAddressResponse(
 					int retCode, String retMsg, long time, WalletResult result
 	) {
 		public WalletAddress get(SupportedChain chain) {
-			if (result == null || result.chains == null) {
-				throw new IllegalStateException("USDT wallet address response missing");
-			}
 			for (WalletItem item : result.chains) {
 				String chainName = item.chain;
-				SupportedChain mapped = ChainsMap.getInverse(chainName);
-				if (mapped == chain) {
-					String address = item.addressDeposit;
-					String tag = item.tagDeposit;
-					if (tag != null && tag.isEmpty()) tag = null;
-					return new WalletAddress(chain, address, tag);
-				}
+				SupportedChain mapped = chainsMap.getInverse(chainName);
+				if (!chain.equals(mapped)) continue;
+
+				String address = item.addressDeposit;
+				String tag = item.tagDeposit;
+				if (tag != null && tag.isEmpty()) tag = null;
+				return new WalletAddress(chain, address, tag);
 			}
 			throw new IllegalStateException("USDT wallet address not found for chain: " + chain);
 		}
 	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
-	private record WithdrawResult(String id) {}
+	private record WithdrawResult(String id) {
+	}
 
 	public record WithdrawUsdtResponse(int retCode, String retMsg, long time, WithdrawResult result) {
 		public WithdrawUsdtResponse {
@@ -196,7 +221,8 @@ class PrivateResponses {
 	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
-	private record PlaceFuturesOrderResult(String orderId, String orderLinkId) {}
+	private record PlaceFuturesOrderResult(String orderId, String orderLinkId) {
+	}
 
 	public record PlaceFuturesOrderResponse(int retCode, String retMsg, long time, PlaceFuturesOrderResult result) {
 		public String orderId() {
@@ -208,7 +234,8 @@ class PrivateResponses {
 	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
-	private record OrderRecordsResult(List<OrderRecordItem> list) {}
+	private record OrderRecordsResult(List<OrderRecordItem> list) {
+	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
 	private record OrderRecordItem(
@@ -219,7 +246,8 @@ class PrivateResponses {
 					String execFee,
 					String feeCurrency,
 					long execTime
-	) {}
+	) {
+	}
 
 	public record GetOrderRecordResponse(int retCode, String retMsg, long time, OrderRecordsResult result) {
 		public List<PartialFill> get() {
@@ -230,11 +258,11 @@ class PrivateResponses {
 				String orderId = item.orderId;
 				if (orderId == null || orderId.isEmpty()) continue;
 				String symbol = item.symbol;
-				double qty = Double.parseDouble(item.execQuantity);
-				double price = Double.parseDouble(item.execPrice);
-				double fee = Double.parseDouble(item.execFee);
+				BigDecimal qty = new BigDecimal(item.execQuantity);
+				BigDecimal price = new BigDecimal(item.execPrice);
+				BigDecimal fee = new BigDecimal(item.execFee);
 				String feeCoin = item.feeCurrency;
-				Double feeValue = "USDT".equalsIgnoreCase(feeCoin) ? fee : null;
+				BigDecimal feeValue = "USDT".equalsIgnoreCase(feeCoin) ? fee : null;
 				Instant ts = Instant.ofEpochMilli(item.execTime);
 				fills.add(new PartialFill(orderId, symbol, qty, price, feeValue, ts));
 			}
@@ -243,7 +271,8 @@ class PrivateResponses {
 	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
-	private record InternalTransferResult(String transferId, String status) {}
+	private record InternalTransferResult(String transferId, String status) {
+	}
 
 	public record InternalTransferResponse(int retCode, String retMsg, long time, InternalTransferResult result) {
 		public InternalTransferResponse {

@@ -17,6 +17,7 @@ import com.boris.fundingarbitrage.util.logger.Logger;
 import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
 import org.apache.hc.core5.net.URIBuilder;
 
+import java.math.BigDecimal;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Instant;
@@ -37,8 +38,7 @@ public class BinancePrivateHttpClient extends PrivateHttpClient {
 	@Override
 	protected SimpleHttpRequest signRequest(SimpleHttpRequest request) {
 		try {
-			URI withCredentials = new URIBuilder(request.getUri())
-							.addParameter("recvWindow", "5000")
+			URI withCredentials = new URIBuilder(request.getUri()).addParameter("recvWindow", "5000")
 							.addParameter("timestamp", String.valueOf(System.currentTimeMillis()))
 							.build();
 			URI sortedParamsUri = Helpers.sortParamsAlphabetically(withCredentials);
@@ -62,8 +62,11 @@ public class BinancePrivateHttpClient extends PrivateHttpClient {
 	@Override
 	public CompletableFuture<CoinVector<Fees>> getTradingFees(Set<String> coins) {
 		CoinVector<Fees> fees = new CoinVector<>();
+		BigDecimal maker = new BigDecimal("0.0002");
+		BigDecimal taker = new BigDecimal("0.0005");
+
 		for (String coin : coins) {
-			fees.put(coin, new Fees(0.0002, 0.0005, 0.0002, 0.0005, Instant.now()));
+			fees.put(coin, new Fees(maker, taker, maker, taker, Instant.now()));
 		} // those fees are true, for binance vip level = 1, not going out of that for some time :)
 		return CompletableFuture.completedFuture(fees);
 	}
@@ -91,7 +94,7 @@ public class BinancePrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
-	public CompletableFuture<Double> getSpotUsdtBalance() {
+	public CompletableFuture<BigDecimal> getSpotUsdtBalance() {
 		return requestWrapper.processRequest(
 						signRequest(PrivateEndpoints.spotUsdtBalanceRequest()),
 						PrivateResponses.SpotUsdtBalanceResponse.class,
@@ -100,7 +103,7 @@ public class BinancePrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
-	public CompletableFuture<Double> getFuturesUsdtBalance() {
+	public CompletableFuture<BigDecimal> getFuturesUsdtBalance() {
 		return requestWrapper.processRequest(
 						signRequest(PrivateEndpoints.futuresUsdtBalanceRequest()),
 						PrivateResponses.FuturesUsdtBalanceResponse.class,

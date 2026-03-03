@@ -22,9 +22,12 @@ repositories {
 }
 
 dependencies {
-    testImplementation(platform("org.junit:junit-bom:5.10.0"))
-    testImplementation("org.junit.jupiter:junit-jupiter")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    testImplementation("org.junit.jupiter:junit-jupiter-api:6.1.0-M1")
+    testImplementation("org.junit.platform:junit-platform-launcher:6.1.0-M1")
+    testImplementation("org.junit.jupiter:junit-jupiter-engine:6.1.0-M1")
+    testImplementation("org.mockito:mockito-junit-jupiter:5.18.0")
+    testImplementation("org.mockito:mockito-inline:5.2.0")
+    testImplementation("org.hamcrest:hamcrest:3.0")
     implementation("org.apache.commons:commons-numbers-core:1.1")
     implementation("org.apache.commons:commons-lang3:3.14.0")
     implementation("org.apache.httpcomponents.client5:httpclient5:5.3")
@@ -57,6 +60,14 @@ sourceSets {
 tasks.test {
     useJUnitPlatform {
         excludeTags("manual")
+    }
+}
+
+tasks.withType<Test>().configureEach {
+    doFirst {
+        val mockitoCoreJar = classpath.files.firstOrNull { it.name.startsWith("mockito-core-") }
+            ?: error("mockito-core jar not found on test classpath")
+        jvmArgs("-javaagent:${mockitoCoreJar.absolutePath}")
     }
 }
 

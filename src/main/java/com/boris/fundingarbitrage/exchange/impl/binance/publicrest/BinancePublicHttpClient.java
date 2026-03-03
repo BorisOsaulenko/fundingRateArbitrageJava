@@ -50,20 +50,19 @@ public class BinancePublicHttpClient extends PublicHttpClient {
 						PublicResponses.BookTickerResponse::getBookTickers
 		);
 
-		CompletableFuture<Map<String, Double>> volumes24hFuture = requestWrapper.processRequest(
+		CompletableFuture<Map<String, BigDecimal>> volumes24hFuture = requestWrapper.processRequest(
 						PublicEndpoints.statistic24hRequest(),
 						PublicResponses.Statistics24hResponse.class,
 						PublicResponses.Statistics24hResponse::getVolume24h
 		);
 
-		return CompletableFuture
-						.allOf(lotSizesFuture, fundingGranularityFuture, bookTickersFuture, volumes24hFuture)
+		return CompletableFuture.allOf(lotSizesFuture, fundingGranularityFuture, bookTickersFuture, volumes24hFuture)
 						.thenApply(_ -> {
 							Map<String, PublicOnePullData> data = new HashMap<>();
 							for (String symbol : lotSizesFuture.join().keySet()) {
 								try {
 									BigDecimal lotSize = lotSizesFuture.join().get(symbol);
-									double volume24h = volumes24hFuture.join().get(symbol);
+									BigDecimal volume24h = volumes24hFuture.join().get(symbol);
 									BookTicker ticker = bookTickersFuture.join().get(symbol);
 									int fundingGranularity = fundingGranularityFuture.join().get(symbol);
 									data.put(symbol, new PublicOnePullData(lotSize, ticker, volume24h, fundingGranularity));

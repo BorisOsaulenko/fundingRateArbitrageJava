@@ -3,9 +3,10 @@ package com.boris.fundingarbitrage.model.contract;
 import com.boris.fundingarbitrage.model.Validations;
 import lombok.NonNull;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 
-public record MarkPrice(double price, @NonNull Instant timestamp) {
+public record MarkPrice(BigDecimal price, @NonNull Instant timestamp) {
 	public MarkPrice {
 		if (!Instant.EPOCH.equals(timestamp)) {
 			Validations.requirePositive(price, "Price");
@@ -13,12 +14,10 @@ public record MarkPrice(double price, @NonNull Instant timestamp) {
 	}
 
 	public static MarkPrice empty() {
-		return new MarkPrice(0, Instant.EPOCH);
+		return new MarkPrice(BigDecimal.ZERO, Instant.EPOCH);
 	}
 
 	public static boolean isPartiallyEmpty(MarkPrice markPrice) {
-		return markPrice.price() == 0 ||
-					 markPrice.timestamp() == null ||
-					 Instant.EPOCH.equals(markPrice.timestamp());
+		return markPrice.price().equals(BigDecimal.ZERO) || Instant.EPOCH.equals(markPrice.timestamp());
 	}
 }

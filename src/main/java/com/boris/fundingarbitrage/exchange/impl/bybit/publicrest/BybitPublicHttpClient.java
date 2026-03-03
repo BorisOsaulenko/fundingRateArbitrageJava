@@ -42,13 +42,13 @@ public class BybitPublicHttpClient extends PublicHttpClient {
 						}, null
 		);
 
-		CompletableFuture<PublicResponses.TickersResponseSymbols> tickersResponseFuture = requestWrapper.getResponse(PublicEndpoints.tickersRequest(),
-						PublicResponses.TickersResponseSymbols.class
-		);
+		CompletableFuture<PublicResponses.TickersResponseSymbols>
+						tickersResponseFuture =
+						requestWrapper.getResponse(PublicEndpoints.tickersRequest(), PublicResponses.TickersResponseSymbols.class);
 
 		return CompletableFuture.allOf(instrumentsResponseFuture, tickersResponseFuture).thenApply(_ -> {
 			Map<String, BookTicker> bookTickers = tickersResponseFuture.join().getBookTickers();
-			Map<String, Double> volume24h = tickersResponseFuture.join().getVolume24h();
+			Map<String, BigDecimal> volume24h = tickersResponseFuture.join().getVolume24h();
 
 			Map<String, PublicOnePullData> data = new HashMap<>();
 			for (String symbol : lotSizes.keySet()) {

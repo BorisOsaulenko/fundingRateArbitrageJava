@@ -14,6 +14,7 @@ import com.boris.fundingarbitrage.util.https.RequestProcessingClientWrapper;
 import com.boris.fundingarbitrage.util.logger.Logger;
 import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
 
+import java.math.BigDecimal;
 import java.net.URI;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
@@ -22,7 +23,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
 
 public class OkxPrivateHttpClient extends PrivateHttpClient {
 	private final ExchangeCredentials credentials;
@@ -63,24 +63,16 @@ public class OkxPrivateHttpClient extends PrivateHttpClient {
 		}
 	}
 
-	private <T, U> CompletableFuture<U> processRequest(
-					SimpleHttpRequest request,
-					Class<T> responseClass,
-					Function<T, U> parser
-	) {
-		return requestWrapper.processRequest(signRequest(request), responseClass, parser);
-	}
-
 	@Override
 	protected CompletableFuture<Map<String, Fees>> getTradingFeesSymbolBatch() {
-		CompletableFuture<Map<Integer, PrivateResponses.FeeGroup>> feeGroupMapFuture = processRequest(
-						PrivateEndpoints.tradingFeesRequest(),
+		CompletableFuture<Map<Integer, PrivateResponses.FeeGroup>> feeGroupMapFuture = requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.tradingFeesRequest()),
 						PrivateResponses.TradingFeesSymbolsResponse.class,
 						PrivateResponses.TradingFeesSymbolsResponse::getFeeGroups
 		);
 
-		CompletableFuture<Map<String, Integer>> instrumentsResponseFuture = processRequest(
-						PrivateEndpoints.instrumentsRequest(),
+		CompletableFuture<Map<String, Integer>> instrumentsResponseFuture = requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.instrumentsRequest()),
 						PrivateResponses.InstrumentsResponse.class,
 						PrivateResponses.InstrumentsResponse::getFeeGroupId
 		);
@@ -91,8 +83,8 @@ public class OkxPrivateHttpClient extends PrivateHttpClient {
 			Map<String, Fees> result = new HashMap<>();
 
 			instruments.forEach((String symbol, Integer feeGroupId) -> {
-				double maker = -feeGroupMap.get(feeGroupId).maker(); // okx expresses fees as negative
-				double taker = -feeGroupMap.get(feeGroupId).taker();
+				BigDecimal maker = feeGroupMap.get(feeGroupId).maker().negate(); // okx expresses fees as negative
+				BigDecimal taker = feeGroupMap.get(feeGroupId).taker().negate();
 				result.put(symbol, new Fees(maker, taker, maker, taker, Instant.now()));
 			});
 
@@ -102,8 +94,8 @@ public class OkxPrivateHttpClient extends PrivateHttpClient {
 
 	@Override
 	protected CompletableFuture<Void> changeLeverageSymbol(String symbol, int leverage) {
-		return processRequest(
-						PrivateEndpoints.changeLeverageRequestSymbol(symbol, leverage, MarginMode.CROSS),
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.changeLeverageRequestSymbol(symbol, leverage, MarginMode.CROSS)),
 						PrivateResponses.ChangeLeverageResponse.class,
 						(resp) -> null
 		);
@@ -111,30 +103,30 @@ public class OkxPrivateHttpClient extends PrivateHttpClient {
 
 	@Override
 	protected CompletableFuture<Void> setMarginModeSymbol(String symbol, MarginMode marginMode) {
-		return processRequest(
-						PrivateEndpoints.leverageInfoRequestSymbol(symbol, marginMode),
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.leverageInfoRequestSymbol(symbol, marginMode)),
 						PrivateResponses.LeverageInfoResponse.class,
 						(resp) -> resp.getLever(symbol)
-		).thenCompose(lever -> processRequest(
-						PrivateEndpoints.changeLeverageRequestSymbol(symbol, lever, marginMode),
+		).thenCompose(lever -> requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.changeLeverageRequestSymbol(symbol, lever, marginMode)),
 						PrivateResponses.ChangeLeverageResponse.class,
 						(resp) -> null
 		));
 	}
 
 	@Override
-	public CompletableFuture<Double> getSpotUsdtBalance() {
-		return processRequest(
-						PrivateEndpoints.spotUsdtBalanceRequest(),
+	public CompletableFuture<BigDecimal> getSpotUsdtBalance() {
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.spotUsdtBalanceRequest()),
 						PrivateResponses.SpotUsdtBalanceResponse.class,
 						PrivateResponses.SpotUsdtBalanceResponse::get
 		);
 	}
 
 	@Override
-	public CompletableFuture<Double> getFuturesUsdtBalance() {
-		return processRequest(
-						PrivateEndpoints.futuresUsdtBalanceRequest(),
+	public CompletableFuture<BigDecimal> getFuturesUsdtBalance() {
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.futuresUsdtBalanceRequest()),
 						PrivateResponses.FuturesUsdtBalanceResponse.class,
 						PrivateResponses.FuturesUsdtBalanceResponse::get
 		);
@@ -142,8 +134,8 @@ public class OkxPrivateHttpClient extends PrivateHttpClient {
 
 	@Override
 	protected CompletableFuture<Map<String, Integer>> getMaxLeverageSymbolBatch() {
-		return processRequest(
-						PrivateEndpoints.instrumentsRequest(),
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.instrumentsRequest()),
 						PrivateResponses.InstrumentsResponse.class,
 						PrivateResponses.InstrumentsResponse::getMaxLeverage
 		);
@@ -151,8 +143,8 @@ public class OkxPrivateHttpClient extends PrivateHttpClient {
 
 	@Override
 	public CompletableFuture<ExchangeChains> getSupportedChains() {
-		return processRequest(
-						PrivateEndpoints.supportedChainsRequest(),
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.supportedChainsRequest()),
 						PrivateResponses.SupportedChainsResponse.class,
 						PrivateResponses.SupportedChainsResponse::get
 		);
@@ -160,8 +152,8 @@ public class OkxPrivateHttpClient extends PrivateHttpClient {
 
 	@Override
 	public CompletableFuture<WalletAddress> getUsdtWalletAddress(SupportedChain chain) {
-		return processRequest(
-						PrivateEndpoints.usdtWalletAddressRequest(chain),
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.usdtWalletAddressRequest(chain)),
 						PrivateResponses.UsdtWalletAddressResponse.class,
 						(resp) -> resp.get(chain)
 		);
@@ -169,21 +161,17 @@ public class OkxPrivateHttpClient extends PrivateHttpClient {
 
 	@Override
 	public CompletableFuture<Void> withdrawUsdt(Withdrawal withdrawal) {
-		return processRequest(
-						PrivateEndpoints.supportedChainsRequest(),
-						PrivateResponses.CurrencyInfoResponse.class,
-						(resp) -> resp.minFee(withdrawal.address().chain())
-		).thenCompose(fee -> processRequest(
-						PrivateEndpoints.withdrawUsdtRequest(withdrawal, fee),
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.withdrawUsdtRequest(withdrawal)),
 						PrivateResponses.WithdrawUsdtResponse.class,
-						(resp) -> null
-		));
+						(_) -> null
+		);
 	}
 
 	@Override
 	protected CompletableFuture<String> placeFuturesOrderSymbol(String symbol, FuturesOrder futuresOrder) {
-		return processRequest(
-						PrivateEndpoints.placeFuturesOrderRequestSymbol(symbol, futuresOrder),
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.placeFuturesOrderRequestSymbol(symbol, futuresOrder)),
 						PrivateResponses.PlaceFuturesOrderResponse.class,
 						PrivateResponses.PlaceFuturesOrderResponse::orderId
 		);
@@ -195,8 +183,8 @@ public class OkxPrivateHttpClient extends PrivateHttpClient {
 					String symbol,
 					TradeSide tradeSide
 	) {
-		return processRequest(
-						PrivateEndpoints.orderRecordRequestSymbol(orderId, symbol),
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.orderRecordRequestSymbol(orderId, symbol)),
 						PrivateResponses.GetOrderRecordResponse.class,
 						(resp) -> resp.get(orderId)
 		);
@@ -204,8 +192,8 @@ public class OkxPrivateHttpClient extends PrivateHttpClient {
 
 	@Override
 	public CompletableFuture<Void> internalTransfer(InternalTransfer internalTransfer) {
-		return processRequest(
-						PrivateEndpoints.internalTransferRequest(internalTransfer),
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.internalTransferRequest(internalTransfer)),
 						PrivateResponses.InternalTransferResponse.class,
 						(resp) -> null
 		);

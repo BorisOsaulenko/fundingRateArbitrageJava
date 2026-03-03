@@ -8,46 +8,15 @@ import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
 import com.boris.fundingarbitrage.util.logger.Logger;
 import com.fasterxml.jackson.databind.JsonNode;
 
+import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.function.Function;
 
 class OkxPublicMessageHandler implements PublicMessageHandler {
 	private final ExchangeContext context;
 
 	public OkxPublicMessageHandler(ExchangeContext context) {
 		this.context = context;
-	}
-
-	private static Double parseDouble(JsonNode node, String field) {
-		JsonNode val = node.get(field);
-		if (val == null || val.isNull()) return null;
-		String text = val.asText();
-		if (text == null || text.isEmpty()) return null;
-		return Double.parseDouble(text);
-	}
-
-	private static Instant parseInstantMillis(JsonNode node, String field) {
-		JsonNode val = node.get(field);
-		if (val == null || val.isNull()) return null;
-		String text = val.asText();
-		if (text == null || text.isEmpty()) return null;
-		return Instant.ofEpochMilli(Long.parseLong(text));
-	}
-
-	private FundingRatePatch parseFundingRateInternal(JsonNode root) {
-		String channel = root.path("arg").path("channel").asText();
-		if (!"funding-rate".equalsIgnoreCase(channel)) return null;
-		String symbol = root.path("arg").path("instId").asText();
-		JsonNode dataArray = root.get("data");
-		if (dataArray == null || !dataArray.isArray() || dataArray.isEmpty()) return null;
-		JsonNode data = dataArray.get(0);
-
-		String coin = context.getSymbolInverse(symbol);
-		Double rate = parseDouble(data, "fundingRate");
-		Instant nextFunding = parseInstantMillis(data, "nextFundingTime");
-		Instant ts = parseInstantMillis(data, "ts");
-		if (rate == null || nextFunding == null || ts == null) return null;
-
-		return new FundingRatePatch(coin, rate, nextFunding, ts);
 	}
 
 	private MarkPricePatch parseMarkPriceInternal(JsonNode root) {
@@ -59,8 +28,11 @@ class OkxPublicMessageHandler implements PublicMessageHandler {
 		JsonNode data = dataArray.get(0);
 
 		String coin = context.getSymbolInverse(symbol);
-		Double markPx = parseDouble(data, "markPx");
-		Instant ts = parseInstantMillis(data, "ts");
+		String markPxNode = data.path("markPx").asText();
+		BigDecimal markPx = markPxNode.isEmpty() ? null : new BigDecimal(markPxNode);
+
+		long tsNode = data.path("ts").asLong();
+		Instant ts = tsNode == 0 ? null : Instant.ofEpochMilli(tsNode);
 		if (markPx == null || ts == null) return null;
 
 		return new MarkPricePatch(coin, markPx, ts);
@@ -75,18 +47,25 @@ class OkxPublicMessageHandler implements PublicMessageHandler {
 		JsonNode data = dataArray.get(0);
 
 		String coin = context.getSymbolInverse(symbol);
-		Double bidPx = parseDouble(data, "bidPx");
-		Double bidSz = parseDouble(data, "bidSz");
-		Double askPx = parseDouble(data, "askPx");
-		Double askSz = parseDouble(data, "askSz");
-		Instant ts = parseInstantMillis(data, "ts");
-		if (ts == null) return null;
+		String bidPxNode = data.path("bidPx").asText();
+		String bidSzNode = data.path("bidSz").asText();
+		String askPxNode = data.path("askPx").asText();
+		String askSzNode = data.path("askSz").asText();
+		BigDecimal bidPx = bidPxNode.isEmpty() ? null : new BigDecimal(bidPxNode);
+		BigDecimal bidSz = bidSzNode.isEmpty() ? null : new BigDecimal(bidSzNode);
+		BigDecimal askPx = askPxNode.isEmpty() ? null : new BigDecimal(askPxNode);
+		BigDecimal askSz = askSzNode.isEmpty() ? null : new BigDecimal(askSzNode);
 		if (bidPx == null && bidSz == null && askPx == null && askSz == null) return null;
+
+		long tsNode = data.path("ts").asLong();
+		Instant ts = tsNode == 0 ? null : Instant.ofEpochMilli(tsNode);
+		if (ts == null) return null;
+
 
 		return new BookTickerPatch(coin, bidPx, bidSz, askPx, askSz, ts);
 	}
 
-	private <T> T parseErrorHandled(java.util.function.Function<JsonNode, T> parser, JsonNode root) {
+	private <T> T parseErrorHandled(Function<JsonNode, T> parser, JsonNode root) {
 		try {
 			return parser.apply(root);
 		} catch (IllegalArgumentException ex) {
@@ -99,7 +78,7 @@ class OkxPublicMessageHandler implements PublicMessageHandler {
 
 	@Override
 	public FundingRatePatch parseFundingRateMessageSymbol(JsonNode root) {
-		return parseErrorHandled(this::parseFundingRateInternal, root);
+		return null;
 	}
 
 	@Override

@@ -10,15 +10,17 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.time.Instant;
+import java.util.Arrays;
+import java.util.List;
 
 public class Logger {
 	private static BufferedWriter writer;
 	private static boolean initCalled = false;
+	private static boolean includeStackTrace = false;
 
 	public static void init(Path logFilePath) {
-		if (initCalled) {
-			throw new IllegalStateException("Logger constructor called more than once");
-		}
+		if (initCalled) throw new IllegalStateException("Logger constructor called more than once");
+
 		initCalled = true;
 		if (logFilePath != null) {
 			try {
@@ -54,24 +56,30 @@ public class Logger {
 		}
 	}
 
-	private static String getLogPrefix(String type) {
-		return String.format("[%s] [%s] [%s] ", Thread.currentThread().getName(), Instant.now().toString(), type);
+	private static String getLogPrefix() {
+		if (includeStackTrace) {
+			List<StackTraceElement> stackTrace = Arrays.stream(Thread.currentThread().getStackTrace()).toList();
+			StackTraceElement careAbout = stackTrace.getLast();
+			return String.format("[%s] [%s] [%s] ", Thread.currentThread().getName(), Instant.now().toString(), careAbout);
+		}
+
+		return String.format("[%s] [%s]", Thread.currentThread().getName(), Instant.now().toString());
 	}
 
 	public static void log(String message) {
-		writeLine(getLogPrefix("INFO") + message);
+		writeLine(getLogPrefix() + message);
 	}
 
 	public static void warn(String message) {
-		writeLine(getLogPrefix("WARN") + message);
+		writeLine(getLogPrefix() + message);
 	}
 
 	public static void error(String message) {
-		writeLine(getLogPrefix("ERROR") + message);
+		writeLine(getLogPrefix() + message);
 	}
 
 	public static void debug(String message) {
-		String line = getLogPrefix("Debug") + message;
+		String line = getLogPrefix() + message;
 		if (writer == null) {
 			System.err.println(line);
 			System.err.flush();
@@ -88,12 +96,12 @@ public class Logger {
 
 	public static <T> void logCoinVector(CoinVector<T> coinVector) {
 		if (coinVector == null) {
-			writeLine(getLogPrefix("INFO") + "(CoinVector) <null>");
+			writeLine(getLogPrefix() + "(CoinVector) <null>");
 			return;
 		}
 
 		if (coinVector.isEmpty()) {
-			writeLine(getLogPrefix("INFO") + "(CoinVector) <empty>");
+			writeLine(getLogPrefix() + "(CoinVector) <empty>");
 			return;
 		}
 
@@ -109,7 +117,7 @@ public class Logger {
 
 		String border = "+" + "-".repeat(coinColWidth + 2) + "+" + "-".repeat(valueColWidth + 2) + "+";
 
-		writeLine(getLogPrefix("INFO") + "(CoinVector)");
+		writeLine(getLogPrefix() + "(CoinVector)");
 		writeLine(border);
 		writeLine(String.format("| %-" + coinColWidth + "s | %-" + valueColWidth + "s |", "Coin", "Value"));
 		writeLine(border);
@@ -131,5 +139,9 @@ public class Logger {
 		} catch (IOException e) {
 			throw new UncheckedIOException("Failed to close log file", e);
 		}
+	}
+
+	public void setIncludeStackTrace(boolean includeStackTrace) {
+		Logger.includeStackTrace = includeStackTrace;
 	}
 }

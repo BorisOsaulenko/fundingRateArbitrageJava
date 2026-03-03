@@ -9,6 +9,7 @@ import com.boris.fundingarbitrage.model.exchange.WithdrawChain;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -16,7 +17,10 @@ import java.util.List;
 import java.util.Map;
 
 class PrivateResponses {
-	public record ChangeLeverageResponseSymbol(String symbol, double leverage) {}
+	protected static final BinanceChainsMap chainsMap = new BinanceChainsMap();
+
+	public record ChangeLeverageResponseSymbol(String symbol, double leverage) {
+	}
 
 	public record SetMarginModeResponse(Integer code, String msg) {
 		public SetMarginModeResponse(Integer code, String msg) {
@@ -29,50 +33,57 @@ class PrivateResponses {
 		}
 	}
 
-	private record SpotBalanceItem(String asset, String free) {}
+	private record SpotBalanceItem(String asset, BigDecimal free) {
+	}
 
 	@JsonFormat(shape = JsonFormat.Shape.ARRAY)
 	public record SpotUsdtBalanceResponse(SpotBalanceItem[] balances) {
 		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
-		public SpotUsdtBalanceResponse {}
+		public SpotUsdtBalanceResponse {
+		}
 
-		public double get() {
+		public BigDecimal get() {
 			for (SpotBalanceItem item : balances) {
 				if (item.asset.equals("USDT")) {
-					return Double.parseDouble(item.free);
+					return item.free;
 				}
 			}
 
-			return 0.0;
+			return BigDecimal.ZERO;
 		}
 	}
 
-	private record FuturesBalanceItem(String asset, String balance) {}
+	private record FuturesBalanceItem(String asset, BigDecimal balance) {
+	}
 
 	@JsonFormat(shape = JsonFormat.Shape.ARRAY)
 	public record FuturesUsdtBalanceResponse(FuturesBalanceItem[] assets) {
 		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
-		public FuturesUsdtBalanceResponse {}
+		public FuturesUsdtBalanceResponse {
+		}
 
-		public double get() {
+		public BigDecimal get() {
 			for (FuturesBalanceItem item : assets) {
 				if (item.asset.equals("USDT")) {
-					return Double.parseDouble(item.balance);
+					return (item.balance);
 				}
 			}
 
-			return 0.0;
+			return BigDecimal.ZERO;
 		}
 	}
 
-	private record LeverageBracket(int initialLeverage) {}
+	private record LeverageBracket(int initialLeverage) {
+	}
 
-	private record LeverageBracketsItem(String symbol, LeverageBracket[] brackets) {}
+	private record LeverageBracketsItem(String symbol, LeverageBracket[] brackets) {
+	}
 
 	@JsonFormat(shape = JsonFormat.Shape.ARRAY)
 	public record MaxLeverageResponse(LeverageBracketsItem[] items) {
 		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
-		public MaxLeverageResponse {}
+		public MaxLeverageResponse {
+		}
 
 		public Map<String, Integer> get() {
 			Map<String, Integer> result = new HashMap<>();
@@ -87,17 +98,21 @@ class PrivateResponses {
 					String network,
 					boolean depositEnable,
 					boolean withdrawEnable,
-					String withdrawFee,
-					String withdrawMin,
-					boolean withdrawTag
-	) {}
+					BigDecimal withdrawFee,
+					BigDecimal withdrawMin,
+					boolean withdrawTag,
+					String withdrawIntegerMultiple
+	) {
+	}
 
-	private record CoinInfo(String coin, NetworkListItem[] networkList) {}
+	private record CoinInfo(String coin, NetworkListItem[] networkList) {
+	}
 
 	@JsonFormat(shape = JsonFormat.Shape.ARRAY)
 	public record SupportedChainsResponse(CoinInfo[] chains) {
 		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
-		public SupportedChainsResponse {}
+		public SupportedChainsResponse {
+		}
 
 		public ExchangeChains get() {
 			ExchangeChainsBuilder builder = new ExchangeChainsBuilder();
@@ -105,15 +120,17 @@ class PrivateResponses {
 			for (CoinInfo coinInfo : chains) {
 				if (coinInfo.coin.equals("USDC")) {
 					for (NetworkListItem network : coinInfo.networkList) {
-						SupportedChain chain = ChainsMap.getInverse(network.network);
+						SupportedChain chain = chainsMap.getInverse(network.network);
 						if (chain == null) continue;
 
 						if (network.depositEnable) builder.addDepositableChain(chain);
 						if (network.withdrawEnable) {
+							int precision = network.withdrawIntegerMultiple.length() - 2; // String like 0.001
 							builder.addWithdrawableChain(new WithdrawChain(
 											chain,
-											Double.parseDouble(network.withdrawFee),
-											Double.parseDouble(network.withdrawMin)
+											network.withdrawFee,
+											network.withdrawMin,
+											precision
 							));
 						}
 					}
@@ -130,22 +147,27 @@ class PrivateResponses {
 		}
 	}
 
-	public record WithdrawUsdtResponse(String id) {}
+	public record WithdrawUsdtResponse(String id) {
+		public WithdrawUsdtResponse {
+		}
+	}
 
-	public record PlaceFuturesOrderResponse(int orderId) {}
+	public record PlaceFuturesOrderResponse(int orderId) {
+	}
 
 	private record OrderRecordItem(
-					String commission,
+					BigDecimal commission,
 					String commissionAsset,
 					String orderId,
-					String price,
-					String qty,
-					String realizedPnl,
+					BigDecimal price,
+					BigDecimal qty,
+					BigDecimal realizedPnl,
 					String side,
 					String positionSide,
 					String symbol,
 					String time
-	) {}
+	) {
+	}
 
 	public record GetOrderRecordResponse(OrderRecordItem[] items) {
 		public List<PartialFill> get() {
@@ -155,12 +177,12 @@ class PrivateResponses {
 
 			ArrayList<PartialFill> result = new ArrayList<>();
 			for (OrderRecordItem item : items) {
-				Double fee = item.commissionAsset().equals("USDT") ? Double.parseDouble(item.commission()) : null;
+				BigDecimal fee = item.commissionAsset().equals("USDT") ? item.commission() : null;
 				PartialFill partialFill = new PartialFill(
 								item.orderId(),
 								item.symbol(),
-								Double.parseDouble(item.qty()),
-								Double.parseDouble(item.price()),
+								item.qty(),
+								item.price(),
 								fee,
 								Instant.ofEpochMilli(Long.parseLong(item.time()))
 				);
@@ -171,5 +193,6 @@ class PrivateResponses {
 		}
 	}
 
-	public record InternalTransferResponse(long tranId) {}
+	public record InternalTransferResponse(long tranId) {
+	}
 }

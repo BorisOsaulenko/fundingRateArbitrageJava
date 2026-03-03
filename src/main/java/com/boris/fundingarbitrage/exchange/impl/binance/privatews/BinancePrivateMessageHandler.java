@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 
 class BinancePrivateMessageHandler implements PrivateMessageHandler {
@@ -38,8 +39,8 @@ class BinancePrivateMessageHandler implements PrivateMessageHandler {
 		if (balances == null || !balances.isArray()) return null;
 		for (JsonNode balance : balances) {
 			if (!"USDT".equals(balance.path("a").asText())) continue;
-			double free = parseDouble(balance, "f");
-			if (free > 0) {
+			BigDecimal free = balance.path("f").decimalValue();
+			if (free.compareTo(BigDecimal.ZERO) > 0) {
 				long timestamp = eventNode.path("E").asLong(0L);
 				return new DepositPatch(free, Instant.ofEpochMilli(timestamp));
 			}
@@ -57,9 +58,9 @@ class BinancePrivateMessageHandler implements PrivateMessageHandler {
 		return new PartialFill(
 						String.valueOf(eventNode.path("i").asLong()),
 						symbol,
-						parseDouble(eventNode, "l"),
-						parseDouble(eventNode, "L"),
-						parseDouble(eventNode, "n"),
+						eventNode.path("l").decimalValue(),
+						eventNode.path("L").decimalValue(),
+						eventNode.path("n").decimalValue(),
 						Instant.ofEpochMilli(eventNode.path("E").asLong())
 		);
 	}
@@ -75,18 +76,15 @@ class BinancePrivateMessageHandler implements PrivateMessageHandler {
 		}
 	}
 
-	@Override
-	public DepositPatch parseDepositMessageSymbol(String message) {
+	@Override public DepositPatch parseDepositMessageSymbol(String message) {
 		return parseErrorHandled(this::parseDepositInternal, message);
 	}
 
-	@Override
-	public PartialFill parsePartialFillMessageSymbol(String message) {
+	@Override public PartialFill parsePartialFillMessageSymbol(String message) {
 		return parseErrorHandled(this::parsePartialFillInternal, message);
 	}
 
-	@Override
-	public String getResponseToPingMessage(String message) {
+	@Override public String getResponseToPingMessage(String message) {
 		return null;
 	}
 }

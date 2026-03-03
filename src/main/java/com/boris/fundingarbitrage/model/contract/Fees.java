@@ -1,34 +1,42 @@
 package com.boris.fundingarbitrage.model.contract;
 
 import lombok.NonNull;
-import org.apache.commons.lang3.math.NumberUtils;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 
 public record Fees(
-				double openMaker, double openTaker, double closeMaker, double closeTaker, @NonNull Instant timestamp
+				BigDecimal openMaker,
+				BigDecimal openTaker,
+				BigDecimal closeMaker,
+				BigDecimal closeTaker,
+				@NonNull Instant timestamp
 ) {
 	public Fees {
-		final double maxReasonableFee = 0.01; // 1%, should be much less
-		final double maxFee = NumberUtils.max(openMaker, openTaker, closeMaker, closeTaker);
-		if (maxFee > maxReasonableFee) {
+		final BigDecimal maxReasonableFee = BigDecimal.valueOf(0.01); // 1%, should be much less
+		BigDecimal maxFee = openMaker;
+		for (BigDecimal fee : new BigDecimal[]{openTaker, closeMaker, closeTaker})
+			if (fee.compareTo(maxFee) > 0) {
+				maxFee = fee;
+			}
+
+		if (maxFee.compareTo(maxReasonableFee) > 0) {
 			throw new IllegalArgumentException(String.format(
 							"Fees very unlikely to be greater than 1%%. Got %.4f%%. May be collecting wrong data. Recheck, update maxReasonableFee if needed",
-							maxFee * 100
+							maxFee.multiply(BigDecimal.valueOf(100))
 			));
 		}
 	}
 
 	public static Fees empty() {
-		return new Fees(0, 0, 0, 0, Instant.EPOCH);
+		return new Fees(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, Instant.EPOCH);
 	}
 
 	public static boolean isPartiallyEmpty(Fees fees) {
-		return fees.openMaker() == 0 ||
-					 fees.openTaker() == 0 ||
-					 fees.closeMaker() == 0 ||
-					 fees.closeTaker() == 0 ||
-					 fees.timestamp() == null ||
+		return fees.openMaker().equals(BigDecimal.ZERO) ||
+					 fees.openTaker().equals(BigDecimal.ZERO) ||
+					 fees.closeMaker().equals(BigDecimal.ZERO) ||
+					 fees.closeTaker().equals(BigDecimal.ZERO) ||
 					 Instant.EPOCH.equals(fees.timestamp());
 	}
 }

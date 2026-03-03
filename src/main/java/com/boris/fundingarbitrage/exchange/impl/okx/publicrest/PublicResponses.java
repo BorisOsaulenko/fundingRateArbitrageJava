@@ -10,7 +10,8 @@ import java.util.List;
 import java.util.Map;
 
 class PublicResponses {
-	private record Instrument(String instId, BigDecimal lotSz) {}
+	private record Instrument(String instId, BigDecimal lotSz) {
+	}
 
 	public record InstrumentsResponse(int code, String msg, List<Instrument> data) {
 		public Map<String, BigDecimal> getLotSizes() {
@@ -21,8 +22,15 @@ class PublicResponses {
 	}
 
 	private record TickerItem(
-					String instId, String bidPx, String bidSz, String askPx, String askSz, String volCcy24h, String ts
-	) {}
+					String instId,
+					BigDecimal bidPx,
+					BigDecimal bidSz,
+					BigDecimal askPx,
+					BigDecimal askSz,
+					BigDecimal volCcy24h,
+					String ts
+	) {
+	}
 
 	public record TickersResponse(int code, String msg, List<TickerItem> data) {
 		public Map<String, BookTicker> getBookTickers() {
@@ -30,10 +38,10 @@ class PublicResponses {
 			for (TickerItem item : data) {
 				result.put(
 								item.instId(), new BookTicker(
-												Double.parseDouble(item.bidPx()),
-												Double.parseDouble(item.bidSz()),
-												Double.parseDouble(item.askPx()),
-												Double.parseDouble(item.askSz()),
+												item.bidPx(),
+												item.bidSz(),
+												item.askPx(),
+												item.askSz(),
 												Instant.ofEpochMilli(Long.parseLong(item.ts()))
 								)
 				);
@@ -41,16 +49,17 @@ class PublicResponses {
 			return result;
 		}
 
-		public Map<String, Double> getVolume24h() {
-			Map<String, Double> result = new HashMap<>();
-			for (TickerItem item : data) result.put(item.instId(), Double.parseDouble(item.volCcy24h()));
+		public Map<String, BigDecimal> getVolume24h() {
+			Map<String, BigDecimal> result = new HashMap<>();
+			for (TickerItem item : data) result.put(item.instId(), item.volCcy24h());
 			return result;
 		}
 	}
 
 	private record FundingRateItem(
 					String instId, String fundingRate, String fundingTime, String nextFundingTime, String ts
-	) {}
+	) {
+	}
 
 	public record FundingRatesResponse(int code, String msg, List<FundingRateItem> data) {
 		public Map<String, FundingRate> getFundingRates() {
@@ -58,7 +67,7 @@ class PublicResponses {
 			for (FundingRateItem item : data) {
 				result.put(
 								item.instId(), new FundingRate(
-												Double.parseDouble(item.fundingRate()),
+												new BigDecimal(item.fundingRate()),
 												Instant.ofEpochMilli(Long.parseLong(item.fundingTime())),
 												Instant.ofEpochMilli(Long.parseLong(item.ts()))
 								)

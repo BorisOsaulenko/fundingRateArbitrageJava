@@ -30,11 +30,14 @@ class PublicResponses {
 			return result.nextPageCursor();
 		}
 
-		private record LotSizeFilter(BigDecimal qtyStep) {}
+		private record LotSizeFilter(BigDecimal qtyStep) {
+		}
 
-		private record InstrumentInfo(String symbol, LotSizeFilter lotSizeFilter, int fundingInterval) {}
+		private record InstrumentInfo(String symbol, LotSizeFilter lotSizeFilter, int fundingInterval) {
+		}
 
-		private record InstrumentsInfoResult(String category, List<InstrumentInfo> list, String nextPageCursor) {}
+		private record InstrumentsInfoResult(String category, List<InstrumentInfo> list, String nextPageCursor) {
+		}
 	}
 
 	public record TickersResponseSymbols(int retCode, String retMsg, long time, TickersResult result) {
@@ -54,8 +57,8 @@ class PublicResponses {
 			return resultMap;
 		}
 
-		public Map<String, Double> getVolume24h() {
-			Map<String, Double> resultMap = new HashMap<>();
+		public Map<String, BigDecimal> getVolume24h() {
+			Map<String, BigDecimal> resultMap = new HashMap<>();
 			for (Ticker item : result.list()) resultMap.put(item.symbol(), item.volume24h());
 			return resultMap;
 		}
@@ -63,11 +66,13 @@ class PublicResponses {
 		public Map<String, FundingRate> getFundingRates() {
 			Map<String, FundingRate> resultMap = new HashMap<>();
 			for (Ticker item : result.list()) {
-				FundingRate fr = new FundingRate(
-								item.fundingRate(),
-								Instant.ofEpochMilli(item.nextFundingTime()),
-								Instant.ofEpochMilli(time)
-				);
+				FundingRate
+								fr =
+								new FundingRate(
+												item.fundingRate(),
+												Instant.ofEpochMilli(item.nextFundingTime()),
+												Instant.ofEpochMilli(time)
+								);
 				resultMap.put(item.symbol(), fr);
 			}
 			return resultMap;
@@ -75,15 +80,17 @@ class PublicResponses {
 
 		private record Ticker(
 						String symbol,
-						double bid1Price,
-						double bid1Size,
-						double ask1Price,
-						double ask1Size,
-						double volume24h,
-						double fundingRate,
+						BigDecimal bid1Price,
+						BigDecimal bid1Size,
+						BigDecimal ask1Price,
+						BigDecimal ask1Size,
+						BigDecimal volume24h,
+						BigDecimal fundingRate,
 						long nextFundingTime
-		) {}
+		) {
+		}
 
-		private record TickersResult(String category, List<Ticker> list) {}
+		private record TickersResult(String category, List<Ticker> list) {
+		}
 	}
 }

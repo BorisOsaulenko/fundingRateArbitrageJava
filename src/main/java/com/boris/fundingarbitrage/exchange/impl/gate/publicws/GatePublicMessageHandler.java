@@ -8,6 +8,7 @@ import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
 import com.boris.fundingarbitrage.util.logger.Logger;
 import com.fasterxml.jackson.databind.JsonNode;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 
 class GatePublicMessageHandler implements PublicMessageHandler {
@@ -39,8 +40,9 @@ class GatePublicMessageHandler implements PublicMessageHandler {
 		if (symbol == null || symbol.isEmpty()) return null;
 		String coin = context.getSymbolInverse(symbol);
 
-		double rate = entry.path("funding_rate").asDouble();
-		if (rate == 0.0) return null;
+		String rateNode = entry.get("funding_rate").asText();
+		BigDecimal rate = rateNode.isEmpty() ? null : new BigDecimal(rateNode);
+		if (rate == null) return null;
 
 		return new FundingRatePatch(coin, rate, null, Instant.ofEpochSecond(time));
 	}
@@ -60,8 +62,9 @@ class GatePublicMessageHandler implements PublicMessageHandler {
 		if (symbol == null || symbol.isEmpty()) return null;
 		String coin = context.getSymbolInverse(symbol);
 
-		double mark = entry.path("mark_price").asDouble();
-		if (mark == 0.0) return null;
+		String markNode = entry.path("mark_price").asText();
+		BigDecimal mark = markNode.isEmpty() ? null : new BigDecimal(markNode);
+		if (mark == null) return null;
 
 		return new MarkPricePatch(coin, mark, Instant.ofEpochSecond(time));
 	}
@@ -78,13 +81,16 @@ class GatePublicMessageHandler implements PublicMessageHandler {
 		if (symbol == null || symbol.isEmpty()) return null;
 		String coin = context.getSymbolInverse(symbol);
 
-		double bidPrice = result.path("b").asDouble();
-		double bidSize = result.path("B").asDouble();
-		double askPrice = result.path("a").asDouble();
-		double askSize = result.path("A").asDouble();
+		String bidPriceNode = result.path("b").asText();
+		String bidSizeNode = result.path("B").asText();
+		String askPriceNode = result.path("a").asText();
+		String askSizeNode = result.path("A").asText();
+		BigDecimal bidPrice = bidPriceNode.isEmpty() ? null : new BigDecimal(bidPriceNode);
+		BigDecimal bidSize = bidSizeNode.isEmpty() ? null : new BigDecimal(bidSizeNode);
+		BigDecimal askPrice = askPriceNode.isEmpty() ? null : new BigDecimal(askPriceNode);
+		BigDecimal askSize = askSizeNode.isEmpty() ? null : new BigDecimal(askSizeNode);
 
-		boolean nonePresent = bidPrice == 0.0 && bidSize == 0.0 && askPrice == 0.0 && askSize == 0.0;
-		if (nonePresent) return null;
+		if (bidPrice == null && bidSize == null && askPrice == null && askSize == null) return null;
 
 		long time = result.path("t").asLong();
 		Instant ts = Instant.ofEpochMilli(time);
@@ -95,9 +101,9 @@ class GatePublicMessageHandler implements PublicMessageHandler {
 		try {
 			return parser.apply(root);
 		} catch (IllegalArgumentException ex) {
+			Logger.log(ex.getMessage());
 			return null;
 		} catch (Exception ex) {
-			Logger.error(ex.getMessage());
 			return null;
 		}
 	}

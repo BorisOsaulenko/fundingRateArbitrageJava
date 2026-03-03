@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 class PrivateEndpoints {
+	private static final OkxChainsMap chainsMap = new OkxChainsMap();
 	private static final String baseUrl = "https://www.okx.com";
 	private static final String instType = "SWAP";
 
@@ -41,8 +42,7 @@ class PrivateEndpoints {
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest leverageInfoRequestSymbol(String symbol, MarginMode mode) {
-		URI uri = new URIBuilder(baseUrl)
-						.setPath("/api/v5/account/leverage-info")
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v5/account/leverage-info")
 						.addParameter("instId", symbol)
 						.addParameter("mgnMode", mode == MarginMode.CROSS ? "cross" : "isolated")
 						.build();
@@ -75,24 +75,23 @@ class PrivateEndpoints {
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest usdtWalletAddressRequest(SupportedChain chain) {
-		URI uri = new URIBuilder(baseUrl).setPath("/api/v5/asset/deposit-address").addParameter("ccy", "USDT").addParameter(
-						"chain",
-						ChainsMap.get(chain)
-		).build();
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v5/asset/deposit-address")
+						.addParameter("ccy", "USDT")
+						.addParameter("chain", chainsMap.get(chain))
+						.build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
-	public static @NonNull SimpleHttpRequest withdrawUsdtRequest(Withdrawal withdrawal, String fee) {
+	public static @NonNull SimpleHttpRequest withdrawUsdtRequest(Withdrawal withdrawal) {
 		Map<String, Object> body = new HashMap<>();
 		body.put("ccy", "USDT");
 		body.put("amt", String.valueOf(withdrawal.amount()));
 		body.put("dest", "4");
-		body.put("toAddr", withdrawal.address().address());
-		body.put("chain", ChainsMap.get(withdrawal.address().chain()));
-		body.put("fee", fee);
+		body.put("chain", chainsMap.get(withdrawal.address().chain()));
 		if (withdrawal.address().memo() != null && !withdrawal.address().memo().isEmpty()) {
-			body.put("tag", withdrawal.address().memo());
-		}
+			body.put("toAddr", withdrawal.address().address() + ":" + withdrawal.address().memo());
+		} else body.put("toAddr", withdrawal.address().address());
+
 		return postJson("/api/v5/asset/withdrawal", body);
 	}
 
@@ -116,8 +115,7 @@ class PrivateEndpoints {
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest orderRecordRequestSymbol(String orderId, String symbol) {
-		URI uri = new URIBuilder(baseUrl)
-						.setPath("/api/v5/trade/fills")
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v5/trade/fills")
 						.addParameter("instId", symbol)
 						.addParameter("ordId", orderId)
 						.build();

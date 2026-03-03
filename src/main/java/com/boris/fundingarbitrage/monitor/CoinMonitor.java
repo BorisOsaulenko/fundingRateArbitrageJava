@@ -41,8 +41,7 @@ public class CoinMonitor {
 
 	private final CoinVector<Set<BaseExchange>> availableExchangesByCoin;
 	private final Map<BaseExchange, Set<String>> availableCoinsByExchange;
-	@Getter
-	private final CompletableFuture<Void> initFuture;
+	@Getter private final CompletableFuture<Void> initFuture;
 	private final ExchangeCoinMap<Integer> initStateBits = new ExchangeCoinMap<>();
 	private final AtomicInteger initPendingSignals = new AtomicInteger(0);
 	private final CompletableFuture<Void> initDataReady = new CompletableFuture<>();
@@ -57,14 +56,15 @@ public class CoinMonitor {
 		this.availableCoinsByExchange = filterResult.availableCoinsByExchange();
 
 		this.initFuture = CompletableFuture.runAsync(() -> {
+			openWsConnections().join(); // Has to be awaited
 			initFees();
 			fillEmptyData();
 			initCompletionTracking();
 			subscribeData();
 
 			CompletableFuture<Void> timeout = CompletableFuture.runAsync(
-							() -> {},
-							CompletableFuture.delayedExecutor(waitForDataSeconds, TimeUnit.SECONDS)
+							() -> {
+							}, CompletableFuture.delayedExecutor(waitForDataSeconds, TimeUnit.SECONDS)
 			);
 			CompletableFuture.anyOf(initDataReady, timeout).join();
 			if (!initDataReady.isDone()) {
@@ -76,8 +76,7 @@ public class CoinMonitor {
 			}
 
 			Logger.log("Coin monitor initialized:");
-			Logger.logCoinVector(availableExchangesByCoin.transform((exchanges, _) -> exchanges
-							.stream()
+			Logger.logCoinVector(availableExchangesByCoin.transform((exchanges, _) -> exchanges.stream()
 							.map(exchange -> exchange.name)
 							.collect(Collectors.toSet())));
 			switchToSteadyStateHandlers();
@@ -148,8 +147,7 @@ public class CoinMonitor {
 			BaseExchange exchange = entry.getKey();
 			if (entry.getValue().isEmpty()) continue;
 
-			CompletableFuture<Void> future = exchange.privateHttpClient
-							.getTradingFees(entry.getValue())
+			CompletableFuture<Void> future = exchange.privateHttpClient.getTradingFees(entry.getValue())
 							.thenAccept(result -> {
 								result.forEach((coin, fee) -> {
 									fees.put(exchange, coin, fee);
@@ -173,6 +171,15 @@ public class CoinMonitor {
 				markPrices.put(exchange, coin, MarkPrice.empty());
 			}
 		});
+	}
+
+	private CompletableFuture<Void> openWsConnections() {
+		List<CompletableFuture<Void>> futures = new ArrayList<>();
+		for (BaseExchange exchange : availableCoinsByExchange.keySet()) {
+			futures.add(exchange.publicWsClient.connect());
+		}
+
+		return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
 	}
 
 	private void subscribeData() {

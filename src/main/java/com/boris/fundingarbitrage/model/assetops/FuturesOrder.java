@@ -3,10 +3,12 @@ package com.boris.fundingarbitrage.model.assetops;
 import com.boris.fundingarbitrage.model.Validations;
 import lombok.NonNull;
 
+import java.math.BigDecimal;
+
 public record FuturesOrder(
 				@NonNull OrderSide orderSide,
 				@NonNull TradeSide tradeSide,
-				double baseAssetQty,
+				BigDecimal baseAssetQty,
 				int contractQty,
 				int leverage,
 				@NonNull MarginMode marginMode
