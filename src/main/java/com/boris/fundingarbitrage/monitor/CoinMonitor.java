@@ -2,6 +2,7 @@ package com.boris.fundingarbitrage.monitor;
 
 import com.boris.fundingarbitrage.coinfilter.CoinFilterResult;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
+import com.boris.fundingarbitrage.model.arbitrage.ArbitrageSnapshot;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.Fees;
 import com.boris.fundingarbitrage.model.contract.FundingRate;
@@ -77,8 +78,8 @@ public class CoinMonitor {
 
 			Logger.log("Coin monitor initialized:");
 			Logger.logCoinVector(availableExchangesByCoin.transform((exchanges, _) -> exchanges.stream()
-																																												 .map(exchange -> exchange.name)
-																																												 .collect(Collectors.toSet())));
+							.map(exchange -> exchange.name)
+							.collect(Collectors.toSet())));
 			switchToSteadyStateHandlers();
 		});
 	}
@@ -148,18 +149,18 @@ public class CoinMonitor {
 			if (entry.getValue().isEmpty()) continue;
 
 			CompletableFuture<Void> future = exchange.privateHttpClient.getTradingFees(entry.getValue())
-																																 .thenAccept(result -> {
-																																	 result.forEach((coin, fee) -> {
-																																		 fees.put(exchange, coin, fee);
-																																	 });
-																																 })
-																																 .exceptionally(t -> {
-																																	 Logger.error("Failed to fetch trading fees for " +
-																																								exchange.name +
-																																								": " +
-																																								t.getMessage());
-																																	 throw new RuntimeException(t);
-																																 });
+							.thenAccept(result -> {
+								result.forEach((coin, fee) -> {
+									fees.put(exchange, coin, fee);
+								});
+							})
+							.exceptionally(t -> {
+								Logger.error("Failed to fetch trading fees for " +
+														 exchange.name +
+														 ": " +
+														 t.getMessage());
+								throw new RuntimeException(t);
+							});
 
 			futures.add(future);
 		}
@@ -385,5 +386,76 @@ public class CoinMonitor {
 		Fees fee = fees.get(exchange, coin);
 
 		return new ExchangeSnapshot(ticker, fee, fundingRate, markPrice);
+	}
+
+	public ArbitrageSnapshot getSnapshot(BaseExchange longEx, BaseExchange shortEx, String coin) {
+		ExchangeSnapshot longSnapshot = getSnapshot(longEx, coin);
+		ExchangeSnapshot shortSnapshot = getSnapshot(shortEx, coin);
+		return new ArbitrageSnapshot(longSnapshot, shortSnapshot);
+	}
+
+	public void performOnTimestamp(long utc, BaseExchange ex, String coin, Consumer<ExchangeSnapshot> callback) {
+		long deadlineUtc = utc + 500;
+		CompletableFuture.runAsync(() -> {
+			while (true) {
+				ExchangeSnapshot snapshot = getSnapshot(ex, coin);
+				boolean deadlineReached = System.currentTimeMillis() >= deadlineUtc;
+				if (deadlineReached) {
+					callback.accept(snapshot);
+					return;
+				}
+
+				if (isGatheredForUtc(snapshot, utc)) {
+					callback.accept(snapshot);
+					return;
+				}
+				try {
+					Thread.sleep(10);
+				} catch (InterruptedException e) {
+					Thread.currentThread().interrupt();
+					callback.accept(snapshot);
+					return;
+				}
+			}
+		});
+	}
+
+	public void performOnTimestamp(
+					long utc, BaseExchange longEx, BaseExchange shortEx, String coin, Consumer<ArbitrageSnapshot> callback
+	) {
+		long deadlineUtc = utc + 500;
+		CompletableFuture.runAsync(() -> {
+			while (true) {
+				ArbitrageSnapshot snapshot = getSnapshot(longEx, shortEx, coin);
+				boolean deadlineReached = System.currentTimeMillis() >= deadlineUtc;
+				if (deadlineReached) {
+					callback.accept(snapshot);
+					return;
+				}
+
+				if (isGatheredForUtc(snapshot.longExchange(), utc) && isGatheredForUtc(snapshot.shortExchange(), utc)) {
+					callback.accept(snapshot);
+					return;
+				}
+				try {
+					Thread.sleep(10);
+				} catch (InterruptedException e) {
+					Thread.currentThread().interrupt();
+					callback.accept(snapshot);
+					return;
+				}
+			}
+		});
+	}
+
+	private boolean isGatheredForUtc(ExchangeSnapshot snapshot, long utc) {
+		BookTicker bookTicker = snapshot.bookTicker();
+		MarkPrice markPrice = snapshot.markPrice();
+		FundingRate fundingRate = snapshot.fundingRate();
+		if (bookTicker == null || markPrice == null || fundingRate == null) return false;
+
+		return bookTicker.timestamp().toEpochMilli() >= utc &&
+					 markPrice.timestamp().toEpochMilli() >= utc &&
+					 fundingRate.timestamp().toEpochMilli() >= utc;
 	}
 }
