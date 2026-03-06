@@ -77,8 +77,8 @@ public class CoinMonitor {
 
 			Logger.log("Coin monitor initialized:");
 			Logger.logCoinVector(availableExchangesByCoin.transform((exchanges, _) -> exchanges.stream()
-							.map(exchange -> exchange.name)
-							.collect(Collectors.toSet())));
+																																												 .map(exchange -> exchange.name)
+																																												 .collect(Collectors.toSet())));
 			switchToSteadyStateHandlers();
 		});
 	}
@@ -102,7 +102,7 @@ public class CoinMonitor {
 										entry.coin() +
 										": " +
 										entry.value());
-				forgetCoinExchange(entry.coin(), entry.exchange());
+				unsubscribeCoinExchange(entry.coin(), entry.exchange());
 			}
 		}
 
@@ -114,7 +114,7 @@ public class CoinMonitor {
 										entry.coin() +
 										": " +
 										entry.value());
-				forgetCoinExchange(entry.coin(), entry.exchange());
+				unsubscribeCoinExchange(entry.coin(), entry.exchange());
 			}
 		}
 
@@ -126,7 +126,7 @@ public class CoinMonitor {
 										entry.coin() +
 										": " +
 										entry.value());
-				forgetCoinExchange(entry.coin(), entry.exchange());
+				unsubscribeCoinExchange(entry.coin(), entry.exchange());
 			}
 		}
 	}
@@ -136,7 +136,7 @@ public class CoinMonitor {
 			Set<BaseExchange> exchanges = availableExchangesByCoin.get(coin);
 			if (exchanges == null || exchanges.size() < 2) {
 				Logger.warn("Not enough exchanges support " + coin + ". Removing from monitoring.");
-				forgetCoin(coin);
+				unsubscribeCoin(coin);
 			}
 		}
 	}
@@ -148,15 +148,18 @@ public class CoinMonitor {
 			if (entry.getValue().isEmpty()) continue;
 
 			CompletableFuture<Void> future = exchange.privateHttpClient.getTradingFees(entry.getValue())
-							.thenAccept(result -> {
-								result.forEach((coin, fee) -> {
-									fees.put(exchange, coin, fee);
-								});
-							})
-							.exceptionally(t -> {
-								Logger.error("Failed to fetch trading fees for " + exchange.name + ": " + t.getMessage());
-								throw new RuntimeException(t);
-							});
+																																 .thenAccept(result -> {
+																																	 result.forEach((coin, fee) -> {
+																																		 fees.put(exchange, coin, fee);
+																																	 });
+																																 })
+																																 .exceptionally(t -> {
+																																	 Logger.error("Failed to fetch trading fees for " +
+																																								exchange.name +
+																																								": " +
+																																								t.getMessage());
+																																	 throw new RuntimeException(t);
+																																 });
 
 			futures.add(future);
 		}
@@ -341,7 +344,7 @@ public class CoinMonitor {
 		);
 	}
 
-	private void forgetCoinExchange(String coin, BaseExchange exchange) {
+	public void unsubscribeCoinExchange(String coin, BaseExchange exchange) {
 		dropInitTracking(exchange, coin);
 
 		Set<BaseExchange> available = availableExchangesByCoin.get(coin);
@@ -358,11 +361,11 @@ public class CoinMonitor {
 		fees.remove(exchange, coin);
 	}
 
-	private void forgetCoin(String coin) {
+	public void unsubscribeCoin(String coin) {
 		Set<BaseExchange> available = availableExchangesByCoin.get(coin);
 		if (available != null) {
 			for (BaseExchange name : available) {
-				forgetCoinExchange(coin, name);
+				unsubscribeCoinExchange(coin, name);
 			}
 		}
 

@@ -2,11 +2,9 @@ package com.boris.fundingarbitrage.execution.withdrawer;
 
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.exchange.Instances;
+import com.boris.fundingarbitrage.logic.ExchangePair;
 import com.boris.fundingarbitrage.model.assetops.SupportedChain;
-import com.boris.fundingarbitrage.model.assetops.Withdrawal;
 import com.boris.fundingarbitrage.model.exchange.ExchangeChains;
-import com.boris.fundingarbitrage.model.exchange.ExchangeName;
-import com.boris.fundingarbitrage.model.exchange.WalletAddress;
 import com.boris.fundingarbitrage.model.exchange.WithdrawChain;
 
 import java.math.BigDecimal;
@@ -14,81 +12,82 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class OptimalWithdrawer {
-	private final BaseExchange longExchange;
-	private final BaseExchange shortExchange;
+	private final OptimalWithdrawerLogic logic = new OptimalWithdrawerLogic();
 	private final BigDecimal usdtAmount;
-
-	private final List<BaseExchange> otherExchanges;
-
 	private final Map<BaseExchange, BigDecimal> spotBalances;
 	private final Map<BaseExchange, BigDecimal> futuresBalances;
 	private final Map<BaseExchange, ExchangeChains> chains;
 
-	private final Map<ExchangeName, WithdrawChain> optimalChainToLong = new ConcurrentHashMap<>();
-	private final Map<ExchangeName, WithdrawChain> optimalChainToShort = new ConcurrentHashMap<>();
+	private List<BaseExchange> otherExchanges;
 
-	private final OptimalWithdrawerLogic logic = new OptimalWithdrawerLogic();
+	private WithdrawerState state = WithdrawerState.NOT_RAN;
+	private ExchangePair exchanges;
+	private List<OptimalWithdrawerLogic.OutputItem> optimalPath;
+	private BigDecimal optimalFee;
 
 	public OptimalWithdrawer(
-					BaseExchange longExchange,
-					BaseExchange shortExchange,
 					BigDecimal usdtAmount,
-					Map<BaseExchange, BigDecimal> spotBalance,
-					Map<BaseExchange, BigDecimal> futuresBalance,
+					Map<BaseExchange, BigDecimal> spotBalances,
+					Map<BaseExchange, BigDecimal> futuresBalances,
 					Map<BaseExchange, ExchangeChains> chains
 	) {
-		this.longExchange = longExchange;
-		this.shortExchange = shortExchange;
 		this.usdtAmount = usdtAmount;
-
-		this.otherExchanges = Instances.getExchangeArray()
-						.stream()
-						.filter(ex -> ex != longExchange && ex != shortExchange)
-						.collect(java.util.stream.Collectors.toList());
-
-		this.spotBalances = spotBalance;
-		this.futuresBalances = futuresBalance;
+		this.spotBalances = spotBalances;
+		this.futuresBalances = futuresBalances;
 		this.chains = chains;
 	}
 
-	public CompletableFuture<Void> withdrawUsdtToExchanges() {
-		BigDecimal longTotalBalance = spotBalances.get(longExchange).add(futuresBalances.get(longExchange));
-		BigDecimal shortTotalBalance = spotBalances.get(shortExchange).add(futuresBalances.get(shortExchange));
+	public BigDecimal optimalFee() {
+		if (state == WithdrawerState.NOT_RAN)
+			throw new IllegalStateException("Fees and path need to be calculated first. Call calculateOptimalWdPath()");
+		return optimalFee;
+	}
+
+	public List<OptimalWithdrawerLogic.OutputItem> optimalPath() {
+		if (state == WithdrawerState.NOT_RAN)
+			throw new IllegalStateException("Fees and path need to be calculated first. Call calculateOptimalWdPath()");
+		return optimalPath;
+	}
+
+	public void setExchangePair(ExchangePair pair) {
+		this.exchanges = pair;
+		this.otherExchanges = Instances.getExchangeArray()
+						.stream()
+						.filter(ex -> !ex.equals(pair.longEx()) && !ex.equals(pair.shortEx()))
+						.collect(java.util.stream.Collectors.toList());
+	}
+
+	public void calculateOptimalWdPath() {
+		BigDecimal longTotalBalance = spotBalances.get(exchanges.longEx()).add(futuresBalances.get(exchanges.longEx()));
+		BigDecimal shortTotalBalance = spotBalances.get(exchanges.shortEx()).add(futuresBalances.get(exchanges.shortEx()));
 		BigDecimal depositToLongAmount = usdtAmount.subtract(longTotalBalance).max(BigDecimal.ZERO);
 		BigDecimal depositToShortAmount = usdtAmount.subtract(shortTotalBalance).max(BigDecimal.ZERO);
 
-		if (depositToLongAmount.equals(BigDecimal.ZERO) && depositToShortAmount.equals(BigDecimal.ZERO))
-			return CompletableFuture.completedFuture(null);
-
-		List<OptimalWithdrawerLogic.OutputItem> optimalPath = delegateToLogic(depositToLongAmount, depositToShortAmount);
-		if (optimalPath == null) return null;
-
-		List<CompletableFuture<Void>> futures = new ArrayList<>();
-		for (var item : optimalPath) {
-			BaseExchange destination = item.toLong() ? longExchange : shortExchange;
-			WithdrawChain chain = item.toLong() ?
-							optimalChainToLong.get(item.exName()) :
-							optimalChainToShort.get(item.exName());
-
-			CompletableFuture<WalletAddress> addressFuture = destination.privateHttpClient.getUsdtWalletAddress(chain.chain());
-			futures.add(addressFuture.thenCompose(address -> {
-				Withdrawal wdParams = new Withdrawal(item.amount(), item.fee(), address);
-				BaseExchange exchange = Instances.getExchange(item.exName());
-				return exchange.privateHttpClient.withdrawUsdt(wdParams);
-			}));
+		if (depositToLongAmount.equals(BigDecimal.ZERO) && depositToShortAmount.equals(BigDecimal.ZERO)) {
+			optimalPath = new ArrayList<>();
+			optimalFee = BigDecimal.ZERO;
+			state = WithdrawerState.PATH_FOUND;
+			return;
 		}
 
-		return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+		OptimalWithdrawerLogic.OutputParams result = delegateToLogic(depositToLongAmount, depositToShortAmount);
+		if (result == null) {
+			optimalPath = null;
+			optimalFee = null;
+			state = WithdrawerState.PATH_DNE;
+		} else {
+			optimalPath = result.items();
+			optimalFee = result.totalFee();
+			state = WithdrawerState.PATH_FOUND;
+		}
 	}
 
-	private List<OptimalWithdrawerLogic.OutputItem> delegateToLogic(BigDecimal topUpLong, BigDecimal topUpShort) {
+	private OptimalWithdrawerLogic.OutputParams delegateToLogic(BigDecimal topUpLong, BigDecimal topUpShort) {
 		List<OptimalWithdrawerLogic.InputItem> inputItems = new ArrayList<>();
-		List<SupportedChain> longChains = chains.get(longExchange).depositableChains();
-		List<SupportedChain> shortChains = chains.get(shortExchange).depositableChains();
+		List<SupportedChain> longChains = chains.get(exchanges.longEx()).depositableChains();
+		List<SupportedChain> shortChains = chains.get(exchanges.shortEx()).depositableChains();
 
 		for (BaseExchange exchange : otherExchanges) {
 			BigDecimal balance = spotBalances.get(exchange); // only spot is withdrawable
@@ -121,5 +120,11 @@ public class OptimalWithdrawer {
 						.filter(wdCh -> target.contains(wdCh.chain()))
 						.min(Comparator.comparing(WithdrawChain::withdrawFee))
 						.orElse(null);
+	}
+
+	private enum WithdrawerState {
+		NOT_RAN,
+		PATH_DNE,
+		PATH_FOUND,
 	}
 }

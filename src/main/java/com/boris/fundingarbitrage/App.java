@@ -1,7 +1,7 @@
 package com.boris.fundingarbitrage;
 
-import com.boris.fundingarbitrage.coinfilter.CoinFilter;
 import com.boris.fundingarbitrage.coinfilter.CoinFilterConfig;
+import com.boris.fundingarbitrage.coinfilter.CoinSelector;
 import com.boris.fundingarbitrage.execution.withdrawer.OptimalWithdrawerLogic;
 import com.boris.fundingarbitrage.logic.ArbitrageBotConfig;
 import com.boris.fundingarbitrage.logic.ArbitrageLogic;
@@ -136,13 +136,13 @@ public class App {
 
 		Thread.sleep(120_000);
 
-		logic.stop();
+		logic.shutdown();
 	}
 
 	static void main2(String[] args) throws InterruptedException {
 		Logger.init(Path.of("app.log"));
 		CoinFilterConfig filterConfig = new CoinFilterConfig(BigDecimal.valueOf(100_000), BigDecimal.valueOf(30));
-		CoinFilter filter = new CoinFilter(coins, filterConfig);
+		CoinSelector filter = new CoinSelector(coins, filterConfig);
 		var result = filter.filterSync();
 
 		CoinMonitor monitor = new CoinMonitor(result);

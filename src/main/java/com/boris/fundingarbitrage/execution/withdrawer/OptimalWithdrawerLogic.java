@@ -187,15 +187,28 @@ public class OptimalWithdrawerLogic {
 		}
 	}
 
-	private List<OutputItem> formatOutput() {
+	private OutputParams formatOutput() {
 		List<OutputItem> result = new ArrayList<>();
 		for (WithdrawEntry wd : withdrawEntries) {
 			result.add(new OutputItem(wd.exName, wd.amount, wd.fee, wd.toLong));
 		}
-		return result;
+
+		return new OutputParams(result, minFee);
 	}
 
-	public List<OutputItem> getOptimalWdPath(InputParams params) {
+	private void cleanUp() {
+		params = null;
+		optimalBase4 = 0;
+		longLeft = null;
+		shortLeft = null;
+		freeByExchanges.clear();
+		requiredBalancesByExchanges.clear();
+		withdrawEntries.clear();
+		minFee = BigDecimal.valueOf(100000);
+	}
+
+	public OutputParams getOptimalWdPath(InputParams params) {
+		cleanUp();
 		this.params = params;
 		processBase4Encoding(
 						0,
@@ -207,9 +220,7 @@ public class OptimalWithdrawerLogic {
 						BigDecimal.ZERO,
 						BigDecimal.ZERO
 		);
-		if (optimalBase4 == 0) {
-			return null;
-		}
+		if (optimalBase4 == 0) return null;
 
 		parseWithdrawEntries();
 		fulfillWithdrawEntries();
@@ -227,9 +238,9 @@ public class OptimalWithdrawerLogic {
 			BigDecimal longFeeOrZero = item.longFee() == null ? BigDecimal.ZERO : item.longFee();
 
 			BigDecimal requiredBalanceForLongOnly = minLongWdOrZero.max(longFeeOrZero)
-																														 .setScale(item.longWdPrecision(), RoundingMode.UP);
+							.setScale(item.longWdPrecision(), RoundingMode.UP);
 			BigDecimal requiredBalanceForShortOnly = minShortWdOrZero.max(shortFeeOrZero)
-																															 .setScale(item.shortWdPrecision(), RoundingMode.UP);
+							.setScale(item.shortWdPrecision(), RoundingMode.UP);
 			BigDecimal requiredBalanceForDiagonal = requiredBalanceForLongOnly.add(requiredBalanceForShortOnly);
 
 			this(requiredBalanceForLongOnly, requiredBalanceForShortOnly, requiredBalanceForDiagonal);
@@ -252,6 +263,9 @@ public class OptimalWithdrawerLogic {
 	}
 
 	public record OutputItem(ExchangeName exName, BigDecimal amount, BigDecimal fee, boolean toLong) {
+	}
+
+	public record OutputParams(List<OutputItem> items, BigDecimal totalFee) {
 	}
 
 	private static class WithdrawEntry {

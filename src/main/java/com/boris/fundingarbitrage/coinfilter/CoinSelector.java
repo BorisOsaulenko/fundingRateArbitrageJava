@@ -15,7 +15,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class CoinFilter {
+public class CoinSelector {
 	private final Set<String> coins;
 	private final CoinFilterConfig config;
 
@@ -23,7 +23,7 @@ public class CoinFilter {
 	private final Map<BaseExchange, Set<String>> availableCoinsByExchange = new ConcurrentHashMap<>();
 	private final ExchangeCoinMap<BigDecimal> lotSizes = new ExchangeCoinMap<>();
 
-	public CoinFilter(Set<String> coins, CoinFilterConfig config) {
+	public CoinSelector(Set<String> coins, CoinFilterConfig config) {
 		this.coins = coins;
 		this.config = config;
 	}
@@ -105,5 +105,9 @@ public class CoinFilter {
 		}
 
 		availableExchangesByCoin.remove(coin);
+	}
+
+	public BigDecimal getLotSize(BaseExchange exchange, String coin) {
+		return lotSizes.get(exchange, coin);
 	}
 }
