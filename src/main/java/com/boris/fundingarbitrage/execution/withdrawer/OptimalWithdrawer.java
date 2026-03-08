@@ -94,8 +94,6 @@ public class OptimalWithdrawer {
 			WithdrawChain optimalLong = getOptimalChain(exchange, longChains);
 			WithdrawChain optimalShort = getOptimalChain(exchange, shortChains);
 			if (optimalLong == null && optimalShort == null) continue;
-			if (optimalLong != null) optimalChainToLong.put(exchange.name, optimalLong);
-			if (optimalShort != null) optimalChainToShort.put(exchange.name, optimalShort);
 
 			var item = new OptimalWithdrawerLogic.InputItem(
 							exchange.name,

@@ -4,8 +4,7 @@ import com.boris.fundingarbitrage.exchange.BaseExchange;
 
 import java.math.BigDecimal;
 
-public record EnterParams(
-				String coin,
+public record TradeParams(
 				BaseExchange longEx,
 				BaseExchange shortEx,
 				BigDecimal baseAssetQty,

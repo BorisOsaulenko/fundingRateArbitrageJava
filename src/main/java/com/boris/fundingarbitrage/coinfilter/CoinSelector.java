@@ -22,6 +22,7 @@ public class CoinSelector {
 	private final CoinVector<Set<BaseExchange>> availableExchangesByCoin = new CoinVector<>();
 	private final Map<BaseExchange, Set<String>> availableCoinsByExchange = new ConcurrentHashMap<>();
 	private final ExchangeCoinMap<BigDecimal> lotSizes = new ExchangeCoinMap<>();
+	private final ExchangeCoinMap<Integer> fundingIntervals = new ExchangeCoinMap<>();
 
 	public CoinSelector(Set<String> coins, CoinFilterConfig config) {
 		this.coins = coins;
@@ -47,6 +48,7 @@ public class CoinSelector {
 					availableExchangesByCoin.get(coin).add(exchange);
 					availableCoinsByExchange.get(exchange).add(coin);
 					lotSizes.put(exchange, coin, data.lotSize());
+					fundingIntervals.put(exchange, coin, data.fundingInterval());
 				});
 			}).exceptionally(err -> {
 				Logger.log("Failed to fetch available coins for " + exchange.name + ": " + err.getMessage());
@@ -58,7 +60,7 @@ public class CoinSelector {
 		CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
 		clearCoinsWithInsufficientExchanges();
 
-		return new CoinFilterResult(availableExchangesByCoin, availableCoinsByExchange, lotSizes);
+		return new CoinFilterResult(availableExchangesByCoin, availableCoinsByExchange, lotSizes, fundingIntervals);
 	}
 
 	private String shouldExcludeCoin(PublicOnePullData data) {
@@ -109,5 +111,9 @@ public class CoinSelector {
 
 	public BigDecimal getLotSize(BaseExchange exchange, String coin) {
 		return lotSizes.get(exchange, coin);
+	}
+
+	public int getFundingInterval(BaseExchange exchange, String coin) {
+		return fundingIntervals.get(exchange, coin);
 	}
 }

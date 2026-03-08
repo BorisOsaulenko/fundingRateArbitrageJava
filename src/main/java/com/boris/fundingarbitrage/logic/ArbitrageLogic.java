@@ -5,10 +5,9 @@ import com.boris.fundingarbitrage.coinfilter.CoinFilterResult;
 import com.boris.fundingarbitrage.coinfilter.CoinSelector;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.exchange.Instances;
-import com.boris.fundingarbitrage.execution.CoinExecution;
 import com.boris.fundingarbitrage.model.arbitrage.ArbitrageSnapshot;
 import com.boris.fundingarbitrage.monitor.CoinMonitor;
-import com.boris.fundingarbitrage.strategy.ArbitrageStrategy;
+import com.boris.fundingarbitrage.strategy.PreTradeStrategy;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import com.boris.fundingarbitrage.util.logger.Logger;
 
@@ -20,12 +19,10 @@ import java.util.Set;
 import java.util.concurrent.*;
 
 public abstract class ArbitrageLogic {
-	protected final ArbitrageStrategy strategy;
+	protected final PreTradeStrategy preTradeStrategy;
 	protected final ArbitrageBotConfig config;
 	protected final CoinMonitor monitor;
-	protected final CoinSelector selector;
 	protected final CoinVector<Set<BaseExchange>> availableExchangesByCoin;
-	protected final CoinExecution execution;
 	protected final Set<String> activeCoins = ConcurrentHashMap.newKeySet();
 
 	protected final ScheduledExecutorService logScheduler = Executors.newSingleThreadScheduledExecutor();
@@ -40,13 +37,16 @@ public abstract class ArbitrageLogic {
 	protected CompletableFuture<Void> balancesFuture;
 	protected boolean shutdown = false;
 
-	public ArbitrageLogic(ArbitrageStrategy strategy, ArbitrageBotConfig arbConfig, CoinFilterConfig filterConfig) {
-		this.strategy = strategy;
+	public ArbitrageLogic(
+					PreTradeStrategy strategy,
+					ArbitrageBotConfig arbConfig,
+					CoinFilterConfig filterConfig
+	) {
+		this.preTradeStrategy = strategy;
 		this.config = arbConfig;
-		this.execution = new CoinExecution(arbConfig.leverage());
 
-		selector = new CoinSelector(arbConfig.coins(), filterConfig);
-		CoinFilterResult filtered = selector.filterSync();
+		CoinSelector coinSelector = new CoinSelector(arbConfig.coins(), filterConfig);
+		CoinFilterResult filtered = coinSelector.filterSync();
 
 		availableExchangesByCoin = filtered.availableExchangesByCoin();
 		activeCoins.addAll(availableExchangesByCoin.keySet());
@@ -64,7 +64,6 @@ public abstract class ArbitrageLogic {
 							.thenAccept(spotB -> spotBalances.put(exchange, spotB));
 			CompletableFuture<Void> futuresBalanceFuture = exchange.privateHttpClient.getFuturesUsdtBalance()
 							.thenAccept(futuresB -> futuresBalances.put(exchange, futuresB));
-
 
 			futures.add(spotBalanceFuture);
 			futures.add(futuresBalanceFuture);
@@ -132,7 +131,7 @@ public abstract class ArbitrageLogic {
 				var longSnapshot = monitor.getSnapshot(longEx, coin);
 				var shortSnapshot = monitor.getSnapshot(shortEx, coin);
 				var arbSnapshot = new ArbitrageSnapshot(longSnapshot, shortSnapshot);
-				if (bestSnapshot == null || strategy.compareSnapshots(arbSnapshot, bestSnapshot) > 0) {
+				if (bestSnapshot == null || preTradeStrategy.compareSnapshots(arbSnapshot, bestSnapshot) > 0) {
 					bestSnapshot = arbSnapshot;
 					bestLongEx = longEx;
 					bestShortEx = shortEx;
@@ -148,7 +147,7 @@ public abstract class ArbitrageLogic {
 
 	private void logData() {
 		Logger.log("The best arbitrage opportunities:");
-		bestArbSnapshots.sortDesc(strategy::compareSnapshots)
+		bestArbSnapshots.sortDesc(preTradeStrategy::compareSnapshots)
 						.subList(0, Math.min(config.logBestArbSnapshotsAmount(), bestArbSnapshots.size()))
 						.forEach(entry -> {
 							var bestCoinExchanges = bestArbExchanges.get(entry.getKey());
@@ -160,7 +159,7 @@ public abstract class ArbitrageLogic {
 												 " (long) / " +
 												 bestCoinExchanges.shortEx().name +
 												 " (short) - " +
-												 (strategy.snapshotGoodEnough(entry.getValue()) ? "GOOD" : "BAD"));
+												 (preTradeStrategy.snapshotGoodEnough(entry.getValue()) ? "GOOD" : "BAD"));
 						});
 	}
 

@@ -11,5 +11,7 @@ import java.util.Set;
 public record CoinFilterResult(
 				CoinVector<Set<BaseExchange>> availableExchangesByCoin,
 				Map<BaseExchange, Set<String>> availableCoinsByExchange,
-				ExchangeCoinMap<BigDecimal> lotSizes
-) {}
+				ExchangeCoinMap<BigDecimal> lotSizes,
+				ExchangeCoinMap<Integer> fundingIntervals
+) {
+}

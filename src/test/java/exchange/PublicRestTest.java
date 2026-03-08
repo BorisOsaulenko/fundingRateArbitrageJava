@@ -84,7 +84,7 @@ public abstract class PublicRestTest {
 		); // testing on popular coins, so we can expect some volume
 	}
 
-	void validateFundingInterval(int fundingIntervalHours) {
+	void validateFundingInterval(long fundingIntervalHours) {
 		assertTrue(fundingIntervalHours > 0, "Funding granularity should be greater than 0");
 		assertTrue(fundingIntervalHours <= 8, "Funding granularity should be less than or equal to 24 hours");
 		assertEquals(0, fundingIntervalHours % 2, "Funding granularity should be even");
