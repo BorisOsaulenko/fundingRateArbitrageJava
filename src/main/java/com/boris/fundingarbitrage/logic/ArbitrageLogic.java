@@ -29,11 +29,12 @@ public abstract class ArbitrageLogic {
 	protected final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 	protected final ExecutorService cpuPool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 	protected final int frequencyMs = 100;
-
 	protected final CoinVector<ArbitrageSnapshot> bestArbSnapshots = new CoinVector<>();
 	protected final CoinVector<ExchangePair> bestArbExchanges = new CoinVector<>();
 	protected final Map<BaseExchange, BigDecimal> spotBalances = new ConcurrentHashMap<>();
 	protected final Map<BaseExchange, BigDecimal> futuresBalances = new ConcurrentHashMap<>();
+	protected final CompletableFuture<Void> initFuture;
+	protected ScheduledFuture<?> currentSchedulerTask;
 	protected CompletableFuture<Void> balancesFuture;
 	protected boolean shutdown = false;
 
@@ -52,8 +53,10 @@ public abstract class ArbitrageLogic {
 		activeCoins.addAll(availableExchangesByCoin.keySet());
 		monitor = new CoinMonitor(filtered);
 
-		balancesFuture = fillBalancesMap();
-		startProcessingOpportunities();
+		balancesFuture = fillBalancesMap().thenRun(this::onBalanceInit);
+		initFuture = CompletableFuture.allOf(monitor.getInitFuture(), balancesFuture)
+						.thenRun(() -> Logger.log("Initialization completed"))
+						.thenRun(this::startProcessingOpportunities);
 	}
 
 	private CompletableFuture<Void> fillBalancesMap() {
@@ -72,48 +75,53 @@ public abstract class ArbitrageLogic {
 		return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
 	}
 
-	protected void startProcessingOpportunities() {
-		monitor.getInitFuture().thenAccept(_ -> {
-			Logger.log("Starting arbitrage logic...");
+	protected final void startProcessingOpportunities() {
+		Logger.log("Starting arbitrage logic...");
 
-			int logInterval = config.loggingIntervalSeconds();
-			if (logInterval > 0) logScheduler.scheduleAtFixedRate(this::logData, logInterval, logInterval, TimeUnit.SECONDS);
-			scheduler.scheduleAtFixedRate(
-							() -> {
-								processCoins();
-								processTick();
-							}, 0, frequencyMs, TimeUnit.MILLISECONDS
-			);
-		});
+		int logInterval = config.loggingIntervalSeconds();
+		if (logInterval > 0) logScheduler.scheduleAtFixedRate(this::logData, logInterval, logInterval, TimeUnit.SECONDS);
+		doFirstTick();
+		this.currentSchedulerTask = scheduler.scheduleAtFixedRate(
+						() -> {
+							processCoins().join();
+							processTick();
+						}, 0, frequencyMs, TimeUnit.MILLISECONDS
+		);
+	}
+
+	private void doFirstTick() {
+		processCoins().join();
+		processTick();
+		onFirstTick();
 	}
 
 	protected void adjustFrequencyToRecommended() {
 		int newFrequencyMs = (int) (activeCoins.size() * 1.1);
-		scheduler.shutdownNow();
-		scheduler.scheduleAtFixedRate(
+		currentSchedulerTask.cancel(true);
+		currentSchedulerTask = scheduler.scheduleAtFixedRate(
 						() -> {
-							processCoins();
+							processCoins().join();
 							processTick();
 						}, 0, newFrequencyMs, TimeUnit.MILLISECONDS
 		);
 	}
 
 	protected void adjustFrequency(int newFrequencyMs) {
-		scheduler.shutdownNow();
-		scheduler.scheduleAtFixedRate(
+		currentSchedulerTask.cancel(true);
+		currentSchedulerTask = scheduler.scheduleAtFixedRate(
 						() -> {
-							processCoins();
+							processCoins().join();
 							processTick();
 						}, 0, newFrequencyMs, TimeUnit.MILLISECONDS
 		);
 	}
 
-	private void processCoins() {
+	private CompletableFuture<Void> processCoins() {
 		List<CompletableFuture<Void>> futures = activeCoins.stream()
 						.map(coin -> CompletableFuture.runAsync(() -> computeBestArbSnapshotForCoin(coin), cpuPool))
 						.toList();
 
-		CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+		return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
 	}
 
 	private void computeBestArbSnapshotForCoin(String coin) {
@@ -169,18 +177,24 @@ public abstract class ArbitrageLogic {
 
 	protected void stopCalculatingBestOptionsForAllCoins() {
 		activeCoins.clear();
-		scheduler.shutdownNow();
 		logScheduler.shutdownNow();
-		scheduler.scheduleAtFixedRate(this::processTick, 0, frequencyMs, TimeUnit.MILLISECONDS);
+		currentSchedulerTask.cancel(true);
+		currentSchedulerTask = scheduler.scheduleAtFixedRate(this::processTick, 0, frequencyMs, TimeUnit.MILLISECONDS);
 	}
 
 	protected abstract void processTick();
+
+	protected abstract void onBalanceInit();
+
+	protected abstract void onFirstTick();
 
 	public void shutdown() {
 		monitor.shutdown();
 		logScheduler.shutdownNow();
 		scheduler.shutdownNow();
 		cpuPool.shutdownNow();
+		if (!balancesFuture.isDone()) balancesFuture.cancel(true);
+		if (!monitor.getInitFuture().isDone()) monitor.getInitFuture().cancel(true);
 		shutdown = true;
 		Logger.log("Arbitrage logic stopped.");
 	}

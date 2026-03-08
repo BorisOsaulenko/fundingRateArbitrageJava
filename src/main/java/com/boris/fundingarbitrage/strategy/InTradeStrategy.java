@@ -3,11 +3,11 @@ package com.boris.fundingarbitrage.strategy;
 import com.boris.fundingarbitrage.model.arbitrage.ArbitrageSnapshot;
 import lombok.Getter;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public abstract class InTradeStrategy {
-	@Getter protected final List<ArbitrageSnapshot> fundingSnapshots = new ArrayList<>();
+	@Getter protected final List<ArbitrageSnapshot> fundingSnapshots = new CopyOnWriteArrayList<>();
 	@Getter protected final ArbitrageSnapshot enterSnapshot;
 
 	public InTradeStrategy(ArbitrageSnapshot enterSnapshot) {

@@ -9,8 +9,8 @@ import java.time.Instant;
 public record PartialFill(
 				@NonNull String orderId,
 				@NonNull String symbol,
-				BigDecimal baseAssetQty,
-				BigDecimal price,
+				@NonNull BigDecimal baseAssetQty,
+				@NonNull BigDecimal price,
 				BigDecimal fee,
 				@NonNull Instant timestamp
 ) {

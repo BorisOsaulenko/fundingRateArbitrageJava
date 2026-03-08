@@ -135,9 +135,9 @@ class CoinVector<T> : MutableMap<String, T> by ConcurrentHashMap() {
         return sortedEntries
     }
 
-    fun getMaxEntry(comparator: Comparator<T>): Map.Entry<String, T>? =
-        this.entries.maxWithOrNull { a, b -> comparator.compare(a.value, b.value) }
+    fun getMaxEntry(comparator: Comparator<T>): Map.Entry<String, T> =
+        this.entries.maxWith { a, b -> comparator.compare(a.value, b.value) }
 
-    fun getMinEntry(comparator: Comparator<T>): Map.Entry<String, T>? =
-        this.entries.minWithOrNull { a, b -> comparator.compare(a.value, b.value) }
+    fun getMinEntry(comparator: Comparator<T>): Map.Entry<String, T> =
+        this.entries.minWith { a, b -> comparator.compare(a.value, b.value) }
 }

@@ -10,9 +10,8 @@ import com.boris.fundingarbitrage.exchange.impl.whitebit.WhitebitExchange;
 import com.boris.fundingarbitrage.model.exchange.ExchangeName;
 import lombok.Getter;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
+import java.math.BigDecimal;
+import java.util.*;
 
 public class Instances {
 	@Getter
@@ -33,11 +32,23 @@ public class Instances {
 		exchangeArray.addAll(exchanges.values());
 	}
 
+	public static Set<BaseExchange> getExchangesSet() {
+		return new HashSet<>(exchanges.values());
+	}
+
 	public static BaseExchange getExchange(ExchangeName exchangeName) {
 		BaseExchange exchange = exchanges.get(exchangeName);
 		if (exchange == null) {
 			throw new IllegalArgumentException("Unsupported exchange: " + exchangeName);
 		}
 		return exchange;
+	}
+
+	public static int getExchangeCountInt() {
+		return exchanges.size();
+	}
+
+	public static BigDecimal getExchangeCountBigDecimal() {
+		return BigDecimal.valueOf(getExchangeCountInt());
 	}
 }

@@ -4,20 +4,20 @@ import com.boris.fundingarbitrage.model.arbitrage.ArbitrageSnapshot;
 import com.boris.fundingarbitrage.model.exchange.ExchangeSnapshot;
 
 import java.math.BigDecimal;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class ClassicInTradeStrategy extends InTradeStrategy {
-	private BigDecimal pnlSoFar = BigDecimal.ZERO;
+	private final AtomicReference<BigDecimal> pnlSoFar = new AtomicReference<>(BigDecimal.ZERO);
 
 	public ClassicInTradeStrategy(ArbitrageSnapshot enterSnapshot) {
 		super(enterSnapshot);
-
-		this.pnlSoFar = this.pnlSoFar.subtract(getEnterFees(enterSnapshot));
+		this.pnlSoFar.updateAndGet(pnl -> pnl.subtract(getEnterFees(enterSnapshot)));
 	}
 
 	@Override
 	public void addFundingSnapshot(ArbitrageSnapshot fundingSnapshot) {
 		super.addFundingSnapshot(fundingSnapshot);
-		this.pnlSoFar = this.pnlSoFar.add(getFundingGain(fundingSnapshot));
+		this.pnlSoFar.updateAndGet(pnl -> pnl.add(getFundingGain(fundingSnapshot)));
 	}
 
 	@Override
@@ -37,10 +37,10 @@ public class ClassicInTradeStrategy extends InTradeStrategy {
 						.add(shortPriceMoveGain)
 						.subtract(longExitFee)
 						.subtract(shortExitFee)
-						.add(pnlSoFar);
+						.add(pnlSoFar.get());
 
 		return pnl.compareTo(BigDecimal.ZERO) > 0;
-		
+
 		//TODO: also check if the trade is going against us and need to exit before losses
 	}
 
