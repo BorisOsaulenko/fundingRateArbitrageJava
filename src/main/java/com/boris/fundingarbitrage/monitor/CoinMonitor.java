@@ -19,13 +19,8 @@ import lombok.Getter;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
+import java.util.*;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -46,6 +41,14 @@ public class CoinMonitor {
 	private final ExchangeCoinMap<BigDecimal> lotSizes;
 	private final ExchangeCoinMap<Integer> fundingIntervals;
 
+	private final ExchangeCoinMap<SortedSet<Long>> timestampsToProcess = new ExchangeCoinMap<>();
+	private final ExchangeCoinMap<BookTicker> tickerCompletions = new ExchangeCoinMap<>();
+	private final ExchangeCoinMap<FundingRate> fundingCompletions = new ExchangeCoinMap<>();
+	private final ExchangeCoinMap<MarkPrice> markCompletions = new ExchangeCoinMap<>();
+	private final ExchangeCoinMap<Map<Long, Set<Consumer<ExchangeSnapshot>>>> timestampHandlers = new ExchangeCoinMap<>();
+	private final ScheduledExecutorService completionScheduler = Executors.newSingleThreadScheduledExecutor();
+	private final long completionDelayMs = 500;
+
 	private final CoinVector<Set<BaseExchange>> availableExchangesByCoin;
 	private final Map<BaseExchange, Set<String>> availableCoinsByExchange;
 	@Getter private final CompletableFuture<Void> initFuture;
@@ -56,7 +59,6 @@ public class CoinMonitor {
 	private final ConcurrentHashMap<ExchangeName, Consumer<FundingRatePatch>> initFundingHandlers = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<ExchangeName, Consumer<MarkPricePatch>> initMarkHandlers = new ConcurrentHashMap<>();
 	private final Map<Integer, ArbitrageSnapshotCompletion> arbitrageSnapshotCompletions = new ConcurrentHashMap<>();
-	private int timestampCompletionId = 0;
 
 	public CoinMonitor(
 					CoinFilterResult filterResult
@@ -260,39 +262,57 @@ public class CoinMonitor {
 		);
 	}
 
-	private Consumer<BookTickerPatch> createSteadyBookHandler(BaseExchange exchangeName) {
+	private Consumer<BookTickerPatch> createSteadyBookHandler(BaseExchange ex) {
 		return tickerPatch -> bookTickers.compute(
-						exchangeName, tickerPatch.coin(), (k, v) -> {
+						ex, tickerPatch.coin(), (k, v) -> {
 							if (v == null) return null;
-							return new BookTicker(
+							var timestamps = timestampsToProcess.get(ex, tickerPatch.coin());
+							BookTicker result = new BookTicker(
 											tickerPatch.bidPrice() != null ? tickerPatch.bidPrice() : v.bidPrice(),
 											tickerPatch.bidSize() != null ? tickerPatch.bidSize() : v.bidSize(),
 											tickerPatch.askPrice() != null ? tickerPatch.askPrice() : v.askPrice(),
 											tickerPatch.askSize() != null ? tickerPatch.askSize() : v.askSize(),
 											tickerPatch.timestamp()
 							);
+							if (timestamps != null && !timestamps.isEmpty()) {
+								if (timestamps.first() < tickerPatch.timestamp().toEpochMilli()) return result;
+								tickerCompletions.put(ex, tickerPatch.coin(), result);
+							}
+							return result;
 						}
 		);
 	}
 
-	private Consumer<FundingRatePatch> createSteadyFundingHandler(BaseExchange exchangeName) {
+	private Consumer<FundingRatePatch> createSteadyFundingHandler(BaseExchange ex) {
 		return ratePatch -> fundingRates.compute(
-						exchangeName, ratePatch.coin(), (k, v) -> {
+						ex, ratePatch.coin(), (k, v) -> {
 							if (v == null) return null;
-							return new FundingRate(
+							var timestamps = timestampsToProcess.get(ex, ratePatch.coin());
+							FundingRate result = new FundingRate(
 											ratePatch.rate() != null ? ratePatch.rate() : v.rate(),
 											ratePatch.settlement() != null ? ratePatch.settlement() : v.settlement(),
 											ratePatch.timestamp()
 							);
+							if (timestamps != null && !timestamps.isEmpty()) {
+								if (timestamps.first() < ratePatch.timestamp().toEpochMilli()) return result;
+								fundingCompletions.put(ex, ratePatch.coin(), result);
+							}
+							return result;
 						}
 		);
 	}
 
-	private Consumer<MarkPricePatch> createSteadyMarkHandler(BaseExchange exchangeName) {
+	private Consumer<MarkPricePatch> createSteadyMarkHandler(BaseExchange ex) {
 		return markPricePatch -> markPrices.compute(
-						exchangeName, markPricePatch.coin(), (k, v) -> {
+						ex, markPricePatch.coin(), (k, v) -> {
 							if (v == null) return null;
-							return new MarkPrice(markPricePatch.price(), markPricePatch.timestamp());
+							var timestamps = timestampsToProcess.get(ex, markPricePatch.coin());
+							MarkPrice result = new MarkPrice(markPricePatch.price(), markPricePatch.timestamp());
+							if (timestamps != null && !timestamps.isEmpty()) {
+								if (timestamps.first() < markPricePatch.timestamp().toEpochMilli()) return result;
+								markCompletions.put(ex, markPricePatch.coin(), result);
+							}
+							return result;
 						}
 		);
 	}
@@ -418,93 +438,103 @@ public class CoinMonitor {
 		return fundingIntervals.get(ex, coin);
 	}
 
-	private CompletableFuture<Void> performOnTimestamp(
-					long utc,
-					BaseExchange ex,
+	private void performOnTimestamp(
+					long timestamp,
+					BaseExchange exchange,
 					String coin,
-					Consumer<ExchangeSnapshot> callback
+					Consumer<ExchangeSnapshot> handler
 	) {
-		if (utc < Instant.now().toEpochMilli()) throw new IllegalArgumentException("Timestamp must be in the future");
-		long deadlineUtc = utc + 500;
+		long now = Instant.now().toEpochMilli();
+		long duration = timestamp - now;
 
-		return CompletableFuture.runAsync(() -> {
-			while (true) {
-				ExchangeSnapshot snapshot = getSnapshot(ex, coin);
-				boolean deadlineReached = System.currentTimeMillis() >= deadlineUtc;
+		if (duration < 0) throw new IllegalArgumentException("Timestamp is in the past: " + timestamp);
 
-				if (deadlineReached) {
-					callback.accept(snapshot);
-					return;
-				}
+		registerTimestampAndHandler(timestamp, exchange, coin, handler);
+		registerCurrentState(exchange, coin);
 
-				if (isGatheredForUtc(snapshot, utc)) {
-					callback.accept(snapshot);
-					return;
-				}
-
-				try {
-					Thread.sleep(5);
-				} catch (InterruptedException e) {
-					Logger.error("Interrupted while waiting for data: " + e.getMessage());
-					throw new RuntimeException(e);
-				}
-			}
-		});
+		completionScheduler.schedule(
+						() -> fireCallbacksOnTimestamp(timestamp, exchange, coin),
+						duration + completionDelayMs,
+						TimeUnit.MILLISECONDS
+		);
 	}
 
-	public Integer performOnTimestamp(
-					long utc, ExchangePair exchanges, String coin, Consumer<ArbitrageSnapshot> callback
+	public void performOnTimestamp(
+					long timestamp,
+					ExchangePair exchanges,
+					String coin,
+					Consumer<ArbitrageSnapshot> handler
 	) {
-		if (utc < Instant.now().toEpochMilli()) throw new IllegalArgumentException("Timestamp must be in the future");
-
-		int completionId = timestampCompletionId++;
 		AtomicReference<ExchangeSnapshot> longSnapshot = new AtomicReference<>();
 		AtomicReference<ExchangeSnapshot> shortSnapshot = new AtomicReference<>();
 
-		Runnable tryComplete = () -> {
-			ExchangeSnapshot longSnapshotValue = longSnapshot.get();
-			ExchangeSnapshot shortSnapshotValue = shortSnapshot.get();
-			if (longSnapshotValue != null && shortSnapshotValue != null) {
-				arbitrageSnapshotCompletions.remove(completionId);
-				callback.accept(new ArbitrageSnapshot(longSnapshotValue, shortSnapshotValue));
+		Runnable tryCallback = () -> {
+			if (longSnapshot.get() != null && shortSnapshot.get() != null) {
+				handler.accept(new ArbitrageSnapshot(longSnapshot.get(), shortSnapshot.get()));
 			}
 		};
-		CompletableFuture<Void> longFuture = performOnTimestamp(
-						utc, exchanges.longEx(), coin, (snapshot) -> {
-							longSnapshot.set(snapshot);
-							tryComplete.run();
+
+		performOnTimestamp(
+						timestamp, exchanges.longEx(), coin, (sn) -> {
+							longSnapshot.set(sn);
+							tryCallback.run();
 						}
 		);
-
-		CompletableFuture<Void> shortFuture = performOnTimestamp(
-						utc, exchanges.shortEx(), coin, (snapshot) -> {
-							shortSnapshot.set(snapshot);
-							tryComplete.run();
+		performOnTimestamp(
+						timestamp, exchanges.shortEx(), coin, (sn) -> {
+							shortSnapshot.set(sn);
+							tryCallback.run();
 						}
 		);
-
-		arbitrageSnapshotCompletions.put(completionId, new ArbitrageSnapshotCompletion(longFuture, shortFuture));
-		return completionId;
 	}
 
-	public void cancelTimestampCompletion(int completionId) {
-		ArbitrageSnapshotCompletion completion = arbitrageSnapshotCompletions.remove(completionId);
-		if (completion != null) {
-			completion.longSnapshotFuture().cancel(true);
-			completion.shortSnapshotFuture().cancel(true);
-			arbitrageSnapshotCompletions.remove(completionId);
+	private void registerCurrentState(BaseExchange ex, String coin) {
+		ExchangeSnapshot current = getSnapshot(ex, coin);
+		fundingCompletions.put(ex, coin, current.fundingRate());
+		tickerCompletions.put(ex, coin, current.bookTicker());
+		markCompletions.put(ex, coin, current.markPrice());
+	}
+
+	private void registerTimestampAndHandler(
+					long timestamp,
+					BaseExchange ex,
+					String coin,
+					Consumer<ExchangeSnapshot> handler
+	) {
+		SortedSet<Long> timestamps = timestampsToProcess.get(ex, coin);
+		if (timestamps == null) {
+			timestamps = new TreeSet<>();
+			timestampsToProcess.put(ex, coin, timestamps);
+		}
+		timestamps.add(timestamp);
+
+		Map<Long, Set<Consumer<ExchangeSnapshot>>> handlers = timestampHandlers.get(ex, coin);
+		if (handlers == null) {
+			handlers = new ConcurrentHashMap<>();
+			Set<Consumer<ExchangeSnapshot>> set = ConcurrentHashMap.newKeySet();
+			handlers.put(timestamp, set);
+			timestampHandlers.put(ex, coin, handlers);
+		}
+		handlers.computeIfAbsent(timestamp, k -> ConcurrentHashMap.newKeySet()).add(handler);
+	}
+
+	private void fireCallbacksOnTimestamp(long timestamp, BaseExchange ex, String coin) {
+		ExchangeSnapshot timestampSnapshot = getTimestampCompletion(ex, coin);
+
+		timestampsToProcess.get(ex, coin).remove(timestamp);
+		Set<Consumer<ExchangeSnapshot>> handlers = timestampHandlers.get(ex, coin).get(timestamp);
+		if (handlers != null) {
+			handlers.forEach(handler -> handler.accept(timestampSnapshot));
+			timestampHandlers.get(ex, coin).remove(timestamp);
 		}
 	}
 
-	private boolean isGatheredForUtc(ExchangeSnapshot snapshot, long utc) {
-		BookTicker bookTicker = snapshot.bookTicker();
-		MarkPrice markPrice = snapshot.markPrice();
-		FundingRate fundingRate = snapshot.fundingRate();
-		if (bookTicker == null || markPrice == null || fundingRate == null) return false;
-
-		return bookTicker.timestamp().toEpochMilli() >= utc &&
-					 markPrice.timestamp().toEpochMilli() >= utc &&
-					 fundingRate.timestamp().toEpochMilli() >= utc;
+	private ExchangeSnapshot getTimestampCompletion(BaseExchange ex, String coin) {
+		BookTicker ticker = tickerCompletions.get(ex, coin);
+		MarkPrice markPrice = markCompletions.get(ex, coin);
+		FundingRate fundingRate = fundingCompletions.get(ex, coin);
+		Fees fee = fees.get(ex, coin);
+		return new ExchangeSnapshot(ticker, fee, fundingRate, markPrice);
 	}
 
 	private record ArbitrageSnapshotCompletion(
