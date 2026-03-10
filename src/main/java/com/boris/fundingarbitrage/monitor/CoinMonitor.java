@@ -46,6 +46,7 @@ public class CoinMonitor {
 	private final ExchangeCoinMap<FundingRate> fundingCompletions = new ExchangeCoinMap<>();
 	private final ExchangeCoinMap<MarkPrice> markCompletions = new ExchangeCoinMap<>();
 	private final ExchangeCoinMap<Map<Long, Set<Consumer<ExchangeSnapshot>>>> timestampHandlers = new ExchangeCoinMap<>();
+	private final ExchangeCoinMap<Map<Long, Set<ScheduledFuture<?>>>> completionFutures = new ExchangeCoinMap<>();
 	private final ScheduledExecutorService completionScheduler = Executors.newSingleThreadScheduledExecutor();
 	private final long completionDelayMs = 500;
 
@@ -452,11 +453,13 @@ public class CoinMonitor {
 		registerTimestampAndHandler(timestamp, exchange, coin, handler);
 		registerCurrentState(exchange, coin);
 
-		completionScheduler.schedule(
+		ScheduledFuture<?> sFuture = completionScheduler.schedule(
 						() -> fireCallbacksOnTimestamp(timestamp, exchange, coin),
 						duration + completionDelayMs,
 						TimeUnit.MILLISECONDS
 		);
+
+		completionFutures.get(exchange, coin).get(timestamp).add(sFuture);
 	}
 
 	public void performOnTimestamp(
@@ -488,6 +491,18 @@ public class CoinMonitor {
 		);
 	}
 
+	public void cancelTimestampExecution(long timestamp, ExchangePair exchanges, String coin) {
+		Set<ScheduledFuture<?>> longFuture = completionFutures.get(exchanges.longEx(), coin).remove(timestamp);
+		longFuture.forEach(f -> f.cancel(true));
+		timestampsToProcess.get(exchanges.longEx(), coin).remove(timestamp);
+		timestampHandlers.get(exchanges.longEx(), coin).remove(timestamp);
+
+		Set<ScheduledFuture<?>> shortFuture = completionFutures.get(exchanges.shortEx(), coin).remove(timestamp);
+		shortFuture.forEach(f -> f.cancel(true));
+		timestampsToProcess.get(exchanges.shortEx(), coin).remove(timestamp);
+		timestampHandlers.get(exchanges.shortEx(), coin).remove(timestamp);
+	}
+
 	private void registerCurrentState(BaseExchange ex, String coin) {
 		ExchangeSnapshot current = getSnapshot(ex, coin);
 		fundingCompletions.put(ex, coin, current.fundingRate());
@@ -501,6 +516,13 @@ public class CoinMonitor {
 					String coin,
 					Consumer<ExchangeSnapshot> handler
 	) {
+		Map<Long, Set<ScheduledFuture<?>>> futuresMap = completionFutures.get(ex, coin);
+		if (futuresMap == null) {
+			futuresMap = new ConcurrentHashMap<>();
+			completionFutures.put(ex, coin, futuresMap);
+		}
+		futuresMap.computeIfAbsent(timestamp, k -> ConcurrentHashMap.newKeySet());
+
 		SortedSet<Long> timestamps = timestampsToProcess.get(ex, coin);
 		if (timestamps == null) {
 			timestamps = new TreeSet<>();
