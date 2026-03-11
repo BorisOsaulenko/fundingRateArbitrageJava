@@ -19,30 +19,6 @@ class BitgetPublicMessageHandler implements PublicMessageHandler {
 		this.context = context;
 	}
 
-	private FundingRatePatch parseFundingRateInternal(JsonNode root) {
-		String symbol = root.get("arg").path("instId").asText();
-		String channel = root.get("arg").path("channel").asText();
-		if (!"ticker".equalsIgnoreCase(channel)) return null;
-
-		JsonNode dataArray = root.get("data");
-		if (dataArray == null || !dataArray.isArray() || dataArray.isEmpty()) return null;
-		JsonNode data = dataArray.get(0);
-
-		String coin = context.getSymbolInverse(symbol);
-		String fundingRateText = data.path("fundingRate").asText();
-		BigDecimal fundingRate = fundingRateText.isEmpty() ? null : new BigDecimal(fundingRateText);
-		long nextFundingTime = data.path("nextFundingTime").asLong();
-		if (fundingRate == null && nextFundingTime == 0) return null;
-
-		Instant settlement = Instant.ofEpochMilli(nextFundingTime);
-
-		long ts = data.path("ts").asLong();
-		if (ts == 0) return null;
-		Instant timestamp = Instant.ofEpochMilli(ts);
-
-		return new FundingRatePatch(coin, fundingRate, settlement, timestamp);
-	}
-
 	private MarkPricePatch parseMarkPriceInternal(JsonNode root) {
 		String symbol = root.get("arg").path("instId").asText();
 		String channel = root.get("arg").path("channel").asText();
@@ -104,7 +80,7 @@ class BitgetPublicMessageHandler implements PublicMessageHandler {
 
 	@Override
 	public FundingRatePatch parseFundingRateMessageSymbol(JsonNode root) {
-		return parseErrorHandled(this::parseFundingRateInternal, root);
+		return null;
 	}
 
 	@Override

@@ -53,10 +53,23 @@ public abstract class ArbitrageLogic {
 		activeCoins.addAll(availableExchangesByCoin.keySet());
 		monitor = new CoinMonitor(filtered);
 
-		balancesFuture = fillBalancesMap().thenRun(this::onBalanceInit);
-		initFuture = CompletableFuture.allOf(monitor.getInitFuture(), balancesFuture)
-						.thenRun(() -> Logger.log("Initialization completed"))
-						.thenRun(this::startProcessingOpportunities);
+		balancesFuture = fillBalancesMap()
+						.thenRun(() -> Logger.log("Balances initialized"))
+						.thenRun(this::afterBalanceInit);
+		CompletableFuture<Void> errorHandledMonitor = monitor.getInitFuture()
+						.thenRun(() -> Logger.log("Monitor initialized"))
+						.exceptionally(t -> {
+							Logger.error("Failed to initialize monitor. " + t.getMessage());
+							shutdown();
+							throw new RuntimeException(t);
+						});
+		initFuture = CompletableFuture.allOf(errorHandledMonitor, balancesFuture);
+	}
+
+	public void start() {
+		initFuture.join();
+		startProcessingOpportunities();
+		Logger.log("Arbitrage logic started.");
 	}
 
 	private CompletableFuture<Void> fillBalancesMap() {
@@ -64,9 +77,19 @@ public abstract class ArbitrageLogic {
 
 		for (BaseExchange exchange : Instances.getExchangeArray()) {
 			CompletableFuture<Void> spotBalanceFuture = exchange.privateHttpClient.getSpotUsdtBalance()
-							.thenAccept(spotB -> spotBalances.put(exchange, spotB));
+							.thenAccept(spotB -> spotBalances.put(exchange, spotB))
+							.exceptionally(t -> {
+								Logger.error("Failed to fetch spot balance for " + exchange.name + ": " + t.getMessage());
+								shutdown();
+								throw new RuntimeException(t);
+							});
 			CompletableFuture<Void> futuresBalanceFuture = exchange.privateHttpClient.getFuturesUsdtBalance()
-							.thenAccept(futuresB -> futuresBalances.put(exchange, futuresB));
+							.thenAccept(futuresB -> futuresBalances.put(exchange, futuresB))
+							.exceptionally(t -> {
+								Logger.error("Failed to fetch futures balance for " + exchange.name + ": " + t.getMessage());
+								shutdown();
+								throw new RuntimeException(t);
+							});
 
 			futures.add(spotBalanceFuture);
 			futures.add(futuresBalanceFuture);
@@ -91,13 +114,14 @@ public abstract class ArbitrageLogic {
 
 	private void doFirstTick() {
 		processCoins().join();
+		beforeFirstTick();
 		processTick();
-		onFirstTick();
+		afterFirstTick();
 	}
 
 	protected void adjustFrequencyToRecommended() {
 		int newFrequencyMs = (int) (activeCoins.size() * 1.1);
-		currentSchedulerTask.cancel(true);
+		if (currentSchedulerTask != null) currentSchedulerTask.cancel(true);
 		currentSchedulerTask = scheduler.scheduleAtFixedRate(
 						() -> {
 							processCoins().join();
@@ -168,6 +192,7 @@ public abstract class ArbitrageLogic {
 												 bestCoinExchanges.shortEx().name +
 												 " (short) - " +
 												 (preTradeStrategy.snapshotGoodEnough(entry.getValue()) ? "GOOD" : "BAD"));
+							Logger.log("Snaphshot: " + entry.getValue());
 						});
 	}
 
@@ -184,9 +209,11 @@ public abstract class ArbitrageLogic {
 
 	protected abstract void processTick();
 
-	protected abstract void onBalanceInit();
+	protected abstract void afterBalanceInit();
 
-	protected abstract void onFirstTick();
+	protected abstract void beforeFirstTick();
+
+	protected abstract void afterFirstTick();
 
 	public void shutdown() {
 		monitor.shutdown();

@@ -25,6 +25,7 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 	private final List<InTradeSingleCoinLogic> inTradeCoins = new CopyOnWriteArrayList<>();
 	private Instant closestEnter;
 	private boolean tradesEntered;
+	private boolean firstTick = true;
 
 	public RebalancingArbitrageLogic(
 					PreTradeStrategy strategy,
@@ -35,19 +36,28 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 	}
 
 	@Override
-	protected void onBalanceInit() {
+	protected void afterBalanceInit() {
 		checkEnoughBalance();
 		suggestRebalanceIfNeeded();
 	}
 
 	@Override
-	protected void onFirstTick() {
+	protected void beforeFirstTick() {
+	}
+
+	@Override
+	protected void afterFirstTick() {
 		disconnectLaterOpportunities();
 		adjustFrequencyToRecommended();
 	}
 
 	@Override
 	protected void processTick() {
+		if (firstTick) {
+			firstTick = false;
+			return;
+		}
+		
 		if (tradesEntered) {
 			boolean timeToAttemptExit = Instant.now().minus(afterEnter).isAfter(closestEnter);
 			if (!timeToAttemptExit) return;
@@ -69,7 +79,7 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 		if (enterClose) {
 			enterGoodCoins();
 			stopCalculatingBestOptionsForAllCoins();
-			adjustFrequency(20);
+			adjustFrequency(10);
 			tradesEntered = true;
 		}
 	}
@@ -84,13 +94,13 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 	}
 
 	private void checkEnoughBalance() {
-		this.balancesFuture.join();
 		for (BaseExchange ex : Instances.getExchangeArray()) {
 			BigDecimal spotBalance = spotBalances.get(ex);
 			BigDecimal futuresBalance = futuresBalances.get(ex);
 			BigDecimal totalBalance = spotBalance.add(futuresBalance);
 
 			if (totalBalance.compareTo(config.legUsdtAmount()) < 0) {
+				Logger.log("Not enough balance to start arbitrage on " + ex.name);
 				this.shutdown();
 				throw new RuntimeException("Not enough balance to start arbitrage on " + ex.name);
 			}
@@ -98,7 +108,6 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 	}
 
 	private void suggestRebalanceIfNeeded() {
-		this.balancesFuture.join();
 		BigDecimal balancesSum = BigDecimal.ZERO;
 		BigDecimal maxBalance = BigDecimal.ZERO;
 		BigDecimal minBalance = new BigDecimal(Long.MAX_VALUE);
@@ -126,6 +135,12 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 		List<Map.Entry<String, ArbitrageSnapshot>> coinsToReview = this.bestArbSnapshots
 						.filter(preTradeStrategy::snapshotGoodEnough)
 						.sortDesc(preTradeStrategy::compareSnapshots);
+
+		if (coinsToReview.isEmpty()) {
+			Logger.log("No good snapshots found. Finishing...");
+			this.shutdown();
+			return;
+		}
 
 		int parallelTrades = 0;
 

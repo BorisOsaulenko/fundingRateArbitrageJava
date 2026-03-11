@@ -1,20 +1,15 @@
 package com.boris.fundingarbitrage;
 
-import com.boris.fundingarbitrage.coinfilter.CoinFilterConfig;
-import com.boris.fundingarbitrage.logic.ArbitrageBotConfig;
-import com.boris.fundingarbitrage.logic.InTradeSingleCoinLogic;
-import com.boris.fundingarbitrage.strategy.ClassicInTradeStrategy;
-import com.boris.fundingarbitrage.strategy.InTradeStrategy;
+import com.boris.fundingarbitrage.exchange.BaseExchange;
+import com.boris.fundingarbitrage.exchange.impl.okx.OkxExchange;
 import com.boris.fundingarbitrage.util.logger.Logger;
 import lombok.extern.slf4j.Slf4j;
 
-import java.math.BigDecimal;
-import java.nio.file.Path;
 import java.util.Set;
 
 @Slf4j
 public class App {
-	private static final Set<String> coins2 = Set.of("ESP", "SAHARA", "STEEM", "ENSO", "SOPH");
+	private static final Set<String> coins2 = Set.of("PIXEL", "LYN", "ACX", "GAIB", "TOWNS");
 	static Set<String> coins = Set.of(
 					"ETH",
 					"SOL",
@@ -111,22 +106,26 @@ public class App {
 					"BLUAI" // 92 coins
 	);
 
-	static void main(String[] args) throws InterruptedException {
-		Logger.init(Path.of("app.log"));
-		InTradeStrategy strategy = new ClassicInTradeStrategy();
-		ArbitrageBotConfig botConfig = new ArbitrageBotConfig(coins2, new BigDecimal("30"), 1, 30, 3);
-		CoinFilterConfig filterConfig = new CoinFilterConfig(new BigDecimal("100000"), new BigDecimal("30"));
+	//	static void main(String[] args) throws InterruptedException {
+	//		Logger.init(Path.of("app.log"));
+	//		PreTradeStrategy strategy = new ClassicPreTradeStrategy();
+	//		ArbitrageBotConfig botConfig = new ArbitrageBotConfig(coins2, new BigDecimal("20"), 1, 30, 3);
+	//		CoinFilterConfig filterConfig = new CoinFilterConfig(new BigDecimal("100000"), new BigDecimal("20"));
+	//
+	//		try {
+	//			ArbitrageLogic logic = new RebalancingArbitrageLogic(strategy, botConfig, filterConfig);
+	//			logic.start();
+	//		} catch (Exception e) {
+	//			e.printStackTrace();
+	//			System.exit(1);
+	//		}
+	//	}
 
-		try {
-			InTradeSingleCoinLogic logic = new InTradeSingleCoinLogic(
-							strategy,
-							botConfig,
-							filterConfig
-			);
-		} catch (Exception e) {
-			e.printStackTrace();
-			System.exit(1);
-		}
+	static void main(String[] args) throws InterruptedException {
+		BaseExchange bitget = new OkxExchange();
+		bitget.publicWsClient.connect().join();
+		bitget.publicWsClient.subscribeFundingRates("SOL", (v) -> Logger.log(v.toString()));
+		Thread.sleep(60000);
 	}
 }
 

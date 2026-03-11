@@ -2,7 +2,7 @@ package com.boris.fundingarbitrage.exchange.impl.bitget.publicws;
 
 import com.boris.fundingarbitrage.exchange.impl.bitget.BitgetContext;
 import com.boris.fundingarbitrage.exchange.impl.bitget.publicrest.BitgetPublicHttpClient;
-import com.boris.fundingarbitrage.exchange.publicws.PublicWsClient;
+import com.boris.fundingarbitrage.util.wss.publicws.FullFundingViaRest;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -11,7 +11,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-public class BitgetPublicWsClient extends PublicWsClient {
+public class BitgetPublicWsClient extends FullFundingViaRest {
 	private static final URI endpoint = URI.create("wss://ws.bitget.com/v2/ws/public");
 	private static final String instType = "USDT-FUTURES";
 	private static final String tickerChannel = "ticker";
@@ -46,7 +46,7 @@ public class BitgetPublicWsClient extends PublicWsClient {
 
 	@Override
 	protected String getUnsubscribeFundingRateFrame(List<String> symbols) {
-		return getUnsubscribeFrame(symbols);
+		return null;
 	}
 
 	@Override

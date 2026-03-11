@@ -6,7 +6,6 @@ import com.boris.fundingarbitrage.exchange.impl.bybit.BybitExchange;
 import com.boris.fundingarbitrage.exchange.impl.gate.GateExchange;
 import com.boris.fundingarbitrage.exchange.impl.kucoin.KucoinExchange;
 import com.boris.fundingarbitrage.exchange.impl.okx.OkxExchange;
-import com.boris.fundingarbitrage.exchange.impl.whitebit.WhitebitExchange;
 import com.boris.fundingarbitrage.model.exchange.ExchangeName;
 import lombok.Getter;
 
@@ -27,7 +26,7 @@ public class Instances {
 		exchanges.put(ExchangeName.GATE, new GateExchange());
 		exchanges.put(ExchangeName.KUCOIN, new KucoinExchange());
 		exchanges.put(ExchangeName.OKX, new OkxExchange());
-		exchanges.put(ExchangeName.WHITEBIT, new WhitebitExchange());
+		//		exchanges.put(ExchangeName.WHITEBIT, new WhitebitExchange());
 
 		exchangeArray.addAll(exchanges.values());
 	}

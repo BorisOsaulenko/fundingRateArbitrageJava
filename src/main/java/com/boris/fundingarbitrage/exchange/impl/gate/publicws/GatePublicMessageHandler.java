@@ -18,10 +18,6 @@ class GatePublicMessageHandler implements PublicMessageHandler {
 		this.context = context;
 	}
 
-	private boolean correctString(String s) {
-		return s != null && !s.isEmpty();
-	}
-
 	private FundingRatePatch parseFundingRateInternal(JsonNode root) {
 		String channel = root.path("channel").asText();
 		String event = root.path("event").asText();

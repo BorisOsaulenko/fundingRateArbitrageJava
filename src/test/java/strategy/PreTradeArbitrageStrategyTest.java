@@ -6,13 +6,16 @@ import com.boris.fundingarbitrage.model.contract.Fees;
 import com.boris.fundingarbitrage.model.contract.FundingRate;
 import com.boris.fundingarbitrage.model.contract.MarkPrice;
 import com.boris.fundingarbitrage.model.exchange.ExchangeSnapshot;
-import com.boris.fundingarbitrage.strategy.InTradeStrategy;
+import com.boris.fundingarbitrage.strategy.PreTradeStrategy;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 
-public abstract class ArbitrageStrategyTest {
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+
+public abstract class PreTradeArbitrageStrategyTest {
 	private static ArbitrageSnapshot snapshot(
 					BigDecimal longAsk,
 					BigDecimal shortBid,
@@ -40,7 +43,7 @@ public abstract class ArbitrageStrategyTest {
 		return new MarkPrice(price, timestamp);
 	}
 
-	protected abstract InTradeStrategy strategy();
+	protected abstract PreTradeStrategy strategy();
 
 	@Test
 	public void compareSnapshotsReturnsMinusOneWhenFirstIsWorse() {

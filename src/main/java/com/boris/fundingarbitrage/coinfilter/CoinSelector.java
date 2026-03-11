@@ -88,6 +88,14 @@ public class CoinSelector {
 				forgetCoin(coin);
 			}
 		}
+
+		for (BaseExchange exchange : Instances.getExchangesSet()) {
+			Set<String> coins = availableCoinsByExchange.get(exchange);
+			if (coins == null || coins.isEmpty()) {
+				Logger.warn("No coins left for " + exchange.name + ". Removing from monitoring.");
+				forgetExchange(exchange);
+			}
+		}
 	}
 
 	private void forgetCoinExchange(String coin, BaseExchange exchange) {
@@ -109,11 +117,12 @@ public class CoinSelector {
 		availableExchangesByCoin.remove(coin);
 	}
 
-	public BigDecimal getLotSize(BaseExchange exchange, String coin) {
-		return lotSizes.get(exchange, coin);
-	}
-
-	public int getFundingInterval(BaseExchange exchange, String coin) {
-		return fundingIntervals.get(exchange, coin);
+	private void forgetExchange(BaseExchange exchange) {
+		Set<String> subscribedCoins = availableCoinsByExchange.get(exchange);
+		if (subscribedCoins != null) {
+			for (String coin : subscribedCoins) {
+				forgetCoinExchange(coin, exchange);
+			}
+		}
 	}
 }

@@ -12,8 +12,8 @@ public class CoinExecution {
 	private final int leverage;
 	private final TradeParams params;
 
-	private volatile CompletableFuture<Void> enterFuture = null;
-	private volatile CompletableFuture<Void> exitFuture = null;
+	private final CompletableFuture<Void> enterFuture = null;
+	private final CompletableFuture<Void> exitFuture = null;
 	private volatile boolean failed = false;
 
 	@Getter private TradeIds enterIds;
@@ -49,70 +49,80 @@ public class CoinExecution {
 		);
 	}
 
-	public synchronized CompletableFuture<Void> enterTrade() {
-		if (failed) return CompletableFuture.completedFuture(null);
-		if (enterFuture != null) return enterFuture;
-		FuturesOrder longOrder = getLongOrder(true);
-		FuturesOrder shortOrder = getShortOrder(true);
-
-		CompletableFuture<String> LEnter = params.longEx().privateHttpClient.placeFuturesOrder(coin, longOrder);
-		CompletableFuture<String> SEnter = params.shortEx().privateHttpClient.placeFuturesOrder(coin, shortOrder);
-
-		CompletableFuture<Void> future = CompletableFuture.allOf(LEnter, SEnter).thenAccept(_ -> {
-			String longId = LEnter.join();
-			String shortId = SEnter.join();
-			this.enterIds = new TradeIds(longId, shortId);
-		}).exceptionallyComposeAsync(t -> {
-			if (LEnter.isCompletedExceptionally() && SEnter.isCompletedExceptionally()) {
-				failed = true;
-				Logger.log("Failed to enter trade (both legs) for " +
-									 coin +
-									 ", " +
-									 params.longEx().name +
-									 " and " +
-									 params.shortEx().name +
-									 ": " +
-									 t.getMessage());
-				throw new RuntimeException(t);
-			} else if (LEnter.isCompletedExceptionally()) {
-				Logger.error("Failed to enter trade for long" + coin + ", " + params.longEx().name + ": " + t.getMessage());
-				Logger.error("Attempting to exit short automatically.");
-				return SEnter.thenCompose(_ -> exitShort().thenAccept(_ -> failed = true))
-								.thenCompose(_ -> CompletableFuture.failedFuture(
-												new IllegalStateException(coin + ": long enter failed; short was compensated")
-								));
-			} else if (SEnter.isCompletedExceptionally()) {
-				Logger.error("Failed to enter trade for short" + coin + ", " + params.shortEx().name + ": " + t.getMessage());
-				Logger.error("Attempting to exit long automatically.");
-				return LEnter.thenCompose(_ -> exitLong().thenAccept(_ -> failed = true))
-								.thenCompose(_ -> CompletableFuture.failedFuture(
-												new IllegalStateException(coin + ": short enter failed; long was compensated")
-								));
-			}
-
-			Logger.error("Error while failsafe exiting for " + coin + ": " + t.getMessage());
-			throw new RuntimeException(t);
-		});
-
-		enterFuture = future;
-		return future;
+	public CompletableFuture<Void> enterTrade() {
+		Logger.log("Would have entered trade for " + coin + " with leverage " + leverage);
+		return CompletableFuture.completedFuture(null);
 	}
 
-	public synchronized CompletableFuture<Void> exitTrade() {
-		if (!shouldAttemptExit()) return CompletableFuture.completedFuture(null);
-		if (exitFuture != null) return exitFuture;
+	//	public synchronized CompletableFuture<Void> enterTrade() {
+	//		if (failed) return CompletableFuture.completedFuture(null);
+	//		if (enterFuture != null) return enterFuture;
+	//		FuturesOrder longOrder = getLongOrder(true);
+	//		FuturesOrder shortOrder = getShortOrder(true);
+	//
+	//		CompletableFuture<String> LEnter = params.longEx().privateHttpClient.placeFuturesOrder(coin, longOrder);
+	//		CompletableFuture<String> SEnter = params.shortEx().privateHttpClient.placeFuturesOrder(coin, shortOrder);
+	//
+	//		CompletableFuture<Void> future = CompletableFuture.allOf(LEnter, SEnter).thenAccept(_ -> {
+	//			String longId = LEnter.join();
+	//			String shortId = SEnter.join();
+	//			this.enterIds = new TradeIds(longId, shortId);
+	//		}).exceptionallyComposeAsync(t -> {
+	//			if (LEnter.isCompletedExceptionally() && SEnter.isCompletedExceptionally()) {
+	//				failed = true;
+	//				Logger.log("Failed to enter trade (both legs) for " +
+	//									 coin +
+	//									 ", " +
+	//									 params.longEx().name +
+	//									 " and " +
+	//									 params.shortEx().name +
+	//									 ": " +
+	//									 t.getMessage());
+	//				throw new RuntimeException(t);
+	//			} else if (LEnter.isCompletedExceptionally()) {
+	//				Logger.error("Failed to enter trade for long" + coin + ", " + params.longEx().name + ": " + t.getMessage());
+	//				Logger.error("Attempting to exit short automatically.");
+	//				return SEnter.thenCompose(_ -> exitShort().thenAccept(_ -> failed = true))
+	//								.thenCompose(_ -> CompletableFuture.failedFuture(
+	//												new IllegalStateException(coin + ": long enter failed; short was compensated")
+	//								));
+	//			} else if (SEnter.isCompletedExceptionally()) {
+	//				Logger.error("Failed to enter trade for short" + coin + ", " + params.shortEx().name + ": " + t.getMessage());
+	//				Logger.error("Attempting to exit long automatically.");
+	//				return LEnter.thenCompose(_ -> exitLong().thenAccept(_ -> failed = true))
+	//								.thenCompose(_ -> CompletableFuture.failedFuture(
+	//												new IllegalStateException(coin + ": short enter failed; long was compensated")
+	//								));
+	//			}
+	//
+	//			Logger.error("Error while failsafe exiting for " + coin + ": " + t.getMessage());
+	//			throw new RuntimeException(t);
+	//		});
+	//
+	//		enterFuture = future;
+	//		return future;
+	//	}
 
-		CompletableFuture<String> LExit = exitLong();
-		CompletableFuture<String> SExit = exitShort();
+	//	public synchronized CompletableFuture<Void> exitTrade() {
+	//		if (!shouldAttemptExit()) return CompletableFuture.completedFuture(null);
+	//		if (exitFuture != null) return exitFuture;
+	//
+	//		CompletableFuture<String> LExit = exitLong();
+	//		CompletableFuture<String> SExit = exitShort();
+	//
+	//		CompletableFuture<Void> future = CompletableFuture.allOf(LExit, SExit).thenAccept(_ -> {
+	//			String longId = LExit.join();
+	//			String shortId = SExit.join();
+	//			this.exitIds = new TradeIds(longId, shortId);
+	//		});
+	//
+	//		exitFuture = future;
+	//		return future;
+	//	}
 
-		CompletableFuture<Void> future = CompletableFuture.allOf(LExit, SExit).thenAccept(_ -> {
-			String longId = LExit.join();
-			String shortId = SExit.join();
-			this.exitIds = new TradeIds(longId, shortId);
-		});
-
-		exitFuture = future;
-		return future;
+	public CompletableFuture<Void> exitTrade() {
+		Logger.log("Would have exited trade for " + coin + " with leverage " + leverage);
+		return CompletableFuture.completedFuture(null);
 	}
 
 	private boolean shouldAttemptExit() {

@@ -72,10 +72,15 @@ public class CoinMonitor {
 
 		this.initFuture = CompletableFuture.runAsync(() -> {
 			openWsConnections().join(); // Has to be awaited
+			Logger.debug("WS connections opened");
 			initFees();
+			Logger.debug("Trading fees initialized");
 			fillEmptyData();
+			Logger.debug("Empty data filled");
 			initCompletionTracking();
+			Logger.debug("Init completion tracking initialized");
 			subscribeData();
+			Logger.debug("Subscribed to data");
 
 			CompletableFuture<Void> timeout = CompletableFuture.runAsync(
 							() -> {
@@ -89,12 +94,13 @@ public class CoinMonitor {
 				checkDataCompleteness();
 				clearCoinsWithInsufficientExchanges();
 			}
+			switchToSteadyStateHandlers();
+			Logger.log("Switched to steady state handlers");
 
 			Logger.log("Coin monitor initialized:");
 			Logger.logCoinVector(availableExchangesByCoin.transform((exchanges, _) -> exchanges.stream()
 							.map(exchange -> exchange.name)
 							.collect(Collectors.toSet())));
-			switchToSteadyStateHandlers();
 		});
 	}
 

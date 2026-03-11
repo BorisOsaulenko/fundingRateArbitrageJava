@@ -1,13 +1,13 @@
 package strategy;
 
-import com.boris.fundingarbitrage.strategy.ClassicInTradeStrategy;
-import com.boris.fundingarbitrage.strategy.InTradeStrategy;
+import com.boris.fundingarbitrage.strategy.ClassicPreTradeStrategy;
+import com.boris.fundingarbitrage.strategy.PreTradeStrategy;
 
-public class ClassicArbitrageStrategyTest extends ArbitrageStrategyTest {
-	private final InTradeStrategy strat = new ClassicInTradeStrategy();
+public class ClassicArbitrageStrategyTest extends PreTradeArbitrageStrategyTest {
+	private final PreTradeStrategy strat = new ClassicPreTradeStrategy();
 
 	@Override
-	protected InTradeStrategy strategy() {
+	protected PreTradeStrategy strategy() {
 		return strat;
 	}
 }

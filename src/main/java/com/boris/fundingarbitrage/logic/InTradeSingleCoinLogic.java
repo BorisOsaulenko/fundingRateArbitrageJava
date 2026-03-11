@@ -34,9 +34,9 @@ public class InTradeSingleCoinLogic {
 	private final ArbitrageSnapshot enterSnapshot;
 	private final CompletableFuture<Void> enterFuture;
 	private final ScheduledExecutorService fundingRegisterExecutor = Executors.newSingleThreadScheduledExecutor();
+	private long nextFundingTimestamp;
 	@Getter private CompletableFuture<Void> exitFuture = null;
 	private volatile boolean shouldRegisterNewFunding = true;
-	private int monitorCompletionId;
 	private BigDecimal baseAssetQty;
 
 	public InTradeSingleCoinLogic(
@@ -107,9 +107,9 @@ public class InTradeSingleCoinLogic {
 		shouldRegisterNewFunding = false;
 
 		ArbitrageSnapshot currentSnapshot = monitor.getSnapshot(exchanges, coin);
-		long closestFundingTimestamp = currentSnapshot.closestSettlement().toEpochMilli();
-		monitorCompletionId = monitor.performOnTimestamp(
-						closestFundingTimestamp, exchanges, coin, sn -> {
+		nextFundingTimestamp = currentSnapshot.closestSettlement().toEpochMilli();
+		monitor.performOnTimestamp(
+						nextFundingTimestamp, exchanges, coin, sn -> {
 							strategy.addFundingSnapshot(sn);
 							shouldRegisterNewFunding = true;
 						}
@@ -122,7 +122,7 @@ public class InTradeSingleCoinLogic {
 		ArbitrageSnapshot current = monitor.getSnapshot(exchanges, coin);
 		if (!strategy.shouldExitTrade(current)) return false;
 
-		monitor.cancelTimestampCompletion(monitorCompletionId);
+		monitor.cancelTimestampExecution(nextFundingTimestamp, exchanges, coin);
 		shouldRegisterNewFunding = false;
 		fundingRegisterExecutor.shutdownNow();
 		this.exitFuture = execution.exitTrade().thenCompose(v -> logTradeInfo(current));

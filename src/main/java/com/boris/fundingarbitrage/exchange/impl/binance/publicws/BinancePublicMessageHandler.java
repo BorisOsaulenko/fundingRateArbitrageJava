@@ -28,7 +28,7 @@ class BinancePublicMessageHandler implements PublicMessageHandler {
 
 		JsonNode rateNode = root.get("r");
 		if (rateNode == null) return null;
-		BigDecimal rate = rateNode.decimalValue();
+		BigDecimal rate = new BigDecimal(rateNode.asText());
 
 		long settlementTime = root.path("T").asLong();
 		if (settlementTime == 0) return null;

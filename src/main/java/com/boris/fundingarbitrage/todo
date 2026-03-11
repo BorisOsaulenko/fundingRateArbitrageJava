@@ -1,1 +1,2 @@
-- bybit check symbols exist reqqires paginating requests
+- monitor: if no coins on exchange, do not open ws connections
+- logic: start logging thread as daemon
