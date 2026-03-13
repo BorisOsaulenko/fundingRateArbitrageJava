@@ -2,9 +2,9 @@ package com.boris.fundingarbitrage;
 
 import com.boris.fundingarbitrage.coinParser.AllExchangeCoinsParser;
 import com.boris.fundingarbitrage.coinParser.ICoinParser;
+import com.boris.fundingarbitrage.coinfilter.CoinFilter;
 import com.boris.fundingarbitrage.coinfilter.CoinFilterConfig;
 import com.boris.fundingarbitrage.coinfilter.CoinFilterResult;
-import com.boris.fundingarbitrage.coinfilter.CoinSelector;
 import com.boris.fundingarbitrage.exchange.impl.okx.OkxExchange;
 import com.boris.fundingarbitrage.logic.ArbitrageBotConfig;
 import com.boris.fundingarbitrage.logic.ArbitrageLogic;
@@ -31,7 +31,7 @@ public class App {
 		ArbitrageBotConfig botConfig = new ArbitrageBotConfig(new BigDecimal("20"), 1, 120, 3);
 		CoinFilterConfig filterConfig = new CoinFilterConfig(new BigDecimal("100000"), new BigDecimal("20"));
 
-		CoinSelector selector = new CoinSelector(coins, filterConfig);
+		CoinFilter selector = new CoinFilter(coins, filterConfig);
 		CoinFilterResult result = selector.filterSync();
 		CoinMonitor monitor = new CoinMonitor(result);
 

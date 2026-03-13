@@ -15,7 +15,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class CoinSelector {
+public class CoinFilter {
 	private final Set<String> coins;
 	private final CoinFilterConfig config;
 
@@ -24,14 +24,14 @@ public class CoinSelector {
 	private final ExchangeCoinMap<BigDecimal> lotSizes = new ExchangeCoinMap<>();
 	private final ExchangeCoinMap<Integer> fundingIntervals = new ExchangeCoinMap<>();
 
-	public CoinSelector(Set<String> coins, CoinFilterConfig config) {
+	public CoinFilter(Set<String> coins, CoinFilterConfig config) {
 		if (coins.isEmpty()) throw new IllegalArgumentException("No coins provided");
 
 		this.coins = coins;
 		this.config = config;
 	}
 
-	public CoinFilterResult filterSync() {
+	private CoinFilterResult dropExcludedCoins() {
 		for (String coin : coins) {
 			availableExchangesByCoin.put(coin, ConcurrentHashMap.newKeySet());
 		}

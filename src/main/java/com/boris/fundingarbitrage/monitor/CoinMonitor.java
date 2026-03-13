@@ -1,6 +1,5 @@
 package com.boris.fundingarbitrage.monitor;
 
-import com.boris.fundingarbitrage.coinfilter.CoinFilterResult;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.logic.ExchangePair;
 import com.boris.fundingarbitrage.model.arbitrage.ArbitrageSnapshot;
@@ -17,7 +16,6 @@ import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import com.boris.fundingarbitrage.util.logger.Logger;
 import lombok.Getter;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.*;
@@ -38,8 +36,6 @@ public class CoinMonitor {
 	private final ExchangeCoinMap<BookTicker> bookTickers = new ExchangeCoinMap<>();
 	private final ExchangeCoinMap<MarkPrice> markPrices = new ExchangeCoinMap<>();
 	private final ExchangeCoinMap<Fees> fees = new ExchangeCoinMap<>();
-	private final ExchangeCoinMap<BigDecimal> lotSizes;
-	private final ExchangeCoinMap<Integer> fundingIntervals;
 
 	private final ExchangeCoinMap<SortedSet<Long>> timestampsToProcess = new ExchangeCoinMap<>();
 	private final ExchangeCoinMap<BookTicker> tickerCompletions = new ExchangeCoinMap<>();
@@ -62,13 +58,11 @@ public class CoinMonitor {
 	private final Map<Integer, ArbitrageSnapshotCompletion> arbitrageSnapshotCompletions = new ConcurrentHashMap<>();
 
 	public CoinMonitor(
-					CoinFilterResult filterResult
+					CoinVector<Set<BaseExchange>> availableExchangesByCoin,
+					Map<BaseExchange, Set<String>> availableCoinsByExchange
 	) {
-		this.availableExchangesByCoin = filterResult.availableExchangesByCoin();
-		this.availableCoinsByExchange = filterResult.availableCoinsByExchange();
-
-		this.lotSizes = filterResult.lotSizes();
-		this.fundingIntervals = filterResult.fundingIntervals();
+		this.availableExchangesByCoin = availableExchangesByCoin;
+		this.availableCoinsByExchange = availableCoinsByExchange;
 
 		this.initFuture = CompletableFuture.runAsync(() -> {
 			openWsConnections().join(); // Has to be awaited
@@ -435,14 +429,6 @@ public class CoinMonitor {
 		ExchangeSnapshot longSnapshot = getSnapshot(exchanges.longEx(), coin);
 		ExchangeSnapshot shortSnapshot = getSnapshot(exchanges.shortEx(), coin);
 		return new ArbitrageSnapshot(longSnapshot, shortSnapshot);
-	}
-
-	public BigDecimal getLotSize(BaseExchange ex, String coin) {
-		return lotSizes.get(ex, coin);
-	}
-
-	public Integer getFundingInterval(BaseExchange ex, String coin) {
-		return fundingIntervals.get(ex, coin);
 	}
 
 	private void performOnTimestamp(

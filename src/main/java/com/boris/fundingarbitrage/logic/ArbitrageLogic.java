@@ -1,5 +1,6 @@
 package com.boris.fundingarbitrage.logic;
 
+import com.boris.fundingarbitrage.coinfilter.CoinFilterResult;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.exchange.Instances;
 import com.boris.fundingarbitrage.model.arbitrage.ArbitrageSnapshot;
@@ -9,11 +10,9 @@ import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import com.boris.fundingarbitrage.util.logger.Logger;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.*;
+import java.util.stream.Collectors;
 
 public abstract class ArbitrageLogic {
 	protected final PreTradeStrategy preTradeStrategy;
@@ -30,18 +29,26 @@ public abstract class ArbitrageLogic {
 	protected final Map<BaseExchange, BigDecimal> futuresBalances = new ConcurrentHashMap<>();
 	protected final CompletableFuture<Void> initFuture;
 	protected CoinVector<Set<BaseExchange>> availableExchangesByCoin;
+	protected Map<BaseExchange, Set<String>> availableCoinsByExchange;
 	protected ScheduledFuture<?> currentSchedulerTask;
 	protected CompletableFuture<Void> balancesFuture;
 	protected boolean shutdown = false;
 
 	public ArbitrageLogic(
 					PreTradeStrategy strategy,
-					CoinMonitor monitor,
+					CoinFilterResult filterResult,
 					ArbitrageBotConfig arbConfig
 	) {
 		this.preTradeStrategy = strategy;
 		this.config = arbConfig;
-		this.monitor = monitor;
+
+		availableExchangesByCoin = filterResult.availableExchangesByCoin();
+		availableCoinsByExchange = filterResult.availableCoinsByExchange();
+		activeCoins.addAll(availableExchangesByCoin.keySet());
+
+		if (activeCoins.size() > config.maxCoinAmount()) capCoinsToMaxAmount();
+
+		this.monitor = new CoinMonitor(availableExchangesByCoin, availableCoinsByExchange);
 
 		balancesFuture = initBalancesMap();
 		initFuture = CompletableFuture.allOf(prettyMonitorInitFuture(), balancesFuture);
@@ -56,8 +63,7 @@ public abstract class ArbitrageLogic {
 	private CompletableFuture<Void> prettyMonitorInitFuture() {
 		return monitor.getInitFuture()
 						.thenRun(() -> {
-							availableExchangesByCoin = monitor.getAvailableExchangesByCoin();
-							activeCoins.addAll(availableExchangesByCoin.keySet());
+
 							Logger.log("Monitor initialized");
 						})
 						.exceptionally(t -> {
@@ -111,7 +117,6 @@ public abstract class ArbitrageLogic {
 
 	private void doFirstTick() {
 		processCoins().join();
-		beforeFirstTick();
 		processTick();
 		afterFirstTick();
 	}
@@ -206,9 +211,26 @@ public abstract class ArbitrageLogic {
 
 	protected abstract void afterBalanceInit();
 
-	protected abstract void beforeFirstTick();
-
 	protected abstract void afterFirstTick();
+
+	protected void capCoinsToMaxAmount() {
+		processCoins().join();
+		List<Map.Entry<String, ArbitrageSnapshot>> bestOpportunities = bestArbSnapshots.sortDesc(preTradeStrategy::compareSnapshots)
+						.subList(0, config.maxCoinAmount());
+		Set<String> bestOpportunitiesCoins = bestOpportunities.stream().map(Map.Entry::getKey).collect(Collectors.toSet());
+		Set<String> coinsToRemove = new HashSet<>();
+
+		for (String coin : activeCoins) {
+			if (bestOpportunitiesCoins.contains(coin)) continue;
+			bestArbSnapshots.remove(coin);
+			bestArbExchanges.remove(coin);
+			activeCoins.remove(coin);
+			availableExchangesByCoin.remove(coin);
+			coinsToRemove.add(coin);
+		}
+
+		for (Set<String> set : availableCoinsByExchange.values()) set.removeAll(coinsToRemove);
+	}
 
 	public void shutdown() {
 		monitor.shutdown();
