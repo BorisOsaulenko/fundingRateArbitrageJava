@@ -25,6 +25,8 @@ public class CoinSelector {
 	private final ExchangeCoinMap<Integer> fundingIntervals = new ExchangeCoinMap<>();
 
 	public CoinSelector(Set<String> coins, CoinFilterConfig config) {
+		if (coins.isEmpty()) throw new IllegalArgumentException("No coins provided");
+
 		this.coins = coins;
 		this.config = config;
 	}

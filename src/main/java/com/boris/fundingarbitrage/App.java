@@ -1,5 +1,7 @@
 package com.boris.fundingarbitrage;
 
+import com.boris.fundingarbitrage.coinParser.AllExchangeCoinsParser;
+import com.boris.fundingarbitrage.coinParser.ICoinParser;
 import com.boris.fundingarbitrage.coinfilter.CoinFilterConfig;
 import com.boris.fundingarbitrage.coinfilter.CoinFilterResult;
 import com.boris.fundingarbitrage.coinfilter.CoinSelector;
@@ -19,110 +21,17 @@ import java.util.Set;
 
 @Slf4j
 public class App {
-	private static final Set<String> coins2 = Set.of("TURBO", "GAIB", "SXP", "LYN", "XAN", "HIPPO", "BEAT", "SAHARA");
-	static Set<String> coins = Set.of(
-					"ETH",
-					"SOL",
-					"WIF",
-					"PEPE",
-					"DOGE",
-					"XRP",
-					"0G",
-					"1INCH",
-					"1MBABYDOGE",
-					"2Z",
-					"4",
-					"A2Z",
-					"AAVE",
-					"ACE",
-					"ACH",
-					"ACTSOL",
-					"ACU",
-					"ADA",
-					"AERGO",
-					"AERO",
-					"AEVO",
-					"AGI",
-					"AGLD",
-					"AGT",
-					"AIN",
-					"AIOT",
-					"AIO",
-					"AI",
-					"AIXBT",
-					"AKE",
-					"ALCH",
-					"ALGO",
-					"ALICE",
-					"ALLO",
-					"ALPINE",
-					"ALT",
-					"ALU",
-					"ANIME",
-					"ANKR",
-					"APE",
-					"API3",
-					"APR",
-					"APT",
-					"ARB",
-					"ARC",
-					"ARIA",
-					"ARKM",
-					"ARK",
-					"ARPA",
-					"AR",
-					"ASP",
-					"ASR",
-					"ASTER",
-					"ASTR",
-					"ATH",
-					"ATOM",
-					"AT",
-					"AUCTION",
-					"AUDIO",
-					"A",
-					"AVAAI",
-					"AVA",
-					"AVAX",
-					"AVNT",
-					"AWE",
-					"AXL",
-					"AXS",
-					"AZTEC",
-					"B2",
-					"B3",
-					"BABY",
-					"BANANAS31",
-					"BANANA",
-					"BAND",
-					"BANK",
-					"BAN",
-					"BARD",
-					"BAS",
-					"BAT",
-					"BB",
-					"BCH",
-					"BDXN",
-					"BDX",
-					"BEAT",
-					"BEL",
-					"BERA",
-					"BIGTIME",
-					"BINANCELIFE",
-					"BIO",
-					"BIRB",
-					"BLAST",
-					"BLESS",
-					"BLUAI" // 92 coins
-	);
-
-	static void main(String[] args) throws InterruptedException {
+	static void main(String[] args) {
 		Logger.init(Path.of("app.log"));
+
+		ICoinParser coinParser = new AllExchangeCoinsParser();
+		Set<String> coins = coinParser.getCoinsSync();
+
 		PreTradeStrategy strategy = new ClassicPreTradeStrategy();
-		ArbitrageBotConfig botConfig = new ArbitrageBotConfig(new BigDecimal("20"), 1, 30, 3);
+		ArbitrageBotConfig botConfig = new ArbitrageBotConfig(new BigDecimal("20"), 1, 120, 3);
 		CoinFilterConfig filterConfig = new CoinFilterConfig(new BigDecimal("100000"), new BigDecimal("20"));
 
-		CoinSelector selector = new CoinSelector(coins2, filterConfig);
+		CoinSelector selector = new CoinSelector(coins, filterConfig);
 		CoinFilterResult result = selector.filterSync();
 		CoinMonitor monitor = new CoinMonitor(result);
 

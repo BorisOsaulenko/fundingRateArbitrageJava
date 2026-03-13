@@ -120,4 +120,60 @@ public abstract class PreTradeArbitrageStrategyTest {
 		);
 		assertFalse(strategy().snapshotGoodEnough(negativeGain));
 	}
+
+	@Test
+	public void realDataTest1() {
+		BookTicker longBook = new BookTicker(
+						new BigDecimal("0.25571"),
+						new BigDecimal("26"),
+						new BigDecimal("0.25587"),
+						new BigDecimal("204"),
+						Instant.parse("2026-03-13T10:18:27.853Z")
+		);
+		Fees longFees = new Fees(
+						new BigDecimal("0.00020"),
+						new BigDecimal("0.0005"),
+						new BigDecimal("0.00020"),
+						new BigDecimal("0.0005"),
+						Instant.parse("2026-03-13T10:09:32.159327Z")
+		);
+		FundingRate longFunding = new FundingRate(
+						new BigDecimal("-0.010513"),
+						Instant.parse("2026-03-13T12:00:00Z"),
+						Instant.parse("2026-03-13T10:18:26Z")
+		);
+		MarkPrice longMark = new MarkPrice(
+						new BigDecimal("0.25617"),
+						Instant.parse("2026-03-13T10:18:26Z")
+		);
+		ExchangeSnapshot longExchange = new ExchangeSnapshot(longBook, longFees, longFunding, longMark);
+
+		BookTicker shortBook = new BookTicker(
+						new BigDecimal("0.25834"),
+						new BigDecimal("1698"),
+						new BigDecimal("0.25835"),
+						new BigDecimal("674"),
+						Instant.parse("2026-03-13T10:18:32.770Z")
+		);
+		Fees shortFees = new Fees(
+						new BigDecimal("0.00036"),
+						new BigDecimal("0.001"),
+						new BigDecimal("0.00036"),
+						new BigDecimal("0.001"),
+						Instant.parse("2026-03-13T10:09:32.171Z")
+		);
+		FundingRate shortFunding = new FundingRate(
+						new BigDecimal("-0.00467432"),
+						Instant.parse("2026-03-13T11:00:00Z"),
+						Instant.parse("2026-03-13T10:18:30.486Z")
+		);
+		MarkPrice shortMark = new MarkPrice(
+						new BigDecimal("0.25856"),
+						Instant.parse("2026-03-13T10:18:32.770Z")
+		);
+		ExchangeSnapshot shortExchange = new ExchangeSnapshot(shortBook, shortFees, shortFunding, shortMark);
+
+		ArbitrageSnapshot snapshot = new ArbitrageSnapshot(longExchange, shortExchange);
+		assertFalse(strategy().snapshotGoodEnough(snapshot));
+	}
 }

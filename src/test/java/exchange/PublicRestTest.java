@@ -116,4 +116,12 @@ public abstract class PublicRestTest {
 		assertTrue(entry.getValue().isEmpty(), "One pull data for " + entry.getKey() + " should be empty");
 		assertEquals("NONEXISTENT", entry.getKey());
 	}
+
+	@Test
+	@Tag("rest")
+	void getAvailableCoinsReturnsCoins() throws Exception {
+		Set<String> coins = getWithTimeout(publicRest().getAvailableCoins());
+		assertNotNull(coins);
+		assertTrue(coins.size() > 40);
+	}
 }

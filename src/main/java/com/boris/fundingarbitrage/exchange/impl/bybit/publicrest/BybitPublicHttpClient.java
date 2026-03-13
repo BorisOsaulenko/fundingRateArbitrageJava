@@ -10,7 +10,9 @@ import com.boris.fundingarbitrage.util.https.RequestProcessingClientWrapper;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 public class BybitPublicHttpClient extends PublicHttpClient {
@@ -64,5 +66,24 @@ public class BybitPublicHttpClient extends PublicHttpClient {
 
 			return data;
 		});
+	}
+
+	@Override
+	public CompletableFuture<Set<String>> getAvailableCoins() {
+		Set<String> coins = new HashSet<>();
+		return requestWrapper.processPaginatedRequest(
+						PublicEndpoints::instrumentsInfoRequest,
+						PublicResponses.InstrumentsInfoSymbolsResponse.class,
+						res -> {
+							for (String symbol : res.getLotSizes().keySet()) {
+								try {
+									coins.add(exchangeContext.getSymbolInverse(symbol));
+								} catch (Exception ignored) {
+									// Ignore symbols that do not match exchange symbol format
+								}
+							}
+						},
+						null
+		).thenApply(_ -> coins);
 	}
 }

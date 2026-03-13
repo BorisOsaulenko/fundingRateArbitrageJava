@@ -39,7 +39,6 @@ public abstract class PublicHttpClient {
 		});
 	}
 
-
 	public CompletableFuture<CoinVector<FundingRate>> getFundingRate(Set<String> coins) {
 		return withSymbol(coins, this::getFundingRateSymbolBatch);
 	}
@@ -56,4 +55,6 @@ public abstract class PublicHttpClient {
 			return result;
 		});
 	}
+
+	public abstract CompletableFuture<Set<String>> getAvailableCoins();
 }

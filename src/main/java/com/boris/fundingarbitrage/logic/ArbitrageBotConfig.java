@@ -1,5 +1,7 @@
 package com.boris.fundingarbitrage.logic;
 
+import com.boris.fundingarbitrage.model.Validations;
+
 import java.math.BigDecimal;
 
 public record ArbitrageBotConfig(
@@ -11,4 +13,7 @@ public record ArbitrageBotConfig(
 				// Bot logs logBestArbSnapshotsAmount of the best arbitrage opportunities
 				int logBestArbSnapshotsAmount
 ) {
+	public ArbitrageBotConfig {
+		Validations.requirePositive(legUsdtAmount, "Leg USDT amount");
+	}
 }

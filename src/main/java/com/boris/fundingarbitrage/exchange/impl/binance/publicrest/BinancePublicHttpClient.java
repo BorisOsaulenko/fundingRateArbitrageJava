@@ -11,7 +11,9 @@ import com.boris.fundingarbitrage.util.logger.Logger;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 public class BinancePublicHttpClient extends PublicHttpClient {
@@ -81,7 +83,26 @@ public class BinancePublicHttpClient extends PublicHttpClient {
 								}
 							}
 
-							return data;
-						});
+						return data;
+					});
+	}
+
+	@Override
+	public CompletableFuture<Set<String>> getAvailableCoins() {
+		return requestWrapper.processRequest(
+					PublicEndpoints.exchangeInfoRequest(),
+					PublicResponses.ExchangeInfoResponse.class,
+					res -> {
+						Set<String> coins = new HashSet<>();
+						for (String symbol : res.getLotSizes().keySet()) {
+							try {
+								coins.add(exchangeContext.getSymbolInverse(symbol));
+							} catch (Exception ignored) {
+								// Ignore symbols that do not match exchange symbol format
+							}
+						}
+						return coins;
+					}
+		);
 	}
 }

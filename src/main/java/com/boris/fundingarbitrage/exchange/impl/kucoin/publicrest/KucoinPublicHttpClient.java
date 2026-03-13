@@ -11,7 +11,9 @@ import com.boris.fundingarbitrage.util.https.RequestProcessingClientWrapper;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -63,6 +65,25 @@ public class KucoinPublicHttpClient extends PublicHttpClient {
 			}
 			return result;
 		});
+	}
+
+	@Override
+	public CompletableFuture<Set<String>> getAvailableCoins() {
+		return requestWrapper.processRequest(
+						PublicEndpoints.activeContractsRequest(),
+						PublicResponses.ActiveContractsResponse.class,
+						res -> {
+							Set<String> coins = new HashSet<>();
+							for (String symbol : res.getLotSizes().keySet()) {
+								try {
+									coins.add(exchangeContext.getSymbolInverse(symbol));
+								} catch (Exception ignored) {
+									// Ignore symbols that do not match exchange symbol format
+								}
+							}
+							return coins;
+						}
+		);
 	}
 
 	public CompletableFuture<URI> fetchPublicWsEndpoint() {

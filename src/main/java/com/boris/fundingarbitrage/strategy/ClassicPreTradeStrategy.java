@@ -5,6 +5,7 @@ import com.boris.fundingarbitrage.model.exchange.ExchangeSnapshot;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
+import java.time.Instant;
 
 public class ClassicPreTradeStrategy implements PreTradeStrategy {
 	private static final BigDecimal MIN_F_SPREAD = new BigDecimal("0"); // 0%
@@ -29,10 +30,16 @@ public class ClassicPreTradeStrategy implements PreTradeStrategy {
 		return shortBid.subtract(longAsk).divide(perCoinNotional, MathContext.DECIMAL64);
 	}
 
-	private static BigDecimal fSpread(ArbitrageSnapshot snapshot) {
+	private static BigDecimal closestFSpread(ArbitrageSnapshot snapshot) {
 		BigDecimal longFundingRate = snapshot.longExchange().fundingRate().rate();
+		Instant longFundingTime = snapshot.longExchange().fundingRate().settlement();
+
 		BigDecimal shortFundingRate = snapshot.shortExchange().fundingRate().rate();
-		return shortFundingRate.subtract(longFundingRate);
+		Instant shortFundingTime = snapshot.shortExchange().fundingRate().settlement();
+
+		if (longFundingTime.isBefore(shortFundingTime)) return longFundingRate.negate();
+		else if (longFundingTime.equals(shortFundingTime)) return shortFundingRate.subtract(longFundingRate);
+		else return shortFundingRate;
 	}
 
 	private static BigDecimal totalFees(ArbitrageSnapshot snapshot) {
@@ -51,8 +58,8 @@ public class ClassicPreTradeStrategy implements PreTradeStrategy {
 		if (firstGood && !secondGood) return 1;
 		if (!firstGood && secondGood) return -1;
 
-		BigDecimal firstFSpread = fSpread(first);
-		BigDecimal secondFSpread = fSpread(second);
+		BigDecimal firstFSpread = closestFSpread(first);
+		BigDecimal secondFSpread = closestFSpread(second);
 
 		BigDecimal fSpreadDiff = firstFSpread.subtract(secondFSpread).abs();
 		if (fSpreadDiff.compareTo(CLOSE_F_SPREAD_EPS) < 0) {
@@ -62,7 +69,7 @@ public class ClassicPreTradeStrategy implements PreTradeStrategy {
 	}
 
 	public boolean snapshotGoodEnough(ArbitrageSnapshot snapshot) {
-		boolean fSpreadGood = fSpread(snapshot).subtract(MIN_F_SPREAD).compareTo(totalFees(snapshot)) > 0;
+		boolean fSpreadGood = closestFSpread(snapshot).subtract(MIN_F_SPREAD).compareTo(totalFees(snapshot)) > 0;
 		boolean oSpreadGood = oSpread(snapshot).compareTo(MIN_O_SPREAD) >= 0;
 		return fSpreadGood && oSpreadGood;
 	}
