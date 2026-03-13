@@ -21,6 +21,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class InTradeSingleCoinLogic {
 	private final int leverage = 1;
@@ -34,10 +35,12 @@ public class InTradeSingleCoinLogic {
 	private final ArbitrageSnapshot enterSnapshot;
 	private final CompletableFuture<Void> enterFuture;
 	private final ScheduledExecutorService fundingRegisterExecutor = Executors.newSingleThreadScheduledExecutor();
+	private final AtomicBoolean fillsFetchSuccess = new AtomicBoolean(true);
 	private long nextFundingTimestamp;
 	@Getter private CompletableFuture<Void> exitFuture = null;
 	private volatile boolean shouldRegisterNewFunding = true;
 	private BigDecimal baseAssetQty;
+
 
 	public InTradeSingleCoinLogic(
 					@NonNull String coin,
@@ -110,6 +113,7 @@ public class InTradeSingleCoinLogic {
 		nextFundingTimestamp = currentSnapshot.closestSettlement().toEpochMilli();
 		monitor.performOnTimestamp(
 						nextFundingTimestamp, exchanges, coin, sn -> {
+							Logger.log("Registered funding snapshot for " + coin + ": " + sn);
 							strategy.addFundingSnapshot(sn);
 							shouldRegisterNewFunding = true;
 						}
@@ -122,41 +126,66 @@ public class InTradeSingleCoinLogic {
 		ArbitrageSnapshot current = monitor.getSnapshot(exchanges, coin);
 		if (!strategy.shouldExitTrade(current)) return false;
 
-		monitor.cancelTimestampExecution(nextFundingTimestamp, exchanges, coin);
-		shouldRegisterNewFunding = false;
-		fundingRegisterExecutor.shutdownNow();
-		this.exitFuture = execution.exitTrade().thenCompose(v -> logTradeInfo(current));
+		this.exitFuture = execution.exitTrade().thenCompose((v) -> finish(current));
 
 		return true;
 	}
 
+	private CompletableFuture<Void> finish(ArbitrageSnapshot current) {
+		monitor.cancelTimestampExecution(nextFundingTimestamp, exchanges, coin);
+		shouldRegisterNewFunding = false;
+		fundingRegisterExecutor.shutdownNow();
+		return logTradeInfo(current);
+	}
+
+	private CompletableFuture<List<PartialFill>> errorHandledFillsFetch(
+					BaseExchange ex,
+					String orderId,
+					TradeSide tradeSide,
+					String name
+	) {
+		return ex.privateHttpClient.getOrderRecord(orderId, coin, tradeSide)
+						.whenComplete((r, t) -> {
+							if (t == null && r != null) return; // Everything good
+							fillsFetchSuccess.set(false);
+							if (t != null) Logger.warn("Failed to fetch " + name + " fills: " + t.getMessage());
+							else Logger.log("Failed to fetch " + name + " fills: null");
+						});
+	}
+
 	private CompletableFuture<Void> logTradeInfo(ArbitrageSnapshot exitSnapshot) {
-		CompletableFuture<List<PartialFill>> LEnterFuture = getOrderRecordFuture(
+		CompletableFuture<List<PartialFill>> LEnterFuture = errorHandledFillsFetch(
 						exchanges.longEx(),
 						execution.getEnterIds().longId(),
-						TradeSide.OPEN
+						TradeSide.OPEN,
+						"Long Enter"
 		);
-		CompletableFuture<List<PartialFill>> SEnterFuture = getOrderRecordFuture(
+		CompletableFuture<List<PartialFill>> SEnterFuture = errorHandledFillsFetch(
 						exchanges.shortEx(),
 						execution.getEnterIds().shortId(),
-						TradeSide.OPEN
+						TradeSide.OPEN,
+						"Short Enter"
 		);
 
-		CompletableFuture<List<PartialFill>> LExitFuture = getOrderRecordFuture(
+		CompletableFuture<List<PartialFill>> LExitFuture = errorHandledFillsFetch(
 						exchanges.longEx(),
 						execution.getExitIds().longId(),
-						TradeSide.CLOSE
+						TradeSide.CLOSE,
+						"Long Exit"
 		);
-		CompletableFuture<List<PartialFill>> SExitFuture = getOrderRecordFuture(
+
+		CompletableFuture<List<PartialFill>> SExitFuture = errorHandledFillsFetch(
 						exchanges.shortEx(),
 						execution.getExitIds().shortId(),
-						TradeSide.CLOSE
+						TradeSide.CLOSE,
+						"Short Exit"
 		);
+
+		if (!fillsFetchSuccess.get()) return CompletableFuture.completedFuture(null);
 
 		return CompletableFuture.allOf(LEnterFuture, SEnterFuture, LExitFuture, SExitFuture).thenAccept(_ -> {
 			List<PartialFill> longEnterFills = LEnterFuture.join();
 			List<PartialFill> shortEnterFills = SEnterFuture.join();
-
 			List<PartialFill> longExitFills = LExitFuture.join();
 			List<PartialFill> shortExitFills = SExitFuture.join();
 

@@ -50,7 +50,7 @@ public class CoinMonitor {
 	private final ScheduledExecutorService completionScheduler = Executors.newSingleThreadScheduledExecutor();
 	private final long completionDelayMs = 500;
 
-	private final CoinVector<Set<BaseExchange>> availableExchangesByCoin;
+	@Getter private final CoinVector<Set<BaseExchange>> availableExchangesByCoin;
 	private final Map<BaseExchange, Set<String>> availableCoinsByExchange;
 	@Getter private final CompletableFuture<Void> initFuture;
 	private final ExchangeCoinMap<Integer> initStateBits = new ExchangeCoinMap<>();

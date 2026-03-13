@@ -1,15 +1,25 @@
 package com.boris.fundingarbitrage;
 
-import com.boris.fundingarbitrage.exchange.BaseExchange;
+import com.boris.fundingarbitrage.coinfilter.CoinFilterConfig;
+import com.boris.fundingarbitrage.coinfilter.CoinFilterResult;
+import com.boris.fundingarbitrage.coinfilter.CoinSelector;
 import com.boris.fundingarbitrage.exchange.impl.okx.OkxExchange;
+import com.boris.fundingarbitrage.logic.ArbitrageBotConfig;
+import com.boris.fundingarbitrage.logic.ArbitrageLogic;
+import com.boris.fundingarbitrage.logic.RebalancingArbitrageLogic;
+import com.boris.fundingarbitrage.monitor.CoinMonitor;
+import com.boris.fundingarbitrage.strategy.ClassicPreTradeStrategy;
+import com.boris.fundingarbitrage.strategy.PreTradeStrategy;
 import com.boris.fundingarbitrage.util.logger.Logger;
 import lombok.extern.slf4j.Slf4j;
 
+import java.math.BigDecimal;
+import java.nio.file.Path;
 import java.util.Set;
 
 @Slf4j
 public class App {
-	private static final Set<String> coins2 = Set.of("PIXEL", "LYN", "ACX", "GAIB", "TOWNS");
+	private static final Set<String> coins2 = Set.of("TURBO", "GAIB", "SXP", "LYN", "XAN", "HIPPO", "BEAT", "SAHARA");
 	static Set<String> coins = Set.of(
 					"ETH",
 					"SOL",
@@ -106,26 +116,34 @@ public class App {
 					"BLUAI" // 92 coins
 	);
 
-	//	static void main(String[] args) throws InterruptedException {
-	//		Logger.init(Path.of("app.log"));
-	//		PreTradeStrategy strategy = new ClassicPreTradeStrategy();
-	//		ArbitrageBotConfig botConfig = new ArbitrageBotConfig(coins2, new BigDecimal("20"), 1, 30, 3);
-	//		CoinFilterConfig filterConfig = new CoinFilterConfig(new BigDecimal("100000"), new BigDecimal("20"));
-	//
-	//		try {
-	//			ArbitrageLogic logic = new RebalancingArbitrageLogic(strategy, botConfig, filterConfig);
-	//			logic.start();
-	//		} catch (Exception e) {
-	//			e.printStackTrace();
-	//			System.exit(1);
-	//		}
-	//	}
-
 	static void main(String[] args) throws InterruptedException {
-		BaseExchange bitget = new OkxExchange();
-		bitget.publicWsClient.connect().join();
-		bitget.publicWsClient.subscribeFundingRates("SOL", (v) -> Logger.log(v.toString()));
-		Thread.sleep(60000);
+		Logger.init(Path.of("app.log"));
+		PreTradeStrategy strategy = new ClassicPreTradeStrategy();
+		ArbitrageBotConfig botConfig = new ArbitrageBotConfig(new BigDecimal("20"), 1, 30, 3);
+		CoinFilterConfig filterConfig = new CoinFilterConfig(new BigDecimal("100000"), new BigDecimal("20"));
+
+		CoinSelector selector = new CoinSelector(coins2, filterConfig);
+		CoinFilterResult result = selector.filterSync();
+		CoinMonitor monitor = new CoinMonitor(result);
+
+		try {
+			ArbitrageLogic logic = new RebalancingArbitrageLogic(strategy, monitor, botConfig);
+			logic.waitForInitSync();
+		} catch (Exception e) {
+			e.printStackTrace();
+			System.exit(1);
+		}
+	}
+
+	static void main2() throws InterruptedException {
+		OkxExchange okx = new OkxExchange();
+		okx.publicWsClient.connect().join();
+		okx.publicWsClient.subscribeFundingRates(
+						"SOL", (v) -> {
+							Logger.log(v.toString());
+						}
+		);
+		Thread.sleep(300000);
 	}
 }
 

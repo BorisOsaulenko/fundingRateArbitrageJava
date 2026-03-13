@@ -1,2 +1,3 @@
 - monitor: if no coins on exchange, do not open ws connections
 - logic: start logging thread as daemon
+- add the missing strategy logic

@@ -1,9 +1,9 @@
 package com.boris.fundingarbitrage.logic;
 
-import com.boris.fundingarbitrage.coinfilter.CoinFilterConfig;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.exchange.Instances;
 import com.boris.fundingarbitrage.model.arbitrage.ArbitrageSnapshot;
+import com.boris.fundingarbitrage.monitor.CoinMonitor;
 import com.boris.fundingarbitrage.strategy.PreTradeStrategy;
 import com.boris.fundingarbitrage.util.logger.Logger;
 
@@ -21,7 +21,7 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 	private final Duration beforeEnter = Duration.ofSeconds(5);
 	private final Duration afterEnter = Duration.ofSeconds(5);
 	private final BigDecimal rebalanceThreshold = new BigDecimal("0.3"); // 30%
-	private final int maxParallelTrades = 1;
+	private final int maxParallelTrades = 2;
 	private final List<InTradeSingleCoinLogic> inTradeCoins = new CopyOnWriteArrayList<>();
 	private Instant closestEnter;
 	private boolean tradesEntered;
@@ -29,10 +29,10 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 
 	public RebalancingArbitrageLogic(
 					PreTradeStrategy strategy,
-					ArbitrageBotConfig arbConfig,
-					CoinFilterConfig filterConfig
+					CoinMonitor monitor,
+					ArbitrageBotConfig arbConfig
 	) {
-		super(strategy, arbConfig, filterConfig);
+		super(strategy, monitor, arbConfig);
 	}
 
 	@Override
@@ -57,7 +57,7 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 			firstTick = false;
 			return;
 		}
-		
+
 		if (tradesEntered) {
 			boolean timeToAttemptExit = Instant.now().minus(afterEnter).isAfter(closestEnter);
 			if (!timeToAttemptExit) return;

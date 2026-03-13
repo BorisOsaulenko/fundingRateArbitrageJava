@@ -69,7 +69,7 @@ class PublicResponses {
 								item.instId(), new FundingRate(
 												new BigDecimal(item.fundingRate()),
 												Instant.ofEpochMilli(Long.parseLong(item.fundingTime())),
-												Instant.ofEpochMilli(Long.parseLong(item.ts()))
+												Instant.now() // the ts field represents the last cache timestamp, not request processing time
 								)
 				);
 			}

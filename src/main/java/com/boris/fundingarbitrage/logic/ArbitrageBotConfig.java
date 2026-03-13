@@ -1,10 +1,8 @@
 package com.boris.fundingarbitrage.logic;
 
 import java.math.BigDecimal;
-import java.util.Set;
 
 public record ArbitrageBotConfig(
-				Set<String> coins,
 				// the size of trade on one leg.
 				BigDecimal legUsdtAmount,
 				int leverage,

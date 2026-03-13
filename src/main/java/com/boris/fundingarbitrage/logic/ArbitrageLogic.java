@@ -1,8 +1,5 @@
 package com.boris.fundingarbitrage.logic;
 
-import com.boris.fundingarbitrage.coinfilter.CoinFilterConfig;
-import com.boris.fundingarbitrage.coinfilter.CoinFilterResult;
-import com.boris.fundingarbitrage.coinfilter.CoinSelector;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.exchange.Instances;
 import com.boris.fundingarbitrage.model.arbitrage.ArbitrageSnapshot;
@@ -22,9 +19,7 @@ public abstract class ArbitrageLogic {
 	protected final PreTradeStrategy preTradeStrategy;
 	protected final ArbitrageBotConfig config;
 	protected final CoinMonitor monitor;
-	protected final CoinVector<Set<BaseExchange>> availableExchangesByCoin;
 	protected final Set<String> activeCoins = ConcurrentHashMap.newKeySet();
-
 	protected final ScheduledExecutorService logScheduler = Executors.newSingleThreadScheduledExecutor();
 	protected final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 	protected final ExecutorService cpuPool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
@@ -34,45 +29,45 @@ public abstract class ArbitrageLogic {
 	protected final Map<BaseExchange, BigDecimal> spotBalances = new ConcurrentHashMap<>();
 	protected final Map<BaseExchange, BigDecimal> futuresBalances = new ConcurrentHashMap<>();
 	protected final CompletableFuture<Void> initFuture;
+	protected CoinVector<Set<BaseExchange>> availableExchangesByCoin;
 	protected ScheduledFuture<?> currentSchedulerTask;
 	protected CompletableFuture<Void> balancesFuture;
 	protected boolean shutdown = false;
 
 	public ArbitrageLogic(
 					PreTradeStrategy strategy,
-					ArbitrageBotConfig arbConfig,
-					CoinFilterConfig filterConfig
+					CoinMonitor monitor,
+					ArbitrageBotConfig arbConfig
 	) {
 		this.preTradeStrategy = strategy;
 		this.config = arbConfig;
+		this.monitor = monitor;
 
-		CoinSelector coinSelector = new CoinSelector(arbConfig.coins(), filterConfig);
-		CoinFilterResult filtered = coinSelector.filterSync();
-
-		availableExchangesByCoin = filtered.availableExchangesByCoin();
-		activeCoins.addAll(availableExchangesByCoin.keySet());
-		monitor = new CoinMonitor(filtered);
-
-		balancesFuture = fillBalancesMap()
-						.thenRun(() -> Logger.log("Balances initialized"))
-						.thenRun(this::afterBalanceInit);
-		CompletableFuture<Void> errorHandledMonitor = monitor.getInitFuture()
-						.thenRun(() -> Logger.log("Monitor initialized"))
-						.exceptionally(t -> {
-							Logger.error("Failed to initialize monitor. " + t.getMessage());
-							shutdown();
-							throw new RuntimeException(t);
-						});
-		initFuture = CompletableFuture.allOf(errorHandledMonitor, balancesFuture);
+		balancesFuture = initBalancesMap();
+		initFuture = CompletableFuture.allOf(prettyMonitorInitFuture(), balancesFuture);
 	}
 
-	public void start() {
+	public void waitForInitSync() {
 		initFuture.join();
 		startProcessingOpportunities();
 		Logger.log("Arbitrage logic started.");
 	}
 
-	private CompletableFuture<Void> fillBalancesMap() {
+	private CompletableFuture<Void> prettyMonitorInitFuture() {
+		return monitor.getInitFuture()
+						.thenRun(() -> {
+							availableExchangesByCoin = monitor.getAvailableExchangesByCoin();
+							activeCoins.addAll(availableExchangesByCoin.keySet());
+							Logger.log("Monitor initialized");
+						})
+						.exceptionally(t -> {
+							Logger.error("Failed to initialize monitor. " + t.getMessage());
+							shutdown();
+							throw new RuntimeException(t);
+						});
+	}
+
+	private CompletableFuture<Void> initBalancesMap() {
 		List<CompletableFuture<Void>> futures = new ArrayList<>();
 
 		for (BaseExchange exchange : Instances.getExchangeArray()) {
@@ -95,7 +90,9 @@ public abstract class ArbitrageLogic {
 			futures.add(futuresBalanceFuture);
 		}
 
-		return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+		return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+						.thenRun(this::afterBalanceInit)
+						.thenRun(() -> Logger.log("Balances initialized"));
 	}
 
 	protected final void startProcessingOpportunities() {
@@ -160,9 +157,7 @@ public abstract class ArbitrageLogic {
 			for (BaseExchange shortEx : availableExchanges) {
 				if (longEx == shortEx) continue;
 
-				var longSnapshot = monitor.getSnapshot(longEx, coin);
-				var shortSnapshot = monitor.getSnapshot(shortEx, coin);
-				var arbSnapshot = new ArbitrageSnapshot(longSnapshot, shortSnapshot);
+				var arbSnapshot = monitor.getSnapshot(new ExchangePair(longEx, shortEx), coin);
 				if (bestSnapshot == null || preTradeStrategy.compareSnapshots(arbSnapshot, bestSnapshot) > 0) {
 					bestSnapshot = arbSnapshot;
 					bestLongEx = longEx;
