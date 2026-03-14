@@ -3,16 +3,20 @@ package com.boris.fundingarbitrage.exchange.impl.binance.publicws;
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.publichttp.PublicHttpClient;
 import com.boris.fundingarbitrage.exchange.publicws.PublicWsClient;
+import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
 import org.jetbrains.annotations.NotNull;
 
 import java.net.URI;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 public class BinancePublicWsClient extends PublicWsClient {
 	private static final URI endpoint = URI.create("wss://fstream.binance.com/ws");
 	private static final AtomicInteger NEXT_ID = new AtomicInteger(1);
+	private final Set<String> fundingAndMarkPriceSubscribedCoins = new HashSet<>();
 
 	public BinancePublicWsClient(ExchangeContext context, PublicHttpClient publicHttp) {
 		BinancePublicMessageHandler messageHandler = new BinancePublicMessageHandler(context);
@@ -75,5 +79,45 @@ public class BinancePublicWsClient extends PublicWsClient {
 	@Override
 	protected String getUnsubscribeMarkPriceFrame(Set<String> symbols) {
 		return this.getUnsubscribeFrame(symbols, this::getMarkPriceStream);
+	}
+
+	@Override
+	public void subscribeFundingRates(Set<String> coins, Consumer<FundingRatePatch> handler) {
+		Set<String> coinsToSubscribe = new HashSet<>();
+		for (String coin : coins) {
+			fundingRateHandlers.computeIfAbsent(coin, v -> new HashSet<>()).add(handler);
+			if (!fundingAndMarkPriceSubscribedCoins.contains(coin)) {
+				coinsToSubscribe.add(coin);
+				fundingAndMarkPriceSubscribedCoins.add(coin);
+			}
+		}
+
+		if (!coinsToSubscribe.isEmpty()) sendMessage(getSubscribeFundingRateFrame(coinsToSubscribe));
+	}
+
+	@Override
+	public void unsubscribeFundingRates(Set<String> coins) {
+		Set<String> coinsToUnsubscribe = new HashSet<>();
+		for (String coin : coins) {
+			markPriceHandlers.remove(coin);
+			if (fundingAndMarkPriceSubscribedCoins.contains(coin)) {
+				coinsToUnsubscribe.add(coin);
+				fundingAndMarkPriceSubscribedCoins.remove(coin);
+			}
+		}
+
+		if (!coinsToUnsubscribe.isEmpty()) sendMessage(getUnsubscribeFundingRateFrame(coinsToUnsubscribe));
+	}
+
+	@Override
+	public void removeFundingRatesHandler(Set<String> coins, Consumer<FundingRatePatch> handler) {
+		for (String coin : coins) {
+			var handlers = fundingRateHandlers.get(coin);
+			if (handlers == null) continue;
+			handlers.remove(handler);
+			if (handlers.isEmpty()) {
+				fundingRateHandlers.remove(coin, handlers);
+			}
+		}
 	}
 }

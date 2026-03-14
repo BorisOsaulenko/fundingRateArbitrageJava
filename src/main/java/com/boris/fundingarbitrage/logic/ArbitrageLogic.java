@@ -99,12 +99,15 @@ public abstract class ArbitrageLogic {
 		if (availableExchangesByCoin.size() > config.maxCoinAmount()) capCoinsToMaxAmount(filterResult);
 		this.monitor = new CoinMonitor(availableExchangesByCoin, availableCoinsByExchange);
 
-		CompletableFuture<Void> feesFuture = initFees().thenAccept((fees) -> {
-			for (var entry : fees.entrySet()) {
+		CompletableFuture<Void> feesFuture = initFees().thenAccept((feesMap) -> {
+			for (var entry : feesMap.entrySet()) {
 				BigDecimal lotSize = filterResult.lotSizesMap().get(entry.exchange(), entry.coin());
 				Integer fundingInterval = filterResult.fundingIntervalsMap().get(entry.exchange(), entry.coin());
+				Fees fees = entry.value();
+
+				assert lotSize != null && fundingInterval != null && fees != null;
 				constantDataMap.put(
-								entry.exchange(), entry.coin(), new ExchangeConstantData(lotSize, entry.value(), fundingInterval)
+								entry.exchange(), entry.coin(), new ExchangeConstantData(lotSize, fees, fundingInterval)
 				);
 			}
 		});
@@ -227,20 +230,12 @@ public abstract class ArbitrageLogic {
 		for (BaseExchange longEx : availableExchanges) {
 			for (BaseExchange shortEx : availableExchanges) {
 				if (longEx == shortEx) continue;
-				ArbitrageData coinArbData = getData.invoke(new ExchangePair(longEx, shortEx), coin);
 
-				try {
-					if (bestSnapshot == null || preTradeStrategy.compareArbData(coinArbData, bestSnapshot) > 0) {
-						bestSnapshot = coinArbData;
-						bestLongEx = longEx;
-						bestShortEx = shortEx;
-					}
-				} catch (Exception e) {
-					synchronized (this) {
-						Logger.log("Comparing: " + coin + " on " + longEx.name + " (long) | " + shortEx.name + " (short)");
-						Logger.log(coinArbData.toString());
-					}
-					throw new RuntimeException(e);
+				ArbitrageData coinArbData = getData.invoke(new ExchangePair(longEx, shortEx), coin);
+				if (bestSnapshot == null || preTradeStrategy.compareArbData(coinArbData, bestSnapshot) > 0) {
+					bestSnapshot = coinArbData;
+					bestLongEx = longEx;
+					bestShortEx = shortEx;
 				}
 			}
 		}
