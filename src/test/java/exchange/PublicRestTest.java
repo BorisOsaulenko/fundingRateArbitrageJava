@@ -27,10 +27,6 @@ public abstract class PublicRestTest {
 		return future.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
 	}
 
-	private static void assertFinite(double value, String message) {
-		assertTrue(Double.isFinite(value), message);
-	}
-
 	protected abstract PublicHttpClient publicRest();
 
 	void validateLotSize(BigDecimal lotSize) {
@@ -100,7 +96,7 @@ public abstract class PublicRestTest {
 			var data = result.get(coin);
 			assertNotNull(data, "One pull data for " + coin + " should not be null");
 			validateLotSize(data.lotSize());
-			validateBookTicker(data.bookTicker());
+			validateBookTicker(data.ticker());
 			validateTradingVolume(data.volume24h());
 			validateFundingInterval(data.fundingInterval());
 		}

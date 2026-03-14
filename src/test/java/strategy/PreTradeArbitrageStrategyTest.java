@@ -1,10 +1,13 @@
 package strategy;
 
+import com.boris.fundingarbitrage.model.arbitrage.ArbitrageConstantData;
+import com.boris.fundingarbitrage.model.arbitrage.ArbitrageData;
 import com.boris.fundingarbitrage.model.arbitrage.ArbitrageSnapshot;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.Fees;
 import com.boris.fundingarbitrage.model.contract.FundingRate;
 import com.boris.fundingarbitrage.model.contract.MarkPrice;
+import com.boris.fundingarbitrage.model.exchange.ExchangeConstantData;
 import com.boris.fundingarbitrage.model.exchange.ExchangeSnapshot;
 import com.boris.fundingarbitrage.strategy.PreTradeStrategy;
 import org.junit.jupiter.api.Test;
@@ -16,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
 public abstract class PreTradeArbitrageStrategyTest {
-	private static ArbitrageSnapshot snapshot(
+	private static ArbitrageData snapshot(
 					BigDecimal longAsk,
 					BigDecimal shortBid,
 					BigDecimal longFundingRate,
@@ -34,9 +37,14 @@ public abstract class PreTradeArbitrageStrategyTest {
 		FundingRate shortFunding = new FundingRate(shortFundingRate, now.plusSeconds(3600), now);
 		MarkPrice longMark = markPrice(longMarkPrice, now);
 		MarkPrice shortMark = markPrice(shortMarkPrice, now);
-		ExchangeSnapshot longExchange = new ExchangeSnapshot(longBook, fees, longFunding, longMark);
-		ExchangeSnapshot shortExchange = new ExchangeSnapshot(shortBook, fees, shortFunding, shortMark);
-		return new ArbitrageSnapshot(longExchange, shortExchange);
+		ExchangeSnapshot longExchange = new ExchangeSnapshot(longBook, longFunding, longMark);
+		ExchangeSnapshot shortExchange = new ExchangeSnapshot(shortBook, shortFunding, shortMark);
+		ExchangeConstantData longConstantData = new ExchangeConstantData(new BigDecimal("0.1"), fees, 4);
+		ExchangeConstantData shortConstantData = new ExchangeConstantData(new BigDecimal("0.1"), fees, 4);
+		return new ArbitrageData(
+						new ArbitrageSnapshot(longExchange, shortExchange),
+						new ArbitrageConstantData(longConstantData, shortConstantData)
+		);
 	}
 
 	private static MarkPrice markPrice(BigDecimal price, Instant timestamp) {
@@ -47,7 +55,7 @@ public abstract class PreTradeArbitrageStrategyTest {
 
 	@Test
 	public void compareSnapshotsReturnsMinusOneWhenFirstIsWorse() {
-		ArbitrageSnapshot worse = snapshot(
+		ArbitrageData worse = snapshot(
 						BigDecimal.valueOf(102),
 						BigDecimal.valueOf(100),
 						BigDecimal.valueOf(0.001),
@@ -55,7 +63,7 @@ public abstract class PreTradeArbitrageStrategyTest {
 						BigDecimal.valueOf(101),
 						BigDecimal.valueOf(99)
 		);
-		ArbitrageSnapshot better = snapshot(
+		ArbitrageData better = snapshot(
 						BigDecimal.valueOf(100),
 						BigDecimal.valueOf(102),
 						BigDecimal.valueOf(0.001),
@@ -63,12 +71,12 @@ public abstract class PreTradeArbitrageStrategyTest {
 						BigDecimal.valueOf(100),
 						BigDecimal.valueOf(102)
 		);
-		assertEquals(BigDecimal.ONE.negate().intValueExact(), strategy().compareSnapshots(worse, better));
+		assertEquals(-1, strategy().compareArbData(worse, better));
 	}
 
 	@Test
 	public void compareSnapshotsReturnsZeroWhenEquivalent() {
-		ArbitrageSnapshot first = snapshot(
+		ArbitrageData first = snapshot(
 						BigDecimal.valueOf(100),
 						BigDecimal.valueOf(102),
 						BigDecimal.ZERO,
@@ -76,7 +84,7 @@ public abstract class PreTradeArbitrageStrategyTest {
 						BigDecimal.valueOf(100),
 						BigDecimal.valueOf(102)
 		);
-		ArbitrageSnapshot second = snapshot(
+		ArbitrageData second = snapshot(
 						BigDecimal.valueOf(100),
 						BigDecimal.valueOf(102),
 						BigDecimal.ZERO,
@@ -84,12 +92,12 @@ public abstract class PreTradeArbitrageStrategyTest {
 						BigDecimal.valueOf(100),
 						BigDecimal.valueOf(102)
 		);
-		assertEquals(BigDecimal.ZERO.intValueExact(), strategy().compareSnapshots(first, second));
+		assertEquals(BigDecimal.ZERO.intValueExact(), strategy().compareArbData(first, second));
 	}
 
 	@Test
 	public void compareSnapshotsReturnsOneWhenFirstIsBetter() {
-		ArbitrageSnapshot better = snapshot(
+		ArbitrageData better = snapshot(
 						BigDecimal.valueOf(100),
 						BigDecimal.valueOf(102),
 						BigDecimal.ZERO,
@@ -97,7 +105,7 @@ public abstract class PreTradeArbitrageStrategyTest {
 						BigDecimal.valueOf(100),
 						BigDecimal.valueOf(102)
 		);
-		ArbitrageSnapshot worse = snapshot(
+		ArbitrageData worse = snapshot(
 						BigDecimal.valueOf(101),
 						BigDecimal.valueOf(100),
 						BigDecimal.ZERO,
@@ -105,12 +113,12 @@ public abstract class PreTradeArbitrageStrategyTest {
 						BigDecimal.valueOf(101),
 						BigDecimal.valueOf(100)
 		);
-		assertEquals(BigDecimal.ONE.intValueExact(), strategy().compareSnapshots(better, worse));
+		assertEquals(BigDecimal.ONE.intValueExact(), strategy().compareArbData(better, worse));
 	}
 
 	@Test
 	public void snapshotGoodEnoughReturnsFalseForNegativeGain() {
-		ArbitrageSnapshot negativeGain = snapshot(
+		ArbitrageData negativeGain = snapshot(
 						BigDecimal.valueOf(102),
 						BigDecimal.valueOf(100),
 						BigDecimal.valueOf(0.001),
@@ -118,7 +126,7 @@ public abstract class PreTradeArbitrageStrategyTest {
 						BigDecimal.valueOf(101),
 						BigDecimal.valueOf(99)
 		);
-		assertFalse(strategy().snapshotGoodEnough(negativeGain));
+		assertFalse(strategy().arbDataGoodEnough(negativeGain));
 	}
 
 	@Test
@@ -146,7 +154,7 @@ public abstract class PreTradeArbitrageStrategyTest {
 						new BigDecimal("0.25617"),
 						Instant.parse("2026-03-13T10:18:26Z")
 		);
-		ExchangeSnapshot longExchange = new ExchangeSnapshot(longBook, longFees, longFunding, longMark);
+		ExchangeSnapshot longExchange = new ExchangeSnapshot(longBook, longFunding, longMark);
 
 		BookTicker shortBook = new BookTicker(
 						new BigDecimal("0.25834"),
@@ -171,9 +179,15 @@ public abstract class PreTradeArbitrageStrategyTest {
 						new BigDecimal("0.25856"),
 						Instant.parse("2026-03-13T10:18:32.770Z")
 		);
-		ExchangeSnapshot shortExchange = new ExchangeSnapshot(shortBook, shortFees, shortFunding, shortMark);
+		ExchangeSnapshot shortExchange = new ExchangeSnapshot(shortBook, shortFunding, shortMark);
 
-		ArbitrageSnapshot snapshot = new ArbitrageSnapshot(longExchange, shortExchange);
-		assertFalse(strategy().snapshotGoodEnough(snapshot));
+		ExchangeConstantData longConstantData = new ExchangeConstantData(new BigDecimal("0.1"), longFees, 4);
+		ExchangeConstantData shortConstantData = new ExchangeConstantData(new BigDecimal("0.1"), shortFees, 1);
+
+		ArbitrageData snapshot = new ArbitrageData(
+						new ArbitrageSnapshot(longExchange, shortExchange),
+						new ArbitrageConstantData(longConstantData, shortConstantData)
+		);
+		assertFalse(strategy().arbDataGoodEnough(snapshot));
 	}
 }

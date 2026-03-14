@@ -1,10 +1,13 @@
 package com.boris.fundingarbitrage.strategy;
 
+import com.boris.fundingarbitrage.model.arbitrage.ArbitrageConstantData;
+import com.boris.fundingarbitrage.model.arbitrage.ArbitrageData;
 import com.boris.fundingarbitrage.model.arbitrage.ArbitrageSnapshot;
 import com.boris.fundingarbitrage.model.exchange.ExchangeSnapshot;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
+import java.math.RoundingMode;
 import java.time.Instant;
 
 public class ClassicPreTradeStrategy implements PreTradeStrategy {
@@ -27,7 +30,7 @@ public class ClassicPreTradeStrategy implements PreTradeStrategy {
 		BigDecimal shortBid = shortExchange.bookTicker().bidPrice();
 		BigDecimal perCoinNotional = perCoinNotional(snapshot);
 
-		return shortBid.subtract(longAsk).divide(perCoinNotional, MathContext.DECIMAL64);
+		return shortBid.subtract(longAsk).divide(perCoinNotional, 8, RoundingMode.HALF_EVEN);
 	}
 
 	private static BigDecimal closestFSpread(ArbitrageSnapshot snapshot) {
@@ -42,35 +45,40 @@ public class ClassicPreTradeStrategy implements PreTradeStrategy {
 		else return shortFundingRate;
 	}
 
-	private static BigDecimal totalFees(ArbitrageSnapshot snapshot) {
+	private static BigDecimal totalFees(ArbitrageConstantData data) {
 		BigDecimal result = BigDecimal.ZERO;
-		result = result.add(snapshot.longExchange().fees().openTaker());
-		result = result.add(snapshot.shortExchange().fees().openTaker());
-		result = result.add(snapshot.longExchange().fees().closeTaker());
-		result = result.add(snapshot.shortExchange().fees().closeTaker());
+		result = result.add(data.longData().fees().openTaker());
+		result = result.add(data.shortData().fees().openTaker());
+		result = result.add(data.longData().fees().closeTaker());
+		result = result.add(data.shortData().fees().closeTaker());
 
 		return result;
 	}
 
-	public int compareSnapshots(ArbitrageSnapshot first, ArbitrageSnapshot second) {
-		boolean firstGood = snapshotGoodEnough(first);
-		boolean secondGood = snapshotGoodEnough(second);
+	@Override
+	public int compareArbData(
+					ArbitrageData first,
+					ArbitrageData second
+	) {
+		boolean firstGood = arbDataGoodEnough(first);
+		boolean secondGood = arbDataGoodEnough(second);
 		if (firstGood && !secondGood) return 1;
 		if (!firstGood && secondGood) return -1;
 
-		BigDecimal firstFSpread = closestFSpread(first);
-		BigDecimal secondFSpread = closestFSpread(second);
+		BigDecimal firstFSpread = closestFSpread(first.snapshot());
+		BigDecimal secondFSpread = closestFSpread(second.snapshot());
 
 		BigDecimal fSpreadDiff = firstFSpread.subtract(secondFSpread).abs();
 		if (fSpreadDiff.compareTo(CLOSE_F_SPREAD_EPS) < 0) {
-			return oSpread(first).compareTo(oSpread(second));
+			return oSpread(first.snapshot()).compareTo(oSpread(second.snapshot()));
 		}
 		return firstFSpread.compareTo(secondFSpread);
 	}
 
-	public boolean snapshotGoodEnough(ArbitrageSnapshot snapshot) {
-		boolean fSpreadGood = closestFSpread(snapshot).subtract(MIN_F_SPREAD).compareTo(totalFees(snapshot)) > 0;
-		boolean oSpreadGood = oSpread(snapshot).compareTo(MIN_O_SPREAD) >= 0;
-		return fSpreadGood && oSpreadGood;
+	@Override
+	public boolean arbDataGoodEnough(ArbitrageData d) {
+		boolean fSpread = closestFSpread(d.snapshot()).subtract(MIN_F_SPREAD).compareTo(totalFees(d.constantData())) > 0;
+		boolean oSpread = oSpread(d.snapshot()).compareTo(MIN_O_SPREAD) >= 0;
+		return fSpread && oSpread;
 	}
 }

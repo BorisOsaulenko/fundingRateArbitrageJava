@@ -12,7 +12,6 @@ import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import com.boris.fundingarbitrage.util.cryptography.Signers;
 import com.boris.fundingarbitrage.util.https.PrettyHttpClient;
 import com.boris.fundingarbitrage.util.https.RequestProcessingClientWrapper;
-import com.boris.fundingarbitrage.util.logger.Logger;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
 
@@ -32,7 +31,6 @@ public class WhitebitPrivateHttpClient extends PrivateHttpClient {
 	}
 
 	public CompletableFuture<String> fetchWebsocketToken() {
-		Logger.log("Fetching websocket token for whitebit");
 		return requestWrapper.processRequest(
 						signRequest(PrivateEndpoints.websocketTokenRequest()),
 						PrivateResponses.TokenResponse.class,
@@ -64,7 +62,6 @@ public class WhitebitPrivateHttpClient extends PrivateHttpClient {
 
 	@Override
 	public CompletableFuture<CoinVector<Fees>> getTradingFees(Set<String> coins) {
-		Logger.log("Getting trading fees for whitebit");
 		return requestWrapper.processRequest(
 						signRequest(PrivateEndpoints.tradingFeesRequest()),
 						PrivateResponses.TradingFeesSymbolsResponse.class,
@@ -74,7 +71,6 @@ public class WhitebitPrivateHttpClient extends PrivateHttpClient {
 
 	@Override
 	protected CompletableFuture<Void> changeLeverageSymbol(String symbol, int leverage) {
-		Logger.log("Changing leverage for " + symbol + " to " + leverage);
 		return requestWrapper.processRequest(
 						signRequest(PrivateEndpoints.changeLeverageRequest(leverage)),
 						JsonNode.class,
@@ -84,7 +80,6 @@ public class WhitebitPrivateHttpClient extends PrivateHttpClient {
 
 	@Override
 	protected CompletableFuture<Void> setMarginModeSymbol(String symbol, MarginMode marginMode) {
-		Logger.log("Setting margin mode for " + symbol + " to " + marginMode);
 		boolean hedgeMode = marginMode == MarginMode.ISOLATED;
 		return requestWrapper.processRequest(
 						signRequest(PrivateEndpoints.setHedgeModeRequest(hedgeMode)),
@@ -95,7 +90,6 @@ public class WhitebitPrivateHttpClient extends PrivateHttpClient {
 
 	@Override
 	public CompletableFuture<BigDecimal> getSpotUsdtBalance() {
-		Logger.log("Getting spot usdt balance for whitebit");
 		return requestWrapper.processRequest(
 						signRequest(PrivateEndpoints.spotUsdtBalanceRequest()),
 						PrivateResponses.SpotBalanceResponse.class,
@@ -105,7 +99,6 @@ public class WhitebitPrivateHttpClient extends PrivateHttpClient {
 
 	@Override
 	public CompletableFuture<BigDecimal> getFuturesUsdtBalance() {
-		Logger.log("Getting futures usdt balance for whitebit");
 		return requestWrapper.processRequest(
 						signRequest(PrivateEndpoints.futuresUsdtBalanceRequest()),
 						PrivateResponses.CollateralSummaryResponse.class,
@@ -115,7 +108,6 @@ public class WhitebitPrivateHttpClient extends PrivateHttpClient {
 
 	@Override
 	protected CompletableFuture<Map<String, Integer>> getMaxLeverageSymbolBatch() {
-		Logger.log("Getting max leverage for whitebit");
 		return requestWrapper.processRequest(
 						signRequest(PrivateEndpoints.maxLeverageRequest()),
 						PrivateResponses.MaxLeverageResponse.class,
@@ -125,7 +117,6 @@ public class WhitebitPrivateHttpClient extends PrivateHttpClient {
 
 	@Override
 	public CompletableFuture<ExchangeChains> getSupportedChains() {
-		Logger.log("Getting supported chains for whitebit");
 		return requestWrapper.processRequest(
 						signRequest(PrivateEndpoints.publicFeeRequest()),
 						PrivateResponses.SupportedChainsResponse.class,
@@ -135,7 +126,6 @@ public class WhitebitPrivateHttpClient extends PrivateHttpClient {
 
 	@Override
 	public CompletableFuture<WalletAddress> getUsdtWalletAddress(SupportedChain chain) {
-		Logger.log("Getting usdt wallet address for whitebit");
 		if (chainsMap.get(chain) == null) {
 			throw new IllegalArgumentException("Unsupported chain for Whitebit: " + chain);
 		}
@@ -148,7 +138,6 @@ public class WhitebitPrivateHttpClient extends PrivateHttpClient {
 
 	@Override
 	public CompletableFuture<Void> withdrawUsdt(Withdrawal withdrawal) {
-		Logger.log("Withdrawing usdt for whitebit");
 		return requestWrapper.processRequest(
 						signRequest(signRequest(PrivateEndpoints.withdrawUsdtRequest(withdrawal))),
 						JsonNode.class,
@@ -158,7 +147,6 @@ public class WhitebitPrivateHttpClient extends PrivateHttpClient {
 
 	@Override
 	protected CompletableFuture<String> placeFuturesOrderSymbol(String symbol, FuturesOrder futuresOrder) {
-		Logger.log("Placing futures order for " + symbol + " with " + futuresOrder);
 		return requestWrapper.processRequest(
 						signRequest(PrivateEndpoints.placeFuturesOrderRequestSymbol(symbol, futuresOrder)),
 						PrivateResponses.PlaceOrderResponse.class,
@@ -172,7 +160,6 @@ public class WhitebitPrivateHttpClient extends PrivateHttpClient {
 					String symbol,
 					TradeSide tradeSide
 	) {
-		Logger.log("Getting order record for " + symbol + " with " + orderId);
 		return requestWrapper.processRequest(
 						signRequest(PrivateEndpoints.orderRecordRequestSymbol(orderId)),
 						PrivateResponses.OrderDealsResponse.class,
@@ -182,7 +169,6 @@ public class WhitebitPrivateHttpClient extends PrivateHttpClient {
 
 	@Override
 	public CompletableFuture<Void> internalTransfer(InternalTransfer internalTransfer) {
-		Logger.log("Internal transfer for whitebit");
 		return requestWrapper.processRequest(
 						signRequest(PrivateEndpoints.internalTransferRequest(internalTransfer)),
 						JsonNode.class,

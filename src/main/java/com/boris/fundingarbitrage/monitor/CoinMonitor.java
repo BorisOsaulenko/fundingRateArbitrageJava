@@ -1,10 +1,10 @@
 package com.boris.fundingarbitrage.monitor;
 
 import com.boris.fundingarbitrage.exchange.BaseExchange;
+import com.boris.fundingarbitrage.exchange.Instances;
 import com.boris.fundingarbitrage.logic.ExchangePair;
 import com.boris.fundingarbitrage.model.arbitrage.ArbitrageSnapshot;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
-import com.boris.fundingarbitrage.model.contract.Fees;
 import com.boris.fundingarbitrage.model.contract.FundingRate;
 import com.boris.fundingarbitrage.model.contract.MarkPrice;
 import com.boris.fundingarbitrage.model.exchange.ExchangeName;
@@ -30,12 +30,11 @@ public class CoinMonitor {
 	private static final int BIT_MARK = 1 << 2;
 	private static final int ALL_BITS = BIT_BOOK | BIT_FUNDING | BIT_MARK;
 
-	private static final int waitForDataSeconds = 60;
+	private static final int waitForDataSeconds = 120;
 
 	private final ExchangeCoinMap<FundingRate> fundingRates = new ExchangeCoinMap<>();
 	private final ExchangeCoinMap<BookTicker> bookTickers = new ExchangeCoinMap<>();
 	private final ExchangeCoinMap<MarkPrice> markPrices = new ExchangeCoinMap<>();
-	private final ExchangeCoinMap<Fees> fees = new ExchangeCoinMap<>();
 
 	private final ExchangeCoinMap<SortedSet<Long>> timestampsToProcess = new ExchangeCoinMap<>();
 	private final ExchangeCoinMap<BookTicker> tickerCompletions = new ExchangeCoinMap<>();
@@ -46,7 +45,7 @@ public class CoinMonitor {
 	private final ScheduledExecutorService completionScheduler = Executors.newSingleThreadScheduledExecutor();
 	private final long completionDelayMs = 500;
 
-	@Getter private final CoinVector<Set<BaseExchange>> availableExchangesByCoin;
+	private final CoinVector<Set<BaseExchange>> availableExchangesByCoin;
 	private final Map<BaseExchange, Set<String>> availableCoinsByExchange;
 	@Getter private final CompletableFuture<Void> initFuture;
 	private final ExchangeCoinMap<Integer> initStateBits = new ExchangeCoinMap<>();
@@ -55,7 +54,6 @@ public class CoinMonitor {
 	private final ConcurrentHashMap<ExchangeName, Consumer<BookTickerPatch>> initBookHandlers = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<ExchangeName, Consumer<FundingRatePatch>> initFundingHandlers = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<ExchangeName, Consumer<MarkPricePatch>> initMarkHandlers = new ConcurrentHashMap<>();
-	private final Map<Integer, ArbitrageSnapshotCompletion> arbitrageSnapshotCompletions = new ConcurrentHashMap<>();
 
 	public CoinMonitor(
 					CoinVector<Set<BaseExchange>> availableExchangesByCoin,
@@ -64,11 +62,11 @@ public class CoinMonitor {
 		this.availableExchangesByCoin = availableExchangesByCoin;
 		this.availableCoinsByExchange = availableCoinsByExchange;
 
+		Logger.log(availableCoinsByExchange.toString());
+
 		this.initFuture = CompletableFuture.runAsync(() -> {
 			openWsConnections().join(); // Has to be awaited
 			Logger.debug("WS connections opened");
-			initFees();
-			Logger.debug("Trading fees initialized");
 			fillEmptyData();
 			Logger.debug("Empty data filled");
 			initCompletionTracking();
@@ -109,41 +107,26 @@ public class CoinMonitor {
 	}
 
 	private void checkDataCompleteness() {
-		for (var entry : bookTickers.entrySet()) {
-			if (BookTicker.isPartiallyEmpty(entry.value())) {
-				Logger.warn("Book ticker data is incomplete for " +
-										entry.exchange().name +
-										" " +
-										entry.coin() +
-										": " +
-										entry.value());
-				unsubscribeCoinExchange(entry.coin(), entry.exchange());
+		List<ExchangeCoinPair> toUnsubscribe = new ArrayList<>();
+
+		for (BaseExchange ex : Instances.getExchangeArray()) {
+			for (String coin : availableExchangesByCoin.keySet()) {
+				BookTicker ticker = bookTickers.get(ex, coin);
+				FundingRate funding = fundingRates.get(ex, coin);
+				MarkPrice mark = markPrices.get(ex, coin);
+				if (ticker == null || BookTicker.isPartiallyEmpty(ticker))
+					Logger.warn("Book ticker data is incomplete for " + ex.name + " " + coin);
+				else if (funding == null || FundingRate.isPartiallyEmpty(funding))
+					Logger.warn("Funding rate data is incomplete for " + ex.name + " " + coin);
+				else if (mark == null || MarkPrice.isPartiallyEmpty(mark))
+					Logger.warn("Mark price data is incomplete for " + ex.name + " " + coin);
+				else continue;
+
+				toUnsubscribe.add(new ExchangeCoinPair(ex, coin));
 			}
 		}
 
-		for (var entry : fundingRates.entrySet()) {
-			if (FundingRate.isPartiallyEmpty(entry.value())) {
-				Logger.warn("Funding rate is incomplete for " +
-										entry.exchange().name +
-										" " +
-										entry.coin() +
-										": " +
-										entry.value());
-				unsubscribeCoinExchange(entry.coin(), entry.exchange());
-			}
-		}
-
-		for (var entry : markPrices.entrySet()) {
-			if (MarkPrice.isPartiallyEmpty(entry.value())) {
-				Logger.warn("Mark price is incomplete for " +
-										entry.exchange().name +
-										" " +
-										entry.coin() +
-										": " +
-										entry.value());
-				unsubscribeCoinExchange(entry.coin(), entry.exchange());
-			}
-		}
+		unsubscribeEntries(toUnsubscribe);
 	}
 
 	private void clearCoinsWithInsufficientExchanges() {
@@ -154,31 +137,6 @@ public class CoinMonitor {
 				unsubscribeCoin(coin);
 			}
 		}
-	}
-
-	private void initFees() {
-		List<CompletableFuture<Void>> futures = new ArrayList<>();
-		for (Map.Entry<BaseExchange, Set<String>> entry : availableCoinsByExchange.entrySet()) {
-			BaseExchange exchange = entry.getKey();
-			if (entry.getValue().isEmpty()) continue;
-
-			CompletableFuture<Void> future = exchange.privateHttpClient.getTradingFees(entry.getValue())
-							.thenAccept(result -> {
-								result.forEach((coin, fee) -> {
-									fees.put(exchange, coin, fee);
-								});
-							})
-							.exceptionally(t -> {
-								Logger.error("Failed to fetch trading fees for " +
-														 exchange.name +
-														 ": " +
-														 t.getMessage());
-								throw new RuntimeException(t);
-							});
-
-			futures.add(future);
-		}
-		CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
 	}
 
 	private void fillEmptyData() {
@@ -203,7 +161,7 @@ public class CoinMonitor {
 	private void subscribeData() {
 		for (Map.Entry<BaseExchange, Set<String>> entry : availableCoinsByExchange.entrySet()) {
 			BaseExchange exchange = entry.getKey();
-			List<String> supportedCoins = entry.getValue().stream().toList();
+			Set<String> supportedCoins = new HashSet<>(entry.getValue());
 			if (supportedCoins.isEmpty()) continue;
 
 			Consumer<BookTickerPatch> bookHandler = createInitBookHandler(exchange);
@@ -321,7 +279,7 @@ public class CoinMonitor {
 	private void switchToSteadyStateHandlers() {
 		for (Map.Entry<BaseExchange, Set<String>> entry : availableCoinsByExchange.entrySet()) {
 			BaseExchange exchange = entry.getKey();
-			List<String> subscribedCoins = entry.getValue().stream().toList();
+			Set<String> subscribedCoins = new HashSet<>(entry.getValue());
 			if (subscribedCoins.isEmpty()) continue;
 
 			exchange.publicWsClient.subscribeBookTicker(subscribedCoins, createSteadyBookHandler(exchange));
@@ -377,52 +335,46 @@ public class CoinMonitor {
 		);
 	}
 
-	public void unsubscribeCoinExchange(String coin, BaseExchange exchange) {
-		dropInitTracking(exchange, coin);
+	private void unsubscribeEntries(List<ExchangeCoinPair> toUnsubscribe) {
+		for (var entry : toUnsubscribe) dropInitTracking(entry.ex(), entry.coin());
 
-		Set<BaseExchange> available = availableExchangesByCoin.get(coin);
-		if (available != null) available.remove(exchange);
+		Map<BaseExchange, Set<String>> unsubBasedByExchange = new HashMap<>();
+		for (var entry : toUnsubscribe)
+			unsubBasedByExchange.computeIfAbsent(entry.ex(), k -> new HashSet<>()).add(entry.coin());
 
-		Set<String> subscribedCoins = availableCoinsByExchange.get(exchange);
-		if (subscribedCoins != null) subscribedCoins.remove(coin);
-
-		exchange.publicWsClient.unsubscribeCoin(coin);
-
-		fundingRates.remove(exchange, coin);
-		bookTickers.remove(exchange, coin);
-		markPrices.remove(exchange, coin);
-		fees.remove(exchange, coin);
+		for (Map.Entry<BaseExchange, Set<String>> entry : unsubBasedByExchange.entrySet()) {
+			entry.getKey().publicWsClient.unsubscribeCoins(entry.getValue());
+			fundingRates.removeAll(entry.getKey(), entry.getValue());
+			bookTickers.removeAll(entry.getKey(), entry.getValue());
+			markPrices.removeAll(entry.getKey(), entry.getValue());
+			availableCoinsByExchange.get(entry.getKey()).removeAll(entry.getValue());
+			for (String coin : entry.getValue()) availableExchangesByCoin.get(coin).remove(entry.getKey());
+		}
 	}
 
-	public void unsubscribeCoin(String coin) {
+	private void unsubscribeCoin(String coin) {
 		Set<BaseExchange> available = availableExchangesByCoin.get(coin);
 		if (available != null) {
-			for (BaseExchange name : available) {
-				unsubscribeCoinExchange(coin, name);
-			}
+			List<ExchangeCoinPair> entries = available.stream()
+							.map(ex -> new ExchangeCoinPair(ex, coin))
+							.toList();
+			unsubscribeEntries(entries);
 		}
 
 		availableExchangesByCoin.remove(coin);
 	}
 
 	public void shutdown() {
-		for (BaseExchange exchange : availableCoinsByExchange.keySet()) {
-			exchange.publicWsClient.close();
-		}
-
-		for (ArbitrageSnapshotCompletion completion : arbitrageSnapshotCompletions.values()) {
-			completion.longSnapshotFuture().cancel(true);
-			completion.shortSnapshotFuture().cancel(true);
-		}
+		for (BaseExchange exchange : availableCoinsByExchange.keySet()) exchange.publicWsClient.close();
+		completionScheduler.shutdownNow();
 	}
 
 	public ExchangeSnapshot getSnapshot(BaseExchange exchange, String coin) {
 		BookTicker ticker = bookTickers.get(exchange, coin);
 		MarkPrice markPrice = markPrices.get(exchange, coin);
 		FundingRate fundingRate = fundingRates.get(exchange, coin);
-		Fees fee = fees.get(exchange, coin);
 
-		return new ExchangeSnapshot(ticker, fee, fundingRate, markPrice);
+		return new ExchangeSnapshot(ticker, fundingRate, markPrice);
 	}
 
 	public ArbitrageSnapshot getSnapshot(ExchangePair exchanges, String coin) {
@@ -547,13 +499,9 @@ public class CoinMonitor {
 		BookTicker ticker = tickerCompletions.get(ex, coin);
 		MarkPrice markPrice = markCompletions.get(ex, coin);
 		FundingRate fundingRate = fundingCompletions.get(ex, coin);
-		Fees fee = fees.get(ex, coin);
-		return new ExchangeSnapshot(ticker, fee, fundingRate, markPrice);
+		return new ExchangeSnapshot(ticker, fundingRate, markPrice);
 	}
 
-	private record ArbitrageSnapshotCompletion(
-					CompletableFuture<Void> longSnapshotFuture,
-					CompletableFuture<Void> shortSnapshotFuture
-	) {
+	private record ExchangeCoinPair(BaseExchange ex, String coin) {
 	}
 }

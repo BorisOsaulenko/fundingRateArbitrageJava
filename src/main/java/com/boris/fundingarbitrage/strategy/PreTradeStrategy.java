@@ -1,9 +1,9 @@
 package com.boris.fundingarbitrage.strategy;
 
-import com.boris.fundingarbitrage.model.arbitrage.ArbitrageSnapshot;
+import com.boris.fundingarbitrage.model.arbitrage.ArbitrageData;
 
 public interface PreTradeStrategy {
-	boolean snapshotGoodEnough(ArbitrageSnapshot snapshot);
+	boolean arbDataGoodEnough(ArbitrageData snapshot);
 
-	int compareSnapshots(ArbitrageSnapshot snapshot1, ArbitrageSnapshot snapshot2);
+	int compareArbData(ArbitrageData first, ArbitrageData second);
 }

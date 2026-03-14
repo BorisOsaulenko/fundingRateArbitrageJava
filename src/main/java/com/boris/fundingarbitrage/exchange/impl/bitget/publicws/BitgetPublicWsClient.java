@@ -6,7 +6,7 @@ import com.boris.fundingarbitrage.util.wss.publicws.FullFundingViaRest;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -23,7 +23,7 @@ public class BitgetPublicWsClient extends FullFundingViaRest {
 		pingExecutor.scheduleAtFixedRate(this::sendPing, 5, 30, TimeUnit.SECONDS);
 	}
 
-	private String getSubscribeFrame(List<String> symbols) {
+	private String getSubscribeFrame(Set<String> symbols) {
 		ArrayList<WsRequest.Arg> args = new ArrayList<>();
 		for (String symbol : symbols) {
 			args.add(new WsRequest.Arg(instType, BitgetPublicWsClient.tickerChannel, symbol));
@@ -31,7 +31,7 @@ public class BitgetPublicWsClient extends FullFundingViaRest {
 		return new WsRequest("subscribe", args).toJson();
 	}
 
-	private String getUnsubscribeFrame(List<String> symbols) {
+	private String getUnsubscribeFrame(Set<String> symbols) {
 		ArrayList<WsRequest.Arg> args = new ArrayList<>();
 		for (String symbol : symbols) {
 			args.add(new WsRequest.Arg(instType, BitgetPublicWsClient.tickerChannel, symbol));
@@ -40,32 +40,32 @@ public class BitgetPublicWsClient extends FullFundingViaRest {
 	}
 
 	@Override
-	protected String getSubscribeFundingRateFrame(List<String> symbols) {
+	protected String getSubscribeFundingRateFrame(Set<String> symbols) {
 		return getSubscribeFrame(symbols);
 	}
 
 	@Override
-	protected String getUnsubscribeFundingRateFrame(List<String> symbols) {
+	protected String getUnsubscribeFundingRateFrame(Set<String> symbols) {
 		return null;
 	}
 
 	@Override
-	protected String getSubscribeBookTickerFrame(List<String> symbols) {
+	protected String getSubscribeBookTickerFrame(Set<String> symbols) {
 		return getSubscribeFrame(symbols);
 	}
 
 	@Override
-	protected String getUnsubscribeBookTickerFrame(List<String> symbols) {
+	protected String getUnsubscribeBookTickerFrame(Set<String> symbols) {
 		return getUnsubscribeFrame(symbols);
 	}
 
 	@Override
-	protected String getSubscribeMarkPriceFrame(List<String> symbols) {
+	protected String getSubscribeMarkPriceFrame(Set<String> symbols) {
 		return getSubscribeFrame(symbols);
 	}
 
 	@Override
-	protected String getUnsubscribeMarkPriceFrame(List<String> symbols) {
+	protected String getUnsubscribeMarkPriceFrame(Set<String> symbols) {
 		return getUnsubscribeFrame(symbols);
 	}
 

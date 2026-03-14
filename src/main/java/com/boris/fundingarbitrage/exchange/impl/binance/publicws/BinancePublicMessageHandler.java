@@ -1,6 +1,5 @@
 package com.boris.fundingarbitrage.exchange.impl.binance.publicws;
 
-import com.boris.fundingarbitrage.ObjectMapperSingleton;
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.publicws.PublicMessageHandler;
 import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
@@ -8,7 +7,6 @@ import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
 import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
 import com.boris.fundingarbitrage.util.logger.Logger;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -16,7 +14,6 @@ import java.util.function.Function;
 
 class BinancePublicMessageHandler implements PublicMessageHandler {
 	private final ExchangeContext context;
-	private final ObjectMapper jsonMapper = ObjectMapperSingleton.getInstance();
 
 	public BinancePublicMessageHandler(ExchangeContext exchangeContext) {
 		this.context = exchangeContext;

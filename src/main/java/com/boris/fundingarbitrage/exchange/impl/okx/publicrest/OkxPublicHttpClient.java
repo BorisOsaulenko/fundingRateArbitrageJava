@@ -54,20 +54,20 @@ public class OkxPublicHttpClient extends PublicHttpClient {
 							Map<String, BigDecimal> lotSizes = instrumentsResponseFuture.join().getLotSizes();
 							Map<String, BookTicker> bookTickers = tickersResponseFuture.join().getBookTickers();
 							Map<String, BigDecimal> volumes24h = tickersResponseFuture.join().getVolume24h();
-							Map<String, Integer> fundingGranularityHours = fundingResponseFuture.join().getFundingGranularityHours();
+							Map<String, Integer> fundingIntervals = fundingResponseFuture.join().getFundingGranularityHours();
+							Map<String, FundingRate> fundingRates = fundingResponseFuture.join().getFundingRates();
 
 							Map<String, PublicOnePullData> data = new HashMap<>();
 							for (String symbol : lotSizes.keySet()) {
-								BookTicker ticker = bookTickers.get(symbol);
-								if (ticker == null) throw new RuntimeException("Book ticker missing for symbol: " + symbol);
-								Integer granularity = fundingGranularityHours.get(symbol);
-								if (granularity == null) {
-									throw new RuntimeException("Funding granularity missing for symbol: " + symbol);
-								}
-
 								data.put(
 												symbol,
-												new PublicOnePullData(lotSizes.get(symbol), ticker, volumes24h.get(symbol), granularity)
+												new PublicOnePullData(
+																lotSizes.get(symbol),
+																volumes24h.get(symbol),
+																fundingIntervals.get(symbol),
+																bookTickers.get(symbol),
+																fundingRates.get(symbol)
+												)
 								);
 							}
 							return data;

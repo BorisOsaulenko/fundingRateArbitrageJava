@@ -1,9 +1,12 @@
 package com.boris.fundingarbitrage.logic;
 
+import com.boris.fundingarbitrage.coinParser.ICoinSupplier;
+import com.boris.fundingarbitrage.coinfilter.CoinFilterConfig;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.exchange.Instances;
-import com.boris.fundingarbitrage.model.arbitrage.ArbitrageSnapshot;
-import com.boris.fundingarbitrage.monitor.CoinMonitor;
+import com.boris.fundingarbitrage.model.arbitrage.ArbitrageConstantData;
+import com.boris.fundingarbitrage.model.arbitrage.ArbitrageData;
+import com.boris.fundingarbitrage.model.exchange.ExchangeConstantData;
 import com.boris.fundingarbitrage.strategy.PreTradeStrategy;
 import com.boris.fundingarbitrage.util.logger.Logger;
 
@@ -18,9 +21,9 @@ import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class RebalancingArbitrageLogic extends ArbitrageLogic {
+	private final static BigDecimal rebalanceThreshold = new BigDecimal("0.3"); // 30%
 	private final Duration beforeEnter = Duration.ofSeconds(5);
 	private final Duration afterEnter = Duration.ofSeconds(5);
-	private final BigDecimal rebalanceThreshold = new BigDecimal("0.3"); // 30%
 	private final int maxParallelTrades = 2;
 	private final List<InTradeSingleCoinLogic> inTradeCoins = new CopyOnWriteArrayList<>();
 	private Instant closestEnter;
@@ -28,21 +31,18 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 	private boolean firstTick = true;
 
 	public RebalancingArbitrageLogic(
+					ICoinSupplier coinSupplier,
 					PreTradeStrategy strategy,
-					CoinMonitor monitor,
+					CoinFilterConfig filterConfig,
 					ArbitrageBotConfig arbConfig
 	) {
-		super(strategy, monitor, arbConfig);
+		super(coinSupplier, strategy, filterConfig, arbConfig);
 	}
 
 	@Override
 	protected void afterBalanceInit() {
 		checkEnoughBalance();
 		suggestRebalanceIfNeeded();
-	}
-
-	@Override
-	protected void beforeFirstTick() {
 	}
 
 	@Override
@@ -85,12 +85,17 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 	}
 
 	private void disconnectLaterOpportunities() {
-		closestEnter = bestArbSnapshots.getMinEntry(Comparator.comparing(ArbitrageSnapshot::closestSettlement)).getValue()
+		closestEnter = bestArbData.getMinEntry(Comparator.comparing(a -> a.snapshot().closestSettlement()))
+						.getValue()
+						.snapshot()
 						.closestSettlement();
 
-		for (Map.Entry<String, ArbitrageSnapshot> entry : bestArbSnapshots.entrySet()) {
-			if (!entry.getValue().closestSettlement().equals(closestEnter)) stopCalculatingBestOptionsForCoin(entry.getKey());
+		for (Map.Entry<String, ArbitrageData> entry : bestArbData.entrySet()) {
+			if (!entry.getValue().snapshot().closestSettlement().equals(closestEnter))
+				dropCoinProcessing(entry.getKey());
 		}
+
+		Logger.log("Disconnected later opportunities. Left only ones with closest settlement: " + closestEnter);
 	}
 
 	private void checkEnoughBalance() {
@@ -132,9 +137,9 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 
 	private synchronized void enterGoodCoins() {
 		Set<BaseExchange> freeExchanges = Instances.getExchangesSet();
-		List<Map.Entry<String, ArbitrageSnapshot>> coinsToReview = this.bestArbSnapshots
-						.filter(preTradeStrategy::snapshotGoodEnough)
-						.sortDesc(preTradeStrategy::compareSnapshots);
+		List<Map.Entry<String, ArbitrageData>> coinsToReview = this.bestArbData
+						.filter(preTradeStrategy::arbDataGoodEnough)
+						.sortDesc(preTradeStrategy::compareArbData);
 
 		if (coinsToReview.isEmpty()) {
 			Logger.log("No good snapshots found. Finishing...");
@@ -156,7 +161,16 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 			freeExchanges.remove(exchanges.longEx());
 			freeExchanges.remove(exchanges.shortEx());
 
-			InTradeSingleCoinLogic logic = new InTradeSingleCoinLogic(coin, monitor, exchanges, config.legUsdtAmount());
+			ExchangeConstantData longConstantData = constantDataMap.get(exchanges.longEx(), coin);
+			ExchangeConstantData shortConstantData = constantDataMap.get(exchanges.shortEx(), coin);
+
+			InTradeSingleCoinLogic logic = new InTradeSingleCoinLogic(
+							coin,
+							monitor,
+							exchanges,
+							config.legUsdtAmount(),
+							new ArbitrageConstantData(longConstantData, shortConstantData)
+			);
 			inTradeCoins.add(logic);
 		}
 	}

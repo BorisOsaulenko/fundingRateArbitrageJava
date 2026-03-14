@@ -49,7 +49,7 @@ public abstract class PublicHttpClient {
 			for (String coin : coins) {
 				String symbol = exchangeContext.getSymbol(coin);
 				PublicOnePullData value = res.get(symbol);
-				if (value == null) value = PublicOnePullData.empty();
+				if (value == null) continue;
 				result.put(coin, value);
 			}
 			return result;

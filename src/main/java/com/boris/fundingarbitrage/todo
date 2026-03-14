@@ -2,3 +2,21 @@
 - logic: start logging thread as daemon
 - add the missing strategy logic
 - bitget and kucoin can not subscribe too much coins at a time
+- make logger log in batches
+
+longExchange=
+    BookTicker[bidPrice=0.06366, bidSize=1039, askPrice=0.0637, askSize=1048, timestamp=2026-03-14T11:59:54.902Z],
+    FundingRate[rate=-0.002834, settlement=2026-03-14T12:00:00Z, timestamp=2026-03-14T11:59:53.017369Z],
+    MarkPrice[price=0.06373, timestamp=2026-03-14T11:59:54.902Z],
+shortExchange=
+    BookTicker[bidPrice=0.06376, bidSize=34, askPrice=0.06379, askSize=1, timestamp=2026-03-14T11:59:47.940Z],
+    FundingRate[rate=-0.004353, settlement=2026-03-14T16:00:00Z, timestamp=2026-03-14T11:59:52Z],
+    MarkPrice[price=0.06378, timestamp=2026-03-14T11:59:52Z],
+longData=
+    lotSize=1,
+    Fees[openMaker=0.0002, openTaker=0.0006, closeMaker=0.0002, closeTaker=0.0006, timestamp=2026-03-14T11:51:57.188Z],
+    fundingInterval=4
+shortData=
+    lotSize=10,
+    fees=Fees[openMaker=0.00020, openTaker=0.0005, closeMaker=0.00020, closeTaker=0.0005, timestamp=2026-03-14T11:51:57.287396Z],
+    fundingInterval=8

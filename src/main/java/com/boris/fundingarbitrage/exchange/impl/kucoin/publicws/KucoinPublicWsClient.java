@@ -5,7 +5,7 @@ import com.boris.fundingarbitrage.exchange.impl.kucoin.publicrest.KucoinPublicHt
 import com.boris.fundingarbitrage.util.wss.publicws.FullFundingViaRest;
 
 import java.time.Instant;
-import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -33,32 +33,32 @@ public class KucoinPublicWsClient extends FullFundingViaRest {
 	}
 
 	@Override
-	protected String getSubscribeFundingRateFrame(List<String> symbols) {
+	protected String getSubscribeFundingRateFrame(Set<String> symbols) {
 		return getSubscribeFrame(instrumentTopic + String.join(",", symbols));
 	}
 
 	@Override
-	protected String getUnsubscribeFundingRateFrame(List<String> symbols) {
+	protected String getUnsubscribeFundingRateFrame(Set<String> symbols) {
 		return getUnsubscribeFrame(instrumentTopic + String.join(",", symbols));
 	}
 
 	@Override
-	protected String getSubscribeBookTickerFrame(List<String> symbols) {
+	protected String getSubscribeBookTickerFrame(Set<String> symbols) {
 		return getSubscribeFrame(tickerTopic + String.join(",", symbols));
 	}
 
 	@Override
-	protected String getUnsubscribeBookTickerFrame(List<String> symbols) {
+	protected String getUnsubscribeBookTickerFrame(Set<String> symbols) {
 		return getUnsubscribeFrame(tickerTopic + String.join(",", symbols));
 	}
 
 	@Override
-	protected String getSubscribeMarkPriceFrame(List<String> symbols) {
+	protected String getSubscribeMarkPriceFrame(Set<String> symbols) {
 		return getSubscribeFrame(instrumentTopic + String.join(",", symbols));
 	}
 
 	@Override
-	protected String getUnsubscribeMarkPriceFrame(List<String> symbols) {
+	protected String getUnsubscribeMarkPriceFrame(Set<String> symbols) {
 		return getUnsubscribeFrame(instrumentTopic + String.join(",", symbols));
 	}
 

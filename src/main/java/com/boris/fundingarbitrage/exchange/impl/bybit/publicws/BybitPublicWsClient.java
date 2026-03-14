@@ -6,6 +6,7 @@ import com.boris.fundingarbitrage.util.wss.publicws.FullFundingViaRest;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Set;
 
 public class BybitPublicWsClient extends FullFundingViaRest {
 	private static final URI endpoint = URI.create("wss://stream.bybit.com/v5/public/linear");
@@ -15,43 +16,43 @@ public class BybitPublicWsClient extends FullFundingViaRest {
 		super(context, endpoint, messageHandler, publicHttp);
 	}
 
-	private String getSubscribeFrame(List<String> symbols) {
+	private String getSubscribeFrame(Set<String> symbols) {
 		List<String> topics = symbols.stream().map(symbol -> "tickers." + symbol).toList();
 		return new WsRequest("subscribe", topics).toJson();
 	}
 
-	private String getUnsubscribeFrame(List<String> symbols) {
+	private String getUnsubscribeFrame(Set<String> symbols) {
 		List<String> topics = symbols.stream().map(symbol -> "tickers." + symbol).toList();
 		return new WsRequest("unsubscribe", topics).toJson();
 	}
 
 	@Override
-	protected String getSubscribeFundingRateFrame(List<String> symbols) {
+	protected String getSubscribeFundingRateFrame(Set<String> symbols) {
 		return null;
 	}
 
 	@Override
-	protected String getUnsubscribeFundingRateFrame(List<String> symbols) {
+	protected String getUnsubscribeFundingRateFrame(Set<String> symbols) {
 		return null;
 	}
 
 	@Override
-	protected String getSubscribeBookTickerFrame(List<String> symbols) {
+	protected String getSubscribeBookTickerFrame(Set<String> symbols) {
 		return getSubscribeFrame(symbols);
 	}
 
 	@Override
-	protected String getUnsubscribeBookTickerFrame(List<String> symbols) {
+	protected String getUnsubscribeBookTickerFrame(Set<String> symbols) {
 		return getUnsubscribeFrame(symbols);
 	}
 
 	@Override
-	protected String getSubscribeMarkPriceFrame(List<String> symbols) {
+	protected String getSubscribeMarkPriceFrame(Set<String> symbols) {
 		return getSubscribeFrame(symbols);
 	}
 
 	@Override
-	protected String getUnsubscribeMarkPriceFrame(List<String> symbols) {
+	protected String getUnsubscribeMarkPriceFrame(Set<String> symbols) {
 		return getUnsubscribeFrame(symbols);
 	}
 }

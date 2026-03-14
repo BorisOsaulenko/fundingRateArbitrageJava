@@ -38,29 +38,31 @@ public class BitgetPublicHttpClient extends PublicHttpClient {
 						PublicResponses.ContractsResponse.class,
 						PublicResponses.ContractsResponse::getLotSizes
 		);
-		CompletableFuture<Map<String, Integer>> fundingGranularityFuture = requestWrapper.processRequest(
-						PublicEndpoints.currentFundingRateRequest(),
-						PublicResponses.CurrentFundingRateResponse.class,
-						PublicResponses.CurrentFundingRateResponse::getFundingGranularity
-		);
+		CompletableFuture<PublicResponses.CurrentFundingRateResponse>
+						fundingResponseFuture =
+						requestWrapper.getResponse(
+										PublicEndpoints.currentFundingRateRequest(),
+										PublicResponses.CurrentFundingRateResponse.class
+						);
 		CompletableFuture<PublicResponses.TickerResponse>
 						tickersResponse =
 						requestWrapper.getResponse(PublicEndpoints.tickersRequest(), PublicResponses.TickerResponse.class);
 
-		return CompletableFuture.allOf(lotSizesFuture, fundingGranularityFuture, tickersResponse).thenApply(_ -> {
+		return CompletableFuture.allOf(lotSizesFuture, fundingResponseFuture, tickersResponse).thenApply(_ -> {
 			Map<String, BigDecimal> volume24h = tickersResponse.join().getUsdtVolumes();
 			Map<String, BookTicker> bookTickers = tickersResponse.join().getBookTickers();
+			Map<String, Integer> fundingGranularity = fundingResponseFuture.join().getFundingGranularity();
+			Map<String, FundingRate> fundingRates = fundingResponseFuture.join().getFundingRates();
 
 			Map<String, PublicOnePullData> data = new HashMap<>();
 			for (String symbol : lotSizesFuture.join().keySet()) {
-				BookTicker ticker = bookTickers.get(symbol);
-				if (ticker == null) throw new RuntimeException("Book ticker missing for symbol: " + symbol);
 				data.put(
 								symbol, new PublicOnePullData(
 												lotSizesFuture.join().get(symbol),
-												bookTickers.get(symbol),
 												volume24h.get(symbol),
-												fundingGranularityFuture.join().get(symbol)
+												fundingGranularity.get(symbol),
+												bookTickers.get(symbol),
+												fundingRates.get(symbol)
 								)
 				);
 			}

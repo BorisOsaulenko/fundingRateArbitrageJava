@@ -1,6 +1,8 @@
 package com.boris.fundingarbitrage.strategy;
 
+import com.boris.fundingarbitrage.model.arbitrage.ArbitrageData;
 import com.boris.fundingarbitrage.model.arbitrage.ArbitrageSnapshot;
+import com.boris.fundingarbitrage.model.contract.Fees;
 import com.boris.fundingarbitrage.model.exchange.ExchangeSnapshot;
 
 import java.math.BigDecimal;
@@ -8,10 +10,14 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class ClassicInTradeStrategy extends InTradeStrategy {
 	private final AtomicReference<BigDecimal> pnlSoFar = new AtomicReference<>(BigDecimal.ZERO);
+	private final Fees longFees;
+	private final Fees shortFees;
 
-	public ClassicInTradeStrategy(ArbitrageSnapshot enterSnapshot) {
-		super(enterSnapshot);
+	public ClassicInTradeStrategy(ArbitrageData enterData) {
+		super(enterData);
 		this.pnlSoFar.updateAndGet(pnl -> pnl.subtract(getEnterFees(enterSnapshot)));
+		this.longFees = constantData.longData().fees();
+		this.shortFees = constantData.shortData().fees();
 	}
 
 	@Override
@@ -22,16 +28,16 @@ public class ClassicInTradeStrategy extends InTradeStrategy {
 
 	@Override
 	public boolean shouldExitTrade(ArbitrageSnapshot current) {
-		ExchangeSnapshot currLongEx = current.longExchange();
-		ExchangeSnapshot currShortEx = current.shortExchange();
-		ExchangeSnapshot enterLongEx = enterSnapshot.longExchange();
-		ExchangeSnapshot enterShortEx = enterSnapshot.shortExchange();
+		ExchangeSnapshot currLongSn = current.longExchange();
+		ExchangeSnapshot currShortSn = current.shortExchange();
+		ExchangeSnapshot enterLongSn = enterSnapshot.longExchange();
+		ExchangeSnapshot enterShortSn = enterSnapshot.shortExchange();
 
-		BigDecimal longExitFee = currLongEx.bookTicker().bidPrice().multiply(currLongEx.fees().closeTaker());
-		BigDecimal shortExitFee = currShortEx.bookTicker().askPrice().multiply(currShortEx.fees().closeTaker());
+		BigDecimal longExitFee = currLongSn.bookTicker().bidPrice().multiply(longFees.closeTaker());
+		BigDecimal shortExitFee = currShortSn.bookTicker().askPrice().multiply(shortFees.closeTaker());
 
-		BigDecimal longPriceMoveGain = currLongEx.bookTicker().bidPrice().subtract(enterLongEx.bookTicker().askPrice());
-		BigDecimal shortPriceMoveGain = enterShortEx.bookTicker().bidPrice().subtract(currShortEx.bookTicker().askPrice());
+		BigDecimal longPriceMoveGain = currLongSn.bookTicker().bidPrice().subtract(enterLongSn.bookTicker().askPrice());
+		BigDecimal shortPriceMoveGain = enterShortSn.bookTicker().bidPrice().subtract(currShortSn.bookTicker().askPrice());
 
 		BigDecimal pnl = longPriceMoveGain
 						.add(shortPriceMoveGain)
@@ -48,10 +54,10 @@ public class ClassicInTradeStrategy extends InTradeStrategy {
 		ExchangeSnapshot shortEnter = enterSnapshot.shortExchange();
 		ExchangeSnapshot longEnter = enterSnapshot.longExchange();
 
-		BigDecimal shortFees = shortEnter.bookTicker().bidPrice().multiply(shortEnter.fees().openTaker());
-		BigDecimal longFees = longEnter.bookTicker().askPrice().multiply(longEnter.fees().openTaker());
+		BigDecimal lFee = longEnter.bookTicker().askPrice().multiply(longFees.openTaker());
+		BigDecimal sFee = shortEnter.bookTicker().bidPrice().multiply(shortFees.openTaker());
 
-		return shortFees.add(longFees);
+		return sFee.add(lFee);
 	}
 
 	private BigDecimal getFundingGain(ArbitrageSnapshot fundingSnapshot) {

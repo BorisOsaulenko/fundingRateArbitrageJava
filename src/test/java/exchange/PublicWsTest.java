@@ -11,13 +11,13 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
-import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 @Tag("integration")
 public abstract class PublicWsTest {
-	private static final List<String> COINS = List.of("SOL", "KAITO");
+	private static final Set<String> COINS = Set.of("SOL", "KAITO");
 	private static final Duration WAIT_TIMEOUT = Duration.ofSeconds(240);
 	private static final int MIN_MESSAGES_PER_STREAM = 3;
 	private final CoinVector<Integer> bookTickerMessageCounts = new CoinVector<>();

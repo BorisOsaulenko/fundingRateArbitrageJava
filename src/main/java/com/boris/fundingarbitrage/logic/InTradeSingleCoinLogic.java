@@ -2,6 +2,8 @@ package com.boris.fundingarbitrage.logic;
 
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.execution.CoinExecution;
+import com.boris.fundingarbitrage.model.arbitrage.ArbitrageConstantData;
+import com.boris.fundingarbitrage.model.arbitrage.ArbitrageData;
 import com.boris.fundingarbitrage.model.arbitrage.ArbitrageSnapshot;
 import com.boris.fundingarbitrage.model.assetops.TradeParams;
 import com.boris.fundingarbitrage.model.assetops.TradeSide;
@@ -28,33 +30,35 @@ public class InTradeSingleCoinLogic {
 	private final BigDecimal usdtAmount;
 
 	private final String coin;
-	private final CoinMonitor monitor;
 	private final ExchangePair exchanges;
+	private final CoinMonitor monitor;
 	private final InTradeStrategy strategy;
 	private final CoinExecution execution;
 	private final ArbitrageSnapshot enterSnapshot;
 	private final CompletableFuture<Void> enterFuture;
 	private final ScheduledExecutorService fundingRegisterExecutor = Executors.newSingleThreadScheduledExecutor();
 	private final AtomicBoolean fillsFetchSuccess = new AtomicBoolean(true);
+	private final ArbitrageConstantData constantData;
 	private long nextFundingTimestamp;
 	@Getter private CompletableFuture<Void> exitFuture = null;
 	private volatile boolean shouldRegisterNewFunding = true;
 	private BigDecimal baseAssetQty;
 
-
 	public InTradeSingleCoinLogic(
 					@NonNull String coin,
 					@NonNull CoinMonitor monitor,
 					@NonNull ExchangePair exchanges,
-					@NonNull BigDecimal usdtAmount
+					@NonNull BigDecimal usdtAmount,
+					@NonNull ArbitrageConstantData constantData
 	) {
 		this.coin = coin;
 		this.exchanges = exchanges;
 		this.monitor = monitor;
 		this.usdtAmount = usdtAmount;
+		this.constantData = constantData;
 
 		this.enterSnapshot = monitor.getSnapshot(exchanges, coin);
-		this.strategy = new ClassicInTradeStrategy(enterSnapshot);
+		this.strategy = new ClassicInTradeStrategy(new ArbitrageData(enterSnapshot, constantData));
 		this.execution = new CoinExecution(coin, getEnterParams(), leverage);
 		this.enterFuture = this.execution.enterTrade();
 
@@ -75,12 +79,13 @@ public class InTradeSingleCoinLogic {
 	}
 
 	private TradeParams getEnterParams() {
-		BigDecimal longLotSize = monitor.getLotSize(exchanges.longEx(), coin); // 2 COIN
-		BigDecimal shortLotSize = monitor.getLotSize(exchanges.shortEx(), coin); // 3 COIN
+		BigDecimal longLotSize = constantData.longData().lotSize();
+		BigDecimal shortLotSize = constantData.shortData().lotSize();
+
 		BigDecimal effectiveLotSize = lcm(longLotSize, shortLotSize); // 6 COIN
 
-		BigDecimal longAsk = this.enterSnapshot.longExchange().bookTicker().askPrice(); // 10 usdt/COIN
-		BigDecimal shortBid = this.enterSnapshot.shortExchange().bookTicker().bidPrice(); // 15 usdt/COIN
+		BigDecimal longAsk = enterSnapshot.longExchange().bookTicker().askPrice(); // 10 usdt/COIN
+		BigDecimal shortBid = enterSnapshot.shortExchange().bookTicker().bidPrice(); // 15 usdt/COIN
 
 		BigDecimal longELSMultiplier = usdtAmount // 300 usdt
 						.divide(longAsk, RoundingMode.HALF_DOWN)
@@ -199,10 +204,10 @@ public class InTradeSingleCoinLogic {
 			BigDecimal avgLongExitPrice = getAvgPrice(longExitFills);
 			BigDecimal avgShortExitPrice = getAvgPrice(shortExitFills);
 
-			BigDecimal longEnterFeeRate = enterSnapshot.longExchange().fees().openTaker();
-			BigDecimal shortEnterFeeRate = enterSnapshot.shortExchange().fees().openTaker();
-			BigDecimal longExitFeeRate = exitSnapshot.longExchange().fees().closeTaker();
-			BigDecimal shortExitFeeRate = exitSnapshot.shortExchange().fees().closeTaker();
+			BigDecimal longEnterFeeRate = constantData.longData().fees().openTaker();
+			BigDecimal shortEnterFeeRate = constantData.shortData().fees().openTaker();
+			BigDecimal longExitFeeRate = constantData.longData().fees().closeTaker();
+			BigDecimal shortExitFeeRate = constantData.shortData().fees().closeTaker();
 
 			List<ArbitrageSnapshot> fundingSnapshots = strategy.getFundingSnapshots();
 

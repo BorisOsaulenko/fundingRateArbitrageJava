@@ -10,11 +10,7 @@ import com.boris.fundingarbitrage.util.https.RequestProcessingClientWrapper;
 
 import java.math.BigDecimal;
 import java.net.URI;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 public class KucoinPublicHttpClient extends PublicHttpClient {
@@ -50,18 +46,22 @@ public class KucoinPublicHttpClient extends PublicHttpClient {
 
 		return CompletableFuture.allOf(contractsResponseFuture, tickersResponseFuture).thenApply(_ -> {
 			Map<String, BigDecimal> lotSizes = contractsResponseFuture.join().getLotSizes();
-			Map<String, Integer> fundingGranularityHours = contractsResponseFuture.join().getFundingGranularityHours();
+			Map<String, Integer> fundingIntervals = contractsResponseFuture.join().getFundingGranularityHours();
 			Map<String, BigDecimal> volumes24h = contractsResponseFuture.join().getVolume24h();
+			Map<String, FundingRate> fundingRates = contractsResponseFuture.join().getFundingRates();
 			Map<String, BookTicker> bookTickers = tickersResponseFuture.join().getBookTickers();
 
 			Map<String, PublicOnePullData> result = new HashMap<>();
 			for (String symbol : lotSizes.keySet()) {
-				BookTicker ticker = bookTickers.get(symbol);
-				if (ticker == null) throw new RuntimeException("Book ticker missing for symbol: " + symbol);
-				Integer granularity = fundingGranularityHours.get(symbol);
-				if (granularity == null) throw new RuntimeException("Funding granularity missing for symbol: " + symbol);
-
-				result.put(symbol, new PublicOnePullData(lotSizes.get(symbol), ticker, volumes24h.get(symbol), granularity));
+				result.put(symbol,
+								new PublicOnePullData(
+												lotSizes.get(symbol),
+												volumes24h.get(symbol),
+												fundingIntervals.get(symbol),
+												bookTickers.get(symbol),
+												fundingRates.get(symbol)
+								)
+				);
 			}
 			return result;
 		});

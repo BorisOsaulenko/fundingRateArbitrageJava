@@ -58,6 +58,12 @@ public class BinancePublicHttpClient extends PublicHttpClient {
 						PublicResponses.Statistics24hResponse::getVolume24h
 		);
 
+		CompletableFuture<Map<String, FundingRate>> fundingRates = requestWrapper.processRequest(
+						PublicEndpoints.premiumIndexRequest(),
+						PublicResponses.PremiumIndexResponse.class,
+						PublicResponses.PremiumIndexResponse::getFundingRates
+		);
+
 		return CompletableFuture.allOf(lotSizesFuture, fundingGranularityFuture, bookTickersFuture, volumes24hFuture)
 						.thenApply(_ -> {
 							Map<String, PublicOnePullData> data = new HashMap<>();
@@ -67,7 +73,8 @@ public class BinancePublicHttpClient extends PublicHttpClient {
 									BigDecimal volume24h = volumes24hFuture.join().get(symbol);
 									BookTicker ticker = bookTickersFuture.join().get(symbol);
 									int fundingGranularity = fundingGranularityFuture.join().get(symbol);
-									data.put(symbol, new PublicOnePullData(lotSize, ticker, volume24h, fundingGranularity));
+									FundingRate rate = fundingRates.join().get(symbol);
+									data.put(symbol, new PublicOnePullData(lotSize, volume24h, fundingGranularity, ticker, rate));
 								} catch (Exception e) {
 									Logger.error(e.getMessage());
 									Logger.log("Failed to parse symbol: " +
@@ -83,26 +90,26 @@ public class BinancePublicHttpClient extends PublicHttpClient {
 								}
 							}
 
-						return data;
-					});
+							return data;
+						});
 	}
 
 	@Override
 	public CompletableFuture<Set<String>> getAvailableCoins() {
 		return requestWrapper.processRequest(
-					PublicEndpoints.exchangeInfoRequest(),
-					PublicResponses.ExchangeInfoResponse.class,
-					res -> {
-						Set<String> coins = new HashSet<>();
-						for (String symbol : res.getLotSizes().keySet()) {
-							try {
-								coins.add(exchangeContext.getSymbolInverse(symbol));
-							} catch (Exception ignored) {
-								// Ignore symbols that do not match exchange symbol format
+						PublicEndpoints.exchangeInfoRequest(),
+						PublicResponses.ExchangeInfoResponse.class,
+						res -> {
+							Set<String> coins = new HashSet<>();
+							for (String symbol : res.getLotSizes().keySet()) {
+								try {
+									coins.add(exchangeContext.getSymbolInverse(symbol));
+								} catch (Exception ignored) {
+									// Ignore symbols that do not match exchange symbol format
+								}
 							}
+							return coins;
 						}
-						return coins;
-					}
 		);
 	}
 }

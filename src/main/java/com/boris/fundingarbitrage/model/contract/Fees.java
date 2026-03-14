@@ -39,4 +39,14 @@ public record Fees(
 					 fees.closeTaker().equals(BigDecimal.ZERO) ||
 					 Instant.EPOCH.equals(fees.timestamp());
 	}
+
+	public static Fees allZero() {
+		return new Fees(
+						BigDecimal.ZERO,
+						BigDecimal.ZERO,
+						BigDecimal.ZERO,
+						BigDecimal.ZERO,
+						Instant.now()
+		);
+	}
 }

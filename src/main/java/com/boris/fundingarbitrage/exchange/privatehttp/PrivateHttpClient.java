@@ -17,7 +17,6 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 public abstract class PrivateHttpClient {
 	protected final PrettyHttpClient client;
@@ -75,21 +74,11 @@ public abstract class PrivateHttpClient {
 			for (String coin : coins) {
 				String symbol = context.getSymbol(coin);
 				T value = resultBySymbol.get(symbol);
-				if (value == null) {
-					throw new RuntimeException("Symbol " + symbol + " (coin: " + coin + ") not found in exchange response");
-				}
+				if (value == null) throw new RuntimeException("Coin does not exist on exchange but was requested.");
 				result.put(coin, value);
 			}
 			return result;
 		});
-	}
-
-	private <T> CompletableFuture<Map<String, T>> withSymbol(
-					Set<String> coins,
-					Function<Set<String>, CompletableFuture<Map<String, T>>> symbolGetter
-	) {
-		Set<String> symbols = coins.stream().map(context::getSymbol).collect(Collectors.toSet());
-		return symbolGetter.apply(symbols);
 	}
 
 	public CompletableFuture<CoinVector<Integer>> getMaxLeverage(Set<String> coins) {

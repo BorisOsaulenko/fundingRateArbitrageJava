@@ -50,6 +50,7 @@ public class BybitPublicHttpClient extends PublicHttpClient {
 
 		return CompletableFuture.allOf(instrumentsResponseFuture, tickersResponseFuture).thenApply(_ -> {
 			Map<String, BookTicker> bookTickers = tickersResponseFuture.join().getBookTickers();
+			Map<String, FundingRate> fundingRates = tickersResponseFuture.join().getFundingRates();
 			Map<String, BigDecimal> volume24h = tickersResponseFuture.join().getVolume24h();
 
 			Map<String, PublicOnePullData> data = new HashMap<>();
@@ -57,9 +58,10 @@ public class BybitPublicHttpClient extends PublicHttpClient {
 				data.put(
 								symbol, new PublicOnePullData(
 												lotSizes.get(symbol),
-												bookTickers.get(symbol),
 												volume24h.get(symbol),
-												fundingGranularityHours.get(symbol)
+												fundingGranularityHours.get(symbol),
+												bookTickers.get(symbol),
+												fundingRates.get(symbol)
 								)
 				);
 			}

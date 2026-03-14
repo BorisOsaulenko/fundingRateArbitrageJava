@@ -18,6 +18,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -25,7 +26,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class WsNotStaleDataTest {
 	private static final Duration WAIT_DURATION = Duration.ofMinutes(2);
-	private static final String COIN = "KAITO";
+	private static final String COIN = "SOL";
 	private static final int MIN_CHANGES = 3;
 
 	@Test
@@ -40,9 +41,11 @@ public class WsNotStaleDataTest {
 		}
 
 		try {
+			List<CompletableFuture<Void>> futures = new ArrayList<>();
 			for (BaseExchange exchange : exchanges) {
-				exchange.publicWsClient.connect().join();
+				futures.add(exchange.publicWsClient.connect());
 			}
+			CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
 
 			for (BaseExchange exchange : exchanges) {
 				ExchangeStats stats = statsByExchange.get(exchange);
@@ -74,7 +77,7 @@ public class WsNotStaleDataTest {
 
 	private static class FieldTracker<T> {
 		private final AtomicReference<T> last = new AtomicReference<>();
-		private final AtomicInteger changes = new AtomicInteger(0);
+		private final AtomicInteger changes = new AtomicInteger(-1);
 
 		public void update(T value) {
 			if (value == null) return;

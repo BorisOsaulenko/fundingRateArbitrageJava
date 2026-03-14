@@ -36,51 +36,51 @@ public class WhitebitPublicWsClient extends FullFundingViaRest {
 		);
 	}
 
-	private String subscribe(String method, List<String> symbols) {
+	private String subscribe(String method, Set<String> symbols) {
 		List<Object> params = new ArrayList<>(symbols);
 		return new WsRequest(System.currentTimeMillis(), method, params).toJson();
 	}
 
-	private String unsubscribe(String method, List<String> symbols) {
+	private String unsubscribe(String method, Set<String> symbols) {
 		List<Object> params = new ArrayList<>();
 		return new WsRequest(System.currentTimeMillis(), method, params).toJson();
 	}
 
 	@Override
-	protected String getSubscribeFundingRateFrame(List<String> symbols) {
+	protected String getSubscribeFundingRateFrame(Set<String> symbols) {
 		return null;
 	}
 
 	@Override
-	protected String getUnsubscribeFundingRateFrame(List<String> symbols) {
+	protected String getUnsubscribeFundingRateFrame(Set<String> symbols) {
 		return null;
 	}
 
 	@Override
-	protected String getSubscribeBookTickerFrame(List<String> symbols) {
+	protected String getSubscribeBookTickerFrame(Set<String> symbols) {
 		return subscribe("bookTicker_subscribe", symbols);
 	}
 
 	@Override
-	protected String getUnsubscribeBookTickerFrame(List<String> symbols) {
+	protected String getUnsubscribeBookTickerFrame(Set<String> symbols) {
 		return unsubscribe("bookTicker_unsubscribe", symbols);
 	}
 
 	@Override
-	protected String getSubscribeMarkPriceFrame(List<String> symbols) {
+	protected String getSubscribeMarkPriceFrame(Set<String> symbols) {
 		return subscribe("lastprice_subscribe", symbols);
 	}
 
 	@Override
-	protected String getUnsubscribeMarkPriceFrame(List<String> symbols) {
+	protected String getUnsubscribeMarkPriceFrame(Set<String> symbols) {
 		return unsubscribe("lastprice_unsubscribe", symbols);
 	}
 
 	@Override
-	public void subscribeBookTicker(List<String> coins, Consumer<@NonNull BookTickerPatch> handler) {
+	public void subscribeBookTicker(Set<String> coins, Consumer<@NonNull BookTickerPatch> handler) {
 		for (String coin : coins) {
 			String symbol = context.getSymbol(coin);
-			sendMessage(getSubscribeBookTickerFrame(List.of(symbol)));
+			sendMessage(getSubscribeBookTickerFrame(Set.of(symbol)));
 			Set<Consumer<@NonNull BookTickerPatch>> handlers = bookTickerHandlers.get(coin);
 			if (handlers == null) bookTickerHandlers.put(coin, handlers = new HashSet<>());
 			handlers.add(handler);

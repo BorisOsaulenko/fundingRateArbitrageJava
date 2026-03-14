@@ -58,6 +58,14 @@ public class ExchangeCoinMap<T> {
 		);
 	}
 
+	public void removeAll(BaseExchange ex, Collection<String> coins) {
+		coins.forEach(coin -> remove(ex, coin));
+	}
+
+	public void removeAll(Collection<BaseExchange> exchanges, String coin) {
+		exchanges.forEach(ex -> remove(ex, coin));
+	}
+
 	public void computeIfAbsent(BaseExchange exchange, String coin, Function<String, T> mappingFunction) {
 		exchangeCoinMap.computeIfAbsent(exchange, e -> new CoinVector<>()).computeIfAbsent(coin, mappingFunction);
 	}

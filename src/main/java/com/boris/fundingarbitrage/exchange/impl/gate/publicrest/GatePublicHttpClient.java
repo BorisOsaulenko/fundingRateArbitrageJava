@@ -45,16 +45,23 @@ public class GatePublicHttpClient extends PublicHttpClient {
 
 		return CompletableFuture.allOf(contractsResponseFuture, tickersResponseFuture).thenApply(_ -> {
 			Map<String, BigDecimal> lotSizes = contractsResponseFuture.join().getLotSizes();
-			Map<String, Integer> fundingGranularityHours = contractsResponseFuture.join().getFundingGranularityHours();
+			Map<String, Integer> fundingIntervals = contractsResponseFuture.join().getFundingGranularityHours();
+			Map<String, FundingRate> fundingRates = contractsResponseFuture.join().getFundingRates();
 			Map<String, BookTicker> bookTickers = tickersResponseFuture.join().getBookTickers();
 			Map<String, BigDecimal> volumes24h = tickersResponseFuture.join().getVolume24h();
 
 			Map<String, PublicOnePullData> data = new HashMap<>();
 			for (String symbol : lotSizes.keySet()) {
-				BookTicker ticker = bookTickers.get(symbol);
-				Integer granularity = fundingGranularityHours.get(symbol);
-
-				data.put(symbol, new PublicOnePullData(lotSizes.get(symbol), ticker, volumes24h.get(symbol), granularity));
+				data.put(
+								symbol,
+								new PublicOnePullData(
+												lotSizes.get(symbol),
+												volumes24h.get(symbol),
+												fundingIntervals.get(symbol),
+												bookTickers.get(symbol),
+												fundingRates.get(symbol)
+								)
+				);
 			}
 			return data;
 		});

@@ -10,9 +10,9 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class AllExchangeCoinsParser implements ICoinParser {
+public class AllExchangeCoinsParser implements ICoinSupplier {
 	@Override
-	public Set<String> getCoinsSync() {
+	public CompletableFuture<Set<String>> getCoinsAsync() {
 		Set<String> allCoins = ConcurrentHashMap.newKeySet();
 		List<CompletableFuture<Void>> futures = new ArrayList<>();
 
@@ -25,7 +25,6 @@ public class AllExchangeCoinsParser implements ICoinParser {
 							.thenAccept(allCoins::addAll));
 		}
 
-		CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
-		return allCoins;
+		return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).thenApply(v -> allCoins);
 	}
 }

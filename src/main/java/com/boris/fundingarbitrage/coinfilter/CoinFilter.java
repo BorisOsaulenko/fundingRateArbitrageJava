@@ -3,6 +3,8 @@ package com.boris.fundingarbitrage.coinfilter;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.exchange.Instances;
 import com.boris.fundingarbitrage.exchange.publichttp.PublicOnePullData;
+import com.boris.fundingarbitrage.model.contract.BookTicker;
+import com.boris.fundingarbitrage.model.contract.FundingRate;
 import com.boris.fundingarbitrage.monitor.ExchangeCoinMap;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import com.boris.fundingarbitrage.util.logger.Logger;
@@ -14,6 +16,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 public class CoinFilter {
 	private final Set<String> coins;
@@ -21,8 +24,10 @@ public class CoinFilter {
 
 	private final CoinVector<Set<BaseExchange>> availableExchangesByCoin = new CoinVector<>();
 	private final Map<BaseExchange, Set<String>> availableCoinsByExchange = new ConcurrentHashMap<>();
-	private final ExchangeCoinMap<BigDecimal> lotSizes = new ExchangeCoinMap<>();
-	private final ExchangeCoinMap<Integer> fundingIntervals = new ExchangeCoinMap<>();
+	private final ExchangeCoinMap<BigDecimal> lotSizesMap = new ExchangeCoinMap<>();
+	private final ExchangeCoinMap<Integer> fundingIntervalsMap = new ExchangeCoinMap<>();
+	private final ExchangeCoinMap<BookTicker> bookTickersMap = new ExchangeCoinMap<>();
+	private final ExchangeCoinMap<FundingRate> fundingRatesMap = new ExchangeCoinMap<>();
 
 	public CoinFilter(Set<String> coins, CoinFilterConfig config) {
 		if (coins.isEmpty()) throw new IllegalArgumentException("No coins provided");
@@ -31,49 +36,58 @@ public class CoinFilter {
 		this.config = config;
 	}
 
-	private CoinFilterResult dropExcludedCoins() {
-		for (String coin : coins) {
-			availableExchangesByCoin.put(coin, ConcurrentHashMap.newKeySet());
-		}
+	public CompletableFuture<CoinFilterResult> filterAsync() {
+		for (String coin : coins) availableExchangesByCoin.put(coin, ConcurrentHashMap.newKeySet());
 
 		List<CompletableFuture<Void>> futures = new ArrayList<>();
 		for (BaseExchange exchange : Instances.getExchangeArray()) {
 			availableCoinsByExchange.put(exchange, ConcurrentHashMap.newKeySet());
-			CompletableFuture<Void> future = exchange.publicHttpClient.getOnePullData(coins).thenAccept(coinsVect -> {
-				coinsVect.forEach((coin, data) -> {
-					String excludedMsg = shouldExcludeCoin(data);
-					if (excludedMsg != null) {
-						Logger.log("Excluding " + coin + " - " + exchange.name + " from monitoring: " + excludedMsg);
-						forgetCoinExchange(coin, exchange);
-						return;
-					}
-					availableExchangesByCoin.get(coin).add(exchange);
-					availableCoinsByExchange.get(exchange).add(coin);
-					lotSizes.put(exchange, coin, data.lotSize());
-					fundingIntervals.put(exchange, coin, data.fundingInterval());
-				});
-			}).exceptionally(err -> {
-				Logger.log("Failed to fetch available coins for " + exchange.name + ": " + err.getMessage());
-				return null;
-			});
+			CompletableFuture<Void> future = exchange.publicHttpClient.getOnePullData(coins)
+							.orTimeout(10_000, TimeUnit.MILLISECONDS)
+							.thenAccept(coinsVect -> {
+								coinsVect.forEach((coin, data) -> {
+									String excludedMsg = shouldExcludeCoin(data);
+									if (excludedMsg != null) {
+										Logger.log("Excluding " + coin + " - " + exchange.name + " from monitoring: " + excludedMsg);
+										forgetCoinExchange(coin, exchange);
+										return;
+									}
+									availableExchangesByCoin.get(coin).add(exchange);
+									availableCoinsByExchange.get(exchange).add(coin);
+									lotSizesMap.put(exchange, coin, data.lotSize());
+									fundingIntervalsMap.put(exchange, coin, data.fundingInterval());
+									bookTickersMap.put(exchange, coin, data.ticker());
+									fundingRatesMap.put(exchange, coin, data.fundingRate());
+								});
+							})
+							.exceptionally(err -> {
+								Logger.log("Failed to fetch available coins for " + exchange.name + ": " + err.getMessage());
+								return null;
+							});
 			futures.add(future);
 		}
 
-		CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
-		clearCoinsWithInsufficientExchanges();
-
-		return new CoinFilterResult(availableExchangesByCoin, availableCoinsByExchange, lotSizes, fundingIntervals);
+		return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+						.thenRun(this::clearCoinsWithInsufficientExchanges)
+						.thenApply(_ ->
+										new CoinFilterResult(
+														availableExchangesByCoin,
+														availableCoinsByExchange,
+														lotSizesMap,
+														fundingIntervalsMap,
+														bookTickersMap,
+														fundingRatesMap
+										));
 	}
 
 	private String shouldExcludeCoin(PublicOnePullData data) {
-		if (data.isEmpty()) {
-			return "Coin does not exist";
-		}
+		if (data == null) return "Coin does not exist";
+
 		if (data.volume24h().compareTo(config.min24hVolumeUsdt()) < 0) {
 			return "Volume not enough: " + data.volume24h();
 		}
 
-		BigDecimal ask = data.bookTicker().askPrice();
+		BigDecimal ask = data.ticker().askPrice();
 		BigDecimal minPriceStep = data.lotSize().multiply(ask);
 		if (minPriceStep.compareTo(config.maxAffordablePrice()) > 0) {
 			return "Price too high; min price step: " + minPriceStep;

@@ -43,16 +43,18 @@ public class WhitebitPublicHttpClient extends PublicHttpClient {
 		return CompletableFuture.allOf(marketsResponseFuture, futuresResponseFuture).thenCompose(_ -> {
 			Map<String, BigDecimal> lotSizes = marketsResponseFuture.join().getLotSizes();
 			Map<String, BigDecimal> volumes24h = futuresResponseFuture.join().getVolume24h();
-			Map<String, Integer> fundingGranularityHours = futuresResponseFuture.join().getFundingGranularityHours();
+			Map<String, Integer> fundingIntervals = futuresResponseFuture.join().getFundingGranularityHours();
 			Map<String, BookTicker> bookTickers = futuresResponseFuture.join().getBookTickers();
+			Map<String, FundingRate> fundingRates = futuresResponseFuture.join().getFundingRates();
 
 			Map<String, PublicOnePullData> data = new HashMap<>();
 			for (String symbol : lotSizes.keySet()) {
 				var symbolData = new PublicOnePullData(
 								lotSizes.get(symbol),
-								bookTickers.get(symbol),
 								volumes24h.get(symbol),
-								fundingGranularityHours.get(symbol)
+								fundingIntervals.get(symbol),
+								bookTickers.get(symbol),
+								fundingRates.get(symbol)
 				);
 				data.put(symbol, symbolData);
 			}
