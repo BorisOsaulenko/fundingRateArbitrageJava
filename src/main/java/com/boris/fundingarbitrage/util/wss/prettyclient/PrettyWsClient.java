@@ -6,53 +6,57 @@ import jakarta.websocket.DeploymentException;
 import jakarta.websocket.Session;
 import lombok.NonNull;
 import org.glassfish.tyrus.client.ClientManager;
-import org.glassfish.tyrus.client.ClientProperties;
 
 import java.io.IOException;
 import java.net.URI;
 import java.util.Queue;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.*;
 import java.util.function.Consumer;
 
 public class PrettyWsClient {
 	private final URI endpointUri;
 	private final String endpointName;
-	private final PrettyWsReconnectHandler reconnectHandler;
 	private final Queue<String> messageQueue = new ConcurrentLinkedQueue<>();
 	private final PrettyWsEndpoint endpoint;
 	private final ClientManager client;
+	private final ScheduledExecutorService reconnectScheduler;
+	private final int maxReconnectAttempts = 5;
+	private ScheduledFuture<?> reconnectFuture = null;
+	private int reconnectAttempts = 0;
 	private boolean closeRequested = false;
 	private CompletableFuture<Session> connecting = new CompletableFuture<>();
 	private Session lastSession = null;
 	private Consumer<Session> customOnOpenHook = null;
 	private Consumer<Session> customOnCloseHook = null;
+	private Runnable customOnUnhandledDisconnectHook = null;
 
 	public PrettyWsClient(
 					@NonNull URI uri,
 					@NonNull String endpointName,
-					@NonNull Consumer<String> processMessage,
-					Consumer<Session> customOnOpenHook,
-					Consumer<Session> customOnCloseHook
+					@NonNull Consumer<String> processMessage
 	) {
-		this.customOnOpenHook = customOnOpenHook;
-		this.customOnCloseHook = customOnCloseHook;
 		this.endpointUri = uri;
 		this.endpointName = endpointName;
 		this.client = ClientManager.createClient();
+		this.reconnectScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+			Thread thread = new Thread(r, "pretty-ws-reconnect-" + endpointName);
+			thread.setDaemon(true);
+			return thread;
+		});
 
-		int maxReconnectAttempts = 5;
-		reconnectHandler = new PrettyWsReconnectHandler(endpointName, maxReconnectAttempts, () -> !closeRequested);
-		client.getProperties().put(ClientProperties.RECONNECT_HANDLER, reconnectHandler);
-		this.endpoint = new PrettyWsEndpoint(processMessage, getOnOpenHook(), getOnCloseHook());
+		this.endpoint = new PrettyWsEndpoint(processMessage, getOnOpenHook(), getOnCloseHook(), getOnErrorHook());
 	}
 
-	public PrettyWsClient(@NonNull URI uri, @NonNull Consumer<String> processMessage) {
-		this(uri, uri.toString(), processMessage, null, null);
+	public void onOpen(Consumer<Session> hook) {
+		this.customOnOpenHook = hook;
 	}
 
-	public PrettyWsClient(@NonNull URI uri, @NonNull String endpointName, @NonNull Consumer<String> processMessage) {
-		this(uri, endpointName, processMessage, null, null);
+	public void onClose(Consumer<Session> hook) {
+		this.customOnCloseHook = hook;
+	}
+
+	public void onUnhandledDisconnect(Runnable hook) {
+		this.customOnUnhandledDisconnectHook = hook;
 	}
 
 	public void connect() {
@@ -97,6 +101,7 @@ public class PrettyWsClient {
 
 	public void close() {
 		closeRequested = true;
+		cancelReconnect();
 
 		if (lastSession != null && lastSession.isOpen()) {
 			try {
@@ -109,17 +114,13 @@ public class PrettyWsClient {
 		connecting.completeExceptionally(new IllegalStateException("Client closed"));
 	}
 
-	public CompletableFuture<Session> connecting() {
-		return connecting;
-	}
-
 	private Consumer<Session> getOnOpenHook() {
 		return session -> {
 			if (customOnOpenHook != null) customOnOpenHook.accept(session);
 
 			lastSession = session;
 			connecting.complete(session);
-			reconnectHandler.reset();
+			resetReconnectState();
 
 			// Send queued messages
 			while (!messageQueue.isEmpty()) {
@@ -146,7 +147,49 @@ public class PrettyWsClient {
 
 			lastSession = null;
 			connecting = new CompletableFuture<>();
+			scheduleReconnect("unexpected close");
 		};
+	}
+
+	private Consumer<Throwable> getOnErrorHook() {
+		return throwable -> {
+			if (closeRequested) return;
+			if (lastSession != null && lastSession.isOpen()) return;
+			connecting = new CompletableFuture<>();
+			scheduleReconnect("error");
+		};
+	}
+
+	private synchronized void scheduleReconnect(String reason) {
+		if (reconnectAttempts + 1 >= maxReconnectAttempts) {
+			Logger.error("Max reconnection attempts reached. Stopping reconnection.");
+			if (customOnUnhandledDisconnectHook != null) customOnUnhandledDisconnectHook.run();
+			return;
+		}
+		if (reconnectFuture != null && !reconnectFuture.isDone()) return;
+
+		reconnectAttempts++;
+		long delayMs = 1000 + (long) Math.pow(5, reconnectAttempts);
+		Logger.warn(String.format(
+						"Scheduling reconnect for %s in %d ms (attempt %d/%d)",
+						reason,
+						delayMs,
+						reconnectAttempts,
+						maxReconnectAttempts
+		));
+		reconnectFuture = reconnectScheduler.schedule(this::connect, delayMs, TimeUnit.MILLISECONDS);
+	}
+
+	private synchronized void resetReconnectState() {
+		reconnectAttempts = 0;
+		cancelReconnect();
+	}
+
+	private synchronized void cancelReconnect() {
+		if (reconnectFuture != null) {
+			reconnectFuture.cancel(false);
+			reconnectFuture = null;
+		}
 	}
 
 	public boolean isConnected() {

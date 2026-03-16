@@ -36,12 +36,12 @@ public abstract class ArbitrageLogic {
 	protected final ScheduledExecutorService logScheduler = Executors.newSingleThreadScheduledExecutor();
 	protected final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 	protected final ExecutorService cpuPool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-	protected final int frequencyMs = 100;
 	protected final CoinVector<ArbitrageData> bestArbData = new CoinVector<>();
 	protected final CoinVector<ExchangePair> bestArbExchanges = new CoinVector<>();
 	protected final Map<BaseExchange, BigDecimal> spotBalances = new ConcurrentHashMap<>();
 	protected final Map<BaseExchange, BigDecimal> futuresBalances = new ConcurrentHashMap<>();
 	private final ICoinSupplier coinSupplier;
+	protected int frequencyMs = 100;
 	protected CompletableFuture<Void> initFuture;
 	protected CoinMonitor monitor;
 	protected CoinVector<Set<BaseExchange>> availableExchangesByCoin;
@@ -63,27 +63,6 @@ public abstract class ArbitrageLogic {
 		init(filterConfig);
 	}
 
-	private CompletableFuture<ExchangeCoinMap<Fees>> initFees() {
-		ExchangeCoinMap<Fees> result = new ExchangeCoinMap<>();
-		List<CompletableFuture<Void>> futures = new ArrayList<>();
-
-		for (Map.Entry<BaseExchange, Set<String>> entry : availableCoinsByExchange.entrySet()) {
-			BaseExchange ex = entry.getKey();
-			Set<String> coins = entry.getValue();
-
-			CompletableFuture<Void> future = ex.privateHttpClient.getTradingFees(coins)
-							.thenAccept(feesVector -> {
-								feesVector.forEach((coin, fee) -> result.put(ex, coin, fee));
-							})
-							.exceptionally(t -> {
-								Logger.error("Failed to fetch trading fees for " + ex.name + ": " + t.getMessage());
-								throw new RuntimeException(t);
-							});
-
-			futures.add(future);
-		}
-		return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).thenApply(_ -> result);
-	}
 
 	private void init(CoinFilterConfig filterConfig) {
 		CompletableFuture<Void> balancesFuture = initBalancesMap();
@@ -96,21 +75,26 @@ public abstract class ArbitrageLogic {
 		availableExchangesByCoin = filterResult.availableExchangesByCoin();
 		availableCoinsByExchange = filterResult.availableCoinsByExchange();
 
-		if (availableExchangesByCoin.size() > config.maxCoinAmount()) capCoinsToMaxAmount(filterResult);
+		if (availableExchangesByCoin.size() > config.maxCoinAmount()) {
+			capCoinsToMaxAmount(filterResult);
+			adjustFrequencyToRecommendedNoRestart();
+		}
+
 		this.monitor = new CoinMonitor(availableExchangesByCoin, availableCoinsByExchange);
 
-		CompletableFuture<Void> feesFuture = initFees().thenAccept((feesMap) -> {
-			for (var entry : feesMap.entrySet()) {
-				BigDecimal lotSize = filterResult.lotSizesMap().get(entry.exchange(), entry.coin());
-				Integer fundingInterval = filterResult.fundingIntervalsMap().get(entry.exchange(), entry.coin());
-				Fees fees = entry.value();
+		CompletableFuture<Void> feesFuture = ArbitrageLogicUtils.fetchFeesMap(availableCoinsByExchange)
+						.thenAccept((feesMap) -> {
+							for (var entry : feesMap.entrySet()) {
+								BigDecimal lotSize = filterResult.lotSizesMap().get(entry.exchange(), entry.coin());
+								Integer fundingInterval = filterResult.fundingIntervalsMap().get(entry.exchange(), entry.coin());
+								Fees fees = entry.value();
 
-				assert lotSize != null && fundingInterval != null && fees != null;
-				constantDataMap.put(
-								entry.exchange(), entry.coin(), new ExchangeConstantData(lotSize, fees, fundingInterval)
-				);
-			}
-		});
+								assert lotSize != null && fundingInterval != null && fees != null;
+								constantDataMap.put(
+												entry.exchange(), entry.coin(), new ExchangeConstantData(lotSize, fees, fundingInterval)
+								);
+							}
+						});
 
 		initFuture = CompletableFuture.allOf(prettyMonitorInitFuture(), feesFuture, balancesFuture);
 	}
@@ -123,7 +107,16 @@ public abstract class ArbitrageLogic {
 
 	private CompletableFuture<Void> prettyMonitorInitFuture() {
 		return monitor.getInitFuture()
-						.thenRun(() -> Logger.log("Monitor initialized"))
+						.thenRun(() -> {
+							Logger.log("Monitor initialized");
+							for (BaseExchange ex : Instances.getExchangeArray()) {
+								if (ex.publicWsClient.connected())
+									ex.publicWsClient.onUnhandledDisconnect(() -> {
+										Logger.error("Public ws client of " + ex.name + " disconnected. Shutting down...");
+										shutdown();
+									});
+							}
+						})
 						.exceptionally(t -> {
 							Logger.error("Failed to initialize monitor. " + t.getMessage());
 							shutdown();
@@ -156,27 +149,34 @@ public abstract class ArbitrageLogic {
 
 		return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
 						.thenRun(() -> Logger.log("Balances initialized"))
-						.thenRun(this::afterBalanceInit);
+						.thenRun(this::afterBalanceInitErrorHandled);
 	}
 
 	protected final void startProcessingOpportunities() {
 		Logger.log("Starting arbitrage logic...");
 
 		int logInterval = config.loggingIntervalSeconds();
-		if (logInterval > 0) logScheduler.scheduleAtFixedRate(this::logData, logInterval, logInterval, TimeUnit.SECONDS);
+		if (logInterval > 0)
+			logScheduler.scheduleAtFixedRate(this::logDataErrorHandled, logInterval, logInterval, TimeUnit.SECONDS
+			);
+
 		doFirstTick();
 		this.currentSchedulerTask = scheduler.scheduleAtFixedRate(
 						() -> {
 							processCoins().join();
-							processTick();
-						}, 0, frequencyMs, TimeUnit.MILLISECONDS
+							processTickErrorHandled();
+						}, frequencyMs, frequencyMs, TimeUnit.MILLISECONDS
 		);
 	}
 
 	private void doFirstTick() {
 		processCoins().join();
-		processTick();
-		afterFirstTick();
+		processTickErrorHandled();
+		afterFirstTickErrorHandled();
+	}
+
+	private void adjustFrequencyToRecommendedNoRestart() {
+		frequencyMs = (int) (availableExchangesByCoin.size() * 1.1);
 	}
 
 	protected void adjustFrequencyToRecommended() {
@@ -188,6 +188,8 @@ public abstract class ArbitrageLogic {
 							processTick();
 						}, 0, newFrequencyMs, TimeUnit.MILLISECONDS
 		);
+
+		Logger.log("Adjusted frequency to recommended (" + newFrequencyMs + "ms)");
 	}
 
 	protected void adjustFrequency(int newFrequencyMs) {
@@ -198,6 +200,8 @@ public abstract class ArbitrageLogic {
 							processTick();
 						}, 0, newFrequencyMs, TimeUnit.MILLISECONDS
 		);
+
+		Logger.log("Adjusted frequency to " + newFrequencyMs + "ms");
 	}
 
 	private CompletableFuture<Void> processCoins() {
@@ -253,7 +257,16 @@ public abstract class ArbitrageLogic {
 		return new ArbitrageData(arbSnapshot, new ArbitrageConstantData(longConstantData, shortConstantData));
 	}
 
-	private void logData() {
+	private void logDataErrorHandled() {
+		try {
+			logData();
+		} catch (Exception e) {
+			Logger.error("Exception while logging best arb options: " + e.getMessage());
+			shutdown();
+		}
+	}
+
+	protected void logData() {
 		Logger.log("The best arbitrage opportunities:");
 		bestArbData.sortDesc(preTradeStrategy::compareArbData)
 						.subList(0, Math.min(config.logBestArbSnapshotsAmount(), bestArbData.size()))
@@ -276,12 +289,40 @@ public abstract class ArbitrageLogic {
 		availableExchangesByCoin.remove(coin);
 		bestArbData.remove(coin);
 		bestArbExchanges.remove(coin);
+		availableCoinsByExchange.forEach((_, coins) -> coins.remove(coin));
 	}
 
 	protected void stopCalculatingBestOptionsForAllCoins() {
 		logScheduler.shutdownNow();
 		currentSchedulerTask.cancel(true);
 		currentSchedulerTask = scheduler.scheduleAtFixedRate(this::processTick, 0, frequencyMs, TimeUnit.MILLISECONDS);
+	}
+
+	private void processTickErrorHandled() {
+		try {
+			processTick();
+		} catch (Exception e) {
+			Logger.error("Exception while processing tick: " + e.getMessage());
+			shutdown();
+		}
+	}
+
+	private void afterFirstTickErrorHandled() {
+		try {
+			afterFirstTick();
+		} catch (Exception e) {
+			Logger.error("Exception while after first tick: " + e.getMessage());
+			shutdown();
+		}
+	}
+
+	private void afterBalanceInitErrorHandled() {
+		try {
+			afterBalanceInit();
+		} catch (Exception e) {
+			Logger.error("Exception while after balance init");
+			shutdown();
+		}
 	}
 
 	protected abstract void processTick();
@@ -314,10 +355,7 @@ public abstract class ArbitrageLogic {
 
 		for (var entry : worseCoins) {
 			String coin = entry.getKey();
-			bestArbData.remove(coin);
-			bestArbExchanges.remove(coin);
-			availableExchangesByCoin.remove(coin);
-			availableCoinsByExchange.forEach((_, coins) -> coins.remove(coin));
+			dropCoinProcessing(coin);
 		}
 
 		Logger.log("Capped chosen coins to: " + config.maxCoinAmount());

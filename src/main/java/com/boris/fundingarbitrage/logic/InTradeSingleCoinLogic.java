@@ -28,7 +28,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class InTradeSingleCoinLogic {
 	private final int leverage = 1;
 	private final BigDecimal usdtAmount;
-
 	private final String coin;
 	private final ExchangePair exchanges;
 	private final CoinMonitor monitor;

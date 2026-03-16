@@ -117,7 +117,7 @@ public class Logger {
 
 		String border = "+" + "-".repeat(coinColWidth + 2) + "+" + "-".repeat(valueColWidth + 2) + "+";
 
-		writeLine(getLogPrefix() + "(CoinVector)");
+		writeLine(getLogPrefix() + "(CoinVector) size=" + coinVector.size());
 		writeLine(border);
 		writeLine(String.format("| %-" + coinColWidth + "s | %-" + valueColWidth + "s |", "Coin", "Value"));
 		writeLine(border);

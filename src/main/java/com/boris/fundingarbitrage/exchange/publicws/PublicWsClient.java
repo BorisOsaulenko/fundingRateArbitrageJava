@@ -44,13 +44,7 @@ public abstract class PublicWsClient {
 		this.context = context;
 		this.messageHandler = messageHandler;
 		this.publicHttpClient = publicHttp;
-		this.prettyWsClientFuture = CompletableFuture.completedFuture(new PrettyWsClient(
-						endpoint,
-						this.getClass().getSimpleName(),
-						this::handleMessage,
-						this::onConnect,
-						null
-		));
+		this.prettyWsClientFuture = CompletableFuture.completedFuture(getClient(endpoint));
 	}
 
 	public PublicWsClient(
@@ -62,13 +56,7 @@ public abstract class PublicWsClient {
 		this.context = context;
 		this.messageHandler = messageHandler;
 		this.publicHttpClient = publicHttpClient;
-		this.prettyWsClientFuture = endpointFuture.thenApply(endpoint -> new PrettyWsClient(
-						endpoint,
-						this.getClass().getSimpleName(),
-						this::handleMessage,
-						this::onConnect,
-						null
-		));
+		this.prettyWsClientFuture = endpointFuture.thenApply(this::getClient);
 	}
 
 	public PublicWsClient(PublicWsClient client) {
@@ -76,6 +64,20 @@ public abstract class PublicWsClient {
 		this.messageHandler = client.messageHandler;
 		this.prettyWsClientFuture = client.prettyWsClientFuture;
 		this.publicHttpClient = client.publicHttpClient;
+	}
+
+	public void onUnhandledDisconnect(Runnable hook) {
+		this.prettyWsClientFuture.thenAccept(client -> client.onUnhandledDisconnect(hook));
+	}
+
+	private PrettyWsClient getClient(URI endpoint) {
+		var client = new PrettyWsClient(
+						endpoint,
+						this.getClass().getSimpleName(),
+						this::handleMessage
+		);
+		client.onOpen(this::onConnect);
+		return client;
 	}
 
 	public void sendMessage(String message) {
@@ -102,7 +104,7 @@ public abstract class PublicWsClient {
 
 	protected abstract String getUnsubscribeMarkPriceFrame(Set<String> symbols);
 
-	private <T> void subscribe(
+	protected <T> void subscribe(
 					Set<String> coins,
 					Map<String, Set<Consumer<T>>> handlersMap,
 					Consumer<T> handler,
@@ -121,10 +123,10 @@ public abstract class PublicWsClient {
 		if (!newSymbols.isEmpty()) this.sendMessage(subscribeMessage.apply(newSymbols));
 	}
 
-	private <T> void unsubscribe(
+	protected <T> void unsubscribe(
 					Set<String> coins,
 					Map<String, Set<Consumer<T>>> handlersMap,
-					Function<Set<String>, String> unsubscribeAction
+					Function<Set<String>, String> unsubscribeMessage
 	) {
 		Set<String> removedSymbols = new HashSet<>();
 		for (String coin : coins) {
@@ -134,7 +136,7 @@ public abstract class PublicWsClient {
 				removedSymbols.add(symbol);
 			}
 		}
-		if (!removedSymbols.isEmpty()) this.sendMessage(unsubscribeAction.apply(removedSymbols));
+		if (!removedSymbols.isEmpty()) this.sendMessage(unsubscribeMessage.apply(removedSymbols));
 	}
 
 	private <T> void removeHandler(
@@ -304,7 +306,7 @@ public abstract class PublicWsClient {
 		if (!mpSymbols.isEmpty()) this.sendMessage(getSubscribeMarkPriceFrame(mpSymbols));
 	}
 
-	protected boolean connected() {
+	public boolean connected() {
 		return this.prettyWsClientFuture.isDone() && this.prettyWsClientFuture.join().isConnected();
 	}
 

@@ -15,9 +15,9 @@ public class ClassicInTradeStrategy extends InTradeStrategy {
 
 	public ClassicInTradeStrategy(ArbitrageData enterData) {
 		super(enterData);
-		this.pnlSoFar.updateAndGet(pnl -> pnl.subtract(getEnterFees(enterSnapshot)));
 		this.longFees = constantData.longData().fees();
 		this.shortFees = constantData.shortData().fees();
+		this.pnlSoFar.updateAndGet(pnl -> pnl.subtract(getEnterFees(enterSnapshot)));
 	}
 
 	@Override

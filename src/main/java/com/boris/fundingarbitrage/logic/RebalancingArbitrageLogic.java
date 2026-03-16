@@ -23,7 +23,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 public class RebalancingArbitrageLogic extends ArbitrageLogic {
 	private final static BigDecimal rebalanceThreshold = new BigDecimal("0.3"); // 30%
 	private final Duration beforeEnter = Duration.ofSeconds(5);
-	private final Duration afterEnter = Duration.ofSeconds(5);
+	private final Duration afterFunding = Duration.ofSeconds(5);
 	private final int maxParallelTrades = 2;
 	private final List<InTradeSingleCoinLogic> inTradeCoins = new CopyOnWriteArrayList<>();
 	private Instant closestEnter;
@@ -59,7 +59,7 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 		}
 
 		if (tradesEntered) {
-			boolean timeToAttemptExit = Instant.now().minus(afterEnter).isAfter(closestEnter);
+			boolean timeToAttemptExit = Instant.now().minus(afterFunding).isAfter(closestEnter);
 			if (!timeToAttemptExit) return;
 
 			for (InTradeSingleCoinLogic logic : inTradeCoins) {
@@ -75,13 +75,23 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 			return;
 		}
 
+		// Trades not entered here
 		boolean enterClose = Instant.now().plus(beforeEnter).isAfter(closestEnter);
 		if (enterClose) {
+			Logger.log("Entering good trades...");
 			enterGoodCoins();
 			stopCalculatingBestOptionsForAllCoins();
 			adjustFrequency(10);
 			tradesEntered = true;
+			Logger.log("Entered good coins. Waiting for " + afterFunding + " seconds before exiting...");
 		}
+	}
+
+	@Override
+	protected void logData() {
+		super.logData();
+		if (!tradesEntered) Logger.log("Time till enter: " + Duration.between(Instant.now(), closestEnter));
+		else Logger.log("Time after enter: " + Duration.between(Instant.now(), closestEnter));
 	}
 
 	private void disconnectLaterOpportunities() {
@@ -95,7 +105,11 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 				dropCoinProcessing(entry.getKey());
 		}
 
-		Logger.log("Disconnected later opportunities. Left only ones with closest settlement: " + closestEnter);
+		Logger.log("Disconnected later opportunities. Left only ones with closest settlement: " +
+							 closestEnter +
+							 " (Amount: " +
+							 bestArbData.size() +
+							 ")");
 	}
 
 	private void checkEnoughBalance() {

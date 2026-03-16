@@ -5,11 +5,12 @@ import com.boris.fundingarbitrage.exchange.impl.kucoin.publicrest.KucoinPublicHt
 import com.boris.fundingarbitrage.util.wss.publicws.FullFundingViaRest;
 
 import java.time.Instant;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 public class KucoinPublicWsClient extends FullFundingViaRest {
 	private final ScheduledExecutorService pingExecutor = Executors.newSingleThreadScheduledExecutor();
@@ -30,6 +31,52 @@ public class KucoinPublicWsClient extends FullFundingViaRest {
 	private String getUnsubscribeFrame(String topic) {
 		WsRequest request = new WsRequest(UUID.randomUUID().toString(), "unsubscribe", topic, false, true);
 		return request.toJson();
+	}
+
+	private <T> List<Set<T>> split(Set<T> items) {
+		int chunkSize = 100; // Kucoin supports only up to 100 coins in one request
+
+		List<Set<T>> result = new ArrayList<>();
+		Set<T> current = new LinkedHashSet<>();
+
+		for (T item : items) {
+			current.add(item);
+			if (current.size() == chunkSize) {
+				result.add(current);
+				current = new LinkedHashSet<>();
+			}
+		}
+
+		if (!current.isEmpty()) {
+			result.add(current);
+		}
+
+		return result;
+	}
+
+	@Override
+	protected <T> void subscribe(
+					Set<String> coins,
+					Map<String, Set<Consumer<T>>> handlersMap,
+					Consumer<T> handler,
+					Function<Set<String>, String> subscribeMessage
+	) {
+		List<Set<String>> adjustedToLimits = split(coins);
+		for (Set<String> chunk : adjustedToLimits) {
+			super.subscribe(chunk, handlersMap, handler, subscribeMessage);
+		}
+	}
+
+	@Override
+	protected <T> void unsubscribe(
+					Set<String> coins,
+					Map<String, Set<Consumer<T>>> handlersMap,
+					Function<Set<String>, String> unsubscribeMessage
+	) {
+		List<Set<String>> adjustedToLimits = split(coins);
+		for (Set<String> chunk : adjustedToLimits) {
+			super.unsubscribe(chunk, handlersMap, unsubscribeMessage);
+		}
 	}
 
 	@Override

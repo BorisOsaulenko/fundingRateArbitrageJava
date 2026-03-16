@@ -11,15 +11,18 @@ public class PrettyWsEndpoint {
 	private final Consumer<String> messageHandler;
 	private final Consumer<Session> onOpenHook; // e.g., set lastSession, complete connecting, reset attempts
 	private final Consumer<Session> onClosePreHook; // e.g., clear lastSession, recreate connecting
+	private final Consumer<Throwable> onErrorHook;
 
 	public PrettyWsEndpoint(
 					Consumer<String> messageHandler,
 					Consumer<Session> onOpenHook,
-					Consumer<Session> onClosePreHook
+					Consumer<Session> onClosePreHook,
+					Consumer<Throwable> onErrorHook
 	) {
 		this.messageHandler = messageHandler;
 		this.onOpenHook = onOpenHook;
 		this.onClosePreHook = onClosePreHook;
+		this.onErrorHook = onErrorHook;
 	}
 
 	@OnOpen
@@ -44,5 +47,6 @@ public class PrettyWsEndpoint {
 						throwable.getMessage(),
 						Arrays.toString(throwable.getStackTrace())
 		));
+		if (onErrorHook != null) onErrorHook.accept(throwable);
 	}
 }

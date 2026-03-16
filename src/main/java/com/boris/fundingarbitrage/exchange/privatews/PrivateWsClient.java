@@ -24,13 +24,8 @@ public abstract class PrivateWsClient {
 	public PrivateWsClient(ExchangeContext context, URI endpoint, PrivateMessageHandler messageHandler) {
 		this.exchangeContext = context;
 		this.messageHandler = messageHandler;
-		this.prettyWsClientFuture = CompletableFuture.completedFuture(new PrettyWsClient(
-						endpoint,
-						this.getClass().getSimpleName(),
-						this::handleMessage,
-						this::onConnect,
-						null
-		));
+
+		this.prettyWsClientFuture = CompletableFuture.completedFuture(getClient(endpoint));
 	}
 
 	public PrivateWsClient(
@@ -40,13 +35,17 @@ public abstract class PrivateWsClient {
 	) {
 		this.exchangeContext = context;
 		this.messageHandler = messageHandler;
-		this.prettyWsClientFuture = endpointFuture.thenApply(endpoint -> new PrettyWsClient(
+		this.prettyWsClientFuture = endpointFuture.thenApply(this::getClient);
+	}
+
+	private PrettyWsClient getClient(URI endpoint) {
+		var client = new PrettyWsClient(
 						endpoint,
 						this.getClass().getSimpleName(),
-						this::handleMessage,
-						this::onConnect,
-						null
-		));
+						this::handleMessage
+		);
+		client.onOpen(this::onConnect);
+		return client;
 	}
 
 	public final void close() {

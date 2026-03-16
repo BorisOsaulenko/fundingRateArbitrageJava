@@ -4,6 +4,8 @@ import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.publichttp.PublicHttpClient;
 import com.boris.fundingarbitrage.exchange.publicws.PublicWsClient;
 import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
+import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
+import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import org.jetbrains.annotations.NotNull;
 
 import java.net.URI;
@@ -12,6 +14,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class BinancePublicWsClient extends PublicWsClient {
 	private static final URI endpoint = URI.create("wss://fstream.binance.com/ws");
@@ -47,10 +50,6 @@ public class BinancePublicWsClient extends PublicWsClient {
 		return String.format("%s@bookTicker", symbol.toLowerCase());
 	}
 
-	private String getMarkPriceStream(@NotNull String symbol) {
-		return String.format("%s@markPrice@1s", symbol.toLowerCase());
-	}
-
 	@Override
 	protected String getSubscribeFundingRateFrame(Set<String> symbols) {
 		return this.getSubscribeFrame(symbols, this::getFundingRateStream);
@@ -73,51 +72,66 @@ public class BinancePublicWsClient extends PublicWsClient {
 
 	@Override
 	protected String getSubscribeMarkPriceFrame(Set<String> symbols) {
-		return this.getSubscribeFrame(symbols, this::getMarkPriceStream);
+		return null;
 	}
 
 	@Override
 	protected String getUnsubscribeMarkPriceFrame(Set<String> symbols) {
-		return this.getUnsubscribeFrame(symbols, this::getMarkPriceStream);
+		return null;
 	}
 
-	@Override
-	public void subscribeFundingRates(Set<String> coins, Consumer<FundingRatePatch> handler) {
+	private <T> void subscribeFundingAndMark(
+					Set<String> coins,
+					Consumer<T> handler,
+					CoinVector<Set<Consumer<T>>> handlersMap
+	) {
 		Set<String> coinsToSubscribe = new HashSet<>();
 		for (String coin : coins) {
-			fundingRateHandlers.computeIfAbsent(coin, v -> new HashSet<>()).add(handler);
+			handlersMap.computeIfAbsent(coin, v -> new HashSet<>()).add(handler);
 			if (!fundingAndMarkPriceSubscribedCoins.contains(coin)) {
 				coinsToSubscribe.add(coin);
 				fundingAndMarkPriceSubscribedCoins.add(coin);
 			}
 		}
 
-		if (!coinsToSubscribe.isEmpty()) sendMessage(getSubscribeFundingRateFrame(coinsToSubscribe));
+		Set<String> symbolsToSubscribe = coinsToSubscribe.stream().map(context::getSymbol).collect(Collectors.toSet());
+		if (!coinsToSubscribe.isEmpty()) sendMessage(getSubscribeFundingRateFrame(symbolsToSubscribe));
 	}
 
-	@Override
-	public void unsubscribeFundingRates(Set<String> coins) {
+	private <T> void unsubscribeFundingAndMark(
+					Set<String> coins,
+					CoinVector<Set<Consumer<T>>> handlersMap
+	) {
 		Set<String> coinsToUnsubscribe = new HashSet<>();
 		for (String coin : coins) {
-			markPriceHandlers.remove(coin);
+			handlersMap.remove(coin);
 			if (fundingAndMarkPriceSubscribedCoins.contains(coin)) {
 				coinsToUnsubscribe.add(coin);
 				fundingAndMarkPriceSubscribedCoins.remove(coin);
 			}
 		}
 
-		if (!coinsToUnsubscribe.isEmpty()) sendMessage(getUnsubscribeFundingRateFrame(coinsToUnsubscribe));
+		Set<String> symbolsToUnsubscribe = coinsToUnsubscribe.stream().map(context::getSymbol).collect(Collectors.toSet());
+		if (!coinsToUnsubscribe.isEmpty()) sendMessage(getUnsubscribeFundingRateFrame(symbolsToUnsubscribe));
 	}
 
 	@Override
-	public void removeFundingRatesHandler(Set<String> coins, Consumer<FundingRatePatch> handler) {
-		for (String coin : coins) {
-			var handlers = fundingRateHandlers.get(coin);
-			if (handlers == null) continue;
-			handlers.remove(handler);
-			if (handlers.isEmpty()) {
-				fundingRateHandlers.remove(coin, handlers);
-			}
-		}
+	public void subscribeFundingRates(Set<String> coins, Consumer<FundingRatePatch> handler) {
+		subscribeFundingAndMark(coins, handler, fundingRateHandlers);
+	}
+
+	@Override
+	public void unsubscribeFundingRates(Set<String> coins) {
+		unsubscribeFundingAndMark(coins, fundingRateHandlers);
+	}
+
+	@Override
+	public void subscribeMarkPrice(Set<String> coins, Consumer<MarkPricePatch> handler) {
+		subscribeFundingAndMark(coins, handler, markPriceHandlers);
+	}
+
+	@Override
+	public void unsubscribeMarkPrice(Set<String> coins) {
+		unsubscribeFundingAndMark(coins, markPriceHandlers);
 	}
 }
