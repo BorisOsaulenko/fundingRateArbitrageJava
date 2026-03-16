@@ -8,13 +8,7 @@ import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.exchange.Instances;
 import com.boris.fundingarbitrage.model.arbitrage.ArbitrageConstantData;
 import com.boris.fundingarbitrage.model.arbitrage.ArbitrageData;
-import com.boris.fundingarbitrage.model.arbitrage.ArbitrageSnapshot;
-import com.boris.fundingarbitrage.model.contract.BookTicker;
-import com.boris.fundingarbitrage.model.contract.Fees;
-import com.boris.fundingarbitrage.model.contract.FundingRate;
-import com.boris.fundingarbitrage.model.contract.MarkPrice;
 import com.boris.fundingarbitrage.model.exchange.ExchangeConstantData;
-import com.boris.fundingarbitrage.model.exchange.ExchangeSnapshot;
 import com.boris.fundingarbitrage.monitor.CoinMonitor;
 import com.boris.fundingarbitrage.monitor.ExchangeCoinMap;
 import com.boris.fundingarbitrage.strategy.PreTradeStrategy;
@@ -23,7 +17,6 @@ import com.boris.fundingarbitrage.util.logger.Logger;
 import kotlin.jvm.functions.Function2;
 
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -75,28 +68,9 @@ public abstract class ArbitrageLogic {
 		availableExchangesByCoin = filterResult.availableExchangesByCoin();
 		availableCoinsByExchange = filterResult.availableCoinsByExchange();
 
-		if (availableExchangesByCoin.size() > config.maxCoinAmount()) {
-			capCoinsToMaxAmount(filterResult);
-			adjustFrequencyToRecommendedNoRestart();
-		}
-
 		this.monitor = new CoinMonitor(availableExchangesByCoin, availableCoinsByExchange);
 
-		CompletableFuture<Void> feesFuture = ArbitrageLogicUtils.fetchFeesMap(availableCoinsByExchange)
-						.thenAccept((feesMap) -> {
-							for (var entry : feesMap.entrySet()) {
-								BigDecimal lotSize = filterResult.lotSizesMap().get(entry.exchange(), entry.coin());
-								Integer fundingInterval = filterResult.fundingIntervalsMap().get(entry.exchange(), entry.coin());
-								Fees fees = entry.value();
-
-								assert lotSize != null && fundingInterval != null && fees != null;
-								constantDataMap.put(
-												entry.exchange(), entry.coin(), new ExchangeConstantData(lotSize, fees, fundingInterval)
-								);
-							}
-						});
-
-		initFuture = CompletableFuture.allOf(prettyMonitorInitFuture(), feesFuture, balancesFuture);
+		initFuture = CompletableFuture.allOf(prettyMonitorInitFuture(), balancesFuture);
 	}
 
 	public void waitForInitSync() {
@@ -109,19 +83,22 @@ public abstract class ArbitrageLogic {
 		return monitor.getInitFuture()
 						.thenRun(() -> {
 							Logger.log("Monitor initialized");
-							for (BaseExchange ex : Instances.getExchangeArray()) {
-								if (ex.publicWsClient.connected())
-									ex.publicWsClient.onUnhandledDisconnect(() -> {
-										Logger.error("Public ws client of " + ex.name + " disconnected. Shutting down...");
-										shutdown();
-									});
-							}
+							attachWsDisconnectHandlers();
 						})
 						.exceptionally(t -> {
 							Logger.error("Failed to initialize monitor. " + t.getMessage());
 							shutdown();
 							throw new RuntimeException(t);
 						});
+	}
+
+	private void attachWsDisconnectHandlers() {
+		for (BaseExchange ex : availableCoinsByExchange.keySet()) {
+			ex.publicWsClient.onUnhandledDisconnect(() -> {
+				Logger.error("Public ws client of " + ex.name + " disconnected. Shutting down...");
+				shutdown();
+			});
+		}
 	}
 
 	private CompletableFuture<Void> initBalancesMap() {
@@ -330,36 +307,6 @@ public abstract class ArbitrageLogic {
 	protected abstract void afterBalanceInit();
 
 	protected abstract void afterFirstTick();
-
-	protected void capCoinsToMaxAmount(CoinFilterResult filterResult) {
-		ArbitrageConstantData commonConstantData = new ArbitrageConstantData(
-						new ExchangeConstantData(new BigDecimal("0.1"), Fees.allZero(), 4),
-						new ExchangeConstantData(new BigDecimal("0.1"), Fees.allZero(), 4)
-		);
-
-		Function2<ExchangePair, String, ArbitrageData> getDataFunc = (exchanges, coin) -> {
-			BookTicker longTicker = filterResult.bookTickersMap().get(exchanges.longEx(), coin);
-			BookTicker shortTicker = filterResult.bookTickersMap().get(exchanges.shortEx(), coin);
-			FundingRate longFunding = filterResult.fundingRatesMap().get(exchanges.longEx(), coin);
-			FundingRate shortFunding = filterResult.fundingRatesMap().get(exchanges.shortEx(), coin);
-			MarkPrice longMarkPrice = new MarkPrice(longTicker.askPrice(), Instant.now());
-			MarkPrice shortMarkPrice = new MarkPrice(shortTicker.bidPrice(), Instant.now());
-			ExchangeSnapshot longSn = new ExchangeSnapshot(longTicker, longFunding, longMarkPrice);
-			ExchangeSnapshot shortSn = new ExchangeSnapshot(shortTicker, shortFunding, shortMarkPrice);
-			return new ArbitrageData(new ArbitrageSnapshot(longSn, shortSn), commonConstantData);
-		};
-
-		processCoins(getDataFunc).join();
-		List<Map.Entry<String, ArbitrageData>> worseCoins = bestArbData.sortDesc(preTradeStrategy::compareArbData)
-						.subList(config.maxCoinAmount(), bestArbData.size());
-
-		for (var entry : worseCoins) {
-			String coin = entry.getKey();
-			dropCoinProcessing(coin);
-		}
-
-		Logger.log("Capped chosen coins to: " + config.maxCoinAmount());
-	}
 
 	public void shutdown() {
 		monitor.shutdown();

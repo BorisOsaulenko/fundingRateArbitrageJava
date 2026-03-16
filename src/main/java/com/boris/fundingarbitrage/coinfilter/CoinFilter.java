@@ -3,13 +3,21 @@ package com.boris.fundingarbitrage.coinfilter;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.exchange.Instances;
 import com.boris.fundingarbitrage.exchange.publichttp.PublicOnePullData;
-import com.boris.fundingarbitrage.model.contract.BookTicker;
-import com.boris.fundingarbitrage.model.contract.FundingRate;
+import com.boris.fundingarbitrage.logic.ExchangePair;
+import com.boris.fundingarbitrage.model.arbitrage.ArbitrageConstantData;
+import com.boris.fundingarbitrage.model.arbitrage.ArbitrageData;
+import com.boris.fundingarbitrage.model.arbitrage.ArbitrageSnapshot;
+import com.boris.fundingarbitrage.model.contract.Fees;
+import com.boris.fundingarbitrage.model.contract.MarkPrice;
+import com.boris.fundingarbitrage.model.exchange.ExchangeConstantData;
+import com.boris.fundingarbitrage.model.exchange.ExchangeName;
+import com.boris.fundingarbitrage.model.exchange.ExchangeSnapshot;
 import com.boris.fundingarbitrage.monitor.ExchangeCoinMap;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import com.boris.fundingarbitrage.util.logger.Logger;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -24,10 +32,10 @@ public class CoinFilter {
 
 	private final CoinVector<Set<BaseExchange>> availableExchangesByCoin = new CoinVector<>();
 	private final Map<BaseExchange, Set<String>> availableCoinsByExchange = new ConcurrentHashMap<>();
-	private final ExchangeCoinMap<BigDecimal> lotSizesMap = new ExchangeCoinMap<>();
-	private final ExchangeCoinMap<Integer> fundingIntervalsMap = new ExchangeCoinMap<>();
-	private final ExchangeCoinMap<BookTicker> bookTickersMap = new ExchangeCoinMap<>();
-	private final ExchangeCoinMap<FundingRate> fundingRatesMap = new ExchangeCoinMap<>();
+	private final ExchangeCoinMap<BigDecimal> tradingVolumeMap = new ExchangeCoinMap<>();
+
+	private final ExchangeCoinMap<ExchangeSnapshot> snapshotsMap = new ExchangeCoinMap<>();
+	private final ExchangeCoinMap<ExchangeConstantData> constantDataMap = new ExchangeCoinMap<>();
 
 	public CoinFilter(Set<String> coins, CoinFilterConfig config) {
 		if (coins.isEmpty()) throw new IllegalArgumentException("No coins provided");
@@ -36,82 +44,140 @@ public class CoinFilter {
 		this.config = config;
 	}
 
-	public CompletableFuture<CoinFilterResult> filterAsync() {
+	private void ensureSameCoins(CoinVector<?> v1, CoinVector<?> v2, ExchangeName exName) {
+		for (String coin : v1.keySet()) {
+			if (!v2.containsKey(coin))
+				v1.remove(coin);
+		}
+
+		for (String coin : v2.keySet()) {
+			if (!v1.containsKey(coin))
+				v2.remove(coin);
+		}
+	}
+
+	private CompletableFuture<Void> fetchData(BaseExchange exchange) {
+		CompletableFuture<CoinVector<PublicOnePullData>> onePullDataFuture =
+						exchange.publicHttpClient.getOnePullData(coins)
+										.orTimeout(10, TimeUnit.SECONDS)
+										.exceptionally(t -> {
+											Logger.error("Failed to get public one pull data for " + exchange.name + ": " + t.getMessage());
+											throw new RuntimeException(t);
+										});
+
+		CompletableFuture<CoinVector<Fees>> feesFuture =
+						exchange.privateHttpClient.getTradingFees(coins)
+										.orTimeout(10, TimeUnit.SECONDS)
+										.exceptionally(t -> {
+											Logger.error("Failed to get trading fees for " + exchange.name + ": " + t.getMessage());
+											throw new RuntimeException(t);
+										});
+
+		return CompletableFuture.allOf(onePullDataFuture, feesFuture).thenRun(() -> {
+			CoinVector<PublicOnePullData> opdVector = onePullDataFuture.join();
+			CoinVector<Fees> fVector = feesFuture.join();
+
+			ensureSameCoins(opdVector, fVector, exchange.name);
+			for (String coin : opdVector.keySet()) {
+				PublicOnePullData data = opdVector.get(coin);
+				Fees fees = fVector.get(coin);
+				assert data != null && fees != null;
+
+				availableExchangesByCoin.computeIfAbsent(coin, _ -> ConcurrentHashMap.newKeySet()).add(exchange);
+				availableCoinsByExchange.computeIfAbsent(exchange, _ -> ConcurrentHashMap.newKeySet()).add(coin);
+
+				ExchangeSnapshot snapshot = new ExchangeSnapshot(
+								data.ticker(),
+								data.fundingRate(),
+								new MarkPrice(data.ticker().askPrice(), Instant.now())
+				);
+				ExchangeConstantData constantData = new ExchangeConstantData(data.lotSize(), fees, data.fundingInterval());
+
+				snapshotsMap.put(exchange, coin, snapshot);
+				constantDataMap.put(exchange, coin, constantData);
+				tradingVolumeMap.put(exchange, coin, data.volume24h());
+			}
+		});
+	}
+
+	private CompletableFuture<Void> fetchData() {
 		for (String coin : coins) availableExchangesByCoin.put(coin, ConcurrentHashMap.newKeySet());
+		for (BaseExchange ex : Instances.getExchangeArray())
+			availableCoinsByExchange.put(ex, ConcurrentHashMap.newKeySet());
 
 		List<CompletableFuture<Void>> futures = new ArrayList<>();
 		for (BaseExchange exchange : Instances.getExchangeArray()) {
-			availableCoinsByExchange.put(exchange, ConcurrentHashMap.newKeySet());
-			CompletableFuture<Void> future = exchange.publicHttpClient.getOnePullData(coins)
-							.orTimeout(10_000, TimeUnit.MILLISECONDS)
-							.thenAccept(coinsVect -> {
-								coinsVect.forEach((coin, data) -> {
-									String excludedMsg = shouldExcludeCoin(data);
-									if (excludedMsg != null) {
-										Logger.log("Excluding " + coin + " - " + exchange.name + " from monitoring: " + excludedMsg);
-										forgetCoinExchange(coin, exchange);
-										return;
-									}
-									availableExchangesByCoin.get(coin).add(exchange);
-									availableCoinsByExchange.get(exchange).add(coin);
-									lotSizesMap.put(exchange, coin, data.lotSize());
-									fundingIntervalsMap.put(exchange, coin, data.fundingInterval());
-									bookTickersMap.put(exchange, coin, data.ticker());
-									fundingRatesMap.put(exchange, coin, data.fundingRate());
-								});
-							})
-							.exceptionally(err -> {
-								Logger.log("Failed to fetch available coins for " + exchange.name + ": " + err.getMessage());
-								return null;
-							});
-			futures.add(future);
+			futures.add(fetchData(exchange));
 		}
 
-		return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
-						.thenRun(this::clearCoinsWithInsufficientExchanges)
-						.thenApply(_ ->
-										new CoinFilterResult(
-														availableExchangesByCoin,
-														availableCoinsByExchange,
-														lotSizesMap,
-														fundingIntervalsMap,
-														bookTickersMap,
-														fundingRatesMap
-										));
+		return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
 	}
 
-	private String shouldExcludeCoin(PublicOnePullData data) {
-		if (data == null) return "Coin does not exist";
+	private void filterCoins() {
+		for (Map.Entry<String, Set<BaseExchange>> entry : availableExchangesByCoin.entrySet()) {
+			String coin = entry.getKey();
+			Set<BaseExchange> exchanges = entry.getValue();
 
-		if (data.volume24h().compareTo(config.min24hVolumeUsdt()) < 0) {
-			return "Volume not enough: " + data.volume24h();
-		}
-
-		BigDecimal ask = data.ticker().askPrice();
-		BigDecimal minPriceStep = data.lotSize().multiply(ask);
-		if (minPriceStep.compareTo(config.maxAffordablePrice()) > 0) {
-			return "Price too high; min price step: " + minPriceStep;
-		}
-
-		return null;
-	}
-
-	private void clearCoinsWithInsufficientExchanges() {
-		for (String coin : availableExchangesByCoin.keySet()) {
-			Set<BaseExchange> exchanges = availableExchangesByCoin.get(coin);
-			if (exchanges == null || exchanges.size() < 2) {
+			if (exchanges.size() < 2) {
 				Logger.warn("Not enough exchanges support " + coin + ". Removing from monitoring.");
-				forgetCoin(coin);
+				for (var ex : exchanges) forgetCoinExchange(coin, ex);
+			} else {
+				for (BaseExchange ex : exchanges) {
+					String excludeMsg = getExcludeMessage(ex, coin);
+					if (excludeMsg != null) {
+						Logger.warn("Excluding " + coin + " - " + ex.name + " from monitoring: " + excludeMsg);
+						forgetCoinExchange(coin, ex);
+					}
+				}
 			}
 		}
+	}
 
-		for (BaseExchange exchange : Instances.getExchangesSet()) {
-			Set<String> coins = availableCoinsByExchange.get(exchange);
-			if (coins == null || coins.isEmpty()) {
-				Logger.warn("No coins left for " + exchange.name + ". Removing from monitoring.");
-				forgetExchange(exchange);
+	private void capCoinsToMaxAmount() {
+		if (config.maxCoinCap() >= availableExchangesByCoin.size()) return;
+		CoinVector<ArbitrageData> bestArbDataPerCoin = availableExchangesByCoin.transform((exchanges, coin) -> {
+			ArbitrageData bestData = null;
+
+			for (BaseExchange longEx : exchanges) {
+				for (BaseExchange shortEx : exchanges) {
+					if (longEx == shortEx) continue;
+
+					ArbitrageData coinArbData = getArbData(new ExchangePair(longEx, shortEx), coin);
+					if (bestData == null || config.coinsComparator().compare(coinArbData, bestData) > 0)
+						bestData = coinArbData;
+				}
 			}
+
+			return bestData;
+		});
+
+		List<Map.Entry<String, ArbitrageData>> worseCoins = bestArbDataPerCoin
+						.sortDesc(config.coinsComparator())
+						.subList(config.maxCoinCap(), bestArbDataPerCoin.size());
+
+		for (var entry : worseCoins) {
+			String coin = entry.getKey();
+			Set<BaseExchange> available = availableExchangesByCoin.get(coin);
+			assert available != null;
+			for (BaseExchange ex : available) forgetCoinExchange(coin, ex);
 		}
+	}
+
+	private ArbitrageData getArbData(ExchangePair exchanges, String coin) {
+		ExchangeConstantData longConstantData = constantDataMap.get(exchanges.longEx(), coin);
+		ExchangeConstantData shortConstantData = constantDataMap.get(exchanges.shortEx(), coin);
+		ArbitrageConstantData constantData = new ArbitrageConstantData(longConstantData, shortConstantData);
+
+		ExchangeSnapshot longSn = snapshotsMap.get(exchanges.longEx(), coin);
+		ExchangeSnapshot shortSn = snapshotsMap.get(exchanges.shortEx(), coin);
+		return new ArbitrageData(new ArbitrageSnapshot(longSn, shortSn), constantData);
+	}
+
+	public CompletableFuture<CoinFilterResult> filterAsync() {
+		return fetchData()
+						.thenRun(this::filterCoins)
+						.thenRun(this::capCoinsToMaxAmount)
+						.thenApply(_ -> new CoinFilterResult(availableExchangesByCoin, availableCoinsByExchange));
 	}
 
 	private void forgetCoinExchange(String coin, BaseExchange exchange) {
@@ -122,23 +188,16 @@ public class CoinFilter {
 		if (subscribedCoins != null) subscribedCoins.remove(coin);
 	}
 
-	private void forgetCoin(String coin) {
-		Set<BaseExchange> available = availableExchangesByCoin.get(coin);
-		if (available != null) {
-			for (BaseExchange exchange : available) {
-				forgetCoinExchange(coin, exchange);
-			}
+	private String getExcludeMessage(BaseExchange ex, String coin) {
+		BigDecimal volume = tradingVolumeMap.get(ex, coin);
+		if (volume.compareTo(config.min24hVolumeUsdt()) < 0) return "Volume not enough: " + volume;
+
+		BigDecimal ask = snapshotsMap.get(ex, coin).bookTicker().askPrice();
+		BigDecimal minPriceStep = constantDataMap.get(ex, coin).lotSize().multiply(ask);
+		if (minPriceStep.compareTo(config.maxAffordablePrice()) > 0) {
+			return "Price too high; min price step: " + minPriceStep;
 		}
 
-		availableExchangesByCoin.remove(coin);
-	}
-
-	private void forgetExchange(BaseExchange exchange) {
-		Set<String> subscribedCoins = availableCoinsByExchange.get(exchange);
-		if (subscribedCoins != null) {
-			for (String coin : subscribedCoins) {
-				forgetCoinExchange(coin, exchange);
-			}
-		}
+		return null;
 	}
 }

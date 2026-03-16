@@ -4,7 +4,7 @@ import com.boris.fundingarbitrage.coinParser.AllExchangeCoinsParser;
 import com.boris.fundingarbitrage.coinParser.ICoinSupplier;
 import com.boris.fundingarbitrage.coinfilter.CoinFilterConfig;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
-import com.boris.fundingarbitrage.exchange.impl.bybit.BybitExchange;
+import com.boris.fundingarbitrage.exchange.impl.gate.GateExchange;
 import com.boris.fundingarbitrage.logic.ArbitrageBotConfig;
 import com.boris.fundingarbitrage.logic.ArbitrageLogic;
 import com.boris.fundingarbitrage.logic.RebalancingArbitrageLogic;
@@ -24,8 +24,13 @@ public class App {
 
 		ICoinSupplier coinSupplier = new AllExchangeCoinsParser();
 		PreTradeStrategy strategy = new ClassicPreTradeStrategy();
-		ArbitrageBotConfig botConfig = new ArbitrageBotConfig(new BigDecimal("20"), 1, 120, 3, 50);
-		CoinFilterConfig filterConfig = new CoinFilterConfig(new BigDecimal("100000"), new BigDecimal("20"));
+		ArbitrageBotConfig botConfig = new ArbitrageBotConfig(new BigDecimal("20"), 1, 120, 3);
+		CoinFilterConfig filterConfig = new CoinFilterConfig(
+						new BigDecimal("100000"),
+						new BigDecimal("20"),
+						50,
+						strategy::compareArbData
+		);
 
 		try {
 			ArbitrageLogic logic = new RebalancingArbitrageLogic(coinSupplier, strategy, filterConfig, botConfig);
@@ -36,7 +41,7 @@ public class App {
 		}
 	}
 
-	static void main2() throws Exception {
+	static void main() throws Exception {
 		Set<String> coins = Set.of(
 						"WLD",
 						"ETHFI",
@@ -185,9 +190,8 @@ public class App {
 						"SUPER",
 						"BAN"
 		);
-		BaseExchange binance = new BybitExchange();
-		binance.publicWsClient.connect().join();
-		binance.publicWsClient.subscribeBookTicker("SOLAYER", System.out::println);
-		Thread.sleep(600_000);
+		BaseExchange binance = new GateExchange();
+		binance.publicHttpClient.getOnePullData(Set.of("AUDIO")).thenAccept(Logger::logCoinVector).join();
+		binance.privateHttpClient.getTradingFees(Set.of("AUDIO")).thenAccept(Logger::logCoinVector).join();
 	}
 }

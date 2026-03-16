@@ -27,12 +27,6 @@ class PrivateEndpoints {
 	}
 
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest tradingFeesRequestSymbol(String symbol) {
-		URI uri = new URIBuilder(baseUrl).setPath("/api/v4/wallet/fee").addParameter("settle", settle).build();
-		return new SimpleHttpRequest("GET", uri);
-	}
-
-	@SneakyThrows
 	public static @NonNull SimpleHttpRequest tradingFeesRequestSymbols() {
 		URI uri = new URIBuilder(baseUrl).setPath("/api/v4/wallet/fee").addParameter("settle", settle).build();
 		return new SimpleHttpRequest("GET", uri);
