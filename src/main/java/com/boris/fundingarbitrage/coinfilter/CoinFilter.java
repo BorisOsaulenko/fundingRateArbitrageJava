@@ -118,17 +118,18 @@ public class CoinFilter {
 			String coin = entry.getKey();
 			Set<BaseExchange> exchanges = entry.getValue();
 
+			for (BaseExchange ex : exchanges) {
+				String excludeMsg = getExcludeMessage(ex, coin);
+				if (excludeMsg != null) {
+					Logger.warn("Excluding " + coin + " - " + ex.name + " from monitoring: " + excludeMsg);
+					exchanges.remove(ex);
+					forgetCoinExchange(coin, ex);
+				}
+			}
+
 			if (exchanges.size() < 2) {
 				Logger.warn("Not enough exchanges support " + coin + ". Removing from monitoring.");
 				for (var ex : exchanges) forgetCoinExchange(coin, ex);
-			} else {
-				for (BaseExchange ex : exchanges) {
-					String excludeMsg = getExcludeMessage(ex, coin);
-					if (excludeMsg != null) {
-						Logger.warn("Excluding " + coin + " - " + ex.name + " from monitoring: " + excludeMsg);
-						forgetCoinExchange(coin, ex);
-					}
-				}
 			}
 		}
 	}
@@ -136,6 +137,7 @@ public class CoinFilter {
 	private void capCoinsToMaxAmount() {
 		if (config.maxCoinCap() >= availableExchangesByCoin.size()) return;
 		CoinVector<ArbitrageData> bestArbDataPerCoin = availableExchangesByCoin.transform((exchanges, coin) -> {
+			if (exchanges.size() < 2) Logger.error(coin);
 			ArbitrageData bestData = null;
 
 			for (BaseExchange longEx : exchanges) {
@@ -177,15 +179,21 @@ public class CoinFilter {
 		return fetchData()
 						.thenRun(this::filterCoins)
 						.thenRun(this::capCoinsToMaxAmount)
-						.thenApply(_ -> new CoinFilterResult(availableExchangesByCoin, availableCoinsByExchange));
+						.thenApply(_ -> new CoinFilterResult(availableExchangesByCoin, availableCoinsByExchange, constantDataMap));
 	}
 
 	private void forgetCoinExchange(String coin, BaseExchange exchange) {
 		Set<BaseExchange> available = availableExchangesByCoin.get(coin);
-		if (available != null) available.remove(exchange);
+		if (available != null) {
+			available.remove(exchange);
+			if (available.size() < 2) availableExchangesByCoin.remove(coin);
+		}
 
 		Set<String> subscribedCoins = availableCoinsByExchange.get(exchange);
-		if (subscribedCoins != null) subscribedCoins.remove(coin);
+		if (subscribedCoins != null) {
+			subscribedCoins.remove(coin);
+			if (subscribedCoins.isEmpty()) availableCoinsByExchange.remove(exchange);
+		}
 	}
 
 	private String getExcludeMessage(BaseExchange ex, String coin) {

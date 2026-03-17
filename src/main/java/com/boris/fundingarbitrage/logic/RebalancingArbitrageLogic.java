@@ -8,16 +8,18 @@ import com.boris.fundingarbitrage.model.arbitrage.ArbitrageConstantData;
 import com.boris.fundingarbitrage.model.arbitrage.ArbitrageData;
 import com.boris.fundingarbitrage.model.exchange.ExchangeConstantData;
 import com.boris.fundingarbitrage.strategy.PreTradeStrategy;
+import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import com.boris.fundingarbitrage.util.logger.Logger;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Comparator;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class RebalancingArbitrageLogic extends ArbitrageLogic {
@@ -26,9 +28,10 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 	private final Duration afterFunding = Duration.ofSeconds(5);
 	private final int maxParallelTrades = 2;
 	private final List<InTradeSingleCoinLogic> inTradeCoins = new CopyOnWriteArrayList<>();
+	private final List<CompletableFuture<Void>> exitFutures = new ArrayList<>();
+	private boolean firstTick = true;
 	private Instant closestEnter;
 	private boolean tradesEntered;
-	private boolean firstTick = true;
 
 	public RebalancingArbitrageLogic(
 					ICoinSupplier coinSupplier,
@@ -40,83 +43,19 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 	}
 
 	@Override
-	protected void afterBalanceInit() {
-		checkEnoughBalance();
-		suggestRebalanceIfNeeded();
-	}
+	protected void afterBalanceInit(Map<BaseExchange, BigDecimal> spotB, Map<BaseExchange, BigDecimal> futuresB) {
+		BigDecimal balancesSum = BigDecimal.ZERO;
+		BigDecimal maxBalance = BigDecimal.ZERO;
+		BigDecimal minBalance = new BigDecimal(Long.MAX_VALUE);
 
-	@Override
-	protected void afterFirstTick() {
-		disconnectLaterOpportunities();
-		adjustFrequencyToRecommended();
-	}
-
-	@Override
-	protected void processTick() {
-		if (firstTick) {
-			firstTick = false;
-			return;
-		}
-
-		if (tradesEntered) {
-			boolean timeToAttemptExit = Instant.now().minus(afterFunding).isAfter(closestEnter);
-			if (!timeToAttemptExit) return;
-
-			for (InTradeSingleCoinLogic logic : inTradeCoins) {
-				boolean exiting = logic.exitTradeIfShould();
-				if (exiting) inTradeCoins.remove(logic);
-			}
-
-			if (inTradeCoins.isEmpty()) {
-				Logger.log("All trades exited. Finishing...");
-				this.shutdown();
-			}
-
-			return;
-		}
-
-		// Trades not entered here
-		boolean enterClose = Instant.now().plus(beforeEnter).isAfter(closestEnter);
-		if (enterClose) {
-			Logger.log("Entering good trades...");
-			enterGoodCoins();
-			stopCalculatingBestOptionsForAllCoins();
-			adjustFrequency(10);
-			tradesEntered = true;
-			Logger.log("Entered good coins. Waiting for " + afterFunding + " seconds before exiting...");
-		}
-	}
-
-	@Override
-	protected void logData() {
-		super.logData();
-		if (!tradesEntered) Logger.log("Time till enter: " + Duration.between(Instant.now(), closestEnter));
-		else Logger.log("Time after enter: " + Duration.between(Instant.now(), closestEnter));
-	}
-
-	private void disconnectLaterOpportunities() {
-		closestEnter = bestArbData.getMinEntry(Comparator.comparing(a -> a.snapshot().closestSettlement()))
-						.getValue()
-						.snapshot()
-						.closestSettlement();
-
-		for (Map.Entry<String, ArbitrageData> entry : bestArbData.entrySet()) {
-			if (!entry.getValue().snapshot().closestSettlement().equals(closestEnter))
-				dropCoinProcessing(entry.getKey());
-		}
-
-		Logger.log("Disconnected later opportunities. Left only ones with closest settlement: " +
-							 closestEnter +
-							 " (Amount: " +
-							 bestArbData.size() +
-							 ")");
-	}
-
-	private void checkEnoughBalance() {
 		for (BaseExchange ex : Instances.getExchangeArray()) {
-			BigDecimal spotBalance = spotBalances.get(ex);
-			BigDecimal futuresBalance = futuresBalances.get(ex);
+			BigDecimal spotBalance = spotB.get(ex);
+			BigDecimal futuresBalance = futuresB.get(ex);
 			BigDecimal totalBalance = spotBalance.add(futuresBalance);
+
+			balancesSum = balancesSum.add(totalBalance);
+			maxBalance = totalBalance.max(maxBalance);
+			minBalance = totalBalance.min(minBalance);
 
 			if (totalBalance.compareTo(config.legUsdtAmount()) < 0) {
 				Logger.log("Not enough balance to start arbitrage on " + ex.name);
@@ -124,34 +63,80 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 				throw new RuntimeException("Not enough balance to start arbitrage on " + ex.name);
 			}
 		}
-	}
-
-	private void suggestRebalanceIfNeeded() {
-		BigDecimal balancesSum = BigDecimal.ZERO;
-		BigDecimal maxBalance = BigDecimal.ZERO;
-		BigDecimal minBalance = new BigDecimal(Long.MAX_VALUE);
-
-		for (BaseExchange ex : Instances.getExchangeArray()) {
-			BigDecimal spotBalance = spotBalances.get(ex);
-			BigDecimal futuresBalance = futuresBalances.get(ex);
-			BigDecimal totalBalance = spotBalance.add(futuresBalance);
-
-			balancesSum = balancesSum.add(totalBalance);
-			maxBalance = totalBalance.max(maxBalance);
-			minBalance = totalBalance.min(minBalance);
-		}
 
 		BigDecimal avgBalance = balancesSum.divide(Instances.getExchangeCountBigDecimal(), RoundingMode.HALF_UP);
 		BigDecimal maxDiff = maxBalance.subtract(minBalance);
 		BigDecimal maxDiffRelative = maxDiff.divide(avgBalance, RoundingMode.HALF_UP);
 		if (maxDiffRelative.compareTo(rebalanceThreshold) > 0) {
-			Logger.log("Rebalance is suggested. Max balance diff is " + maxDiffRelative + "% compared to average balance");
+			Logger.log("Rebalance is suggested. Max balance diff is " + maxDiffRelative + " compared to average balance");
 		}
 	}
 
-	private synchronized void enterGoodCoins() {
+	@Override
+	protected void processTick(CoinVector<CoinOpportunity> bestOpportunities) {
+		if (firstTick) {
+			disconnectLaterOpportunities(bestOpportunities);
+			adjustFrequencyToRecommended();
+			firstTick = false;
+			return;
+		}
+		if (tradesEntered) {
+			boolean timeToAttemptExit = Instant.now().minus(afterFunding).isAfter(closestEnter);
+			if (!timeToAttemptExit) return;
+
+			for (InTradeSingleCoinLogic logic : inTradeCoins) {
+				try {
+					boolean exiting = logic.exitTradeIfShould();
+					if (exiting) {
+						exitFutures.add(logic.getExitFuture());
+						inTradeCoins.remove(logic);
+					}
+				} catch (Exception e) {
+					Logger.error("Exiting trade for " + logic.getCoin() + " failed. Exit manually. " + e.getMessage());
+					inTradeCoins.remove(logic);
+				}
+			}
+
+			if (inTradeCoins.isEmpty() && exitFutures.stream().allMatch(CompletableFuture::isDone)) {
+				Logger.log("All trades exited. Finishing...");
+				this.shutdown();
+			}
+		} else {
+			boolean enterClose = Instant.now().plus(beforeEnter).isAfter(closestEnter);
+			if (enterClose) {
+				Logger.log("Entering good trades...");
+				enterGoodCoins(bestOpportunities);
+				stopCalculatingBestOptionsForAllCoins();
+				adjustFrequency(10);
+				tradesEntered = true;
+				Logger.log("Entered good coins. Waiting for " + afterFunding + " seconds before exiting...");
+			}
+		}
+	}
+
+	@Override
+	protected void logData(CoinVector<CoinOpportunity> bestOpportunities) {
+		super.logData(bestOpportunities);
+		if (!tradesEntered) Logger.log("Time till enter: " + Duration.between(Instant.now(), closestEnter));
+		else Logger.log("Time after enter: " + Duration.between(Instant.now(), closestEnter));
+	}
+
+	private void disconnectLaterOpportunities(CoinVector<CoinOpportunity> bestOpportunities) {
+		CoinVector<Instant> settlementVector = bestOpportunities.transform((op, _) -> op.data()
+						.snapshot()
+						.closestSettlement());
+		closestEnter = settlementVector.getMinEntry(Instant::compareTo).getValue();
+		var toThrowOut = settlementVector.filter((enter) -> !enter.equals(closestEnter));
+		for (String coin : toThrowOut.keySet()) forgetCoin(coin);
+
+		Logger.log("Disconnected later opportunities. Left only ones with closest settlement: " + closestEnter
+							 + " (Amount: " + (bestOpportunities.size() - toThrowOut.size()) + ")");
+	}
+
+	private synchronized void enterGoodCoins(CoinVector<CoinOpportunity> bestOpportunities) {
 		Set<BaseExchange> freeExchanges = Instances.getExchangesSet();
-		List<Map.Entry<String, ArbitrageData>> coinsToReview = this.bestArbData
+		List<Map.Entry<String, ArbitrageData>> coinsToReview = bestOpportunities
+						.transform((op, _) -> op.data())
 						.filter(preTradeStrategy::arbDataGoodEnough)
 						.sortDesc(preTradeStrategy::compareArbData);
 
@@ -165,10 +150,11 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 
 		for (var entry : coinsToReview) {
 			if (parallelTrades >= maxParallelTrades) break;
-
 			String coin = entry.getKey();
-			ExchangePair exchanges = bestArbExchanges.get(coin);
-			assert exchanges != null;
+			CoinOpportunity opportunity = bestOpportunities.get(coin);
+			assert opportunity != null;
+
+			ExchangePair exchanges = opportunity.exchanges();
 
 			if (!freeExchanges.contains(exchanges.longEx()) || !freeExchanges.contains(exchanges.shortEx())) continue;
 			parallelTrades++;
@@ -178,14 +164,18 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 			ExchangeConstantData longConstantData = constantDataMap.get(exchanges.longEx(), coin);
 			ExchangeConstantData shortConstantData = constantDataMap.get(exchanges.shortEx(), coin);
 
-			InTradeSingleCoinLogic logic = new InTradeSingleCoinLogic(
-							coin,
-							monitor,
-							exchanges,
-							config.legUsdtAmount(),
-							new ArbitrageConstantData(longConstantData, shortConstantData)
-			);
-			inTradeCoins.add(logic);
+			try {
+				InTradeSingleCoinLogic logic = new InTradeSingleCoinLogic(
+								coin,
+								monitor,
+								exchanges,
+								config.legUsdtAmount(),
+								new ArbitrageConstantData(longConstantData, shortConstantData)
+				);
+				inTradeCoins.add(logic);
+			} catch (Exception e) {
+				Logger.error("Failed to initialize InTradeSingleCoinLogic: " + e.getMessage());
+			}
 		}
 	}
 }

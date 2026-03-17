@@ -147,6 +147,7 @@ public class PrettyWsClient {
 
 			lastSession = null;
 			connecting = new CompletableFuture<>();
+			Logger.warn("Websocket closed unexpectedly: " + endpointName + ".");
 			scheduleReconnect("unexpected close");
 		};
 	}

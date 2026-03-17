@@ -74,7 +74,7 @@ public abstract class PrivateHttpClient {
 			for (String coin : coins) {
 				String symbol = context.getSymbol(coin);
 				T value = resultBySymbol.get(symbol);
-				if (value == null) throw new RuntimeException("Coin does not exist on exchange but was requested.");
+				if (value == null) continue;
 				result.put(coin, value);
 			}
 			return result;

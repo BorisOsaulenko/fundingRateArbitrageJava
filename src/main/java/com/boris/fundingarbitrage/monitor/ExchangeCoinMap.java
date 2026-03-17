@@ -7,7 +7,6 @@ import java.util.Collection;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 
 public class ExchangeCoinMap<T> {
 	private final ConcurrentHashMap<BaseExchange, CoinVector<T>> exchangeCoinMap;
@@ -34,7 +33,7 @@ public class ExchangeCoinMap<T> {
 	}
 
 	public void compute(BaseExchange exchange, String coin, BiFunction<String, T, T> remappingFunction) {
-		exchangeCoinMap.getOrDefault(exchange, new CoinVector<>()).compute(coin, remappingFunction);
+		exchangeCoinMap.computeIfAbsent(exchange, (e) -> new CoinVector<>()).compute(coin, remappingFunction);
 	}
 
 	public Collection<T> values() {
@@ -60,13 +59,5 @@ public class ExchangeCoinMap<T> {
 
 	public void removeAll(BaseExchange ex, Collection<String> coins) {
 		coins.forEach(coin -> remove(ex, coin));
-	}
-
-	public void removeAll(Collection<BaseExchange> exchanges, String coin) {
-		exchanges.forEach(ex -> remove(ex, coin));
-	}
-
-	public void computeIfAbsent(BaseExchange exchange, String coin, Function<String, T> mappingFunction) {
-		exchangeCoinMap.computeIfAbsent(exchange, e -> new CoinVector<>()).computeIfAbsent(coin, mappingFunction);
 	}
 }

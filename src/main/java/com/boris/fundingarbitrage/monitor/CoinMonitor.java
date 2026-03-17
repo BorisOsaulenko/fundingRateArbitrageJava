@@ -469,7 +469,7 @@ public class CoinMonitor {
 
 		SortedSet<Long> timestamps = timestampsToProcess.get(ex, coin);
 		if (timestamps == null) {
-			timestamps = new TreeSet<>();
+			timestamps = new ConcurrentSkipListSet<>();
 			timestampsToProcess.put(ex, coin, timestamps);
 		}
 		timestamps.add(timestamp);

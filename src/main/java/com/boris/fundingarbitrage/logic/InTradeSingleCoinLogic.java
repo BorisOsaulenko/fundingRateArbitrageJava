@@ -26,9 +26,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class InTradeSingleCoinLogic {
-	private final int leverage = 1;
 	private final BigDecimal usdtAmount;
-	private final String coin;
+	@Getter private final String coin;
 	private final ExchangePair exchanges;
 	private final CoinMonitor monitor;
 	private final InTradeStrategy strategy;
@@ -55,10 +54,11 @@ public class InTradeSingleCoinLogic {
 		this.monitor = monitor;
 		this.usdtAmount = usdtAmount;
 		this.constantData = constantData;
-
 		this.enterSnapshot = monitor.getSnapshot(exchanges, coin);
 		this.strategy = new ClassicInTradeStrategy(new ArbitrageData(enterSnapshot, constantData));
-		this.execution = new CoinExecution(coin, getEnterParams(), leverage);
+
+		TradeParams params = getEnterParams();
+		this.execution = new CoinExecution(coin, params);
 		this.enterFuture = this.execution.enterTrade();
 
 		// Funding occurs at most once an hour, so checking every 30 minutes is sufficient to not miss any funding while also not checking too often
@@ -78,9 +78,8 @@ public class InTradeSingleCoinLogic {
 	}
 
 	private TradeParams getEnterParams() {
-		BigDecimal longLotSize = constantData.longData().lotSize();
-		BigDecimal shortLotSize = constantData.shortData().lotSize();
-
+		BigDecimal longLotSize = constantData.longData().lotSize(); // 2 COIN
+		BigDecimal shortLotSize = constantData.shortData().lotSize(); // 3 COIN
 		BigDecimal effectiveLotSize = lcm(longLotSize, shortLotSize); // 6 COIN
 
 		BigDecimal longAsk = enterSnapshot.longExchange().bookTicker().askPrice(); // 10 usdt/COIN
@@ -96,6 +95,9 @@ public class InTradeSingleCoinLogic {
 
 		BigDecimal effectiveELSMultiplier = longELSMultiplier.min(shortELSMultiplier); // 3 -
 		baseAssetQty = effectiveELSMultiplier.multiply(effectiveLotSize); // 18 COIN
+
+		if (baseAssetQty.equals(BigDecimal.ZERO))
+			throw new RuntimeException("Not enough margin deposited for coin: " + coin + ". Did not enter trades");
 
 		int longContractQty = baseAssetQty.divide(longLotSize, RoundingMode.FLOOR).intValueExact(); // 9 contracts
 		int shortContractQty = baseAssetQty.divide(shortLotSize, RoundingMode.FLOOR).intValueExact(); // 6 contracts
@@ -150,10 +152,10 @@ public class InTradeSingleCoinLogic {
 	) {
 		return ex.privateHttpClient.getOrderRecord(orderId, coin, tradeSide)
 						.whenComplete((r, t) -> {
-							if (t == null && r != null) return; // Everything good
+							if (t == null && r != null && !r.isEmpty()) return; // Everything good
 							fillsFetchSuccess.set(false);
-							if (t != null) Logger.warn("Failed to fetch " + name + " fills: " + t.getMessage());
-							else Logger.log("Failed to fetch " + name + " fills: null");
+							if (r == null || r.isEmpty()) Logger.warn("Fetched " + name + " fills: " + r);
+							else Logger.warn("Failed to fetch " + name + " fills: " + t.getMessage());
 						});
 	}
 
@@ -185,47 +187,53 @@ public class InTradeSingleCoinLogic {
 						"Short Exit"
 		);
 
-		if (!fillsFetchSuccess.get()) return CompletableFuture.completedFuture(null);
+		return CompletableFuture.allOf(LEnterFuture, SEnterFuture, LExitFuture, SExitFuture)
+						.whenComplete((v, t) -> {
+							if (!fillsFetchSuccess.get()) return;
 
-		return CompletableFuture.allOf(LEnterFuture, SEnterFuture, LExitFuture, SExitFuture).thenAccept(_ -> {
-			List<PartialFill> longEnterFills = LEnterFuture.join();
-			List<PartialFill> shortEnterFills = SEnterFuture.join();
-			List<PartialFill> longExitFills = LExitFuture.join();
-			List<PartialFill> shortExitFills = SExitFuture.join();
+							List<PartialFill> longEnterFills = LEnterFuture.join();
+							List<PartialFill> shortEnterFills = SEnterFuture.join();
+							List<PartialFill> longExitFills = LExitFuture.join();
+							List<PartialFill> shortExitFills = SExitFuture.join();
 
-			BigDecimal oLongEnterPrice = enterSnapshot.longExchange().bookTicker().askPrice();
-			BigDecimal oShortEnterPrice = enterSnapshot.shortExchange().bookTicker().bidPrice();
-			BigDecimal oLongExitPrice = exitSnapshot.longExchange().bookTicker().bidPrice();
-			BigDecimal oShortExitPrice = exitSnapshot.shortExchange().bookTicker().askPrice();
+							BigDecimal oLongEnterPrice = enterSnapshot.longExchange().bookTicker().askPrice();
+							BigDecimal oShortEnterPrice = enterSnapshot.shortExchange().bookTicker().bidPrice();
+							BigDecimal oLongExitPrice = exitSnapshot.longExchange().bookTicker().bidPrice();
+							BigDecimal oShortExitPrice = exitSnapshot.shortExchange().bookTicker().askPrice();
 
-			BigDecimal avgLongEnterPrice = getAvgPrice(longEnterFills);
-			BigDecimal avgShortEnterPrice = getAvgPrice(shortEnterFills);
-			BigDecimal avgLongExitPrice = getAvgPrice(longExitFills);
-			BigDecimal avgShortExitPrice = getAvgPrice(shortExitFills);
+							BigDecimal avgLongEnterPrice = getAvgPrice(longEnterFills);
+							BigDecimal avgShortEnterPrice = getAvgPrice(shortEnterFills);
+							BigDecimal avgLongExitPrice = getAvgPrice(longExitFills);
+							BigDecimal avgShortExitPrice = getAvgPrice(shortExitFills);
 
-			BigDecimal longEnterFeeRate = constantData.longData().fees().openTaker();
-			BigDecimal shortEnterFeeRate = constantData.shortData().fees().openTaker();
-			BigDecimal longExitFeeRate = constantData.longData().fees().closeTaker();
-			BigDecimal shortExitFeeRate = constantData.shortData().fees().closeTaker();
+							BigDecimal longEnterFeeRate = constantData.longData().fees().openTaker();
+							BigDecimal shortEnterFeeRate = constantData.shortData().fees().openTaker();
+							BigDecimal longExitFeeRate = constantData.longData().fees().closeTaker();
+							BigDecimal shortExitFeeRate = constantData.shortData().fees().closeTaker();
 
-			List<ArbitrageSnapshot> fundingSnapshots = strategy.getFundingSnapshots();
+							List<ArbitrageSnapshot> fundingSnapshots = strategy.getFundingSnapshots();
 
-			Logger.log("Trade info for " + coin + ": ");
-			logTradeStep(oLongEnterPrice, avgLongEnterPrice, longEnterFeeRate, true, true);
-			logTradeStep(oShortEnterPrice, avgShortEnterPrice, shortEnterFeeRate, false, true);
-			BigDecimal totalFundingGain = logFundingSteps(fundingSnapshots);
-			logTradeStep(oLongExitPrice, avgLongExitPrice, longExitFeeRate, true, false);
-			logTradeStep(oShortExitPrice, avgShortExitPrice, shortExitFeeRate, false, false);
+							Logger.log("Trade info for " + coin + ": ");
+							logTradeStep(oLongEnterPrice, avgLongEnterPrice, longEnterFeeRate, true, true);
+							logTradeStep(oShortEnterPrice, avgShortEnterPrice, shortEnterFeeRate, false, true);
+							BigDecimal totalFundingGain = logFundingSteps(fundingSnapshots);
+							logTradeStep(oLongExitPrice, avgLongExitPrice, longExitFeeRate, true, false);
+							logTradeStep(oShortExitPrice, avgShortExitPrice, shortExitFeeRate, false, false);
 
-			Logger.log("Observed vs executed total gain (for one coin): ");
-			Logger.log("[Same] Funding gain: " + totalFundingGain);
-			var o = calculateGainFromPriceMoves(oLongEnterPrice, oShortEnterPrice, oLongExitPrice, oShortExitPrice);
-			var e = calculateGainFromPriceMoves(avgLongEnterPrice, avgShortEnterPrice, avgLongExitPrice, avgShortExitPrice);
-			Logger.log("[Observed] Price moves: " + o);
-			Logger.log("[Executed] Price moves: " + e);
-			Logger.log("[Observed] Total gain: " + o.add(totalFundingGain));
-			Logger.log("[Executed] Total gain: " + e.add(totalFundingGain));
-		});
+							Logger.log("Observed vs executed total gain (for one coin): ");
+							Logger.log("[Same] Funding gain: " + totalFundingGain);
+							var o = calculateGainFromPriceMoves(oLongEnterPrice, oShortEnterPrice, oLongExitPrice, oShortExitPrice);
+							var e = calculateGainFromPriceMoves(
+											avgLongEnterPrice,
+											avgShortEnterPrice,
+											avgLongExitPrice,
+											avgShortExitPrice
+							);
+							Logger.log("[Observed] Price moves: " + o);
+							Logger.log("[Executed] Price moves: " + e);
+							Logger.log("[Observed] Total gain: " + o.add(totalFundingGain));
+							Logger.log("[Executed] Total gain: " + e.add(totalFundingGain));
+						});
 	}
 
 	private CompletableFuture<List<PartialFill>> getOrderRecordFuture(
