@@ -67,24 +67,18 @@ public class CoinExecution {
 			if (LEnter.isCompletedExceptionally() && SEnter.isCompletedExceptionally()) {
 				failed = true;
 				Logger.log("Failed to enter trade (both legs) for " +
-									 coin +
-									 ", " +
-									 params.longEx().name +
-									 " and " +
-									 params.shortEx().name +
-									 ": " +
-									 t.getMessage());
+									 coin + ", " + params.longEx().name + " and " + params.shortEx().name + ": " + t.getMessage());
 				throw new RuntimeException(t);
 			} else if (LEnter.isCompletedExceptionally()) {
 				Logger.error("Failed to enter trade for long" + coin + ", " + params.longEx().name + ": " + t.getMessage());
-				Logger.error("Attempting to exit short automatically.");
+				Logger.error("Attempting to exit short (" + params.shortEx().name + ") automatically.");
 				return SEnter.thenCompose(_ -> exitShort().thenAccept(_ -> failed = true))
 								.thenCompose(_ -> CompletableFuture.failedFuture(
 												new IllegalStateException(coin + ": long enter failed; short was compensated")
 								));
 			} else if (SEnter.isCompletedExceptionally()) {
 				Logger.error("Failed to enter trade for short" + coin + ", " + params.shortEx().name + ": " + t.getMessage());
-				Logger.error("Attempting to exit long automatically.");
+				Logger.error("Attempting to exit long (" + params.longEx().name + ") automatically.");
 				return LEnter.thenCompose(_ -> exitLong().thenAccept(_ -> failed = true))
 								.thenCompose(_ -> CompletableFuture.failedFuture(
 												new IllegalStateException(coin + ": short enter failed; long was compensated")

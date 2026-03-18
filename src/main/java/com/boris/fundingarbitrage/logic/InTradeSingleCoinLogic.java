@@ -59,7 +59,8 @@ public class InTradeSingleCoinLogic {
 
 		TradeParams params = getEnterParams();
 		this.execution = new CoinExecution(coin, params);
-		this.enterFuture = this.execution.enterTrade();
+
+		this.enterFuture = this.execution.enterTrade().exceptionally(this::fail);
 
 		// Funding occurs at most once an hour, so checking every 30 minutes is sufficient to not miss any funding while also not checking too often
 		this.fundingRegisterExecutor.scheduleAtFixedRate(this::registerFunding, 0, 30, TimeUnit.MINUTES);
@@ -75,6 +76,13 @@ public class InTradeSingleCoinLogic {
 		BigInteger lcm = aInt.divide(gcd).multiply(bInt);
 
 		return new BigDecimal(lcm, scale);
+	}
+
+	private Void fail(Throwable t) {
+		Logger.error("Failed to enter trade for " + coin + ". Long: "
+								 + exchanges.longEx().name + " and short: " + exchanges.shortEx().name);
+		Logger.error("Message: " + t.getMessage());
+		throw new RuntimeException(t);
 	}
 
 	private TradeParams getEnterParams() {
