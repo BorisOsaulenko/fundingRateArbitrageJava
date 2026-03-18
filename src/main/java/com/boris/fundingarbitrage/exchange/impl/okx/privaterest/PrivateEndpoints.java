@@ -110,6 +110,8 @@ class PrivateEndpoints {
 		body.put("side", sideFromOrder(futuresOrder.orderSide(), futuresOrder.tradeSide()));
 		body.put("ordType", "market");
 		body.put("sz", String.valueOf(futuresOrder.contractQty()));
+		body.put("lever", String.valueOf(futuresOrder.leverage()));
+		body.put("reduceOnly", futuresOrder.tradeSide() == TradeSide.CLOSE ? "true" : "false");
 		return postJson("/api/v5/trade/order", body);
 	}
 

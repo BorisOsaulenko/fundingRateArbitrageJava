@@ -100,7 +100,10 @@ class PrivateEndpoints {
 
 	private static int signedContractQty(FuturesOrder futuresOrder) {
 		int qty = futuresOrder.contractQty();
-		if (futuresOrder.orderSide() == OrderSide.SHORT) return -Math.abs(qty);
+		if (futuresOrder.tradeSide() == TradeSide.OPEN && futuresOrder.orderSide() == OrderSide.LONG) return qty;
+		if (futuresOrder.tradeSide() == TradeSide.OPEN && futuresOrder.orderSide() == OrderSide.SHORT) return -qty;
+		if (futuresOrder.tradeSide() == TradeSide.CLOSE && futuresOrder.orderSide() == OrderSide.LONG) return -qty;
+		if (futuresOrder.tradeSide() == TradeSide.CLOSE && futuresOrder.orderSide() == OrderSide.SHORT) return qty;
 		return Math.abs(qty);
 	}
 

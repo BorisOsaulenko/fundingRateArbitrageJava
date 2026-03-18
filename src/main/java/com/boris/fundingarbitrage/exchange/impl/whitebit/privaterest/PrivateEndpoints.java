@@ -90,7 +90,7 @@ class PrivateEndpoints {
 	}
 
 	private static String mapPositionSide(OrderSide orderSide) {
-		return orderSide == OrderSide.LONG ? "long" : "short";
+		return orderSide == OrderSide.LONG ? "LONG" : "SHORT";
 	}
 
 	public static @NonNull SimpleHttpRequest placeFuturesOrderRequestSymbol(String symbol, FuturesOrder futuresOrder) {

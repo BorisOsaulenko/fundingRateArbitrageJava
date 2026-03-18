@@ -111,7 +111,7 @@ public final class PrivateEndpoints {
 		throw new IllegalArgumentException("Unsupported order side combination");
 	}
 
-	private static boolean reduceOnlyFor(OrderSide orderSide, TradeSide tradeSide) {
+	private static boolean reduceOnlyFor(TradeSide tradeSide) {
 		return tradeSide == TradeSide.CLOSE;
 	}
 
@@ -119,13 +119,13 @@ public final class PrivateEndpoints {
 		Map<String, Object> body = new HashMap<>();
 		body.put("clientOid", UUID.randomUUID().toString());
 		body.put("symbol", symbol);
+		body.put("marginMode", futuresOrder.marginMode() == MarginMode.CROSS ? "CROSS" : "ISOLATED");
+		body.put("leverage", String.valueOf(futuresOrder.leverage()));
+		body.put("positionSide", "BOTH");
 		body.put("side", sideFromOrder(futuresOrder.orderSide(), futuresOrder.tradeSide()));
 		body.put("type", "market");
 		body.put("size", String.valueOf(futuresOrder.contractQty()));
-		body.put("leverage", String.valueOf(futuresOrder.leverage()));
-		body.put("marginMode", futuresOrder.marginMode() == MarginMode.CROSS ? "CROSS" : "ISOLATED");
-		body.put("reduceOnly", reduceOnlyFor(futuresOrder.orderSide(), futuresOrder.tradeSide()));
-		body.put("positionSide", "BOTH");
+		body.put("reduceOnly", reduceOnlyFor(futuresOrder.tradeSide()));
 		return postJson(baseUrlFutures, "/api/v1/orders", body);
 	}
 

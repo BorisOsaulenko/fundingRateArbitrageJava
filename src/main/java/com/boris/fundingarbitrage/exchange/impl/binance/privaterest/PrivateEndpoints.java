@@ -15,7 +15,8 @@ class PrivateEndpoints {
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest changeLeverageRequestSymbol(String symbol, int leverage) {
-		URI uri = new URIBuilder(futuresBaseUrl).setPath("/fapi/v1/leverage").addParameter("symbol", symbol).addParameter("leverage",
+		URI uri = new URIBuilder(futuresBaseUrl).setPath("/fapi/v1/leverage").addParameter("symbol", symbol).addParameter(
+						"leverage",
 						String.valueOf(leverage)
 		).build();
 
@@ -25,7 +26,8 @@ class PrivateEndpoints {
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest setMarginModeRequestSymbol(String symbol, MarginMode marginMode) {
 		String marginModeStr = marginMode == MarginMode.CROSS ? "CROSSED" : "ISOLATED";
-		URI uri = new URIBuilder(futuresBaseUrl).setPath("/fapi/v1/marginType").addParameter("symbol", symbol).addParameter("marginType",
+		URI uri = new URIBuilder(futuresBaseUrl).setPath("/fapi/v1/marginType").addParameter("symbol", symbol).addParameter(
+						"marginType",
 						marginModeStr
 		).build();
 
@@ -90,9 +92,9 @@ class PrivateEndpoints {
 		URIBuilder uriBuilder = new URIBuilder(futuresBaseUrl)
 						.setPath("/fapi/v1/order")
 						.addParameter("symbol", symbol)
-						.addParameter("side", futuresOrder.tradeSide().toString())
+						.addParameter("side", getSide(futuresOrder.orderSide(), futuresOrder.tradeSide()))
 						.addParameter("type", "MARKET")
-						.addParameter("quantity", String.valueOf(futuresOrder.baseAssetQty()));
+						.addParameter("quantity", futuresOrder.baseAssetQty().toString());
 
 		URI uri = uriBuilder.build();
 		return new SimpleHttpRequest("POST", uri);
@@ -104,7 +106,8 @@ class PrivateEndpoints {
 					String symbol,
 					TradeSide tradeSide
 	) {
-		URI uri = new URIBuilder(futuresBaseUrl).setPath("/fapi/v1/userTrades").addParameter("symbol", symbol).addParameter("orderId",
+		URI uri = new URIBuilder(futuresBaseUrl).setPath("/fapi/v1/userTrades").addParameter("symbol", symbol).addParameter(
+						"orderId",
 						orderId
 		).build();
 
@@ -123,12 +126,18 @@ class PrivateEndpoints {
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest internalTransferRequest(InternalTransfer internalTransfer) {
-		URI uri = new URIBuilder(spotBaseUrl).setPath("/sapi/v1/asset/transfer").addParameter("asset", "USDT").addParameter("amount",
+		URI uri = new URIBuilder(spotBaseUrl).setPath("/sapi/v1/asset/transfer").addParameter("asset", "USDT").addParameter(
+						"amount",
 						String.valueOf(internalTransfer.amount())
 		).addParameter(
 						"type",
 						getInternalTransferType(internalTransfer)
 		).build();
 		return new SimpleHttpRequest("POST", uri);
+	}
+
+	private static String getSide(OrderSide orderSide, TradeSide tradeSide) {
+		if (tradeSide == TradeSide.OPEN) return orderSide == OrderSide.LONG ? "BUY" : "SELL";
+		else return orderSide == OrderSide.LONG ? "SELL" : "BUY";
 	}
 }

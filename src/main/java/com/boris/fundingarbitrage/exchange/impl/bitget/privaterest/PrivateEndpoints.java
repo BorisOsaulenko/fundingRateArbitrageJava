@@ -27,15 +27,6 @@ class PrivateEndpoints {
 		return request;
 	}
 
-	@SneakyThrows
-	public static @NonNull SimpleHttpRequest tradingFeesRequestSymbol(String symbol) {
-		URI uri = new URIBuilder(baseUrl).setPath("/api/v2/mix/market/contracts")
-						.addParameter("productType", productType)
-						.addParameter("symbol", symbol)
-						.build();
-		return new SimpleHttpRequest("GET", uri);
-	}
-
 	public static @NonNull SimpleHttpRequest changeLeverageRequestSymbol(String symbol, int leverage) {
 		Map<String, Object> body = new HashMap<>();
 		body.put("symbol", symbol);
@@ -105,10 +96,10 @@ class PrivateEndpoints {
 	}
 
 	private static String mapOrderSide(OrderSide orderSide, TradeSide tradeSide) {
-		if (orderSide == OrderSide.LONG && tradeSide == TradeSide.OPEN) return "open_long";
-		if (orderSide == OrderSide.LONG && tradeSide == TradeSide.CLOSE) return "close_long";
-		if (orderSide == OrderSide.SHORT && tradeSide == TradeSide.OPEN) return "open_short";
-		if (orderSide == OrderSide.SHORT && tradeSide == TradeSide.CLOSE) return "close_short";
+		if (orderSide == OrderSide.LONG && tradeSide == TradeSide.OPEN) return "buy";
+		if (orderSide == OrderSide.LONG && tradeSide == TradeSide.CLOSE) return "sell";
+		if (orderSide == OrderSide.SHORT && tradeSide == TradeSide.OPEN) return "sell";
+		if (orderSide == OrderSide.SHORT && tradeSide == TradeSide.CLOSE) return "buy";
 		throw new IllegalArgumentException("Unsupported order side combination");
 	}
 
@@ -118,7 +109,7 @@ class PrivateEndpoints {
 		body.put("productType", productType);
 		body.put("marginMode", futuresOrder.marginMode() == MarginMode.CROSS ? "crossed" : "isolated");
 		body.put("marginCoin", marginCoin);
-		body.put("size", String.valueOf(futuresOrder.contractQty()));
+		body.put("size", String.valueOf(futuresOrder.baseAssetQty()));
 		body.put("side", mapOrderSide(futuresOrder.orderSide(), futuresOrder.tradeSide()));
 		body.put("orderType", "market");
 		return postJson("/api/v2/mix/order/place-order", body);
