@@ -4,7 +4,7 @@
 - bitget and kucoin can not subscribe too much coins at a time
 - make logger log in batches
 
-!!! set margin mode to the desired one before order placing
+placeFuturesOrder works on: kucoin, gate
 
 longExchange=
     BookTicker[bidPrice=0.06366, bidSize=1039, askPrice=0.0637, askSize=1048, timestamp=2026-03-14T11:59:54.902Z],

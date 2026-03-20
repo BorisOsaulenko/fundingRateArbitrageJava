@@ -10,10 +10,22 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 
 public class Logger {
+	private static final int BATCH_LIMIT = 100;
+	private static final long IDLE_FLUSH_NANOS = TimeUnit.SECONDS.toNanos(3);
+	private static final Object bufferLock = new Object();
+	private static final List<LogEntry> buffer = new ArrayList<>(BATCH_LIMIT);
+	private static final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(new DaemonThreadFactory());
+	private static volatile long lastWriteNanos = System.nanoTime();
+	private static boolean schedulerStarted = false;
 	private static BufferedWriter writer;
 	private static boolean initCalled = false;
 	private static boolean includeStackTrace = false;
@@ -41,19 +53,56 @@ public class Logger {
 											 (logFilePath != null ? logFilePath.toAbsolutePath() : "None (console only)"));
 	}
 
-	private static void writeLine(String line) {
-		if (writer == null) {
-			System.out.println(line);
-			return;
+	private static void enqueueLine(String line, boolean toErr) {
+		startSchedulerIfNeeded();
+		synchronized (bufferLock) {
+			buffer.add(new LogEntry(line, toErr));
+			lastWriteNanos = System.nanoTime();
+			if (buffer.size() >= BATCH_LIMIT) {
+				flushLocked();
+			}
 		}
+	}
 
-		try {
-			writer.write(line);
-			writer.newLine();
-			writer.flush();
-		} catch (IOException e) {
-			throw new UncheckedIOException("Failed writing log line to file", e);
+	private static void startSchedulerIfNeeded() {
+		synchronized (bufferLock) {
+			if (schedulerStarted) return;
+			schedulerStarted = true;
+			scheduler.scheduleWithFixedDelay(Logger::flushIfIdle, 1, 1, TimeUnit.SECONDS);
 		}
+	}
+
+	private static void flushIfIdle() {
+		long now = System.nanoTime();
+		if (now - lastWriteNanos < IDLE_FLUSH_NANOS) return;
+		synchronized (bufferLock) {
+			if (System.nanoTime() - lastWriteNanos >= IDLE_FLUSH_NANOS) {
+				flushLocked();
+			}
+		}
+	}
+
+	private static void flushLocked() {
+		if (buffer.isEmpty()) return;
+		if (writer == null) {
+			for (LogEntry entry : buffer) {
+				if (entry.toErr) System.err.println(entry.line);
+				else System.out.println(entry.line);
+			}
+			System.out.flush();
+			System.err.flush();
+		} else {
+			try {
+				for (LogEntry entry : buffer) {
+					writer.write(entry.line);
+					writer.newLine();
+				}
+				writer.flush();
+			} catch (IOException e) {
+				throw new UncheckedIOException("Failed writing log lines to file", e);
+			}
+		}
+		buffer.clear();
 	}
 
 	private static String getLogPrefix() {
@@ -66,42 +115,51 @@ public class Logger {
 		return String.format("[%s] [%s]", Thread.currentThread().getName(), Instant.now().toString());
 	}
 
-	public static void log(String message) {
-		writeLine(getLogPrefix() + message);
+	private static String formatMessage(String format, Object... args) {
+		if (args == null || args.length == 0) return format;
+		return String.format(format, args);
 	}
 
-	public static void warn(String message) {
-		writeLine(getLogPrefix() + message);
+	public static void log(Object message) {
+		enqueueLine(getLogPrefix() + message, false);
 	}
 
-	public static void error(String message) {
-		writeLine(getLogPrefix() + message);
+	public static void log(String format, Object... args) {
+		enqueueLine(getLogPrefix() + formatMessage(format, args), false);
+	}
+
+	public static void warn(Object message) {
+		enqueueLine(getLogPrefix() + message, false);
+	}
+
+	public static void warn(String format, Object... args) {
+		enqueueLine(getLogPrefix() + formatMessage(format, args), false);
+	}
+
+	public static void error(Object message) {
+		enqueueLine(getLogPrefix() + message, true);
+	}
+
+	public static void error(String format, Object... args) {
+		enqueueLine(getLogPrefix() + formatMessage(format, args), true);
 	}
 
 	public static void debug(String message) {
-		String line = getLogPrefix() + message;
-		if (writer == null) {
-			System.err.println(line);
-			System.err.flush();
-			return;
-		}
-		try {
-			writer.write(line);
-			writer.newLine();
-			writer.flush(); // force write-through
-		} catch (IOException e) {
-			throw new UncheckedIOException("Failed writing critical log line", e);
-		}
+		enqueueLine(getLogPrefix() + message, true);
+	}
+
+	public static void debug(String format, Object... args) {
+		enqueueLine(getLogPrefix() + formatMessage(format, args), true);
 	}
 
 	public static <T> void logCoinVector(CoinVector<T> coinVector) {
 		if (coinVector == null) {
-			writeLine(getLogPrefix() + "(CoinVector) <null>");
+			enqueueLine(getLogPrefix() + "(CoinVector) <null>", false);
 			return;
 		}
 
 		if (coinVector.isEmpty()) {
-			writeLine(getLogPrefix() + "(CoinVector) <empty>");
+			enqueueLine(getLogPrefix() + "(CoinVector) <empty>", false);
 			return;
 		}
 
@@ -117,21 +175,25 @@ public class Logger {
 
 		String border = "+" + "-".repeat(coinColWidth + 2) + "+" + "-".repeat(valueColWidth + 2) + "+";
 
-		writeLine(getLogPrefix() + "(CoinVector) size=" + coinVector.size());
-		writeLine(border);
-		writeLine(String.format("| %-" + coinColWidth + "s | %-" + valueColWidth + "s |", "Coin", "Value"));
-		writeLine(border);
+		enqueueLine(getLogPrefix() + "(CoinVector) size=" + coinVector.size(), false);
+		enqueueLine(border, false);
+		enqueueLine(String.format("| %-" + coinColWidth + "s | %-" + valueColWidth + "s |", "Coin", "Value"), false);
+		enqueueLine(border, false);
 
 		for (var e : coinVector.entrySet()) {
 			String coin = e.getKey();
 			String value = String.valueOf(e.getValue());
-			writeLine(String.format("| %-" + coinColWidth + "s | %-" + valueColWidth + "s |", coin, value));
+			enqueueLine(String.format("| %-" + coinColWidth + "s | %-" + valueColWidth + "s |", coin, value), false);
 		}
 
-		writeLine(border);
+		enqueueLine(border, false);
 	}
 
 	public synchronized static void closeLogFile() {
+		synchronized (bufferLock) {
+			flushLocked();
+		}
+		scheduler.shutdown();
 		if (writer == null) return;
 
 		try {
@@ -141,7 +203,19 @@ public class Logger {
 		}
 	}
 
-	public void setIncludeStackTrace(boolean includeStackTrace) {
-		Logger.includeStackTrace = includeStackTrace;
+	public void includeStackTrace() {
+		Logger.includeStackTrace = true;
+	}
+
+	private static final class DaemonThreadFactory implements ThreadFactory {
+		@Override
+		public Thread newThread(Runnable r) {
+			Thread t = new Thread(r, "logger-flush");
+			t.setDaemon(true);
+			return t;
+		}
+	}
+
+	private record LogEntry(String line, boolean toErr) {
 	}
 }

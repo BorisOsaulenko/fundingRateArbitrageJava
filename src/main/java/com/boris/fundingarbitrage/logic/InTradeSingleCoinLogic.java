@@ -94,11 +94,11 @@ public class InTradeSingleCoinLogic {
 		BigDecimal shortBid = enterSnapshot.shortExchange().bookTicker().bidPrice(); // 15 usdt/COIN
 
 		BigDecimal longELSMultiplier = usdtAmount // 300 usdt
-						.divide(longAsk, RoundingMode.HALF_DOWN)
+						.divide(longAsk, RoundingMode.FLOOR)
 						.divide(effectiveLotSize, RoundingMode.FLOOR); // 5 -
 
 		BigDecimal shortELSMultiplier = usdtAmount
-						.divide(shortBid, RoundingMode.HALF_DOWN)
+						.divide(shortBid, RoundingMode.FLOOR)
 						.divide(effectiveLotSize, RoundingMode.FLOOR); // 3 -
 
 		BigDecimal effectiveELSMultiplier = longELSMultiplier.min(shortELSMultiplier); // 3 -
@@ -140,7 +140,13 @@ public class InTradeSingleCoinLogic {
 		ArbitrageSnapshot current = monitor.getSnapshot(exchanges, coin);
 		if (!strategy.shouldExitTrade(current)) return false;
 
-		this.exitFuture = execution.exitTrade().thenCompose((v) -> finish(current));
+		this.exitFuture = execution.exitTrade()
+						.thenCompose(v -> new CompletableFuture<>().completeOnTimeout(
+										null,
+										5,
+										TimeUnit.SECONDS
+						)) // In case exit hangs for some reason, we don't want to wait indefinitely before finishing the logic and logging the trade info
+						.thenCompose((v) -> finish(current));
 
 		return true;
 	}

@@ -27,6 +27,10 @@ public abstract class PrivateHttpClient {
 		this.context = exchangeContext;
 	}
 
+	public SimpleHttpRequest signPublic(SimpleHttpRequest req) {
+		return signRequest(req);
+	}
+
 	protected abstract SimpleHttpRequest signRequest(SimpleHttpRequest request);
 
 	protected abstract CompletableFuture<Map<String, Fees>> getTradingFeesSymbolBatch();

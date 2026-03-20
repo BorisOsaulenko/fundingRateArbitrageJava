@@ -1,5 +1,6 @@
 package com.boris.fundingarbitrage.execution;
 
+import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.model.assetops.*;
 import com.boris.fundingarbitrage.util.logger.Logger;
 import lombok.Getter;
@@ -9,16 +10,16 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
 public class CoinExecution {
+	private static final MarginMode marginMode = MarginMode.CROSS;
 	@Setter private static Integer leverage = null;
 	private final String coin;
 	private final TradeParams params;
-
 	private CompletableFuture<Void> enterFuture = null;
 	private CompletableFuture<Void> exitFuture = null;
 	private volatile boolean failed = false;
 
-	@Getter private TradeIds enterIds;
-	@Getter private TradeIds exitIds;
+	@Getter private volatile TradeIds enterIds;
+	@Getter private volatile TradeIds exitIds;
 
 	public CoinExecution(String coin, TradeParams params) {
 		if (leverage == null) throw new IllegalStateException("Leverage not set");
@@ -34,7 +35,7 @@ public class CoinExecution {
 						params.baseAssetQty(),
 						params.longContractQty(),
 						leverage,
-						MarginMode.CROSS
+						marginMode
 		);
 	}
 
@@ -46,23 +47,53 @@ public class CoinExecution {
 						params.baseAssetQty(),
 						params.shortContractQty(),
 						leverage,
-						MarginMode.CROSS
+						marginMode
 		);
 	}
 
-	public synchronized CompletableFuture<Void> enterTrade() {
-		if (failed) return CompletableFuture.completedFuture(null);
-		if (enterFuture != null) return enterFuture;
+	private CompletableFuture<Void> setMarginMode(boolean isLong) {
+		BaseExchange ex = isLong ? params.longEx() : params.shortEx();
+		String side = isLong ? "long" : "short";
+		return ex.privateHttpClient.setMarginMode(coin, marginMode)
+						.exceptionally((t) -> {
+							Logger.error("Failed to set margin mode for " + coin + " on " + side + "(" + ex.name + ")");
+							Logger.error("Message: " + t.getMessage());
+							throw new RuntimeException(t);
+						})
+						.thenRun(() -> Logger.log("Margin mode updated for " + coin + " on " + side + "(" + ex.name + ")"));
+	}
+
+	private CompletableFuture<Void> setLeverageRequest(boolean isLong) {
+		BaseExchange ex = isLong ? params.longEx() : params.shortEx();
+		String side = isLong ? "long" : "short";
+		return ex.privateHttpClient.changeLeverage(coin, leverage)
+						.exceptionally((t) -> {
+							Logger.error("Failed to set leverage for " + coin + " on" + side + "(" + ex.name + ")");
+							Logger.error("Message: " + t.getMessage());
+							throw new RuntimeException(t);
+						})
+						.thenRun(() -> Logger.log("Leverage updated for " + coin + " on " + side + "(" + ex.name + ")"));
+	}
+
+	private CompletableFuture<Void> enterAfterMarginModeIsSet() {
 		FuturesOrder longOrder = getLongOrder(true);
 		FuturesOrder shortOrder = getShortOrder(true);
 
-		CompletableFuture<String> LEnter = params.longEx().privateHttpClient.placeFuturesOrder(coin, longOrder);
-		CompletableFuture<String> SEnter = params.shortEx().privateHttpClient.placeFuturesOrder(coin, shortOrder);
+		var LEnter = params.longEx().privateHttpClient.placeFuturesOrder(coin, longOrder);
+		var SEnter = params.shortEx().privateHttpClient.placeFuturesOrder(coin, shortOrder);
 
 		CompletableFuture<Void> future = CompletableFuture.allOf(LEnter, SEnter).thenAccept(_ -> {
 			String longId = LEnter.join();
 			String shortId = SEnter.join();
 			this.enterIds = new TradeIds(longId, shortId);
+			Logger.log(
+							"Entered trade for %s, long: %s (%s) | short: %s (%s)",
+							coin,
+							params.longEx().name,
+							longId,
+							params.shortEx().name,
+							shortId
+			);
 		}).exceptionallyComposeAsync(t -> {
 			if (LEnter.isCompletedExceptionally() && SEnter.isCompletedExceptionally()) {
 				failed = true;
@@ -93,6 +124,20 @@ public class CoinExecution {
 		return future;
 	}
 
+	public synchronized CompletableFuture<Void> enterTrade() {
+		if (failed) return CompletableFuture.completedFuture(null);
+		if (enterFuture != null) return enterFuture;
+
+		CompletableFuture<Void> longMargin = setMarginMode(true);
+		CompletableFuture<Void> shortMargin = setMarginMode(false);
+
+		CompletableFuture<Void> longLeverage = setLeverageRequest(true);
+		CompletableFuture<Void> shortLeverage = setLeverageRequest(false);
+
+		return CompletableFuture.allOf(longMargin, shortMargin, longLeverage, shortLeverage)
+						.thenCompose(_ -> enterAfterMarginModeIsSet());
+	}
+
 	public synchronized CompletableFuture<Void> exitTrade() {
 		if (!shouldAttemptExit()) return CompletableFuture.completedFuture(null);
 		if (exitFuture != null) return exitFuture;
@@ -104,6 +149,14 @@ public class CoinExecution {
 			String longId = LExit.join();
 			String shortId = SExit.join();
 			this.exitIds = new TradeIds(longId, shortId);
+			Logger.log(
+							"Exited trade for %s, long: %s (%s) | short: %s (%s)",
+							coin,
+							params.longEx().name,
+							longId,
+							params.shortEx().name,
+							shortId
+			);
 		});
 
 		exitFuture = future;

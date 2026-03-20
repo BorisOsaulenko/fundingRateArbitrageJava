@@ -6,6 +6,8 @@ import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.exchange.Instances;
 import com.boris.fundingarbitrage.model.arbitrage.ArbitrageConstantData;
 import com.boris.fundingarbitrage.model.arbitrage.ArbitrageData;
+import com.boris.fundingarbitrage.model.assetops.InternalAccount;
+import com.boris.fundingarbitrage.model.assetops.InternalTransfer;
 import com.boris.fundingarbitrage.model.exchange.ExchangeConstantData;
 import com.boris.fundingarbitrage.strategy.PreTradeStrategy;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
@@ -21,6 +23,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Future;
 
 public class RebalancingArbitrageLogic extends ArbitrageLogic {
 	private final static BigDecimal rebalanceThreshold = new BigDecimal("0.3"); // 30%
@@ -29,6 +32,7 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 	private final int maxParallelTrades = 2;
 	private final List<InTradeSingleCoinLogic> inTradeCoins = new CopyOnWriteArrayList<>();
 	private final List<CompletableFuture<Void>> exitFutures = new ArrayList<>();
+	private CompletableFuture<Void> internalTransfersFuture;
 	private boolean firstTick = true;
 	private Instant closestEnter;
 	private boolean tradesEntered;
@@ -44,9 +48,16 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 
 	@Override
 	protected void afterBalanceInit(Map<BaseExchange, BigDecimal> spotB, Map<BaseExchange, BigDecimal> futuresB) {
+		analyzeBalances(spotB, futuresB);
+		internalTransfersFuture = doInternalTransfers(futuresB);
+	}
+
+	private void analyzeBalances(Map<BaseExchange, BigDecimal> spotB, Map<BaseExchange, BigDecimal> futuresB) {
 		BigDecimal balancesSum = BigDecimal.ZERO;
 		BigDecimal maxBalance = BigDecimal.ZERO;
 		BigDecimal minBalance = new BigDecimal(Long.MAX_VALUE);
+
+		BigDecimal requiredTotal = config.legUsdtAmount().add(config.safetyMargin());
 
 		for (BaseExchange ex : Instances.getExchangeArray()) {
 			BigDecimal spotBalance = spotB.get(ex);
@@ -57,7 +68,7 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 			maxBalance = totalBalance.max(maxBalance);
 			minBalance = totalBalance.min(minBalance);
 
-			if (totalBalance.compareTo(config.legUsdtAmount()) < 0) {
+			if (totalBalance.compareTo(requiredTotal) < 0) {
 				Logger.log("Not enough balance to start arbitrage on " + ex.name);
 				this.shutdown();
 				throw new RuntimeException("Not enough balance to start arbitrage on " + ex.name);
@@ -72,6 +83,34 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 		}
 	}
 
+	private CompletableFuture<Void> doInternalTransfers(
+					Map<BaseExchange, BigDecimal> futuresB
+	) {
+		BigDecimal requiredOnFutures = config.legUsdtAmount().add(config.safetyMargin());
+		List<CompletableFuture<Void>> futures = new ArrayList<>();
+
+		for (BaseExchange ex : Instances.getExchangeArray()) {
+			BigDecimal futuresBalance = futuresB.get(ex);
+			BigDecimal toTransfer = requiredOnFutures.subtract(futuresBalance);
+			if (toTransfer.compareTo(BigDecimal.ZERO) <= 0) continue;
+			futures.add(ex.privateHttpClient.internalTransfer(new InternalTransfer(
+							InternalAccount.SPOT,
+							InternalAccount.FUTURES,
+							toTransfer
+			)).exceptionally(t -> {
+				Logger.error("Failed to transfer " + toTransfer + " to futures on " + ex.name + ": " + t.getMessage());
+				throw new RuntimeException(t);
+			}));
+		}
+
+		return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+						.thenRun(() -> Logger.log("Internal transfers completed"))
+						.exceptionally((t) -> {
+							this.shutdown();
+							throw new RuntimeException(t);
+						});
+	}
+
 	@Override
 	protected void processTick(CoinVector<CoinOpportunity> bestOpportunities) {
 		if (firstTick) {
@@ -80,38 +119,51 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 			firstTick = false;
 			return;
 		}
-		if (tradesEntered) {
-			boolean timeToAttemptExit = Instant.now().minus(afterFunding).isAfter(closestEnter);
-			if (!timeToAttemptExit) return;
 
-			for (InTradeSingleCoinLogic logic : inTradeCoins) {
-				try {
-					boolean exiting = logic.exitTradeIfShould();
-					if (exiting) {
-						exitFutures.add(logic.getExitFuture());
-						inTradeCoins.remove(logic);
-					}
-				} catch (Exception e) {
-					Logger.error("Exiting trade for " + logic.getCoin() + " failed. Exit manually. " + e.getMessage());
+		if (tradesEntered) processTickAfterEnter(bestOpportunities);
+		else processTickBeforeEnter(bestOpportunities);
+	}
+
+	private void processTickAfterEnter(CoinVector<CoinOpportunity> bestOpportunities) {
+		boolean timeToAttemptExit = Instant.now().minus(afterFunding).isAfter(closestEnter);
+		if (!timeToAttemptExit) return;
+
+		for (InTradeSingleCoinLogic logic : inTradeCoins) {
+			try {
+				boolean exiting = logic.exitTradeIfShould();
+				if (exiting) {
+					exitFutures.add(logic.getExitFuture());
 					inTradeCoins.remove(logic);
 				}
-			}
-
-			if (inTradeCoins.isEmpty() && exitFutures.stream().allMatch(CompletableFuture::isDone)) {
-				Logger.log("All trades exited. Finishing...");
-				this.shutdown();
-			}
-		} else {
-			boolean enterClose = Instant.now().plus(beforeEnter).isAfter(closestEnter);
-			if (enterClose) {
-				Logger.log("Entering good trades...");
-				enterGoodCoins(bestOpportunities);
-				stopCalculatingBestOptionsForAllCoins();
-				adjustFrequency(10);
-				tradesEntered = true;
-				Logger.log("Entered good coins. Waiting for " + afterFunding + " seconds before exiting...");
+			} catch (Exception e) {
+				Logger.error("Exiting trade for " + logic.getCoin() + " failed. Exit manually. " + e.getMessage());
+				inTradeCoins.remove(logic);
 			}
 		}
+
+		if (inTradeCoins.isEmpty() && exitFutures.stream().allMatch(CompletableFuture::isDone)) {
+			Logger.log("All trades exited. Finishing...");
+			this.shutdown();
+		}
+	}
+
+	private void processTickBeforeEnter(CoinVector<CoinOpportunity> bestOpportunities) {
+		boolean enterClose = Instant.now().plus(beforeEnter).isAfter(closestEnter);
+		if (enterClose) {
+			if (internalTransfersFuture.state() != Future.State.SUCCESS) {
+				Logger.error("Failed to perform internal transfers before enter. Shutting down...");
+				this.shutdown();
+				return;
+			}
+
+			Logger.log("Entering good trades...");
+			enterGoodCoins(bestOpportunities);
+			stopCalculatingBestOptionsForAllCoins();
+			adjustFrequency(10);
+			tradesEntered = true;
+			Logger.log("Entered good coins. Waiting for " + afterFunding + " seconds before exiting...");
+		}
+
 	}
 
 	@Override

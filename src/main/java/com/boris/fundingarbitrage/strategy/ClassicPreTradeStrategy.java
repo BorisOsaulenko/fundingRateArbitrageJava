@@ -6,34 +6,25 @@ import com.boris.fundingarbitrage.model.arbitrage.ArbitrageSnapshot;
 import com.boris.fundingarbitrage.model.exchange.ExchangeSnapshot;
 
 import java.math.BigDecimal;
-import java.math.MathContext;
 import java.math.RoundingMode;
 import java.time.Instant;
 
 public class ClassicPreTradeStrategy implements PreTradeStrategy {
-	private static final BigDecimal MIN_F_SPREAD = new BigDecimal("0"); // 0%
+	private static final BigDecimal SLIPPAGE_TOLERANCE = new BigDecimal("0.002"); // 0.2%
 	private static final BigDecimal CLOSE_F_SPREAD_EPS = new BigDecimal("0.0001"); // 0.01%
-	private static final BigDecimal MIN_O_SPREAD = new BigDecimal("0");
+	private static final BigDecimal MIN_O_SPREAD = new BigDecimal("0.002"); // 0.2%
 
-	private static BigDecimal perCoinNotional(ArbitrageSnapshot snapshot) {
+	public static BigDecimal oSpread(ArbitrageSnapshot snapshot) {
 		ExchangeSnapshot longExchange = snapshot.longExchange();
 		ExchangeSnapshot shortExchange = snapshot.shortExchange();
 		BigDecimal longAsk = longExchange.bookTicker().askPrice();
 		BigDecimal shortBid = shortExchange.bookTicker().bidPrice();
-		return longAsk.add(shortBid).divide(BigDecimal.TWO, MathContext.DECIMAL64);
-	}
-
-	private static BigDecimal oSpread(ArbitrageSnapshot snapshot) {
-		ExchangeSnapshot longExchange = snapshot.longExchange();
-		ExchangeSnapshot shortExchange = snapshot.shortExchange();
-		BigDecimal longAsk = longExchange.bookTicker().askPrice();
-		BigDecimal shortBid = shortExchange.bookTicker().bidPrice();
-		BigDecimal perCoinNotional = perCoinNotional(snapshot);
+		BigDecimal perCoinNotional = snapshot.notional();
 
 		return shortBid.subtract(longAsk).divide(perCoinNotional, 8, RoundingMode.HALF_EVEN);
 	}
 
-	private static BigDecimal closestFSpread(ArbitrageSnapshot snapshot) {
+	public static BigDecimal closestFSpread(ArbitrageSnapshot snapshot) {
 		BigDecimal longFundingRate = snapshot.longExchange().fundingRate().rate();
 		Instant longFundingTime = snapshot.longExchange().fundingRate().settlement();
 
@@ -77,7 +68,9 @@ public class ClassicPreTradeStrategy implements PreTradeStrategy {
 
 	@Override
 	public boolean arbDataGoodEnough(ArbitrageData d) {
-		boolean fSpread = closestFSpread(d.snapshot()).subtract(MIN_F_SPREAD).compareTo(totalFees(d.constantData())) > 0;
+		BigDecimal fs = closestFSpread(d.snapshot());
+		BigDecimal fees = totalFees(d.constantData());
+		boolean fSpread = fs.subtract(SLIPPAGE_TOLERANCE).compareTo(fees) > 0;
 		boolean oSpread = oSpread(d.snapshot()).compareTo(MIN_O_SPREAD) >= 0;
 		return fSpread && oSpread;
 	}

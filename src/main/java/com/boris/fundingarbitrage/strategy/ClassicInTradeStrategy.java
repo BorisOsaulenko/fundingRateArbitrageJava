@@ -6,9 +6,11 @@ import com.boris.fundingarbitrage.model.contract.Fees;
 import com.boris.fundingarbitrage.model.exchange.ExchangeSnapshot;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class ClassicInTradeStrategy extends InTradeStrategy {
+	private final BigDecimal minPnl;
 	private final AtomicReference<BigDecimal> pnlSoFar = new AtomicReference<>(BigDecimal.ZERO);
 	private final Fees longFees;
 	private final Fees shortFees;
@@ -17,6 +19,9 @@ public class ClassicInTradeStrategy extends InTradeStrategy {
 		super(enterData);
 		this.longFees = constantData.longData().fees();
 		this.shortFees = constantData.shortData().fees();
+
+		BigDecimal enterFSpread = ClassicPreTradeStrategy.closestFSpread(enterSnapshot);
+		this.minPnl = enterSnapshot.notional().multiply(enterFSpread).divide(BigDecimal.TWO, 8, RoundingMode.HALF_EVEN);
 		this.pnlSoFar.updateAndGet(pnl -> pnl.subtract(getEnterFees(enterSnapshot)));
 	}
 
@@ -45,7 +50,7 @@ public class ClassicInTradeStrategy extends InTradeStrategy {
 						.subtract(shortExitFee)
 						.add(pnlSoFar.get());
 
-		return pnl.compareTo(BigDecimal.ZERO) > 0;
+		return pnl.compareTo(minPnl) > 0;
 
 		//TODO: also check if the trade is going against us and need to exit before losses
 	}

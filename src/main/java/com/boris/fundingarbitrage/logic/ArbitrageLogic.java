@@ -34,7 +34,7 @@ public abstract class ArbitrageLogic {
 	private ModifiableFrequencyTask opportunitiesProcessingTask;
 	private volatile boolean shuttingDown = false;
 	private volatile boolean processingActive = true;
-	private volatile boolean logOnThisCycle = true;
+	private volatile boolean logOnThisCycle = false;
 
 	public ArbitrageLogic(
 					ICoinSupplier coinSupplier,
@@ -286,6 +286,7 @@ public abstract class ArbitrageLogic {
 		opportunitiesProcessingTask.cancelNow();
 		if (!monitor.getInitFuture().isDone()) monitor.getInitFuture().cancel(true);
 		Logger.log("Arbitrage logic stopped.");
+		Logger.closeLogFile();
 	}
 
 	protected record CoinOpportunity(
