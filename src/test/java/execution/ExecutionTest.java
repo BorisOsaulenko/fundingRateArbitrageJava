@@ -6,10 +6,7 @@ import com.boris.fundingarbitrage.exchange.privatews.PrivateWsClient;
 import com.boris.fundingarbitrage.exchange.publichttp.PublicHttpClient;
 import com.boris.fundingarbitrage.exchange.publicws.PublicWsClient;
 import com.boris.fundingarbitrage.execution.CoinExecution;
-import com.boris.fundingarbitrage.model.assetops.FuturesOrder;
-import com.boris.fundingarbitrage.model.assetops.OrderSide;
-import com.boris.fundingarbitrage.model.assetops.TradeParams;
-import com.boris.fundingarbitrage.model.assetops.TradeSide;
+import com.boris.fundingarbitrage.model.assetops.*;
 import com.boris.fundingarbitrage.model.exchange.ExchangeName;
 import org.junit.jupiter.api.Test;
 
@@ -23,17 +20,14 @@ import static org.mockito.Mockito.*;
 
 public class ExecutionTest {
 	private static final String COIN = "SOL";
-
-	public ExecutionTest() {
-		CoinExecution.setLeverage(1);
-	}
+	private static final Leverages leverages = new Leverages(3, 2);
 
 	private static <T> CompletableFuture<T> failedFuture(Throwable t) {
 		CompletableFuture<T> future = new CompletableFuture<>();
 		future.completeExceptionally(t);
 		return future;
 	}
-	
+
 	@Test
 	public void enterTrade_isIdempotent_andSetsEnterIds() {
 		PrivateHttpClient longClient = mock(PrivateHttpClient.class);
@@ -51,7 +45,7 @@ public class ExecutionTest {
 						1,
 						1
 		);
-		CoinExecution execution = new CoinExecution(COIN, params);
+		CoinExecution execution = new CoinExecution(COIN, params, leverages);
 
 		CompletableFuture<Void> first = execution.enterTrade();
 		CompletableFuture<Void> second = execution.enterTrade();
@@ -95,7 +89,7 @@ public class ExecutionTest {
 						1,
 						1
 		);
-		CoinExecution execution = new CoinExecution(COIN, params);
+		CoinExecution execution = new CoinExecution(COIN, params, leverages);
 
 		execution.exitTrade().join();
 		verify(longClient, never()).placeFuturesOrder(
@@ -155,7 +149,7 @@ public class ExecutionTest {
 						1,
 						1
 		);
-		CoinExecution execution = new CoinExecution(COIN, params);
+		CoinExecution execution = new CoinExecution(COIN, params, leverages);
 
 		CompletionException error = assertThrows(CompletionException.class, () -> execution.enterTrade().join());
 		assertInstanceOf(IllegalStateException.class, error.getCause());
@@ -203,7 +197,7 @@ public class ExecutionTest {
 						1,
 						1
 		);
-		CoinExecution execution = new CoinExecution(COIN, params);
+		CoinExecution execution = new CoinExecution(COIN, params, leverages);
 
 		CompletionException error = assertThrows(CompletionException.class, () -> execution.enterTrade().join());
 		assertInstanceOf(IllegalStateException.class, error.getCause());
@@ -250,7 +244,7 @@ public class ExecutionTest {
 						1,
 						1
 		);
-		CoinExecution execution = new CoinExecution(COIN, params);
+		CoinExecution execution = new CoinExecution(COIN, params, leverages);
 
 		assertThrows(CompletionException.class, () -> execution.enterTrade().join());
 

@@ -8,7 +8,7 @@ public record ArbitrageBotConfig(
 				// the size of trade on one leg.
 				BigDecimal legUsdtAmount,
 				BigDecimal safetyMargin,
-				int leverage,
+				int maxLeverage,
 				// Bot will log the current best arb snapshots for coins + best arb snapshot overall. Set to 0 to disable logging
 				int loggingIntervalSeconds,
 				// Bot logs logBestArbSnapshotsAmount of the best arbitrage opportunities
@@ -16,7 +16,7 @@ public record ArbitrageBotConfig(
 ) {
 	public ArbitrageBotConfig {
 		Validations.requirePositive(legUsdtAmount, "Leg USDT amount");
-		Validations.requirePositive(leverage, "Leverage");
+		Validations.requirePositive(maxLeverage, "Leverage");
 		Validations.requireNonNegative(loggingIntervalSeconds, "Logging interval");
 		Validations.requirePositive(logBestArbSnapshotsAmount, "Log best arb snapshots amount");
 	}

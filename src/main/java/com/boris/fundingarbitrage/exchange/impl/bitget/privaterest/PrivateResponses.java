@@ -21,7 +21,7 @@ class PrivateResponses {
 	public record ChangeLeverageResponse(String code, String msg, long requestTime) {
 		public ChangeLeverageResponse {
 			if (!"00000".equals(code)) {
-				throw new IllegalStateException("Change leverage failed: " + code + " " + msg);
+				throw new IllegalStateException("Change maxLeverage failed: " + code + " " + msg);
 			}
 		}
 	}
@@ -219,7 +219,7 @@ class PrivateResponses {
 	) {
 		public InternalTransferResponse {
 			if (!"00000".equals(code)) {
-				throw new IllegalStateException("Change leverage failed: " + code + " " + msg);
+				throw new IllegalStateException("Change maxLeverage failed: " + code + " " + msg);
 			}
 		}
 	}

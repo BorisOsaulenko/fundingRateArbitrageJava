@@ -14,7 +14,7 @@ public class ClassicPreTradeStrategy implements PreTradeStrategy {
 	private static final BigDecimal CLOSE_F_SPREAD_EPS = new BigDecimal("0.0001"); // 0.01%
 	private static final BigDecimal MIN_O_SPREAD = new BigDecimal("0.002"); // 0.2%
 
-	public static BigDecimal oSpread(ArbitrageSnapshot snapshot) {
+	static BigDecimal oSpread(ArbitrageSnapshot snapshot) {
 		ExchangeSnapshot longExchange = snapshot.longExchange();
 		ExchangeSnapshot shortExchange = snapshot.shortExchange();
 		BigDecimal longAsk = longExchange.bookTicker().askPrice();
@@ -24,7 +24,7 @@ public class ClassicPreTradeStrategy implements PreTradeStrategy {
 		return shortBid.subtract(longAsk).divide(perCoinNotional, 8, RoundingMode.HALF_EVEN);
 	}
 
-	public static BigDecimal closestFSpread(ArbitrageSnapshot snapshot) {
+	static BigDecimal closestFSpread(ArbitrageSnapshot snapshot) {
 		BigDecimal longFundingRate = snapshot.longExchange().fundingRate().rate();
 		Instant longFundingTime = snapshot.longExchange().fundingRate().settlement();
 
@@ -36,7 +36,7 @@ public class ClassicPreTradeStrategy implements PreTradeStrategy {
 		else return shortFundingRate;
 	}
 
-	private static BigDecimal totalFees(ArbitrageConstantData data) {
+	static BigDecimal totalFees(ArbitrageConstantData data) {
 		BigDecimal result = BigDecimal.ZERO;
 		result = result.add(data.longData().fees().openTaker());
 		result = result.add(data.shortData().fees().openTaker());

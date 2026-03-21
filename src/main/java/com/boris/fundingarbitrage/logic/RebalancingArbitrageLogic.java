@@ -8,6 +8,7 @@ import com.boris.fundingarbitrage.model.arbitrage.ArbitrageConstantData;
 import com.boris.fundingarbitrage.model.arbitrage.ArbitrageData;
 import com.boris.fundingarbitrage.model.assetops.InternalAccount;
 import com.boris.fundingarbitrage.model.assetops.InternalTransfer;
+import com.boris.fundingarbitrage.model.assetops.Leverages;
 import com.boris.fundingarbitrage.model.exchange.ExchangeConstantData;
 import com.boris.fundingarbitrage.strategy.PreTradeStrategy;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
@@ -18,9 +19,9 @@ import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Future;
@@ -29,7 +30,6 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 	private final static BigDecimal rebalanceThreshold = new BigDecimal("0.3"); // 30%
 	private final Duration beforeEnter = Duration.ofSeconds(5);
 	private final Duration afterFunding = Duration.ofSeconds(5);
-	private final int maxParallelTrades = 2;
 	private final List<InTradeSingleCoinLogic> inTradeCoins = new CopyOnWriteArrayList<>();
 	private final List<CompletableFuture<Void>> exitFutures = new ArrayList<>();
 	private CompletableFuture<Void> internalTransfersFuture;
@@ -186,7 +186,7 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 	}
 
 	private synchronized void enterGoodCoins(CoinVector<CoinOpportunity> bestOpportunities) {
-		Set<BaseExchange> freeExchanges = Instances.getExchangesSet();
+		Map<BaseExchange, Integer> appearanceCount = new HashMap<>();
 		List<Map.Entry<String, ArbitrageData>> coinsToReview = bestOpportunities
 						.transform((op, _) -> op.data())
 						.filter(preTradeStrategy::arbDataGoodEnough)
@@ -198,23 +198,36 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 			return;
 		}
 
-		int parallelTrades = 0;
-
+		List<String> coinsToEnter = new ArrayList<>();
 		for (var entry : coinsToReview) {
-			if (parallelTrades >= maxParallelTrades) break;
 			String coin = entry.getKey();
 			CoinOpportunity opportunity = bestOpportunities.get(coin);
 			assert opportunity != null;
 
 			ExchangePair exchanges = opportunity.exchanges();
+			appearanceCount.computeIfAbsent(exchanges.longEx(), _ -> 0);
+			appearanceCount.computeIfAbsent(exchanges.shortEx(), _ -> 0);
 
-			if (!freeExchanges.contains(exchanges.longEx()) || !freeExchanges.contains(exchanges.shortEx())) continue;
-			parallelTrades++;
-			freeExchanges.remove(exchanges.longEx());
-			freeExchanges.remove(exchanges.shortEx());
+			if (appearanceCount.get(exchanges.longEx()) >= config.maxLeverage() ||
+					appearanceCount.get(exchanges.shortEx()) >= config.maxLeverage()) continue;
+
+			appearanceCount.put(exchanges.longEx(), appearanceCount.get(exchanges.longEx()) + 1);
+			appearanceCount.put(exchanges.shortEx(), appearanceCount.get(exchanges.shortEx()) + 1);
+			coinsToEnter.add(coin);
+		}
+
+		for (String coin : coinsToEnter) {
+			CoinOpportunity opportunity = bestOpportunities.get(coin);
+			assert opportunity != null;
+			ExchangePair exchanges = opportunity.exchanges();
 
 			ExchangeConstantData longConstantData = constantDataMap.get(exchanges.longEx(), coin);
 			ExchangeConstantData shortConstantData = constantDataMap.get(exchanges.shortEx(), coin);
+
+			Leverages leverages = new Leverages(
+							appearanceCount.get(exchanges.longEx()),
+							appearanceCount.get(exchanges.shortEx())
+			);
 
 			try {
 				InTradeSingleCoinLogic logic = new InTradeSingleCoinLogic(
@@ -222,7 +235,8 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 								monitor,
 								exchanges,
 								config.legUsdtAmount(),
-								new ArbitrageConstantData(longConstantData, shortConstantData)
+								new ArbitrageConstantData(longConstantData, shortConstantData),
+								leverages
 				);
 				inTradeCoins.add(logic);
 			} catch (Exception e) {

@@ -6,7 +6,6 @@ import com.boris.fundingarbitrage.coinfilter.CoinFilterConfig;
 import com.boris.fundingarbitrage.coinfilter.CoinFilterResult;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.exchange.Instances;
-import com.boris.fundingarbitrage.execution.CoinExecution;
 import com.boris.fundingarbitrage.model.arbitrage.ArbitrageConstantData;
 import com.boris.fundingarbitrage.model.arbitrage.ArbitrageData;
 import com.boris.fundingarbitrage.model.exchange.ExchangeConstantData;
@@ -45,7 +44,6 @@ public abstract class ArbitrageLogic {
 		this.coinSupplier = coinSupplier;
 		this.preTradeStrategy = strategy;
 		this.config = arbConfig;
-		CoinExecution.setLeverage(arbConfig.leverage());
 
 		init(filterConfig);
 	}

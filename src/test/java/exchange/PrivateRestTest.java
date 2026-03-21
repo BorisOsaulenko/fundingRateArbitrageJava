@@ -73,7 +73,7 @@ public abstract class PrivateRestTest {
 		assertTimeout(
 						Duration.ofSeconds(5),
 						() -> privateRest().changeLeverage(testCoin, leverage).get(),
-						"Changing leverage should not throw an exception"
+						"Changing maxLeverage should not throw an exception"
 		);
 	}
 
@@ -99,10 +99,10 @@ public abstract class PrivateRestTest {
 	@Tag("rest")
 	public void getMaxLeverageTest() throws Exception {
 		Map<String, Integer> maxLeverage = getWithTimeout(privateRest().getMaxLeverage(testCoins));
-		assertNotNull(maxLeverage, "Max leverage map should not be null");
+		assertNotNull(maxLeverage, "Max maxLeverage map should not be null");
 		for (String coin : testCoins) {
-			assertNotNull(maxLeverage.get(coin), "Max leverage for " + coin + " should not be null");
-			assertTrue(maxLeverage.get(coin) >= 2, "Max leverage for " + coin + " should be >= 2");
+			assertNotNull(maxLeverage.get(coin), "Max maxLeverage for " + coin + " should not be null");
+			assertTrue(maxLeverage.get(coin) >= 2, "Max maxLeverage for " + coin + " should be >= 2");
 		}
 	}
 

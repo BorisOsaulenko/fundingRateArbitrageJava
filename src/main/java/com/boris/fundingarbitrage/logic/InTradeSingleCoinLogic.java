@@ -5,6 +5,7 @@ import com.boris.fundingarbitrage.execution.CoinExecution;
 import com.boris.fundingarbitrage.model.arbitrage.ArbitrageConstantData;
 import com.boris.fundingarbitrage.model.arbitrage.ArbitrageData;
 import com.boris.fundingarbitrage.model.arbitrage.ArbitrageSnapshot;
+import com.boris.fundingarbitrage.model.assetops.Leverages;
 import com.boris.fundingarbitrage.model.assetops.TradeParams;
 import com.boris.fundingarbitrage.model.assetops.TradeSide;
 import com.boris.fundingarbitrage.model.contract.PartialFill;
@@ -47,7 +48,8 @@ public class InTradeSingleCoinLogic {
 					@NonNull CoinMonitor monitor,
 					@NonNull ExchangePair exchanges,
 					@NonNull BigDecimal usdtAmount,
-					@NonNull ArbitrageConstantData constantData
+					@NonNull ArbitrageConstantData constantData,
+					@NonNull Leverages leverages
 	) {
 		this.coin = coin;
 		this.exchanges = exchanges;
@@ -58,7 +60,7 @@ public class InTradeSingleCoinLogic {
 		this.strategy = new ClassicInTradeStrategy(new ArbitrageData(enterSnapshot, constantData));
 
 		TradeParams params = getEnterParams();
-		this.execution = new CoinExecution(coin, params);
+		this.execution = new CoinExecution(coin, params, leverages);
 
 		this.enterFuture = this.execution.enterTrade().exceptionally(this::fail);
 

@@ -81,7 +81,7 @@ class PrivateResponses {
 				String lever = item.lever;
 				return new BigDecimal(lever).intValue();
 			}
-			throw new IllegalStateException("OKX leverage info not found for symbol: " + symbol);
+			throw new IllegalStateException("OKX maxLeverage info not found for symbol: " + symbol);
 		}
 	}
 

@@ -38,7 +38,7 @@ class PrivateEndpoints {
 		body.put("symbol", symbol);
 		body.put("buyLeverage", String.valueOf(leverage));
 		body.put("sellLeverage", String.valueOf(leverage));
-		return postJson("/v5/position/set-leverage", body);
+		return postJson("/v5/position/set-maxLeverage", body);
 	}
 
 	public static @NonNull SimpleHttpRequest setMarginModeRequest(String symbol, MarginMode marginMode) {

@@ -32,8 +32,8 @@ class PrivateEndpoints {
 		body.put("symbol", symbol);
 		body.put("productType", productType);
 		body.put("marginCoin", marginCoin);
-		body.put("leverage", leverage);
-		return postJson("/api/v2/mix/account/set-leverage", body);
+		body.put("maxLeverage", leverage);
+		return postJson("/api/v2/mix/account/set-maxLeverage", body);
 	}
 
 	public static @NonNull SimpleHttpRequest setMarginModeRequestSymbol(String symbol, MarginMode marginMode) {

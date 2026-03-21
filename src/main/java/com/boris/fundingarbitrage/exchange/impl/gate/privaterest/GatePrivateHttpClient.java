@@ -89,7 +89,7 @@ public class GatePrivateHttpClient extends PrivateHttpClient {
 	protected CompletableFuture<Void> changeLeverageSymbol(String symbol, int leverage) {
 		return processRequest(
 						PrivateEndpoints.changeLeverageRequestSymbol(symbol, leverage),
-						Object.class, // no meaningful response from Gate on leverage change
+						Object.class, // no meaningful response from Gate on maxLeverage change
 						(resp) -> null
 		);
 	}
@@ -98,7 +98,7 @@ public class GatePrivateHttpClient extends PrivateHttpClient {
 	protected CompletableFuture<Void> setMarginModeSymbol(String symbol, MarginMode marginMode) {
 		return processRequest(
 						PrivateEndpoints.setMarginModeRequestSymbol(symbol, marginMode),
-						Object.class, // no meaningful response from Gate on leverage change
+						Object.class, // no meaningful response from Gate on maxLeverage change
 						(resp) -> null
 		);
 	}

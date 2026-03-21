@@ -4,16 +4,16 @@ import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.model.assetops.*;
 import com.boris.fundingarbitrage.util.logger.Logger;
 import lombok.Getter;
-import lombok.Setter;
+import lombok.NonNull;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
 public class CoinExecution {
 	private static final MarginMode marginMode = MarginMode.CROSS;
-	@Setter private static Integer leverage = null;
 	private final String coin;
 	private final TradeParams params;
+	private final Leverages leverages;
 	private CompletableFuture<Void> enterFuture = null;
 	private CompletableFuture<Void> exitFuture = null;
 	private volatile boolean failed = false;
@@ -21,8 +21,9 @@ public class CoinExecution {
 	@Getter private volatile TradeIds enterIds;
 	@Getter private volatile TradeIds exitIds;
 
-	public CoinExecution(String coin, TradeParams params) {
-		if (leverage == null) throw new IllegalStateException("Leverage not set");
+	public CoinExecution(
+					@NonNull String coin, @NonNull TradeParams params, @NonNull Leverages leverages) {
+		this.leverages = leverages;
 		this.coin = coin;
 		this.params = params;
 	}
@@ -34,7 +35,7 @@ public class CoinExecution {
 						tradeSide,
 						params.baseAssetQty(),
 						params.longContractQty(),
-						leverage,
+						leverages.longLeverage(),
 						marginMode
 		);
 	}
@@ -46,7 +47,7 @@ public class CoinExecution {
 						tradeSide,
 						params.baseAssetQty(),
 						params.shortContractQty(),
-						leverage,
+						leverages.shortLeverage(),
 						marginMode
 		);
 	}
@@ -66,9 +67,10 @@ public class CoinExecution {
 	private CompletableFuture<Void> setLeverageRequest(boolean isLong) {
 		BaseExchange ex = isLong ? params.longEx() : params.shortEx();
 		String side = isLong ? "long" : "short";
+		int leverage = isLong ? leverages.longLeverage() : leverages.shortLeverage();
 		return ex.privateHttpClient.changeLeverage(coin, leverage)
 						.exceptionally((t) -> {
-							Logger.error("Failed to set leverage for " + coin + " on" + side + "(" + ex.name + ")");
+							Logger.error("Failed to set maxLeverage for " + coin + " on" + side + "(" + ex.name + ")");
 							Logger.error("Message: " + t.getMessage());
 							throw new RuntimeException(t);
 						})

@@ -47,7 +47,7 @@ class PrivateResponses {
 	public record ChangeLeverageResponse(int retCode, String retMsg) {
 		public ChangeLeverageResponse {
 			if (retCode != 0 && retCode != 110043) {
-				throw new RuntimeException(String.format("Failed to change leverage %d, %s", retCode, retMsg));
+				throw new RuntimeException(String.format("Failed to change maxLeverage %d, %s", retCode, retMsg));
 			}
 		}
 	}
@@ -105,7 +105,7 @@ class PrivateResponses {
 				String symbol = item.symbol;
 				BigDecimal maxLeverage = new BigDecimal(item.leverageFilter.maxLeverage);
 				if (maxLeverage.compareTo(BigDecimal.ZERO) == 0)
-					throw new IllegalStateException("Invalid max leverage for symbol: " + symbol);
+					throw new IllegalStateException("Invalid max maxLeverage for symbol: " + symbol);
 				maxLeverageBySymbol.put(symbol, maxLeverage.intValue());
 			}
 
