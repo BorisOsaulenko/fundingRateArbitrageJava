@@ -38,8 +38,8 @@ class PrivateEndpoints {
 
 	public static @NonNull SimpleHttpRequest changeLeverageRequest(int leverage) {
 		Map<String, Object> body = new HashMap<>();
-		body.put("maxLeverage", String.valueOf(leverage));
-		return privatePost("/api/v4/collateral-account/maxLeverage", body);
+		body.put("leverage", String.valueOf(leverage));
+		return privatePost("/api/v4/collateral-account/leverage", body);
 	}
 
 	public static @NonNull SimpleHttpRequest setHedgeModeRequest(boolean hedgeMode) {

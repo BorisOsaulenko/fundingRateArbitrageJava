@@ -11,6 +11,7 @@ import com.boris.fundingarbitrage.model.arbitrage.ArbitrageData;
 import com.boris.fundingarbitrage.model.exchange.ExchangeConstantData;
 import com.boris.fundingarbitrage.monitor.CoinMonitor;
 import com.boris.fundingarbitrage.monitor.ExchangeCoinMap;
+import com.boris.fundingarbitrage.strategy.ClassicPreTradeStrategy;
 import com.boris.fundingarbitrage.strategy.PreTradeStrategy;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import com.boris.fundingarbitrage.util.logger.Logger;
@@ -248,13 +249,17 @@ public abstract class ArbitrageLogic {
 							var bestCoinExchanges = entry.getValue().exchanges();
 							assert bestCoinExchanges != null;
 
+							var snapshot = entry.getValue().data().snapshot();
+
 							Logger.log(entry.getKey() +
 												 ": " +
 												 bestCoinExchanges.longEx().name +
 												 " (long) / " +
 												 bestCoinExchanges.shortEx().name +
 												 " (short) - " +
-												 (preTradeStrategy.arbDataGoodEnough(entry.getValue().data()) ? "GOOD" : "BAD"));
+												 (preTradeStrategy.arbDataGoodEnough(entry.getValue().data()) ? "GOOD" : "BAD") +
+												 "[OSpread: " + ClassicPreTradeStrategy.oSpread(snapshot) + "] " +
+												 "[FSpread: " + ClassicPreTradeStrategy.closestFSpread(snapshot) + "]");
 							Logger.log("Snaphshot: " + entry.getValue().data());
 						});
 	}

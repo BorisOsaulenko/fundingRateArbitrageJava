@@ -39,7 +39,7 @@ public final class PrivateEndpoints {
 	public static @NonNull SimpleHttpRequest changeLeverageRequestSymbol(String symbol, int leverage) {
 		Map<String, Object> body = new HashMap<>();
 		body.put("symbol", symbol);
-		body.put("maxLeverage", leverage);
+		body.put("leverage", leverage);
 		return postJson(baseUrlFutures, "/api/v2/changeCrossUserLeverage", body);
 	}
 

@@ -2,7 +2,6 @@ package com.boris.fundingarbitrage.util.wss.prettyclient;
 
 import com.boris.fundingarbitrage.ObjectMapperSingleton;
 import com.boris.fundingarbitrage.util.logger.Logger;
-import jakarta.websocket.DeploymentException;
 import jakarta.websocket.Session;
 import lombok.NonNull;
 import org.glassfish.tyrus.client.ClientManager;
@@ -62,10 +61,9 @@ public class PrettyWsClient {
 	public void connect() {
 		try {
 			client.connectToServer(this.endpoint, endpointUri);
-		} catch (DeploymentException e) {
-			Logger.error("Deployment exception. Wrong endpoint config: " + e.getMessage());
-		} catch (IOException e) {
-			Logger.error("Network/protocol issue: " + e.getMessage());
+		} catch (Exception e) {
+			Logger.error("Error while connecting to WebSocket: %s", e.getMessage());
+			throw new RuntimeException(e);
 		}
 	}
 

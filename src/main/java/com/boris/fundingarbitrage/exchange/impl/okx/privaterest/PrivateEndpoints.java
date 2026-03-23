@@ -37,12 +37,12 @@ class PrivateEndpoints {
 		body.put("instId", symbol);
 		body.put("lever", String.valueOf(leverage));
 		body.put("mgnMode", mode == MarginMode.CROSS ? "cross" : "isolated");
-		return postJson("/api/v5/account/set-maxLeverage", body);
+		return postJson("/api/v5/account/set-leverage", body);
 	}
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest leverageInfoRequestSymbol(String symbol, MarginMode mode) {
-		URI uri = new URIBuilder(baseUrl).setPath("/api/v5/account/maxLeverage-info")
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v5/account/leverage-info")
 						.addParameter("instId", symbol)
 						.addParameter("mgnMode", mode == MarginMode.CROSS ? "cross" : "isolated")
 						.build();

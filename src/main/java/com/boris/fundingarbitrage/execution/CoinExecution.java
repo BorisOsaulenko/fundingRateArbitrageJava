@@ -1,8 +1,8 @@
 package com.boris.fundingarbitrage.execution;
 
 import com.boris.fundingarbitrage.exchange.BaseExchange;
+import com.boris.fundingarbitrage.logic.TradeLogger;
 import com.boris.fundingarbitrage.model.assetops.*;
-import com.boris.fundingarbitrage.util.logger.Logger;
 import lombok.Getter;
 import lombok.NonNull;
 
@@ -14,18 +14,23 @@ public class CoinExecution {
 	private final String coin;
 	private final TradeParams params;
 	private final Leverages leverages;
+	private final TradeLogger tradeLogger;
 	private CompletableFuture<Void> enterFuture = null;
 	private CompletableFuture<Void> exitFuture = null;
 	private volatile boolean failed = false;
-
 	@Getter private volatile TradeIds enterIds;
 	@Getter private volatile TradeIds exitIds;
 
 	public CoinExecution(
-					@NonNull String coin, @NonNull TradeParams params, @NonNull Leverages leverages) {
+					@NonNull String coin,
+					@NonNull TradeParams params,
+					@NonNull Leverages leverages,
+					TradeLogger tradeLogger
+	) {
 		this.leverages = leverages;
 		this.coin = coin;
 		this.params = params;
+		this.tradeLogger = tradeLogger;
 	}
 
 	private FuturesOrder getLongOrder(boolean opening) {
@@ -57,11 +62,10 @@ public class CoinExecution {
 		String side = isLong ? "long" : "short";
 		return ex.privateHttpClient.setMarginMode(coin, marginMode)
 						.exceptionally((t) -> {
-							Logger.error("Failed to set margin mode for " + coin + " on " + side + "(" + ex.name + ")");
-							Logger.error("Message: " + t.getMessage());
+							tradeLogger.error("Failed to set margin mode on " + side + ": " + t.getMessage());
 							throw new RuntimeException(t);
 						})
-						.thenRun(() -> Logger.log("Margin mode updated for " + coin + " on " + side + "(" + ex.name + ")"));
+						.thenRun(() -> tradeLogger.log("Margin mode updated on " + side));
 	}
 
 	private CompletableFuture<Void> setLeverageRequest(boolean isLong) {
@@ -70,11 +74,10 @@ public class CoinExecution {
 		int leverage = isLong ? leverages.longLeverage() : leverages.shortLeverage();
 		return ex.privateHttpClient.changeLeverage(coin, leverage)
 						.exceptionally((t) -> {
-							Logger.error("Failed to set maxLeverage for " + coin + " on" + side + "(" + ex.name + ")");
-							Logger.error("Message: " + t.getMessage());
+							tradeLogger.error("Failed to set leverage on" + side + ": " + t.getMessage());
 							throw new RuntimeException(t);
 						})
-						.thenRun(() -> Logger.log("Leverage updated for " + coin + " on " + side + "(" + ex.name + ")"));
+						.thenRun(() -> tradeLogger.log("Leverage updated on " + side));
 	}
 
 	private CompletableFuture<Void> enterAfterMarginModeIsSet() {
@@ -88,7 +91,7 @@ public class CoinExecution {
 			String longId = LEnter.join();
 			String shortId = SEnter.join();
 			this.enterIds = new TradeIds(longId, shortId);
-			Logger.log(
+			tradeLogger.log(
 							"Entered trade for %s, long: %s (%s) | short: %s (%s)",
 							coin,
 							params.longEx().name,
@@ -97,28 +100,42 @@ public class CoinExecution {
 							shortId
 			);
 		}).exceptionallyComposeAsync(t -> {
+			failed = true;
+
 			if (LEnter.isCompletedExceptionally() && SEnter.isCompletedExceptionally()) {
-				failed = true;
-				Logger.log("Failed to enter trade (both legs) for " +
-									 coin + ", " + params.longEx().name + " and " + params.shortEx().name + ": " + t.getMessage());
+				tradeLogger.log("Failed to enter trade on both legs: " + t.getMessage());
 				throw new RuntimeException(t);
 			} else if (LEnter.isCompletedExceptionally()) {
-				Logger.error("Failed to enter trade for long" + coin + ", " + params.longEx().name + ": " + t.getMessage());
-				Logger.error("Attempting to exit short (" + params.shortEx().name + ") automatically.");
-				return SEnter.thenCompose(_ -> exitShort().thenAccept(_ -> failed = true))
-								.thenCompose(_ -> CompletableFuture.failedFuture(
-												new IllegalStateException(coin + ": long enter failed; short was compensated")
-								));
+				tradeLogger.error("Failed to enter trade for long: " + t.getMessage());
+				tradeLogger.error("Attempting to exit short automatically.");
+				return SEnter.thenCompose(_ ->
+								exitShort()
+												.exceptionally(t2 -> {
+													tradeLogger.error("Long enter failed, short compensation failed. Exit manually.");
+													throw new RuntimeException(t2);
+												})
+												.thenRun(() -> {
+													tradeLogger.error("Long enter failed; short was compensated");
+													throw new IllegalStateException(coin + ": long enter failed; short was compensated");
+												})
+				);
 			} else if (SEnter.isCompletedExceptionally()) {
-				Logger.error("Failed to enter trade for short" + coin + ", " + params.shortEx().name + ": " + t.getMessage());
-				Logger.error("Attempting to exit long (" + params.longEx().name + ") automatically.");
-				return LEnter.thenCompose(_ -> exitLong().thenAccept(_ -> failed = true))
-								.thenCompose(_ -> CompletableFuture.failedFuture(
-												new IllegalStateException(coin + ": short enter failed; long was compensated")
-								));
+				tradeLogger.error("Failed to enter trade for short: " + t.getMessage());
+				tradeLogger.error("Attempting to exit long automatically.");
+				return LEnter.thenCompose(_ ->
+								exitLong()
+												.exceptionally(t2 -> {
+													tradeLogger.error("Short enter failed, long compensation failed. Exit manually.");
+													throw new RuntimeException(t2);
+												})
+												.thenRun(() -> {
+													tradeLogger.error("Short enter failed; long was compensated");
+													throw new IllegalStateException(coin + ": short enter failed; long was compensated");
+												})
+				);
 			}
 
-			Logger.error("Error while failsafe exiting for " + coin + ": " + t.getMessage());
+			tradeLogger.error("Error while failsafe exiting: " + t.getMessage());
 			throw new RuntimeException(t);
 		});
 
@@ -151,12 +168,9 @@ public class CoinExecution {
 			String longId = LExit.join();
 			String shortId = SExit.join();
 			this.exitIds = new TradeIds(longId, shortId);
-			Logger.log(
-							"Exited trade for %s, long: %s (%s) | short: %s (%s)",
-							coin,
-							params.longEx().name,
+			tradeLogger.log(
+							"Exited trade, long: %s | short: %s",
 							longId,
-							params.shortEx().name,
 							shortId
 			);
 		});
@@ -175,7 +189,7 @@ public class CoinExecution {
 		FuturesOrder longOrder = getLongOrder(false);
 		CompletableFuture<String> LExit = params.longEx().privateHttpClient.placeFuturesOrder(coin, longOrder);
 		return LExit.exceptionally(t -> {
-			Logger.error("Failed to exit trade for " + coin + ", " + params.longEx().name + ": " + t.getMessage());
+			tradeLogger.error("Failed to exit long leg: " + t.getMessage());
 			failed = true;
 			throw new RuntimeException(t);
 		});
@@ -185,7 +199,7 @@ public class CoinExecution {
 		FuturesOrder shortOrder = getShortOrder(false);
 		CompletableFuture<String> SExit = params.shortEx().privateHttpClient.placeFuturesOrder(coin, shortOrder);
 		return SExit.exceptionally(t -> {
-			Logger.error("Failed to exit trade for " + coin + ", " + params.shortEx().name + ": " + t.getMessage());
+			tradeLogger.error("Failed to exit short leg: " + t.getMessage());
 			failed = true;
 			throw new RuntimeException(t);
 		});

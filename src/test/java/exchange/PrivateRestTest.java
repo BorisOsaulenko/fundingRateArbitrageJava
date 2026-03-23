@@ -69,7 +69,7 @@ public abstract class PrivateRestTest {
 	@Tag("rest")
 	@Test
 	public void changeLeverageTest() {
-		int leverage = 2;
+		int leverage = 3;
 		assertTimeout(
 						Duration.ofSeconds(5),
 						() -> privateRest().changeLeverage(testCoin, leverage).get(),

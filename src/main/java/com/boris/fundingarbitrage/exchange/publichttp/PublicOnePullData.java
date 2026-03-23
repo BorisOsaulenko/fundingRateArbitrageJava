@@ -11,13 +11,14 @@ public record PublicOnePullData(
 				BigDecimal volume24h,
 				int fundingInterval,
 				BookTicker ticker,
-				FundingRate fundingRate
+				FundingRate fundingRate,
+				TradingState tradingState
 ) {
 	public PublicOnePullData {
 	}
 
 	public static PublicOnePullData empty() {
-		return new PublicOnePullData(BigDecimal.ZERO, BigDecimal.ZERO, 0, null, null);
+		return new PublicOnePullData(BigDecimal.ZERO, BigDecimal.ZERO, 0, null, null, TradingState.PREMARKET);
 	}
 
 	public boolean isEmpty() {

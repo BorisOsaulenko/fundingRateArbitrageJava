@@ -12,7 +12,6 @@ import com.boris.fundingarbitrage.model.contract.PartialFill;
 import com.boris.fundingarbitrage.monitor.CoinMonitor;
 import com.boris.fundingarbitrage.strategy.ClassicInTradeStrategy;
 import com.boris.fundingarbitrage.strategy.InTradeStrategy;
-import com.boris.fundingarbitrage.util.logger.Logger;
 import lombok.Getter;
 import lombok.NonNull;
 
@@ -38,6 +37,7 @@ public class InTradeSingleCoinLogic {
 	private final ScheduledExecutorService fundingRegisterExecutor = Executors.newSingleThreadScheduledExecutor();
 	private final AtomicBoolean fillsFetchSuccess = new AtomicBoolean(true);
 	private final ArbitrageConstantData constantData;
+	private final TradeLogger tradeLogger;
 	private long nextFundingTimestamp;
 	@Getter private CompletableFuture<Void> exitFuture = null;
 	private volatile boolean shouldRegisterNewFunding = true;
@@ -58,9 +58,10 @@ public class InTradeSingleCoinLogic {
 		this.constantData = constantData;
 		this.enterSnapshot = monitor.getSnapshot(exchanges, coin);
 		this.strategy = new ClassicInTradeStrategy(new ArbitrageData(enterSnapshot, constantData));
+		this.tradeLogger = new TradeLogger(coin, exchanges);
 
 		TradeParams params = getEnterParams();
-		this.execution = new CoinExecution(coin, params, leverages);
+		this.execution = new CoinExecution(coin, params, leverages, tradeLogger);
 
 		this.enterFuture = this.execution.enterTrade().exceptionally(this::fail);
 
@@ -81,9 +82,9 @@ public class InTradeSingleCoinLogic {
 	}
 
 	private Void fail(Throwable t) {
-		Logger.error("Failed to enter trade for " + coin + ". Long: "
-								 + exchanges.longEx().name + " and short: " + exchanges.shortEx().name);
-		Logger.error("Message: " + t.getMessage());
+		tradeLogger.error("Failed to enter trade for " + coin + ". Long: "
+											+ exchanges.longEx().name + " and short: " + exchanges.shortEx().name);
+		tradeLogger.error("Message: " + t.getMessage());
 		throw new RuntimeException(t);
 	}
 
@@ -129,7 +130,6 @@ public class InTradeSingleCoinLogic {
 		nextFundingTimestamp = currentSnapshot.closestSettlement().toEpochMilli();
 		monitor.performOnTimestamp(
 						nextFundingTimestamp, exchanges, coin, sn -> {
-							Logger.log("Registered funding snapshot for " + coin + ": " + sn);
 							strategy.addFundingSnapshot(sn);
 							shouldRegisterNewFunding = true;
 						}
@@ -170,8 +170,8 @@ public class InTradeSingleCoinLogic {
 						.whenComplete((r, t) -> {
 							if (t == null && r != null && !r.isEmpty()) return; // Everything good
 							fillsFetchSuccess.set(false);
-							if (r == null || r.isEmpty()) Logger.warn("Fetched " + name + " fills: " + r);
-							else Logger.warn("Failed to fetch " + name + " fills: " + t.getMessage());
+							if (r == null || r.isEmpty()) tradeLogger.warn("Fetched " + name + " fills: " + r);
+							else tradeLogger.warn("Failed to fetch " + name + " fills: " + t.getMessage());
 						});
 	}
 
@@ -229,15 +229,15 @@ public class InTradeSingleCoinLogic {
 
 							List<ArbitrageSnapshot> fundingSnapshots = strategy.getFundingSnapshots();
 
-							Logger.log("Trade info for " + coin + ": ");
+							tradeLogger.log("Trade info for " + coin + ": ");
 							logTradeStep(oLongEnterPrice, avgLongEnterPrice, longEnterFeeRate, true, true);
 							logTradeStep(oShortEnterPrice, avgShortEnterPrice, shortEnterFeeRate, false, true);
 							BigDecimal totalFundingGain = logFundingSteps(fundingSnapshots);
 							logTradeStep(oLongExitPrice, avgLongExitPrice, longExitFeeRate, true, false);
 							logTradeStep(oShortExitPrice, avgShortExitPrice, shortExitFeeRate, false, false);
 
-							Logger.log("Observed vs executed total gain (for one coin): ");
-							Logger.log("[Same] Funding gain: " + totalFundingGain);
+							tradeLogger.log("Observed vs executed total gain (for one coin): ");
+							tradeLogger.log("[Same] Funding gain: " + totalFundingGain);
 							var o = calculateGainFromPriceMoves(oLongEnterPrice, oShortEnterPrice, oLongExitPrice, oShortExitPrice);
 							var e = calculateGainFromPriceMoves(
 											avgLongEnterPrice,
@@ -245,10 +245,10 @@ public class InTradeSingleCoinLogic {
 											avgLongExitPrice,
 											avgShortExitPrice
 							);
-							Logger.log("[Observed] Price moves: " + o);
-							Logger.log("[Executed] Price moves: " + e);
-							Logger.log("[Observed] Total gain: " + o.add(totalFundingGain));
-							Logger.log("[Executed] Total gain: " + e.add(totalFundingGain));
+							tradeLogger.log("[Observed] Price moves: " + o);
+							tradeLogger.log("[Executed] Price moves: " + e);
+							tradeLogger.log("[Observed] Total gain: " + o.add(totalFundingGain));
+							tradeLogger.log("[Executed] Total gain: " + e.add(totalFundingGain));
 						});
 	}
 
@@ -260,14 +260,14 @@ public class InTradeSingleCoinLogic {
 		return ex.privateHttpClient.getOrderRecord(orderId, coin, tradeSide)
 						.thenApply(fills -> {
 							if (fills.isEmpty()) {
-								Logger.log(ex.name + " getOrderRecord returned empty list");
+								tradeLogger.log(ex.name + " getOrderRecord returned empty list");
 								throw new RuntimeException("getOrderRecord returned empty list");
 							}
 
 							return fills;
 						})
 						.exceptionally(t -> {
-							Logger.log(ex.name + " getOrderRecord failed: " + t.getMessage());
+							tradeLogger.log(ex.name + " getOrderRecord failed: " + t.getMessage());
 							throw new RuntimeException(t);
 						});
 	}
@@ -292,12 +292,12 @@ public class InTradeSingleCoinLogic {
 		String tag1 = isEnter ? "[Enter] " : "[Exit] ";
 		String tag2 = isLong ? "[Long] " : "[Short] ";
 
-		Logger.log(tag1 + tag2 + "Observed price: " + o + ", actual avg price: " + a + ". Slippage: " + ss + s);
-		Logger.log(tag1 + tag2 + "Fee: " + a.multiply(fr));
+		tradeLogger.log(tag1 + tag2 + "Observed price: " + o + ", actual avg price: " + a + ". Slippage: " + ss + s);
+		tradeLogger.log(tag1 + tag2 + "Fee: " + a.multiply(fr));
 	}
 
 	private BigDecimal logFundingSteps(List<ArbitrageSnapshot> snapshots) {
-		Logger.log("Registered funding transactions: ");
+		tradeLogger.log("Registered funding transactions: ");
 		BigDecimal totalFundingGain = BigDecimal.ZERO;
 
 		for (ArbitrageSnapshot sn : snapshots) {
@@ -308,8 +308,8 @@ public class InTradeSingleCoinLogic {
 
 			totalFundingGain = totalFundingGain.add(longFunding).add(shortFunding);
 
-			Logger.log("[Funding] [Long] Received funding: " + longFunding);
-			Logger.log("[Funding] [Short] Received funding: " + shortFunding);
+			tradeLogger.log("[Funding] [Long] Received funding: " + longFunding);
+			tradeLogger.log("[Funding] [Short] Received funding: " + shortFunding);
 		}
 
 		return totalFundingGain;

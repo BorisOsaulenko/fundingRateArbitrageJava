@@ -1,29 +1,48 @@
 package com.boris.fundingarbitrage.exchange.impl.binance.publicws;
 
+import com.boris.fundingarbitrage.ObjectMapperSingleton;
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.publichttp.PublicHttpClient;
 import com.boris.fundingarbitrage.exchange.publicws.PublicWsClient;
+import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
 import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
+import com.boris.fundingarbitrage.model.websocket.patch.GenericPublicWsPatch;
 import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
+import com.boris.fundingarbitrage.util.logger.Logger;
+import com.boris.fundingarbitrage.util.wss.prettyclient.PrettyWsClient;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.jetbrains.annotations.NotNull;
 
 import java.net.URI;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class BinancePublicWsClient extends PublicWsClient {
 	private static final URI endpoint = URI.create("wss://fstream.binance.com/ws");
 	private static final AtomicInteger NEXT_ID = new AtomicInteger(1);
-	private final Set<String> fundingAndMarkPriceSubscribedCoins = new HashSet<>();
+	private final ObjectMapper mapper = ObjectMapperSingleton.getInstance();
+
+	private final PrettyWsClient fundingAndMarkClient;
+	private final PrettyWsClient bookTickerClient;
 
 	public BinancePublicWsClient(ExchangeContext context, PublicHttpClient publicHttp) {
 		BinancePublicMessageHandler messageHandler = new BinancePublicMessageHandler(context);
 		super(context, endpoint, messageHandler, publicHttp);
+		this.fundingAndMarkClient = new PrettyWsClient(
+						endpoint,
+						"Binance Public Funding Mark",
+						this::handleFundingAndMarkMessage
+		);
+		this.bookTickerClient = new PrettyWsClient(endpoint, "Binance Public Book Ticker", this::handleBookTickerMessage);
 	}
 
 	public static int getNextId() {
@@ -80,39 +99,59 @@ public class BinancePublicWsClient extends PublicWsClient {
 		return null;
 	}
 
+	@Override
+	public void subscribeBookTicker(
+					Set<String> coins,
+					Consumer<BookTickerPatch> handler
+	) {
+		Logger.log("Subscribing book ticker for: " + coins);
+		subscribeCommon(
+						coins,
+						handler,
+						bookTickerHandlers,
+						bookTickerHandlers::containsKey,
+						this::getSubscribeBookTickerFrame,
+						bookTickerClient::sendMessage
+		);
+	}
+
+	@Override
+	public void unsubscribeBookTicker(Set<String> coins) {
+		unsubscribeCommon(
+						coins,
+						bookTickerHandlers,
+						bookTickerHandlers::containsKey,
+						this::getUnsubscribeBookTickerFrame,
+						bookTickerClient::sendMessage
+		);
+	}
+
 	private <T> void subscribeFundingAndMark(
 					Set<String> coins,
 					Consumer<T> handler,
 					CoinVector<Set<Consumer<T>>> handlersMap
 	) {
-		Set<String> coinsToSubscribe = new HashSet<>();
-		for (String coin : coins) {
-			handlersMap.computeIfAbsent(coin, v -> new HashSet<>()).add(handler);
-			if (!fundingAndMarkPriceSubscribedCoins.contains(coin)) {
-				coinsToSubscribe.add(coin);
-				fundingAndMarkPriceSubscribedCoins.add(coin);
-			}
-		}
-
-		Set<String> symbolsToSubscribe = coinsToSubscribe.stream().map(context::getSymbol).collect(Collectors.toSet());
-		if (!coinsToSubscribe.isEmpty()) sendMessage(getSubscribeFundingRateFrame(symbolsToSubscribe));
+		subscribeCommon(
+						coins,
+						handler,
+						handlersMap,
+						coin -> fundingRateHandlers.containsKey(coin) || markPriceHandlers.containsKey(coin),
+						this::getSubscribeFundingRateFrame,
+						fundingAndMarkClient::sendMessage
+		);
 	}
 
 	private <T> void unsubscribeFundingAndMark(
 					Set<String> coins,
 					CoinVector<Set<Consumer<T>>> handlersMap
 	) {
-		Set<String> coinsToUnsubscribe = new HashSet<>();
-		for (String coin : coins) {
-			handlersMap.remove(coin);
-			if (fundingAndMarkPriceSubscribedCoins.contains(coin)) {
-				coinsToUnsubscribe.add(coin);
-				fundingAndMarkPriceSubscribedCoins.remove(coin);
-			}
-		}
-
-		Set<String> symbolsToUnsubscribe = coinsToUnsubscribe.stream().map(context::getSymbol).collect(Collectors.toSet());
-		if (!coinsToUnsubscribe.isEmpty()) sendMessage(getUnsubscribeFundingRateFrame(symbolsToUnsubscribe));
+		unsubscribeCommon(
+						coins,
+						handlersMap,
+						coin -> fundingRateHandlers.containsKey(coin) || markPriceHandlers.containsKey(coin),
+						this::getUnsubscribeFundingRateFrame,
+						fundingAndMarkClient::sendMessage
+		);
 	}
 
 	@Override
@@ -133,5 +172,102 @@ public class BinancePublicWsClient extends PublicWsClient {
 	@Override
 	public void unsubscribeMarkPrice(Set<String> coins) {
 		unsubscribeFundingAndMark(coins, markPriceHandlers);
+	}
+
+	private void sendInBatches(
+					Set<String> symbols,
+					Function<Set<String>, String> frameTransformer,
+					Consumer<String> sender
+	) {
+		int batchSize = 150;
+		for (int i = 0; i < symbols.size(); i += batchSize) {
+			Set<String> batch = symbols.stream().skip(i).limit(batchSize).collect(Collectors.toSet());
+			if (batch.isEmpty()) continue;
+			String frame = frameTransformer.apply(batch);
+			sender.accept(frame);
+		}
+	}
+
+	private <T> void subscribeCommon(
+					Set<String> coins,
+					Consumer<T> handler,
+					CoinVector<Set<Consumer<T>>> handlersMap,
+					Predicate<String> isSubscribed,
+					Function<Set<String>, String> subscribeFrame,
+					Consumer<String> sender
+	) {
+		Set<String> coinsToSubscribe = new HashSet<>();
+		for (String coin : coins) {
+			boolean wasSubscribed = isSubscribed.test(coin);
+			handlersMap.computeIfAbsent(coin, v -> new HashSet<>()).add(handler);
+			if (!wasSubscribed) coinsToSubscribe.add(coin);
+		}
+
+		Set<String> symbolsToSubscribe = coinsToSubscribe.stream().map(context::getSymbol).collect(Collectors.toSet());
+		if (!coinsToSubscribe.isEmpty()) sendInBatches(symbolsToSubscribe, subscribeFrame, sender);
+	}
+
+	private <T> void unsubscribeCommon(
+					Set<String> coins,
+					CoinVector<Set<Consumer<T>>> handlersMap,
+					Predicate<String> isSubscribed,
+					Function<Set<String>, String> unsubscribeFrame,
+					Consumer<String> sender
+	) {
+		Set<String> coinsToUnsubscribe = new HashSet<>();
+		for (String coin : coins) {
+			boolean wasSubscribed = isSubscribed.test(coin);
+			if (!wasSubscribed) continue;
+
+			handlersMap.remove(coin);
+			if (!isSubscribed.test(coin)) coinsToUnsubscribe.add(coin);
+		}
+
+		Set<String> symbolsToUnsubscribe = coinsToUnsubscribe.stream().map(context::getSymbol).collect(Collectors.toSet());
+		if (!coinsToUnsubscribe.isEmpty()) sendInBatches(symbolsToUnsubscribe, unsubscribeFrame, sender);
+	}
+
+	private <T extends GenericPublicWsPatch> void tryHandle(
+					JsonNode root,
+					Function<JsonNode, T> parser,
+					Consumer<T> handler
+	) {
+		T patch = parser.apply(root);
+		if (patch == null) return;
+		handler.accept(patch);
+	}
+
+	private void handleFundingAndMarkMessage(String message) {
+		if (message == null || message.isEmpty()) return;
+
+		try {
+			JsonNode root = mapper.readTree(message);
+			tryHandle(root, messageHandler::parseMarkPriceMessageSymbol, this::handleMarkPricePatch);
+			tryHandle(root, messageHandler::parseFundingRateMessageSymbol, this::handleFundingRatePatch);
+		} catch (JsonProcessingException ignored) {
+		}
+	}
+
+	private void handleBookTickerMessage(String message) {
+		if (message == null || message.isEmpty()) return;
+
+		try {
+			JsonNode root = mapper.readTree(message);
+			tryHandle(root, messageHandler::parseBookTickerMessageSymbol, this::handleBookTickerPatch);
+		} catch (JsonProcessingException ignored) {
+		}
+	}
+
+	@Override
+	public CompletableFuture<Void> connect() {
+		this.fundingAndMarkClient.connect();
+		this.bookTickerClient.connect();
+		return CompletableFuture.completedFuture(null);
+	}
+
+	@Override
+	public void close() {
+		this.fundingAndMarkClient.close();
+		this.bookTickerClient.close();
 	}
 }

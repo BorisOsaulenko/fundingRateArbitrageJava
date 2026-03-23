@@ -15,12 +15,9 @@ class PrivateEndpoints {
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest changeLeverageRequestSymbol(String symbol, int leverage) {
-		URI uri = new URIBuilder(futuresBaseUrl).setPath("/fapi/v1/maxLeverage")
+		URI uri = new URIBuilder(futuresBaseUrl).setPath("/fapi/v1/leverage")
 						.addParameter("symbol", symbol)
-						.addParameter(
-										"maxLeverage",
-										String.valueOf(leverage)
-						)
+						.addParameter("leverage", String.valueOf(leverage))
 						.build();
 
 		return new SimpleHttpRequest("POST", uri);
