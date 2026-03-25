@@ -11,6 +11,7 @@ import com.boris.fundingarbitrage.model.assetops.TradeSide;
 import com.boris.fundingarbitrage.model.contract.PartialFill;
 import com.boris.fundingarbitrage.monitor.CoinMonitor;
 import com.boris.fundingarbitrage.strategy.ClassicInTradeStrategy;
+import com.boris.fundingarbitrage.strategy.ClassicPreTradeStrategy;
 import com.boris.fundingarbitrage.strategy.InTradeStrategy;
 import lombok.Getter;
 import lombok.NonNull;
@@ -130,6 +131,7 @@ public class InTradeSingleCoinLogic {
 		nextFundingTimestamp = currentSnapshot.closestSettlement().toEpochMilli();
 		monitor.performOnTimestamp(
 						nextFundingTimestamp, exchanges, coin, sn -> {
+							tradeLogger.log("Funding: [FSpread: " + ClassicPreTradeStrategy.closestFSpread(sn) + "] " + sn);
 							strategy.addFundingSnapshot(sn);
 							shouldRegisterNewFunding = true;
 						}

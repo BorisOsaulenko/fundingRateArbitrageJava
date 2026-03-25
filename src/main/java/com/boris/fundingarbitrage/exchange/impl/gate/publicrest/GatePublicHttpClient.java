@@ -3,6 +3,7 @@ package com.boris.fundingarbitrage.exchange.impl.gate.publicrest;
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.publichttp.PublicHttpClient;
 import com.boris.fundingarbitrage.exchange.publichttp.PublicOnePullData;
+import com.boris.fundingarbitrage.exchange.publichttp.TradingState;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.FundingRate;
 import com.boris.fundingarbitrage.util.https.PrettyHttpClient;
@@ -33,15 +34,15 @@ public class GatePublicHttpClient extends PublicHttpClient {
 
 	@Override
 	protected CompletableFuture<Map<String, PublicOnePullData>> getPublicOnePullData() {
-		CompletableFuture<PublicResponses.ContractsResponse>
-						contractsResponseFuture =
-						requestWrapper.getResponse(
-										PublicEndpoints.contractsRequestSymbols(),
-										PublicResponses.ContractsResponse.class
-						);
-		CompletableFuture<PublicResponses.TickersResponse>
-						tickersResponseFuture =
-						requestWrapper.getResponse(PublicEndpoints.tickersRequestSymbols(), PublicResponses.TickersResponse.class);
+		CompletableFuture<PublicResponses.ContractsResponse> contractsResponseFuture = requestWrapper.getResponse(
+						PublicEndpoints.contractsRequestSymbols(),
+						PublicResponses.ContractsResponse.class
+		);
+
+		CompletableFuture<PublicResponses.TickersResponse> tickersResponseFuture = requestWrapper.getResponse(
+						PublicEndpoints.tickersRequestSymbols(),
+						PublicResponses.TickersResponse.class
+		);
 
 		return CompletableFuture.allOf(contractsResponseFuture, tickersResponseFuture).thenApply(_ -> {
 			Map<String, BigDecimal> lotSizes = contractsResponseFuture.join().getLotSizes();
@@ -49,6 +50,7 @@ public class GatePublicHttpClient extends PublicHttpClient {
 			Map<String, FundingRate> fundingRates = contractsResponseFuture.join().getFundingRates();
 			Map<String, BookTicker> bookTickers = tickersResponseFuture.join().getBookTickers();
 			Map<String, BigDecimal> volumes24h = tickersResponseFuture.join().getVolume24h();
+			Map<String, TradingState> tradingStates = contractsResponseFuture.join().getTradingStates();
 
 			Map<String, PublicOnePullData> data = new HashMap<>();
 			for (String symbol : lotSizes.keySet()) {
@@ -59,7 +61,8 @@ public class GatePublicHttpClient extends PublicHttpClient {
 												volumes24h.get(symbol),
 												fundingIntervals.get(symbol),
 												bookTickers.get(symbol),
-												fundingRates.get(symbol)
+												fundingRates.get(symbol),
+												tradingStates.get(symbol)
 								)
 				);
 			}

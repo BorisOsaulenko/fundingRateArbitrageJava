@@ -24,12 +24,6 @@ class PublicEndpoints {
 	}
 
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest fundingRateRequestSymbol(String symbol) {
-		URI uri = new URIBuilder(baseUrl).setPath("/api/v5/public/funding-rate").addParameter("instId", symbol).build();
-		return new SimpleHttpRequest("GET", uri);
-	}
-
-	@SneakyThrows
 	public static @NonNull SimpleHttpRequest fundingRateRequestSymbols() {
 		URI uri = new URIBuilder(baseUrl).setPath("/api/v5/public/funding-rate").addParameter("instId", "ANY").build();
 		return new SimpleHttpRequest("GET", uri);

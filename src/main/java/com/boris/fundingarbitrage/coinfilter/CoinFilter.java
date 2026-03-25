@@ -3,6 +3,7 @@ package com.boris.fundingarbitrage.coinfilter;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.exchange.Instances;
 import com.boris.fundingarbitrage.exchange.publichttp.PublicOnePullData;
+import com.boris.fundingarbitrage.exchange.publichttp.TradingState;
 import com.boris.fundingarbitrage.logic.ExchangePair;
 import com.boris.fundingarbitrage.model.arbitrage.ArbitrageConstantData;
 import com.boris.fundingarbitrage.model.arbitrage.ArbitrageData;
@@ -33,6 +34,7 @@ public class CoinFilter {
 	private final CoinVector<Set<BaseExchange>> availableExchangesByCoin = new CoinVector<>();
 	private final Map<BaseExchange, Set<String>> availableCoinsByExchange = new ConcurrentHashMap<>();
 	private final ExchangeCoinMap<BigDecimal> tradingVolumeMap = new ExchangeCoinMap<>();
+	private final ExchangeCoinMap<TradingState> tradingStatesMap = new ExchangeCoinMap<>();
 
 	private final ExchangeCoinMap<ExchangeSnapshot> snapshotsMap = new ExchangeCoinMap<>();
 	private final ExchangeCoinMap<ExchangeConstantData> constantDataMap = new ExchangeCoinMap<>();
@@ -96,6 +98,7 @@ public class CoinFilter {
 				snapshotsMap.put(exchange, coin, snapshot);
 				constantDataMap.put(exchange, coin, constantData);
 				tradingVolumeMap.put(exchange, coin, data.volume24h());
+				tradingStatesMap.put(exchange, coin, data.tradingState());
 			}
 		});
 	}
@@ -197,6 +200,9 @@ public class CoinFilter {
 	}
 
 	private String getExcludeMessage(BaseExchange ex, String coin) {
+		TradingState tradingState = tradingStatesMap.get(ex, coin);
+		if (tradingState != TradingState.TRADING) return "Not trading";
+
 		BigDecimal volume = tradingVolumeMap.get(ex, coin);
 		if (volume.compareTo(config.min24hVolumeUsdt()) < 0) return "Volume not enough: " + volume;
 

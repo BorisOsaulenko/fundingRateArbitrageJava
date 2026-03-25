@@ -3,6 +3,7 @@ package com.boris.fundingarbitrage.exchange.impl.whitebit.publicrest;
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.publichttp.PublicHttpClient;
 import com.boris.fundingarbitrage.exchange.publichttp.PublicOnePullData;
+import com.boris.fundingarbitrage.exchange.publichttp.TradingState;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.FundingRate;
 import com.boris.fundingarbitrage.util.https.PrettyHttpClient;
@@ -33,15 +34,18 @@ public class WhitebitPublicHttpClient extends PublicHttpClient {
 
 	@Override
 	protected CompletableFuture<Map<String, PublicOnePullData>> getPublicOnePullData() {
-		CompletableFuture<PublicResponses.MarketsResponse>
-						marketsResponseFuture =
-						requestWrapper.getResponse(PublicEndpoints.marketsRequest(), PublicResponses.MarketsResponse.class);
-		CompletableFuture<PublicResponses.FuturesResponse>
-						futuresResponseFuture =
-						requestWrapper.getResponse(PublicEndpoints.futuresRequest(), PublicResponses.FuturesResponse.class);
+		CompletableFuture<PublicResponses.MarketsResponse> marketsResponseFuture = requestWrapper.getResponse(
+						PublicEndpoints.marketsRequest(),
+						PublicResponses.MarketsResponse.class
+		);
+		CompletableFuture<PublicResponses.FuturesResponse> futuresResponseFuture = requestWrapper.getResponse(
+						PublicEndpoints.futuresRequest(),
+						PublicResponses.FuturesResponse.class
+		);
 
 		return CompletableFuture.allOf(marketsResponseFuture, futuresResponseFuture).thenCompose(_ -> {
 			Map<String, BigDecimal> lotSizes = marketsResponseFuture.join().getLotSizes();
+			Map<String, TradingState> tradingStates = marketsResponseFuture.join().getTradingStates();
 			Map<String, BigDecimal> volumes24h = futuresResponseFuture.join().getVolume24h();
 			Map<String, Integer> fundingIntervals = futuresResponseFuture.join().getFundingGranularityHours();
 			Map<String, BookTicker> bookTickers = futuresResponseFuture.join().getBookTickers();
@@ -54,7 +58,8 @@ public class WhitebitPublicHttpClient extends PublicHttpClient {
 								volumes24h.get(symbol),
 								fundingIntervals.get(symbol),
 								bookTickers.get(symbol),
-								fundingRates.get(symbol)
+								fundingRates.get(symbol),
+								tradingStates.getOrDefault(symbol, TradingState.PREMARKET)
 				);
 				data.put(symbol, symbolData);
 			}

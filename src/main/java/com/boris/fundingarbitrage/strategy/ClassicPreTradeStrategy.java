@@ -11,6 +11,7 @@ import java.time.Instant;
 
 public class ClassicPreTradeStrategy implements PreTradeStrategy {
 	private static final BigDecimal MIN_GAIN = new BigDecimal("0.03"); // 0.3%
+	private static final BigDecimal MIN_OSPREAD = new BigDecimal("-0.005"); // -0.5%
 
 	public static BigDecimal oSpread(ArbitrageSnapshot snapshot) {
 		ExchangeSnapshot longExchange = snapshot.longExchange();
@@ -70,7 +71,7 @@ public class ClassicPreTradeStrategy implements PreTradeStrategy {
 		BigDecimal fees = totalFees(d.constantData());
 		BigDecimal os = oSpread(d.snapshot());
 
-		if (fs.compareTo(fees) < 0) return false;
-		return fs.add(os).subtract(fees).compareTo(MIN_GAIN) > 0;
+		if (fs.subtract(fees).compareTo(MIN_GAIN) < 0) return false;
+		return os.compareTo(MIN_OSPREAD) > 0;
 	}
 }

@@ -1,5 +1,6 @@
 package com.boris.fundingarbitrage.exchange.impl.gate.publicrest;
 
+import com.boris.fundingarbitrage.exchange.publichttp.TradingState;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.FundingRate;
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -16,6 +17,17 @@ class PublicResponses {
 	public record ContractsResponse(List<ContractResponse> items) {
 		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
 		public ContractsResponse {
+		}
+
+		public Map<String, TradingState> getTradingStates() {
+			Map<String, TradingState> result = new HashMap<>();
+			for (ContractResponse item : items) {
+				if (item.in_delisting || !"trading".equalsIgnoreCase(item.status()))
+					result.put(item.name(), TradingState.NOT_TRADING);
+				else if (item.is_pre_market()) result.put(item.name(), TradingState.PREMARKET);
+				else result.put(item.name(), TradingState.TRADING);
+			}
+			return result;
 		}
 
 		public Map<String, BigDecimal> getLotSizes() {
@@ -46,7 +58,10 @@ class PublicResponses {
 						BigDecimal quanto_multiplier,
 						BigDecimal funding_rate,
 						long funding_next_apply,
-						int funding_interval
+						int funding_interval,
+						String status,
+						boolean in_delisting,
+						boolean is_pre_market
 		) {
 		}
 	}

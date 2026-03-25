@@ -3,6 +3,7 @@ package com.boris.fundingarbitrage.exchange.impl.bybit.publicrest;
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.publichttp.PublicHttpClient;
 import com.boris.fundingarbitrage.exchange.publichttp.PublicOnePullData;
+import com.boris.fundingarbitrage.exchange.publichttp.TradingState;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.FundingRate;
 import com.boris.fundingarbitrage.util.https.PrettyHttpClient;
@@ -61,7 +62,8 @@ public class BybitPublicHttpClient extends PublicHttpClient {
 												volume24h.get(symbol),
 												fundingGranularityHours.get(symbol),
 												bookTickers.get(symbol),
-												fundingRates.get(symbol)
+												fundingRates.get(symbol),
+												TradingState.TRADING // Bybit only returns trading coins
 								)
 				);
 			}

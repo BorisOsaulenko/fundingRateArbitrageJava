@@ -3,6 +3,7 @@ package com.boris.fundingarbitrage.exchange.impl.okx.publicrest;
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.publichttp.PublicHttpClient;
 import com.boris.fundingarbitrage.exchange.publichttp.PublicOnePullData;
+import com.boris.fundingarbitrage.exchange.publichttp.TradingState;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.FundingRate;
 import com.boris.fundingarbitrage.util.https.PrettyHttpClient;
@@ -33,25 +34,23 @@ public class OkxPublicHttpClient extends PublicHttpClient {
 
 	@Override
 	protected CompletableFuture<Map<String, PublicOnePullData>> getPublicOnePullData() {
-		CompletableFuture<PublicResponses.InstrumentsResponse>
-						instrumentsResponseFuture =
-						requestWrapper.getResponse(
-										PublicEndpoints.instrumentsRequestSymbols(),
-										PublicResponses.InstrumentsResponse.class
-						);
-		CompletableFuture<PublicResponses.TickersResponse>
-						tickersResponseFuture =
-						requestWrapper.getResponse(PublicEndpoints.tickersRequestSymbols(), PublicResponses.TickersResponse.class);
-		CompletableFuture<PublicResponses.FundingRatesResponse>
-						fundingResponseFuture =
-						requestWrapper.getResponse(
-										PublicEndpoints.fundingRateRequestSymbols(),
-										PublicResponses.FundingRatesResponse.class
-						);
+		CompletableFuture<PublicResponses.InstrumentsResponse> instrumentsResponseFuture = requestWrapper.getResponse(
+						PublicEndpoints.instrumentsRequestSymbols(),
+						PublicResponses.InstrumentsResponse.class
+		);
+		CompletableFuture<PublicResponses.TickersResponse> tickersResponseFuture = requestWrapper.getResponse(
+						PublicEndpoints.tickersRequestSymbols(),
+						PublicResponses.TickersResponse.class
+		);
+		CompletableFuture<PublicResponses.FundingRatesResponse> fundingResponseFuture = requestWrapper.getResponse(
+						PublicEndpoints.fundingRateRequestSymbols(),
+						PublicResponses.FundingRatesResponse.class
+		);
 
 		return CompletableFuture.allOf(instrumentsResponseFuture, tickersResponseFuture, fundingResponseFuture)
 						.thenApply(_ -> {
 							Map<String, BigDecimal> lotSizes = instrumentsResponseFuture.join().getLotSizes();
+							Map<String, TradingState> tradingStates = instrumentsResponseFuture.join().getTradingStates();
 							Map<String, BookTicker> bookTickers = tickersResponseFuture.join().getBookTickers();
 							Map<String, BigDecimal> volumes24h = tickersResponseFuture.join().getVolume24h();
 							Map<String, Integer> fundingIntervals = fundingResponseFuture.join().getFundingGranularityHours();
@@ -66,7 +65,8 @@ public class OkxPublicHttpClient extends PublicHttpClient {
 																volumes24h.get(symbol),
 																fundingIntervals.get(symbol),
 																bookTickers.get(symbol),
-																fundingRates.get(symbol)
+																fundingRates.get(symbol),
+																tradingStates.get(symbol)
 												)
 								);
 							}

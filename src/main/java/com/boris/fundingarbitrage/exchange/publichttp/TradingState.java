@@ -2,5 +2,6 @@ package com.boris.fundingarbitrage.exchange.publichttp;
 
 public enum TradingState {
 	PREMARKET,
-	TRADING
+	TRADING,
+	NOT_TRADING
 }

@@ -33,7 +33,7 @@ class PublicResponses {
 		private record LotSizeFilter(BigDecimal qtyStep) {
 		}
 
-		private record InstrumentInfo(String symbol, LotSizeFilter lotSizeFilter, int fundingInterval) {
+		private record InstrumentInfo(String symbol, LotSizeFilter lotSizeFilter, int fundingInterval, String status) {
 		}
 
 		private record InstrumentsInfoResult(String category, List<InstrumentInfo> list, String nextPageCursor) {

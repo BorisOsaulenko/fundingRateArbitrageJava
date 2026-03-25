@@ -1,5 +1,6 @@
 package com.boris.fundingarbitrage.exchange.impl.kucoin.publicrest;
 
+import com.boris.fundingarbitrage.exchange.publichttp.TradingState;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.FundingRate;
 
@@ -16,7 +17,9 @@ class PublicResponses {
 					BigDecimal volumeOf24h,
 					BigDecimal fundingFeeRate,
 					long nextFundingRateDateTime,
-					long fundingRateGranularity
+					long fundingRateGranularity,
+					String status,
+					String marketStage
 	) {
 	}
 
@@ -53,6 +56,16 @@ class PublicResponses {
 												now
 								)
 				);
+			}
+			return result;
+		}
+
+		public Map<String, TradingState> getTradingStates() {
+			Map<String, TradingState> result = new HashMap<>();
+			for (ActiveContract contract : data) {
+				if ("PRE_MARKET".equalsIgnoreCase(contract.marketStage)) result.put(contract.symbol(), TradingState.PREMARKET);
+				else if ("Open".equalsIgnoreCase(contract.status())) result.put(contract.symbol(), TradingState.TRADING);
+				else result.put(contract.symbol(), TradingState.NOT_TRADING);
 			}
 			return result;
 		}

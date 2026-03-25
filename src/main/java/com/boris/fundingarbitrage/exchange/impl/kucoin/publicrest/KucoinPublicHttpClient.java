@@ -3,6 +3,7 @@ package com.boris.fundingarbitrage.exchange.impl.kucoin.publicrest;
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.publichttp.PublicHttpClient;
 import com.boris.fundingarbitrage.exchange.publichttp.PublicOnePullData;
+import com.boris.fundingarbitrage.exchange.publichttp.TradingState;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.FundingRate;
 import com.boris.fundingarbitrage.util.https.PrettyHttpClient;
@@ -31,35 +32,34 @@ public class KucoinPublicHttpClient extends PublicHttpClient {
 
 	@Override
 	protected CompletableFuture<Map<String, PublicOnePullData>> getPublicOnePullData() {
-		CompletableFuture<PublicResponses.ActiveContractsResponse>
-						contractsResponseFuture =
-						requestWrapper.getResponse(
-										PublicEndpoints.activeContractsRequest(),
-										PublicResponses.ActiveContractsResponse.class
-						);
-		CompletableFuture<PublicResponses.AllTickersResponse>
-						tickersResponseFuture =
-						requestWrapper.getResponse(
-										PublicEndpoints.allTickersRequestSymbols(),
-										PublicResponses.AllTickersResponse.class
-						);
+		CompletableFuture<PublicResponses.ActiveContractsResponse> contractsResponseFuture = requestWrapper.getResponse(
+						PublicEndpoints.activeContractsRequest(),
+						PublicResponses.ActiveContractsResponse.class
+		);
+		CompletableFuture<PublicResponses.AllTickersResponse> tickersResponseFuture = requestWrapper.getResponse(
+						PublicEndpoints.allTickersRequestSymbols(),
+						PublicResponses.AllTickersResponse.class
+		);
 
 		return CompletableFuture.allOf(contractsResponseFuture, tickersResponseFuture).thenApply(_ -> {
 			Map<String, BigDecimal> lotSizes = contractsResponseFuture.join().getLotSizes();
 			Map<String, Integer> fundingIntervals = contractsResponseFuture.join().getFundingGranularityHours();
 			Map<String, BigDecimal> volumes24h = contractsResponseFuture.join().getVolume24h();
 			Map<String, FundingRate> fundingRates = contractsResponseFuture.join().getFundingRates();
+			Map<String, TradingState> tradingStates = contractsResponseFuture.join().getTradingStates();
 			Map<String, BookTicker> bookTickers = tickersResponseFuture.join().getBookTickers();
 
 			Map<String, PublicOnePullData> result = new HashMap<>();
 			for (String symbol : lotSizes.keySet()) {
-				result.put(symbol,
+				result.put(
+								symbol,
 								new PublicOnePullData(
 												lotSizes.get(symbol),
 												volumes24h.get(symbol),
 												fundingIntervals.get(symbol),
 												bookTickers.get(symbol),
-												fundingRates.get(symbol)
+												fundingRates.get(symbol),
+												tradingStates.get(symbol)
 								)
 				);
 			}

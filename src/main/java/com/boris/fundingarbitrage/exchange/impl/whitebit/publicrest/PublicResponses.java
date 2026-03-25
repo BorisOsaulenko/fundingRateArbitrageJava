@@ -1,5 +1,6 @@
 package com.boris.fundingarbitrage.exchange.impl.whitebit.publicrest;
 
+import com.boris.fundingarbitrage.exchange.publichttp.TradingState;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.FundingRate;
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -17,7 +18,7 @@ class PublicResponses {
 		return Instant.ofEpochMilli(ts);
 	}
 
-	private record Market(String name, String type, BigDecimal minAmount) {
+	private record Market(String name, String type, BigDecimal minAmount, boolean tradesEnabled) {
 	}
 
 	@JsonFormat(shape = JsonFormat.Shape.ARRAY)
@@ -34,19 +35,14 @@ class PublicResponses {
 			}
 			return result;
 		}
-	}
 
-	public record OrderBookResponse(List<List<String>> bids, List<List<String>> asks, long timestamp) {
-		public BookTicker bookTicker() {
-			List<String> bestBid = bids.get(0);
-			List<String> bestAsk = asks.get(0);
-			return new BookTicker(
-							new BigDecimal(bestBid.get(0)),
-							new BigDecimal(bestBid.get(1)),
-							new BigDecimal(bestAsk.get(0)),
-							new BigDecimal(bestAsk.get(1)),
-							Instant.ofEpochSecond(timestamp)
-			);
+		public Map<String, TradingState> getTradingStates() {
+			Map<String, TradingState> result = new HashMap<>();
+			for (Market market : markets) {
+				if (!market.tradesEnabled()) result.put(market.name(), TradingState.NOT_TRADING);
+				else result.put(market.name(), TradingState.TRADING);
+			}
+			return result;
 		}
 	}
 

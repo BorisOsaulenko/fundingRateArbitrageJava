@@ -1,5 +1,6 @@
 package com.boris.fundingarbitrage.exchange.impl.binance.publicrest;
 
+import com.boris.fundingarbitrage.exchange.publichttp.TradingState;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.FundingRate;
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -15,6 +16,13 @@ import java.util.Map;
 class PublicResponses {
 
 	public record ExchangeInfoResponse(List<SymbolInfo> symbols) {
+		private static TradingState toTradingState(String status, String underlyingType) {
+			if (!"TRADING".equalsIgnoreCase(status)) return TradingState.NOT_TRADING;
+			if ("PREMARKET".equalsIgnoreCase(underlyingType)) return TradingState.PREMARKET;
+			if ("COIN".equalsIgnoreCase(underlyingType)) return TradingState.TRADING;
+			return TradingState.NOT_TRADING;
+		}
+
 		public Map<String, BigDecimal> getLotSizes() {
 			Map<String, BigDecimal> result = new HashMap<>();
 
@@ -30,6 +38,15 @@ class PublicResponses {
 			return result;
 		}
 
+		public Map<String, TradingState> getTradingStates() {
+			Map<String, TradingState> result = new HashMap<>();
+			for (SymbolInfo info : symbols) {
+				if (!"PERPETUAL".equalsIgnoreCase(info.contractType())) continue;
+				result.put(info.symbol(), toTradingState(info.status(), info.underlyingType()));
+			}
+			return result;
+		}
+
 		public List<String> getExistingSymbols() {
 			List<String> result = new ArrayList<>();
 			for (SymbolInfo info : symbols) result.add(info.symbol());
@@ -39,7 +56,13 @@ class PublicResponses {
 		private record Filter(String filterType, String minQty, String maxQty, BigDecimal stepSize) {
 		}
 
-		private record SymbolInfo(String symbol, String status, String contractType, Filter[] filters) {
+		private record SymbolInfo(
+						String symbol,
+						String status,
+						String underlyingType,
+						String contractType,
+						Filter[] filters
+		) {
 		}
 	}
 

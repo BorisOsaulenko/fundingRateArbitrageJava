@@ -1,6 +1,7 @@
 package exchange;
 
 import com.boris.fundingarbitrage.exchange.publichttp.PublicHttpClient;
+import com.boris.fundingarbitrage.exchange.publichttp.TradingState;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.FundingRate;
 import org.junit.jupiter.api.Tag;
@@ -98,6 +99,7 @@ public abstract class PublicRestTest {
 			validateBookTicker(data.ticker());
 			validateTradingVolume(data.volume24h());
 			validateFundingInterval(data.fundingInterval());
+			assertEquals(TradingState.TRADING, data.tradingState(), "Trading state should be TRADING");
 		}
 	}
 
