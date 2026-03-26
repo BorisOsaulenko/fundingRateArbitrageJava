@@ -3,21 +3,18 @@ package com.boris.fundingarbitrage;
 import com.boris.fundingarbitrage.coinParser.AllExchangeCoinsParser;
 import com.boris.fundingarbitrage.coinParser.ICoinSupplier;
 import com.boris.fundingarbitrage.coinfilter.CoinFilterConfig;
-import com.boris.fundingarbitrage.exchange.BaseExchange;
-import com.boris.fundingarbitrage.exchange.impl.whitebit.WhitebitExchange;
-import com.boris.fundingarbitrage.exchange.publichttp.PublicOnePullData;
+import com.boris.fundingarbitrage.exchange.impl.binance.BinanceExchange;
 import com.boris.fundingarbitrage.logic.ArbitrageBotConfig;
 import com.boris.fundingarbitrage.logic.ArbitrageLogic;
 import com.boris.fundingarbitrage.logic.RebalancingArbitrageLogic;
+import com.boris.fundingarbitrage.model.assetops.TradeSide;
 import com.boris.fundingarbitrage.strategy.ClassicPreTradeStrategy;
 import com.boris.fundingarbitrage.strategy.PreTradeStrategy;
-import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import com.boris.fundingarbitrage.util.logger.Logger;
 import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigDecimal;
 import java.nio.file.Path;
-import java.util.Set;
 
 @Slf4j
 public class App {
@@ -50,11 +47,9 @@ public class App {
 	}
 
 	static void main() throws Exception {
-		Set<String> coins = Set.of("EDGE", "SOL");
-		BaseExchange binance = new WhitebitExchange();
-
-		CoinVector<PublicOnePullData> vt = binance.publicHttpClient.getOnePullData(coins).get();
-		Logger.logCoinVector(vt);
-		Thread.sleep(10_000);
+		BinanceExchange bn = new BinanceExchange();
+		bn.privateHttpClient.getOrderRecord("1046019459", "BARD", TradeSide.CLOSE)
+						.thenAccept(System.out::println)
+						.get();
 	}
 }

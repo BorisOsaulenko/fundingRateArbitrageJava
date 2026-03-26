@@ -80,7 +80,7 @@ public abstract class PublicWsTest {
 	}
 
 	private void subscribeToStreams() {
-		publicWsClient().subscribeBookTicker(
+		publicWsClient().subscribeFuturesBookTicker(
 						COINS, (patch) -> {
 							updateBookTickerPatch(patch);
 							bookTickerMessageCounts.merge(patch.coin(), 1, Integer::sum);
@@ -88,7 +88,7 @@ public abstract class PublicWsTest {
 						}
 		);
 
-		publicWsClient().subscribeFundingRates(
+		publicWsClient().subscribeFuturesFundingRates(
 						COINS, (patch) -> {
 							updateFundingRatePatch(patch);
 							fundingRateMessageCounts.merge(patch.coin(), 1, Integer::sum);
@@ -96,7 +96,7 @@ public abstract class PublicWsTest {
 						}
 		);
 
-		publicWsClient().subscribeMarkPrice(
+		publicWsClient().subscribeFuturesMarkPrice(
 						COINS, (patch) -> {
 							updateMarkPricePatch(patch);
 							markPriceMessageCounts.merge(patch.coin(), 1, Integer::sum);

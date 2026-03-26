@@ -126,7 +126,7 @@ public abstract class PreTradeArbitrageStrategyTest {
 						BigDecimal.valueOf(101),
 						BigDecimal.valueOf(99)
 		);
-		assertFalse(strategy().arbDataGoodEnough(negativeGain));
+		assertFalse(strategy().goodToEnter(negativeGain));
 	}
 
 	@Test
@@ -188,6 +188,6 @@ public abstract class PreTradeArbitrageStrategyTest {
 						new ArbitrageSnapshot(longExchange, shortExchange),
 						new ArbitrageConstantData(longConstantData, shortConstantData)
 		);
-		assertFalse(strategy().arbDataGoodEnough(snapshot));
+		assertFalse(strategy().goodToEnter(snapshot));
 	}
 }

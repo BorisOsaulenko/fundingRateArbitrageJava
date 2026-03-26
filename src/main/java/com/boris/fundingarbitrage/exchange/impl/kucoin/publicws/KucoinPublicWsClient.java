@@ -8,13 +8,7 @@ import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import com.boris.fundingarbitrage.util.wss.publicws.FullFundingViaRest;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -91,32 +85,32 @@ public class KucoinPublicWsClient extends FullFundingViaRest {
 	}
 
 	@Override
-	protected String getSubscribeFundingRateFrame(Set<String> symbols) {
+	protected String getSubscribeFuturesFundingRateFrame(Set<String> symbols) {
 		return getSubscribeFrame(instrumentTopic + String.join(",", symbols));
 	}
 
 	@Override
-	protected String getUnsubscribeFundingRateFrame(Set<String> symbols) {
+	protected String getUnsubscribeFuturesFundingRateFrame(Set<String> symbols) {
 		return getUnsubscribeFrame(instrumentTopic + String.join(",", symbols));
 	}
 
 	@Override
-	protected String getSubscribeBookTickerFrame(Set<String> symbols) {
+	protected String getSubscribeFuturesBookTickerFrame(Set<String> symbols) {
 		return getSubscribeFrame(tickerTopic + String.join(",", symbols));
 	}
 
 	@Override
-	protected String getUnsubscribeBookTickerFrame(Set<String> symbols) {
+	protected String getUnsubscribeFuturesBookTickerFrame(Set<String> symbols) {
 		return getUnsubscribeFrame(tickerTopic + String.join(",", symbols));
 	}
 
 	@Override
-	protected String getSubscribeMarkPriceFrame(Set<String> symbols) {
+	protected String getSubscribeFuturesMarkPriceFrame(Set<String> symbols) {
 		return null;
 	}
 
 	@Override
-	protected String getUnsubscribeMarkPriceFrame(Set<String> symbols) {
+	protected String getUnsubscribeFuturesMarkPriceFrame(Set<String> symbols) {
 		return null;
 	}
 
@@ -142,7 +136,7 @@ public class KucoinPublicWsClient extends FullFundingViaRest {
 		}
 
 		Set<String> symbolsToSubscribe = coinsToSubscribe.stream().map(context::getSymbol).collect(Collectors.toSet());
-		if (!coinsToSubscribe.isEmpty()) sendChunked(symbolsToSubscribe, this::getSubscribeFundingRateFrame);
+		if (!coinsToSubscribe.isEmpty()) sendChunked(symbolsToSubscribe, this::getSubscribeFuturesFundingRateFrame);
 	}
 
 	private <T> void unsubscribeFundingAndMark(
@@ -159,27 +153,27 @@ public class KucoinPublicWsClient extends FullFundingViaRest {
 		}
 
 		Set<String> symbolsToUnsubscribe = coinsToUnsubscribe.stream().map(context::getSymbol).collect(Collectors.toSet());
-		if (!coinsToUnsubscribe.isEmpty()) sendChunked(symbolsToUnsubscribe, this::getUnsubscribeFundingRateFrame);
+		if (!coinsToUnsubscribe.isEmpty()) sendChunked(symbolsToUnsubscribe, this::getUnsubscribeFuturesFundingRateFrame);
 	}
 
 	@Override
-	public void subscribeFundingRates(Set<String> coins, Consumer<FundingRatePatch> handler) {
-		subscribeFundingAndMark(coins, handler, fundingRateHandlers);
+	public void subscribeFuturesFundingRates(Set<String> coins, Consumer<FundingRatePatch> handler) {
+		subscribeFundingAndMark(coins, handler, futuresFundingRateHandlers);
 	}
 
 	@Override
-	public void unsubscribeFundingRates(Set<String> coins) {
-		unsubscribeFundingAndMark(coins, fundingRateHandlers);
+	public void unsubscribeFuturesFundingRates(Set<String> coins) {
+		unsubscribeFundingAndMark(coins, futuresFundingRateHandlers);
 	}
 
 	@Override
-	public void subscribeMarkPrice(Set<String> coins, Consumer<MarkPricePatch> handler) {
-		subscribeFundingAndMark(coins, handler, markPriceHandlers);
+	public void subscribeFuturesMarkPrice(Set<String> coins, Consumer<MarkPricePatch> handler) {
+		subscribeFundingAndMark(coins, handler, futuresMarkPriceHandlers);
 	}
 
 	@Override
-	public void unsubscribeMarkPrice(Set<String> coins) {
-		unsubscribeFundingAndMark(coins, markPriceHandlers);
+	public void unsubscribeFuturesMarkPrice(Set<String> coins) {
+		unsubscribeFundingAndMark(coins, futuresMarkPriceHandlers);
 	}
 
 	private void sendPingFrame() {

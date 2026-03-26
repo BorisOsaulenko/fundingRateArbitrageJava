@@ -121,7 +121,6 @@ class PrivateEndpoints {
 		body.put("symbol", symbol);
 		body.put("side", mapSide(futuresOrder.orderSide(), futuresOrder.tradeSide()));
 		body.put("orderType", "Market");
-		body.put("isLeverage", "1");
 		body.put("qty", String.valueOf(futuresOrder.baseAssetQty()));
 		if (futuresOrder.tradeSide() == TradeSide.CLOSE) {
 			body.put("reduceOnly", true);

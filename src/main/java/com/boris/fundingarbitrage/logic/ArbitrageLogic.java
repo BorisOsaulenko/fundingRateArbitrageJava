@@ -83,6 +83,7 @@ public abstract class ArbitrageLogic {
 						.thenRun(() -> {
 							Logger.log("Monitor initialized");
 							attachWsDisconnectHandlers();
+							afterMonitorInit();
 						})
 						.exceptionally(t -> {
 							Logger.error("Failed to initialize monitor. " + t.getMessage());
@@ -257,7 +258,7 @@ public abstract class ArbitrageLogic {
 												 " (long) / " +
 												 bestCoinExchanges.shortEx().name +
 												 " (short) - " +
-												 (preTradeStrategy.arbDataGoodEnough(entry.getValue().data()) ? "GOOD" : "BAD") +
+												 (preTradeStrategy.goodToEnter(entry.getValue().data()) ? "GOOD" : "BAD") +
 												 "[OSpread: " + ClassicPreTradeStrategy.oSpread(snapshot) + "] " +
 												 "[FSpread: " + ClassicPreTradeStrategy.closestFSpread(snapshot) + "]");
 							Logger.log("Snaphshot: " + entry.getValue().data());
@@ -279,6 +280,8 @@ public abstract class ArbitrageLogic {
 					Map<BaseExchange, BigDecimal> spotBalances,
 					Map<BaseExchange, BigDecimal> futuresBalances
 	);
+
+	protected abstract void afterMonitorInit();
 
 	public void shutdown() {
 		if (shuttingDown) return;

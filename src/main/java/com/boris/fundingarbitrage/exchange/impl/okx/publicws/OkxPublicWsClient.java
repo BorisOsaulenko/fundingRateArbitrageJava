@@ -33,32 +33,32 @@ public class OkxPublicWsClient extends FullFundingViaRest {
 	}
 
 	@Override
-	protected String getSubscribeFundingRateFrame(Set<String> symbols) {
+	protected String getSubscribeFuturesFundingRateFrame(Set<String> symbols) {
 		return subscribe("funding-rate", symbols);
 	}
 
 	@Override
-	protected String getUnsubscribeFundingRateFrame(Set<String> symbols) {
+	protected String getUnsubscribeFuturesFundingRateFrame(Set<String> symbols) {
 		return unsubscribe("funding-rate", symbols);
 	}
 
 	@Override
-	protected String getSubscribeBookTickerFrame(Set<String> symbols) {
+	protected String getSubscribeFuturesBookTickerFrame(Set<String> symbols) {
 		return subscribe("tickers", symbols);
 	}
 
 	@Override
-	protected String getUnsubscribeBookTickerFrame(Set<String> symbols) {
+	protected String getUnsubscribeFuturesBookTickerFrame(Set<String> symbols) {
 		return unsubscribe("tickers", symbols);
 	}
 
 	@Override
-	protected String getSubscribeMarkPriceFrame(Set<String> symbols) {
+	protected String getSubscribeFuturesMarkPriceFrame(Set<String> symbols) {
 		return subscribe("mark-price", symbols);
 	}
 
 	@Override
-	protected String getUnsubscribeMarkPriceFrame(Set<String> symbols) {
+	protected String getUnsubscribeFuturesMarkPriceFrame(Set<String> symbols) {
 		return unsubscribe("mark-price", symbols);
 	}
 }

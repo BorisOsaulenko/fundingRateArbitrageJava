@@ -12,5 +12,7 @@ public interface PublicMessageHandler {
 
 	MarkPricePatch parseMarkPriceMessageSymbol(JsonNode root);
 
+	BookTickerPatch parseSpotBookTickerMessageSymbol(JsonNode root);
+
 	String getResponseToPingMessage(String message);
 }

@@ -91,14 +91,7 @@ public class CoinExecution {
 			String longId = LEnter.join();
 			String shortId = SEnter.join();
 			this.enterIds = new TradeIds(longId, shortId);
-			tradeLogger.log(
-							"Entered trade for %s, long: %s (%s) | short: %s (%s)",
-							coin,
-							params.longEx().name,
-							longId,
-							params.shortEx().name,
-							shortId
-			);
+			tradeLogger.log("Entered trades. Long: " + longId + " | short: " + shortId);
 		}).exceptionallyComposeAsync(t -> {
 			failed = true;
 

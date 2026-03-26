@@ -118,6 +118,7 @@ class PrivateEndpoints {
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest orderRecordRequestSymbol(String orderId, String symbol) {
 		URI uri = new URIBuilder(baseUrl).setPath("/api/v5/trade/fills")
+						.addParameter("instType", instType)
 						.addParameter("instId", symbol)
 						.addParameter("ordId", orderId)
 						.build();

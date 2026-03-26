@@ -47,42 +47,42 @@ public class WhitebitPublicWsClient extends FullFundingViaRest {
 	}
 
 	@Override
-	protected String getSubscribeFundingRateFrame(Set<String> symbols) {
+	protected String getSubscribeFuturesFundingRateFrame(Set<String> symbols) {
 		return null;
 	}
 
 	@Override
-	protected String getUnsubscribeFundingRateFrame(Set<String> symbols) {
+	protected String getUnsubscribeFuturesFundingRateFrame(Set<String> symbols) {
 		return null;
 	}
 
 	@Override
-	protected String getSubscribeBookTickerFrame(Set<String> symbols) {
+	protected String getSubscribeFuturesBookTickerFrame(Set<String> symbols) {
 		return subscribe("bookTicker_subscribe", symbols);
 	}
 
 	@Override
-	protected String getUnsubscribeBookTickerFrame(Set<String> symbols) {
+	protected String getUnsubscribeFuturesBookTickerFrame(Set<String> symbols) {
 		return unsubscribe("bookTicker_unsubscribe", symbols);
 	}
 
 	@Override
-	protected String getSubscribeMarkPriceFrame(Set<String> symbols) {
+	protected String getSubscribeFuturesMarkPriceFrame(Set<String> symbols) {
 		return subscribe("lastprice_subscribe", symbols);
 	}
 
 	@Override
-	protected String getUnsubscribeMarkPriceFrame(Set<String> symbols) {
+	protected String getUnsubscribeFuturesMarkPriceFrame(Set<String> symbols) {
 		return unsubscribe("lastprice_unsubscribe", symbols);
 	}
 
 	@Override
-	public void subscribeBookTicker(Set<String> coins, Consumer<@NonNull BookTickerPatch> handler) {
+	public void subscribeFuturesBookTicker(Set<String> coins, Consumer<@NonNull BookTickerPatch> handler) {
 		for (String coin : coins) {
 			String symbol = context.getSymbol(coin);
-			sendMessage(getSubscribeBookTickerFrame(Set.of(symbol)));
-			Set<Consumer<@NonNull BookTickerPatch>> handlers = bookTickerHandlers.get(coin);
-			if (handlers == null) bookTickerHandlers.put(coin, handlers = new HashSet<>());
+			sendMessage(getSubscribeFuturesBookTickerFrame(Set.of(symbol)));
+			Set<Consumer<@NonNull BookTickerPatch>> handlers = futuresBookTickerHandlers.get(coin);
+			if (handlers == null) futuresBookTickerHandlers.put(coin, handlers = new HashSet<>());
 			handlers.add(handler);
 		}
 	} // Whitebit does not allow subscribing to multiple book tickers at once, so we subscribe to each one separately.

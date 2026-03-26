@@ -4,6 +4,7 @@
 - bitget and kucoin can not subscribe too much coins at a time
 - make logger log in batches
 
+getOrderRecord works: bitget, kucoin
 placeFuturesOrder works on: kucoin, gate, binance
 
 longExchange=

@@ -47,7 +47,7 @@ class PrivateResponses {
 	public record ChangeLeverageResponse(int retCode, String retMsg) {
 		public ChangeLeverageResponse {
 			if (retCode != 0 && retCode != 110043) {
-				throw new RuntimeException(String.format("Failed to change maxLeverage %d, %s", retCode, retMsg));
+				throw new RuntimeException(String.format("Failed to change leverage %d, %s", retCode, retMsg));
 			}
 		}
 	}
@@ -105,7 +105,7 @@ class PrivateResponses {
 				String symbol = item.symbol;
 				BigDecimal maxLeverage = new BigDecimal(item.leverageFilter.maxLeverage);
 				if (maxLeverage.compareTo(BigDecimal.ZERO) == 0)
-					throw new IllegalStateException("Invalid max maxLeverage for symbol: " + symbol);
+					throw new IllegalStateException("Invalid max leverage for symbol: " + symbol);
 				maxLeverageBySymbol.put(symbol, maxLeverage.intValue());
 			}
 
@@ -216,8 +216,6 @@ class PrivateResponses {
 	}
 
 	public record WithdrawUsdtResponse(int retCode, String retMsg, long time, WithdrawResult result) {
-		public WithdrawUsdtResponse {
-		}
 	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
@@ -226,10 +224,9 @@ class PrivateResponses {
 
 	public record PlaceFuturesOrderResponse(int retCode, String retMsg, long time, PlaceFuturesOrderResult result) {
 		public String orderId() {
-			if (result == null) return null;
-			String id = result.orderId;
-			if (id == null || id.isEmpty()) id = result.orderLinkId;
-			return id;
+			if (result == null || result.orderId == null || result.orderId.isEmpty())
+				throw new RuntimeException("Order id not found");
+			return result.orderId;
 		}
 	}
 
@@ -241,7 +238,7 @@ class PrivateResponses {
 	private record OrderRecordItem(
 					String orderId,
 					String symbol,
-					String execQuantity,
+					String execQty,
 					String execPrice,
 					String execFee,
 					String feeCurrency,
@@ -258,7 +255,7 @@ class PrivateResponses {
 				String orderId = item.orderId;
 				if (orderId == null || orderId.isEmpty()) continue;
 				String symbol = item.symbol;
-				BigDecimal qty = new BigDecimal(item.execQuantity);
+				BigDecimal qty = new BigDecimal(item.execQty);
 				BigDecimal price = new BigDecimal(item.execPrice);
 				BigDecimal fee = new BigDecimal(item.execFee);
 				String feeCoin = item.feeCurrency;

@@ -172,9 +172,9 @@ public class CoinMonitor {
 			initFundingHandlers.put(exchange.name, fundingHandler);
 			initMarkHandlers.put(exchange.name, markHandler);
 
-			exchange.publicWsClient.subscribeBookTicker(supportedCoins, bookHandler);
-			exchange.publicWsClient.subscribeFundingRates(supportedCoins, fundingHandler);
-			exchange.publicWsClient.subscribeMarkPrice(supportedCoins, markHandler);
+			exchange.publicWsClient.subscribeFuturesBookTicker(supportedCoins, bookHandler);
+			exchange.publicWsClient.subscribeFuturesFundingRates(supportedCoins, fundingHandler);
+			exchange.publicWsClient.subscribeFuturesMarkPrice(supportedCoins, markHandler);
 		}
 	}
 
@@ -282,23 +282,23 @@ public class CoinMonitor {
 			Set<String> subscribedCoins = new HashSet<>(entry.getValue());
 			if (subscribedCoins.isEmpty()) continue;
 
-			exchange.publicWsClient.subscribeBookTicker(subscribedCoins, createSteadyBookHandler(exchange));
-			exchange.publicWsClient.subscribeFundingRates(subscribedCoins, createSteadyFundingHandler(exchange));
-			exchange.publicWsClient.subscribeMarkPrice(subscribedCoins, createSteadyMarkHandler(exchange));
+			exchange.publicWsClient.subscribeFuturesBookTicker(subscribedCoins, createSteadyBookHandler(exchange));
+			exchange.publicWsClient.subscribeFuturesFundingRates(subscribedCoins, createSteadyFundingHandler(exchange));
+			exchange.publicWsClient.subscribeFuturesMarkPrice(subscribedCoins, createSteadyMarkHandler(exchange));
 
 			Consumer<BookTickerPatch> initBook = initBookHandlers.remove(exchange.name);
 			if (initBook != null) {
-				exchange.publicWsClient.removeBookTickerHandler(subscribedCoins, initBook);
+				exchange.publicWsClient.removeFuturesBookTickerHandler(subscribedCoins, initBook);
 			}
 
 			Consumer<FundingRatePatch> initFunding = initFundingHandlers.remove(exchange.name);
 			if (initFunding != null) {
-				exchange.publicWsClient.removeFundingRatesHandler(subscribedCoins, initFunding);
+				exchange.publicWsClient.removeFuturesFundingRatesHandler(subscribedCoins, initFunding);
 			}
 
 			Consumer<MarkPricePatch> initMark = initMarkHandlers.remove(exchange.name);
 			if (initMark != null) {
-				exchange.publicWsClient.removeMarkPriceHandler(subscribedCoins, initMark);
+				exchange.publicWsClient.removeFuturesMarkPriceHandler(subscribedCoins, initMark);
 			}
 		}
 	}

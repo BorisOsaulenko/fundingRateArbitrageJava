@@ -1,7 +1,6 @@
 package com.boris.fundingarbitrage.exchange.impl.okx.privaterest;
 
 import com.boris.fundingarbitrage.model.assetops.SupportedChain;
-import com.boris.fundingarbitrage.model.contract.Fees;
 import com.boris.fundingarbitrage.model.contract.PartialFill;
 import com.boris.fundingarbitrage.model.exchange.ExchangeChains;
 import com.boris.fundingarbitrage.model.exchange.ExchangeChainsBuilder;
@@ -22,26 +21,6 @@ class PrivateResponses {
 	private static void ensureOk(String code, String msg) {
 		if (!"0".equals(code)) {
 			throw new RuntimeException(String.format("OKX private request failed: %s, %s", code, msg));
-		}
-	}
-
-	@JsonIgnoreProperties(ignoreUnknown = true)
-	private record TradingFeeItem(BigDecimal makerU, BigDecimal takerU) {
-	}
-
-	@JsonIgnoreProperties(ignoreUnknown = true)
-	public record TradingFeesResponse(String code, String msg, List<TradingFeeItem> data) {
-		public Fees getFees() {
-			ensureOk(code, msg);
-			if (data == null || data.isEmpty()) {
-				throw new IllegalStateException("OKX trade fee data missing");
-			}
-			TradingFeeItem item = data.get(0);
-
-			BigDecimal taker = item.takerU.negate(); // OKX returns negative values for fees
-			BigDecimal maker = item.makerU.negate();
-
-			return new Fees(maker, taker, maker, taker, Instant.now());
 		}
 	}
 
@@ -81,7 +60,7 @@ class PrivateResponses {
 				String lever = item.lever;
 				return new BigDecimal(lever).intValue();
 			}
-			throw new IllegalStateException("OKX maxLeverage info not found for symbol: " + symbol);
+			throw new IllegalStateException("OKX leverage info not found for symbol: " + symbol);
 		}
 	}
 
@@ -267,6 +246,7 @@ class PrivateResponses {
 				BigDecimal fee = null;
 				if (feeText != null && !feeText.isEmpty() && "USDT".equalsIgnoreCase(feeCcy)) {
 					fee = new BigDecimal(feeText);
+					fee = fee.negate();
 				}
 				Instant ts = Instant.ofEpochMilli(Long.parseLong(tsText));
 				fills.add(new PartialFill(orderId, symbol, qty, price, fee, ts));
@@ -278,23 +258,6 @@ class PrivateResponses {
 	public record InternalTransferResponse(String code, String msg) {
 		public InternalTransferResponse {
 			ensureOk(code, msg);
-		}
-	}
-
-	@JsonIgnoreProperties(ignoreUnknown = true)
-	private record CurrencyInfoItem(String chain, BigDecimal minFee) {
-	}
-
-	@JsonIgnoreProperties(ignoreUnknown = true)
-	public record CurrencyInfoResponse(String code, String msg, List<CurrencyInfoItem> data) {
-		public BigDecimal minFee(SupportedChain chain) {
-			ensureOk(code, msg);
-			String chainName = chainsMap.get(chain);
-			for (CurrencyInfoItem item : data) {
-				if (!chainName.equalsIgnoreCase(item.chain)) continue;
-				return item.minFee;
-			}
-			throw new IllegalStateException("OKX currency info not found for chain: " + chain);
 		}
 	}
 }

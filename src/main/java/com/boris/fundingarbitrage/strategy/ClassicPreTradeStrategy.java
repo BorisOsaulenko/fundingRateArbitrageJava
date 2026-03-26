@@ -7,11 +7,16 @@ import com.boris.fundingarbitrage.model.exchange.ExchangeSnapshot;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 
 public class ClassicPreTradeStrategy implements PreTradeStrategy {
 	private static final BigDecimal MIN_GAIN = new BigDecimal("0.03"); // 0.3%
 	private static final BigDecimal MIN_OSPREAD = new BigDecimal("-0.005"); // -0.5%
+	private static final Duration BEFORE_ENTER = Duration.of(5, ChronoUnit.SECONDS);
+	private static final Duration FUNDING_CLOSE = Duration.of(10, ChronoUnit.SECONDS);
+	private static final BigDecimal GOOD_OSPREAD = new BigDecimal("0.01"); // 1%
 
 	public static BigDecimal oSpread(ArbitrageSnapshot snapshot) {
 		ExchangeSnapshot longExchange = snapshot.longExchange();
@@ -50,8 +55,8 @@ public class ClassicPreTradeStrategy implements PreTradeStrategy {
 					ArbitrageData first,
 					ArbitrageData second
 	) {
-		boolean firstGood = arbDataGoodEnough(first);
-		boolean secondGood = arbDataGoodEnough(second);
+		boolean firstGood = goodToEnter(first);
+		boolean secondGood = goodToEnter(second);
 		if (firstGood && !secondGood) return 1;
 		if (!firstGood && secondGood) return -1;
 
@@ -65,13 +70,26 @@ public class ClassicPreTradeStrategy implements PreTradeStrategy {
 		return firstFSpread.compareTo(secondFSpread);
 	}
 
+
 	@Override
-	public boolean arbDataGoodEnough(ArbitrageData d) {
+	public boolean goodToEnter(ArbitrageData d) {
+		Duration tillEnter = Instant.now().until(d.snapshot().closestSettlement());
+		if (tillEnter.compareTo(BEFORE_ENTER) < 0)
+			return false; // too late to enter, not enough time to place orders and get filled
+
 		BigDecimal fs = closestFSpread(d.snapshot());
 		BigDecimal fees = totalFees(d.constantData());
 		BigDecimal os = oSpread(d.snapshot());
 
-		if (fs.subtract(fees).compareTo(MIN_GAIN) < 0) return false;
-		return os.compareTo(MIN_OSPREAD) > 0;
+		boolean goodOnFunding =
+						fs.subtract(fees).compareTo(MIN_GAIN) > 0 &&
+						os.compareTo(MIN_OSPREAD) > 0 &&
+						tillEnter.compareTo(FUNDING_CLOSE) < 0; // Ensure funding does not change too much before application
+
+		boolean goodOnOSpread =
+						os.subtract(fees).compareTo(GOOD_OSPREAD) > 0 &&
+						fs.compareTo(BigDecimal.ZERO) >= 0;
+
+		return goodOnFunding || goodOnOSpread;
 	}
 }

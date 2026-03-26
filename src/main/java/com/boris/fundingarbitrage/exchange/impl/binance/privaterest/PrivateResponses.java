@@ -152,13 +152,13 @@ class PrivateResponses {
 		}
 	}
 
-	public record PlaceFuturesOrderResponse(int orderId) {
+	public record PlaceFuturesOrderResponse(long orderId) {
 	}
 
 	private record OrderRecordItem(
 					BigDecimal commission,
 					String commissionAsset,
-					String orderId,
+					long orderId,
 					BigDecimal price,
 					BigDecimal qty,
 					BigDecimal realizedPnl,
@@ -170,16 +170,17 @@ class PrivateResponses {
 	}
 
 	public record GetOrderRecordResponse(OrderRecordItem[] items) {
-		public List<PartialFill> get() {
-			if (items == null || items.length == 0) {
-				return List.of();
-			}
 
+		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
+		public GetOrderRecordResponse {
+		}
+
+		public List<PartialFill> get() {
 			ArrayList<PartialFill> result = new ArrayList<>();
 			for (OrderRecordItem item : items) {
 				BigDecimal fee = item.commissionAsset().equals("USDT") ? item.commission() : null;
 				PartialFill partialFill = new PartialFill(
-								item.orderId(),
+								String.valueOf(item.orderId()),
 								item.symbol(),
 								item.qty(),
 								item.price(),

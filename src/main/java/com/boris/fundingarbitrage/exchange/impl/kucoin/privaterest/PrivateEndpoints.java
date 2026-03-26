@@ -120,7 +120,7 @@ public final class PrivateEndpoints {
 		body.put("clientOid", UUID.randomUUID().toString());
 		body.put("symbol", symbol);
 		body.put("marginMode", futuresOrder.marginMode() == MarginMode.CROSS ? "CROSS" : "ISOLATED");
-		body.put("maxLeverage", String.valueOf(futuresOrder.leverage()));
+		body.put("leverage", String.valueOf(futuresOrder.leverage()));
 		body.put("positionSide", "BOTH");
 		body.put("side", sideFromOrder(futuresOrder.orderSide(), futuresOrder.tradeSide()));
 		body.put("type", "market");

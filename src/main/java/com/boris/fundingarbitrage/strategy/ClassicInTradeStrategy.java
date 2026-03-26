@@ -6,23 +6,21 @@ import com.boris.fundingarbitrage.model.contract.Fees;
 import com.boris.fundingarbitrage.model.exchange.ExchangeSnapshot;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class ClassicInTradeStrategy extends InTradeStrategy {
-	private final BigDecimal minPnl;
 	private final AtomicReference<BigDecimal> pnlSoFar = new AtomicReference<>(BigDecimal.ZERO);
 	private final Fees longFees;
 	private final Fees shortFees;
+	private final BigDecimal minPnl;
 
 	public ClassicInTradeStrategy(ArbitrageData enterData) {
 		super(enterData);
 		this.longFees = constantData.longData().fees();
 		this.shortFees = constantData.shortData().fees();
 
-		BigDecimal enterFSpread = ClassicPreTradeStrategy.closestFSpread(enterSnapshot);
-		this.minPnl = enterSnapshot.notional().multiply(enterFSpread).divide(BigDecimal.TWO, 8, RoundingMode.HALF_EVEN);
 		this.pnlSoFar.updateAndGet(pnl -> pnl.subtract(getEnterFees(enterSnapshot)));
+		this.minPnl = enterData.snapshot().notional().multiply(new BigDecimal("0.0015")); //
 	}
 
 	@Override

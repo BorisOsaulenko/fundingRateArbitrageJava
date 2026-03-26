@@ -8,6 +8,7 @@ import com.boris.fundingarbitrage.model.contract.Fees;
 import com.boris.fundingarbitrage.model.contract.PartialFill;
 import com.boris.fundingarbitrage.model.exchange.ExchangeChains;
 import com.boris.fundingarbitrage.model.exchange.WalletAddress;
+import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import com.boris.fundingarbitrage.util.cryptography.Signers;
 import com.boris.fundingarbitrage.util.https.PrettyHttpClient;
 import com.boris.fundingarbitrage.util.https.RequestProcessingClientWrapper;
@@ -16,10 +17,11 @@ import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
 
 import java.math.BigDecimal;
 import java.net.URI;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
 
 public class BitgetPrivateHttpClient extends PrivateHttpClient {
 	private final ExchangeCredentials credentials;
@@ -62,27 +64,27 @@ public class BitgetPrivateHttpClient extends PrivateHttpClient {
 		}
 	}
 
-	private <T, U> CompletableFuture<U> processRequest(
-					SimpleHttpRequest request,
-					Class<T> responseClass,
-					Function<T, U> parser
-	) {
-		return requestWrapper.processRequest(signRequest(request), responseClass, parser);
+	@Override
+	protected CompletableFuture<Map<String, Fees>> getTradingFeesSymbolBatch() {
+		return null;
 	}
 
 	@Override
-	protected CompletableFuture<Map<String, Fees>> getTradingFeesSymbolBatch() {
-		return processRequest(
-						PrivateEndpoints.contractsRequest(),
-						PrivateResponses.ContractsResponse.class,
-						PrivateResponses.ContractsResponse::getFees
-		);
+	public CompletableFuture<CoinVector<Fees>> getTradingFees(Set<String> coins) {
+		BigDecimal maker = new BigDecimal("0.00036");
+		BigDecimal taker = new BigDecimal("0.001");
+		CoinVector<Fees> result = new CoinVector<>();
+		for (String coin : coins) {
+			result.put(coin, new Fees(maker, taker, maker, taker, Instant.now()));
+		}
+
+		return CompletableFuture.completedFuture(result);
 	}
 
 	@Override
 	protected CompletableFuture<Void> changeLeverageSymbol(String symbol, int leverage) {
-		return processRequest(
-						PrivateEndpoints.changeLeverageRequestSymbol(symbol, leverage),
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.changeLeverageRequestSymbol(symbol, leverage)),
 						PrivateResponses.ChangeLeverageResponse.class,
 						(resp) -> null
 		);
@@ -90,17 +92,18 @@ public class BitgetPrivateHttpClient extends PrivateHttpClient {
 
 	@Override
 	protected CompletableFuture<Void> setMarginModeSymbol(String symbol, MarginMode marginMode) {
-		return processRequest(
-						PrivateEndpoints.setMarginModeRequestSymbol(symbol, marginMode),
-						PrivateResponses.SetMarginModeResponse.class,
-						(resp) -> null
+		if (marginMode == MarginMode.CROSS) {
+			return CompletableFuture.completedFuture(null);
+		}
+		return CompletableFuture.failedFuture(
+						new IllegalArgumentException("Bitget UTA does not support isolated margin mode per symbol")
 		);
 	}
 
 	@Override
 	public CompletableFuture<BigDecimal> getSpotUsdtBalance() {
-		return processRequest(
-						PrivateEndpoints.spotUsdtBalanceRequest(),
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.spotUsdtBalanceRequest()),
 						PrivateResponses.SpotUsdtBalanceResponse.class,
 						PrivateResponses.SpotUsdtBalanceResponse::get
 		);
@@ -108,8 +111,8 @@ public class BitgetPrivateHttpClient extends PrivateHttpClient {
 
 	@Override
 	public CompletableFuture<BigDecimal> getFuturesUsdtBalance() {
-		return processRequest(
-						PrivateEndpoints.futuresUsdtBalanceRequest(),
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.futuresUsdtBalanceRequest()),
 						PrivateResponses.FuturesUsdtBalanceResponse.class,
 						PrivateResponses.FuturesUsdtBalanceResponse::get
 		);
@@ -117,8 +120,8 @@ public class BitgetPrivateHttpClient extends PrivateHttpClient {
 
 	@Override
 	protected CompletableFuture<Map<String, Integer>> getMaxLeverageSymbolBatch() {
-		return processRequest(
-						PrivateEndpoints.contractsRequest(),
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.contractsRequest()),
 						PrivateResponses.ContractsResponse.class,
 						PrivateResponses.ContractsResponse::getMaxLeverages
 		);
@@ -126,8 +129,8 @@ public class BitgetPrivateHttpClient extends PrivateHttpClient {
 
 	@Override
 	public CompletableFuture<ExchangeChains> getSupportedChains() {
-		return processRequest(
-						PrivateEndpoints.supportedChainsRequest(),
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.supportedChainsRequest()),
 						PrivateResponses.SupportedChainsResponse.class,
 						PrivateResponses.SupportedChainsResponse::get
 		);
@@ -135,8 +138,8 @@ public class BitgetPrivateHttpClient extends PrivateHttpClient {
 
 	@Override
 	public CompletableFuture<WalletAddress> getUsdtWalletAddress(SupportedChain chain) {
-		return processRequest(
-						PrivateEndpoints.usdtWalletAddressRequest(chain),
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.usdtWalletAddressRequest(chain)),
 						PrivateResponses.UsdtWalletAddressResponse.class,
 						(resp) -> resp.get(chain)
 		);
@@ -144,8 +147,8 @@ public class BitgetPrivateHttpClient extends PrivateHttpClient {
 
 	@Override
 	public CompletableFuture<Void> withdrawUsdt(Withdrawal withdrawal) {
-		return processRequest(
-						PrivateEndpoints.withdrawUsdtRequest(withdrawal),
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.withdrawUsdtRequest(withdrawal)),
 						PrivateResponses.WithdrawUsdtResponse.class,
 						(resp) -> null
 		);
@@ -153,8 +156,8 @@ public class BitgetPrivateHttpClient extends PrivateHttpClient {
 
 	@Override
 	protected CompletableFuture<String> placeFuturesOrderSymbol(String symbol, FuturesOrder futuresOrder) {
-		return processRequest(
-						PrivateEndpoints.placeFuturesOrderRequestSymbol(symbol, futuresOrder),
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.placeFuturesOrderRequestSymbol(symbol, futuresOrder)),
 						PrivateResponses.PlaceFuturesOrderResponse.class,
 						PrivateResponses.PlaceFuturesOrderResponse::orderId
 		);
@@ -166,8 +169,8 @@ public class BitgetPrivateHttpClient extends PrivateHttpClient {
 					String symbol,
 					TradeSide tradeSide
 	) {
-		return processRequest(
-						PrivateEndpoints.orderRecordRequestSymbol(orderId, symbol, tradeSide),
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.orderRecordRequestSymbol(orderId, symbol, tradeSide)),
 						PrivateResponses.GetOrderRecordResponse.class,
 						PrivateResponses.GetOrderRecordResponse::get
 		);
@@ -175,8 +178,8 @@ public class BitgetPrivateHttpClient extends PrivateHttpClient {
 
 	@Override
 	public CompletableFuture<Void> internalTransfer(InternalTransfer internalTransfer) {
-		return processRequest(
-						PrivateEndpoints.internalTransferRequest(internalTransfer),
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.internalTransferRequest(internalTransfer)),
 						PrivateResponses.InternalTransferResponse.class,
 						(resp) -> null
 		);

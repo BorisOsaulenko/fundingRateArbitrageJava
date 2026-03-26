@@ -71,7 +71,7 @@ public class PrivateResponses {
 	public record ChangeLeverageResponse(String code, boolean data) {
 		public ChangeLeverageResponse {
 			if (!expectedSuccessCode.equals(code) || !data) {
-				throw new IllegalStateException("KuCoin change maxLeverage response code not OK: " + code);
+				throw new IllegalStateException("KuCoin change leverage response code not OK: " + code);
 			}
 		}
 	}

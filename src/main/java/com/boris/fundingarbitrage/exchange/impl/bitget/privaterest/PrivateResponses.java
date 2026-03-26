@@ -21,7 +21,7 @@ class PrivateResponses {
 	public record ChangeLeverageResponse(String code, String msg, long requestTime) {
 		public ChangeLeverageResponse {
 			if (!"00000".equals(code)) {
-				throw new IllegalStateException("Change maxLeverage failed: " + code + " " + msg);
+				throw new IllegalStateException("Change leverage failed: " + code + " " + msg);
 			}
 		}
 	}
@@ -34,42 +34,49 @@ class PrivateResponses {
 		}
 	}
 
-	public record SpotUsdtBalanceResponse(String code, String message, long requestTime, List<SpotBalanceEntry> data) {
+	public record SpotUsdtBalanceResponse(String code, String msg, long requestTime, List<FundingAsset> data) {
 		public BigDecimal get() {
-			SpotBalanceEntry entry = data.getFirst();
-			if (!"usdt".equalsIgnoreCase(entry.coin)) throw new IllegalStateException("Unexpected USDT balance entry");
-			return entry.available;
+			if (data == null || data.isEmpty()) throw new IllegalStateException("USDT funding balance missing");
+			for (FundingAsset entry : data) {
+				if ("USDT".equalsIgnoreCase(entry.coin)) return entry.available;
+			}
+			throw new IllegalStateException("USDT funding balance not found");
 		}
 
-		private record SpotBalanceEntry(String coin, BigDecimal available) {
+		private record FundingAsset(String coin, BigDecimal available) {
 		}
 	}
 
-	private record FuturesAccount(
-					String marginCoin, BigDecimal available
-	) {
+	private record AccountAssetsData(List<AccountAsset> assets) {
+	}
+
+	private record AccountAsset(String coin, BigDecimal available) {
 	}
 
 	public record FuturesUsdtBalanceResponse(
-					String code, String msg, long requestTime, List<FuturesAccount> data
+					String code, String msg, long requestTime, AccountAssetsData data
 	) {
 		public BigDecimal get() {
-			for (FuturesAccount account : data) {
-				String marginCoin = account.marginCoin;
-				if (!"USDT".equalsIgnoreCase(marginCoin)) continue;
+			if (data == null || data.assets == null) throw new IllegalStateException("Account assets missing");
+			for (AccountAsset account : data.assets) {
+				String coin = account.coin;
+				if (!"USDT".equalsIgnoreCase(coin)) continue;
 				return account.available;
 			}
-			throw new IllegalStateException("USDT futures balance not found");
+			throw new IllegalStateException("USDT account balance not found");
 		}
 	}
 
-	private record ContractsItem(String symbol, int maxLever, BigDecimal makerFeeRate, BigDecimal takerFeeRate) {
+	private record ContractsItem(String symbol, String maxLeverage, BigDecimal makerFeeRate, BigDecimal takerFeeRate) {
 	}
 
 	public record ContractsResponse(String code, String msg, long requestTime, List<ContractsItem> data) {
 		public Map<String, Integer> getMaxLeverages() {
 			Map<String, Integer> maxLeverageBySymbol = new HashMap<>();
-			for (ContractsItem item : data) maxLeverageBySymbol.put(item.symbol, item.maxLever);
+			for (ContractsItem item : data) {
+				int max = new BigDecimal(item.maxLeverage).intValue();
+				maxLeverageBySymbol.put(item.symbol, max);
+			}
 			return maxLeverageBySymbol;
 		}
 
@@ -183,29 +190,43 @@ class PrivateResponses {
 		}
 	}
 
-	private record OrderRecordItem(
-					String orderId,
-					String symbol,
-					BigDecimal size,
-					BigDecimal baseVolume,
-					BigDecimal tradeSize,
-					BigDecimal price,
-					BigDecimal tradePrice,
-					BigDecimal fee,
+	private record OrderRecordFeeDetail(
 					String feeCoin,
-					long cTime
+					BigDecimal fee
 	) {
 	}
 
-	public record GetOrderRecordResponse(String code, String msg, long requestTime, List<OrderRecordItem> data) {
+	private record OrderRecordItem(
+					String orderId,
+					String symbol,
+					BigDecimal execQty,
+					BigDecimal execPrice,
+					List<OrderRecordFeeDetail> feeDetail,
+					long createdTime
+	) {
+	}
+
+	private record OrderRecordData(
+					List<OrderRecordItem> list
+	) {
+	}
+
+	public record GetOrderRecordResponse(String code, String msg, long requestTime, OrderRecordData data) {
 		public List<PartialFill> get() {
 			if (data == null) return List.of();
 			ArrayList<PartialFill> result = new ArrayList<>();
-			for (OrderRecordItem item : data) {
-				String feeCoin = item.feeCoin;
-				BigDecimal feeValue = "USDT".equalsIgnoreCase(feeCoin) ? item.fee() : null;
-				Instant ts = Instant.ofEpochMilli(item.cTime());
-				result.add(new PartialFill(item.orderId(), item.symbol(), item.baseVolume(), item.price(), feeValue, ts));
+			for (OrderRecordItem item : data.list()) {
+				OrderRecordFeeDetail feeDetail = null;
+				if (item.feeDetail() != null) {
+					feeDetail = item.feeDetail()
+									.stream()
+									.filter(fd -> "USDT".equalsIgnoreCase(fd.feeCoin))
+									.findFirst()
+									.orElse(null);
+				}
+				BigDecimal feeValue = feeDetail == null ? null : feeDetail.fee().abs();
+				Instant ts = Instant.ofEpochMilli(item.createdTime());
+				result.add(new PartialFill(item.orderId(), item.symbol(), item.execQty(), item.execPrice(), feeValue, ts));
 			}
 			return result;
 		}
@@ -219,7 +240,7 @@ class PrivateResponses {
 	) {
 		public InternalTransferResponse {
 			if (!"00000".equals(code)) {
-				throw new IllegalStateException("Change maxLeverage failed: " + code + " " + msg);
+				throw new IllegalStateException("Internal transfer failed: " + code + " " + msg);
 			}
 		}
 	}

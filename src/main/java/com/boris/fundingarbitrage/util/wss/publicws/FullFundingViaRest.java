@@ -38,21 +38,21 @@ public abstract class FullFundingViaRest extends PublicWsClient {
 	}
 
 	private void pollFundingRates() {
-		if (fundingRateHandlers.isEmpty()) return;
+		if (futuresFundingRateHandlers.isEmpty()) return;
 
-		publicHttpClient.getFundingRate(fundingRateHandlers.keySet()).whenComplete((rates, err) -> {
+		publicHttpClient.getFundingRate(futuresFundingRateHandlers.keySet()).whenComplete((rates, err) -> {
 			if (err != null) return; // Imitate websocket behavior - if REST call fails, just skip this update cycle.
 			rates.forEach((coin, rate) -> {
 				if (rate == null) return;
 				FundingRatePatch patch = new FundingRatePatch(coin, rate.rate(), rate.settlement(), rate.timestamp());
-				dispatchPatchToHandlers(patch, fundingRateHandlers);
+				dispatchPatchToHandlers(patch, futuresFundingRateHandlers);
 			});
 		});
 	}
 
 
 	@Override
-	protected void handleFundingRatePatch(@NotNull FundingRatePatch patch) {
+	protected void handleFuturesFundingRatePatch(@NotNull FundingRatePatch patch) {
 		// Full funding updates are sourced from REST polling.
 	}
 

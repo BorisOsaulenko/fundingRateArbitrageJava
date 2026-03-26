@@ -70,37 +70,37 @@ public class BinancePublicWsClient extends PublicWsClient {
 	}
 
 	@Override
-	protected String getSubscribeFundingRateFrame(Set<String> symbols) {
+	protected String getSubscribeFuturesFundingRateFrame(Set<String> symbols) {
 		return this.getSubscribeFrame(symbols, this::getFundingRateStream);
 	}
 
 	@Override
-	protected String getUnsubscribeFundingRateFrame(Set<String> symbols) {
+	protected String getUnsubscribeFuturesFundingRateFrame(Set<String> symbols) {
 		return this.getUnsubscribeFrame(symbols, this::getFundingRateStream);
 	}
 
 	@Override
-	protected String getSubscribeBookTickerFrame(Set<String> symbols) {
+	protected String getSubscribeFuturesBookTickerFrame(Set<String> symbols) {
 		return this.getSubscribeFrame(symbols, this::getBookTickerStream);
 	}
 
 	@Override
-	protected String getUnsubscribeBookTickerFrame(Set<String> symbols) {
+	protected String getUnsubscribeFuturesBookTickerFrame(Set<String> symbols) {
 		return this.getUnsubscribeFrame(symbols, this::getBookTickerStream);
 	}
 
 	@Override
-	protected String getSubscribeMarkPriceFrame(Set<String> symbols) {
+	protected String getSubscribeFuturesMarkPriceFrame(Set<String> symbols) {
 		return null;
 	}
 
 	@Override
-	protected String getUnsubscribeMarkPriceFrame(Set<String> symbols) {
+	protected String getUnsubscribeFuturesMarkPriceFrame(Set<String> symbols) {
 		return null;
 	}
 
 	@Override
-	public void subscribeBookTicker(
+	public void subscribeFuturesBookTicker(
 					Set<String> coins,
 					Consumer<BookTickerPatch> handler
 	) {
@@ -108,20 +108,20 @@ public class BinancePublicWsClient extends PublicWsClient {
 		subscribeCommon(
 						coins,
 						handler,
-						bookTickerHandlers,
-						bookTickerHandlers::containsKey,
-						this::getSubscribeBookTickerFrame,
+						futuresBookTickerHandlers,
+						futuresBookTickerHandlers::containsKey,
+						this::getSubscribeFuturesBookTickerFrame,
 						bookTickerClient::sendMessage
 		);
 	}
 
 	@Override
-	public void unsubscribeBookTicker(Set<String> coins) {
+	public void unsubscribeFuturesBookTicker(Set<String> coins) {
 		unsubscribeCommon(
 						coins,
-						bookTickerHandlers,
-						bookTickerHandlers::containsKey,
-						this::getUnsubscribeBookTickerFrame,
+						futuresBookTickerHandlers,
+						futuresBookTickerHandlers::containsKey,
+						this::getUnsubscribeFuturesBookTickerFrame,
 						bookTickerClient::sendMessage
 		);
 	}
@@ -135,8 +135,8 @@ public class BinancePublicWsClient extends PublicWsClient {
 						coins,
 						handler,
 						handlersMap,
-						coin -> fundingRateHandlers.containsKey(coin) || markPriceHandlers.containsKey(coin),
-						this::getSubscribeFundingRateFrame,
+						coin -> futuresFundingRateHandlers.containsKey(coin) || futuresMarkPriceHandlers.containsKey(coin),
+						this::getSubscribeFuturesFundingRateFrame,
 						fundingAndMarkClient::sendMessage
 		);
 	}
@@ -148,30 +148,30 @@ public class BinancePublicWsClient extends PublicWsClient {
 		unsubscribeCommon(
 						coins,
 						handlersMap,
-						coin -> fundingRateHandlers.containsKey(coin) || markPriceHandlers.containsKey(coin),
-						this::getUnsubscribeFundingRateFrame,
+						coin -> futuresFundingRateHandlers.containsKey(coin) || futuresMarkPriceHandlers.containsKey(coin),
+						this::getUnsubscribeFuturesFundingRateFrame,
 						fundingAndMarkClient::sendMessage
 		);
 	}
 
 	@Override
-	public void subscribeFundingRates(Set<String> coins, Consumer<FundingRatePatch> handler) {
-		subscribeFundingAndMark(coins, handler, fundingRateHandlers);
+	public void subscribeFuturesFundingRates(Set<String> coins, Consumer<FundingRatePatch> handler) {
+		subscribeFundingAndMark(coins, handler, futuresFundingRateHandlers);
 	}
 
 	@Override
-	public void unsubscribeFundingRates(Set<String> coins) {
-		unsubscribeFundingAndMark(coins, fundingRateHandlers);
+	public void unsubscribeFuturesFundingRates(Set<String> coins) {
+		unsubscribeFundingAndMark(coins, futuresFundingRateHandlers);
 	}
 
 	@Override
-	public void subscribeMarkPrice(Set<String> coins, Consumer<MarkPricePatch> handler) {
-		subscribeFundingAndMark(coins, handler, markPriceHandlers);
+	public void subscribeFuturesMarkPrice(Set<String> coins, Consumer<MarkPricePatch> handler) {
+		subscribeFundingAndMark(coins, handler, futuresMarkPriceHandlers);
 	}
 
 	@Override
-	public void unsubscribeMarkPrice(Set<String> coins) {
-		unsubscribeFundingAndMark(coins, markPriceHandlers);
+	public void unsubscribeFuturesMarkPrice(Set<String> coins) {
+		unsubscribeFundingAndMark(coins, futuresMarkPriceHandlers);
 	}
 
 	private void sendInBatches(
@@ -242,8 +242,8 @@ public class BinancePublicWsClient extends PublicWsClient {
 
 		try {
 			JsonNode root = mapper.readTree(message);
-			tryHandle(root, messageHandler::parseMarkPriceMessageSymbol, this::handleMarkPricePatch);
-			tryHandle(root, messageHandler::parseFundingRateMessageSymbol, this::handleFundingRatePatch);
+			tryHandle(root, messageHandler::parseMarkPriceMessageSymbol, this::handleFuturesMarkPricePatch);
+			tryHandle(root, messageHandler::parseFundingRateMessageSymbol, this::handleFuturesFundingRatePatch);
 		} catch (JsonProcessingException ignored) {
 		}
 	}
@@ -253,7 +253,7 @@ public class BinancePublicWsClient extends PublicWsClient {
 
 		try {
 			JsonNode root = mapper.readTree(message);
-			tryHandle(root, messageHandler::parseBookTickerMessageSymbol, this::handleBookTickerPatch);
+			tryHandle(root, messageHandler::parseBookTickerMessageSymbol, this::handleFuturesBookTickerPatch);
 		} catch (JsonProcessingException ignored) {
 		}
 	}

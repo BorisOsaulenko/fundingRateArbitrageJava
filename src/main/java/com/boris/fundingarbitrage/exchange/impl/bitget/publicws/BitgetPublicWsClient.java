@@ -40,32 +40,32 @@ public class BitgetPublicWsClient extends FullFundingViaRest {
 	}
 
 	@Override
-	protected String getSubscribeFundingRateFrame(Set<String> symbols) {
+	protected String getSubscribeFuturesFundingRateFrame(Set<String> symbols) {
 		return getSubscribeFrame(symbols);
 	}
 
 	@Override
-	protected String getUnsubscribeFundingRateFrame(Set<String> symbols) {
+	protected String getUnsubscribeFuturesFundingRateFrame(Set<String> symbols) {
 		return null;
 	}
 
 	@Override
-	protected String getSubscribeBookTickerFrame(Set<String> symbols) {
+	protected String getSubscribeFuturesBookTickerFrame(Set<String> symbols) {
 		return getSubscribeFrame(symbols);
 	}
 
 	@Override
-	protected String getUnsubscribeBookTickerFrame(Set<String> symbols) {
+	protected String getUnsubscribeFuturesBookTickerFrame(Set<String> symbols) {
 		return getUnsubscribeFrame(symbols);
 	}
 
 	@Override
-	protected String getSubscribeMarkPriceFrame(Set<String> symbols) {
+	protected String getSubscribeFuturesMarkPriceFrame(Set<String> symbols) {
 		return getSubscribeFrame(symbols);
 	}
 
 	@Override
-	protected String getUnsubscribeMarkPriceFrame(Set<String> symbols) {
+	protected String getUnsubscribeFuturesMarkPriceFrame(Set<String> symbols) {
 		return getUnsubscribeFrame(symbols);
 	}
 

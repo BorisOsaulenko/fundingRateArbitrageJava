@@ -49,9 +49,9 @@ public class WsNotStaleDataTest {
 
 			for (BaseExchange exchange : exchanges) {
 				ExchangeStats stats = statsByExchange.get(exchange);
-				exchange.publicWsClient.subscribeBookTicker(COIN, stats::updateBookTicker);
-				exchange.publicWsClient.subscribeFundingRates(COIN, stats::updateFundingRate);
-				exchange.publicWsClient.subscribeMarkPrice(COIN, stats::updateMarkPrice);
+				exchange.publicWsClient.subscribeFuturesBookTicker(COIN, stats::updateBookTicker);
+				exchange.publicWsClient.subscribeFuturesFundingRates(COIN, stats::updateFundingRate);
+				exchange.publicWsClient.subscribeFuturesMarkPrice(COIN, stats::updateMarkPrice);
 			}
 
 			TimeUnit.MILLISECONDS.sleep(WAIT_DURATION.toMillis());

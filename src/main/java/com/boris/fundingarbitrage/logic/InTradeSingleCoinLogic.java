@@ -29,7 +29,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class InTradeSingleCoinLogic {
 	private final BigDecimal usdtAmount;
 	@Getter private final String coin;
-	private final ExchangePair exchanges;
+	@Getter private final ExchangePair exchanges;
 	private final CoinMonitor monitor;
 	private final InTradeStrategy strategy;
 	private final CoinExecution execution;
@@ -39,6 +39,7 @@ public class InTradeSingleCoinLogic {
 	private final AtomicBoolean fillsFetchSuccess = new AtomicBoolean(true);
 	private final ArbitrageConstantData constantData;
 	private final TradeLogger tradeLogger;
+	private final TradeParams enterParams;
 	private long nextFundingTimestamp;
 	@Getter private CompletableFuture<Void> exitFuture = null;
 	private volatile boolean shouldRegisterNewFunding = true;
@@ -61,8 +62,8 @@ public class InTradeSingleCoinLogic {
 		this.strategy = new ClassicInTradeStrategy(new ArbitrageData(enterSnapshot, constantData));
 		this.tradeLogger = new TradeLogger(coin, exchanges);
 
-		TradeParams params = getEnterParams();
-		this.execution = new CoinExecution(coin, params, leverages, tradeLogger);
+		enterParams = getEnterParams();
+		this.execution = new CoinExecution(coin, enterParams, leverages, tradeLogger);
 
 		this.enterFuture = this.execution.enterTrade().exceptionally(this::fail);
 
@@ -139,7 +140,7 @@ public class InTradeSingleCoinLogic {
 	}
 
 	public boolean exitTradeIfShould() {
-		if (!enterFuture.isDone()) throw new RuntimeException("Enter trade not completed yet");
+		if (!enterFuture.isDone()) return false;
 
 		ArbitrageSnapshot current = monitor.getSnapshot(exchanges, coin);
 		if (!strategy.shouldExitTrade(current)) return false;
@@ -224,19 +225,20 @@ public class InTradeSingleCoinLogic {
 							BigDecimal avgLongExitPrice = getAvgPrice(longExitFills);
 							BigDecimal avgShortExitPrice = getAvgPrice(shortExitFills);
 
-							BigDecimal longEnterFeeRate = constantData.longData().fees().openTaker();
-							BigDecimal shortEnterFeeRate = constantData.shortData().fees().openTaker();
-							BigDecimal longExitFeeRate = constantData.longData().fees().closeTaker();
-							BigDecimal shortExitFeeRate = constantData.shortData().fees().closeTaker();
+							BigDecimal longEnterFee = constantData.longData().fees().openTaker().multiply(avgLongEnterPrice);
+							BigDecimal shortEnterFee = constantData.shortData().fees().openTaker().multiply(avgShortEnterPrice);
+							BigDecimal longExitFee = constantData.longData().fees().closeTaker().multiply(avgLongExitPrice);
+							BigDecimal shortExitFee = constantData.shortData().fees().closeTaker().multiply(avgShortExitPrice);
+							BigDecimal totalFees = longEnterFee.add(shortEnterFee).add(longExitFee).add(shortExitFee);
 
 							List<ArbitrageSnapshot> fundingSnapshots = strategy.getFundingSnapshots();
 
 							tradeLogger.log("Trade info for " + coin + ": ");
-							logTradeStep(oLongEnterPrice, avgLongEnterPrice, longEnterFeeRate, true, true);
-							logTradeStep(oShortEnterPrice, avgShortEnterPrice, shortEnterFeeRate, false, true);
+							logTradeStep(oLongEnterPrice, avgLongEnterPrice, longEnterFee, true, true);
+							logTradeStep(oShortEnterPrice, avgShortEnterPrice, shortEnterFee, false, true);
 							BigDecimal totalFundingGain = logFundingSteps(fundingSnapshots);
-							logTradeStep(oLongExitPrice, avgLongExitPrice, longExitFeeRate, true, false);
-							logTradeStep(oShortExitPrice, avgShortExitPrice, shortExitFeeRate, false, false);
+							logTradeStep(oLongExitPrice, avgLongExitPrice, longExitFee, true, false);
+							logTradeStep(oShortExitPrice, avgShortExitPrice, shortExitFee, false, false);
 
 							tradeLogger.log("Observed vs executed total gain (for one coin): ");
 							tradeLogger.log("[Same] Funding gain: " + totalFundingGain);
@@ -249,28 +251,19 @@ public class InTradeSingleCoinLogic {
 							);
 							tradeLogger.log("[Observed] Price moves: " + o);
 							tradeLogger.log("[Executed] Price moves: " + e);
-							tradeLogger.log("[Observed] Total gain: " + o.add(totalFundingGain));
-							tradeLogger.log("[Executed] Total gain: " + e.add(totalFundingGain));
-						});
-	}
 
-	private CompletableFuture<List<PartialFill>> getOrderRecordFuture(
-					BaseExchange ex,
-					String orderId,
-					TradeSide tradeSide
-	) {
-		return ex.privateHttpClient.getOrderRecord(orderId, coin, tradeSide)
-						.thenApply(fills -> {
-							if (fills.isEmpty()) {
-								tradeLogger.log(ex.name + " getOrderRecord returned empty list");
-								throw new RuntimeException("getOrderRecord returned empty list");
-							}
+							BigDecimal oTotalGain = o.add(totalFundingGain);
+							BigDecimal eTotalGain = e.add(totalFundingGain);
+							tradeLogger.log("[Observed] Total gain: " + oTotalGain);
+							tradeLogger.log("[Executed] Total gain: " + eTotalGain);
 
-							return fills;
-						})
-						.exceptionally(t -> {
-							tradeLogger.log(ex.name + " getOrderRecord failed: " + t.getMessage());
-							throw new RuntimeException(t);
+							BigDecimal oAfterFees = oTotalGain.subtract(totalFees);
+							BigDecimal eAfterFees = eTotalGain.subtract(totalFees);
+							tradeLogger.log("[Observed] After fees: " + oAfterFees);
+							tradeLogger.log("[Executed] After fees: " + eAfterFees);
+
+							tradeLogger.log("[Observed] PnL: " + oAfterFees.multiply(baseAssetQty));
+							tradeLogger.log("[Executed] PnL: " + eAfterFees.multiply(baseAssetQty));
 						});
 	}
 
@@ -286,7 +279,7 @@ public class InTradeSingleCoinLogic {
 		return totalCost.divide(totalQty, RoundingMode.HALF_DOWN);
 	}
 
-	private void logTradeStep(BigDecimal o, BigDecimal a, BigDecimal fr, boolean isLong, boolean isEnter) {
+	private void logTradeStep(BigDecimal o, BigDecimal a, BigDecimal fee, boolean isLong, boolean isEnter) {
 		BigDecimal s = o.subtract(a);
 		if ((!isLong && isEnter) || (isLong && !isEnter)) s = s.negate();
 		char ss = getSlippageSign(s);
@@ -295,7 +288,7 @@ public class InTradeSingleCoinLogic {
 		String tag2 = isLong ? "[Long] " : "[Short] ";
 
 		tradeLogger.log(tag1 + tag2 + "Observed price: " + o + ", actual avg price: " + a + ". Slippage: " + ss + s);
-		tradeLogger.log(tag1 + tag2 + "Fee: " + a.multiply(fr));
+		tradeLogger.log(tag1 + tag2 + "Fee: " + fee);
 	}
 
 	private BigDecimal logFundingSteps(List<ArbitrageSnapshot> snapshots) {

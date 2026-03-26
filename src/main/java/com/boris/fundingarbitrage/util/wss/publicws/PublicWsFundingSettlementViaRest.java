@@ -31,7 +31,7 @@ public abstract class PublicWsFundingSettlementViaRest extends PublicWsClient {
 		if (updatingSettlements) return;
 
 		updatingSettlements = true;
-		updatingFuture = this.publicHttpClient.getFundingRate(fundingRateHandlers.keySet()).thenAccept((rates) -> {
+		updatingFuture = this.publicHttpClient.getFundingRate(futuresFundingRateHandlers.keySet()).thenAccept((rates) -> {
 			updatingSettlements = false;
 			rates.forEach((coin, rate) -> {
 				if (rate == null) return;
@@ -50,7 +50,7 @@ public abstract class PublicWsFundingSettlementViaRest extends PublicWsClient {
 	}
 
 	@Override
-	protected void handleFundingRatePatch(@NonNull FundingRatePatch patch) {
+	protected void handleFuturesFundingRatePatch(@NonNull FundingRatePatch patch) {
 		if (updatingSettlements) return;
 
 		String coin = patch.coin();
@@ -68,6 +68,6 @@ public abstract class PublicWsFundingSettlementViaRest extends PublicWsClient {
 						patch.timestamp()
 		);
 
-		dispatchPatchToHandlers(fundingWithSettlement, fundingRateHandlers);
+		dispatchPatchToHandlers(fundingWithSettlement, futuresFundingRateHandlers);
 	}
 }
