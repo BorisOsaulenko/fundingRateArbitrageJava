@@ -21,14 +21,14 @@ public class KucoinContext extends ExchangeContext {
 	}
 
 	@Override
-	public String getSymbol(String coin) {
+	public String getFuturesSymbol(String coin) {
 		String base = coin.toUpperCase();
 		if ("BTC".equals(base)) base = "XBT";
 		return base + QUOTE;
 	}
 
 	@Override
-	public String getSymbolInverse(String symbol) {
+	public String getFuturesSymbolInverse(String symbol) {
 		if (!symbol.endsWith(QUOTE)) {
 			throw new IllegalArgumentException("Symbol does not end with " + QUOTE + ": " + symbol);
 		}

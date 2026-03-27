@@ -1,6 +1,6 @@
 package com.boris.fundingarbitrage.exchange.impl.binance.publicrest;
 
-import com.boris.fundingarbitrage.exchange.publichttp.TradingState;
+import com.boris.fundingarbitrage.exchange.publichttp.FuturesTradingState;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.FundingRate;
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -16,11 +16,11 @@ import java.util.Map;
 class PublicResponses {
 
 	public record ExchangeInfoResponse(List<SymbolInfo> symbols) {
-		private static TradingState toTradingState(String status, String underlyingType) {
-			if (!"TRADING".equalsIgnoreCase(status)) return TradingState.NOT_TRADING;
-			if ("PREMARKET".equalsIgnoreCase(underlyingType)) return TradingState.PREMARKET;
-			if ("COIN".equalsIgnoreCase(underlyingType)) return TradingState.TRADING;
-			return TradingState.NOT_TRADING;
+		private static FuturesTradingState toTradingState(String status, String underlyingType) {
+			if (!"TRADING".equalsIgnoreCase(status)) return FuturesTradingState.NOT_TRADING;
+			if ("PREMARKET".equalsIgnoreCase(underlyingType)) return FuturesTradingState.PREMARKET;
+			if ("COIN".equalsIgnoreCase(underlyingType)) return FuturesTradingState.TRADING;
+			return FuturesTradingState.NOT_TRADING;
 		}
 
 		public Map<String, BigDecimal> getLotSizes() {
@@ -38,8 +38,8 @@ class PublicResponses {
 			return result;
 		}
 
-		public Map<String, TradingState> getTradingStates() {
-			Map<String, TradingState> result = new HashMap<>();
+		public Map<String, FuturesTradingState> getTradingStates() {
+			Map<String, FuturesTradingState> result = new HashMap<>();
 			for (SymbolInfo info : symbols) {
 				if (!"PERPETUAL".equalsIgnoreCase(info.contractType())) continue;
 				result.put(info.symbol(), toTradingState(info.status(), info.underlyingType()));

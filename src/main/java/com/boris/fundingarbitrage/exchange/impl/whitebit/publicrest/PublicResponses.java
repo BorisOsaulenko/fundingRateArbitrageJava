@@ -1,6 +1,6 @@
 package com.boris.fundingarbitrage.exchange.impl.whitebit.publicrest;
 
-import com.boris.fundingarbitrage.exchange.publichttp.TradingState;
+import com.boris.fundingarbitrage.exchange.publichttp.FuturesTradingState;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.FundingRate;
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -36,11 +36,11 @@ class PublicResponses {
 			return result;
 		}
 
-		public Map<String, TradingState> getTradingStates() {
-			Map<String, TradingState> result = new HashMap<>();
+		public Map<String, FuturesTradingState> getTradingStates() {
+			Map<String, FuturesTradingState> result = new HashMap<>();
 			for (Market market : markets) {
-				if (!market.tradesEnabled()) result.put(market.name(), TradingState.NOT_TRADING);
-				else result.put(market.name(), TradingState.TRADING);
+				if (!market.tradesEnabled()) result.put(market.name(), FuturesTradingState.NOT_TRADING);
+				else result.put(market.name(), FuturesTradingState.TRADING);
 			}
 			return result;
 		}

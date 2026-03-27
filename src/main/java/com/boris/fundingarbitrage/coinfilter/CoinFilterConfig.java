@@ -8,7 +8,6 @@ import java.util.Comparator;
 public record CoinFilterConfig(
 				BigDecimal min24hVolumeUsdt,
 				BigDecimal maxAffordablePrice,
-				int maxCoinCap,
 				Comparator<ArbitrageData> coinsComparator
 ) {
 }

@@ -28,12 +28,12 @@ public class GateContext extends ExchangeContext {
 	}
 
 	@Override
-	public String getSymbol(String coin) {
+	public String getFuturesSymbol(String coin) {
 		return coin.toUpperCase() + "_USDT";
 	}
 
 	@Override
-	public String getSymbolInverse(String symbol) {
+	public String getFuturesSymbolInverse(String symbol) {
 		if (symbol.endsWith("_USDT")) {
 			return symbol.substring(0, symbol.length() - 5);
 		}

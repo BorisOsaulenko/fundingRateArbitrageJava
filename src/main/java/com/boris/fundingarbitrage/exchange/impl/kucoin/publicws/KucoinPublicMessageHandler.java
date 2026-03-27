@@ -50,7 +50,7 @@ class KucoinPublicMessageHandler implements PublicMessageHandler {
 		if (ts == 0L) return null;
 
 		Instant timestamp = Instant.ofEpochMilli(ts / 1000_000);
-		String coin = context.getSymbolInverse(symbol);
+		String coin = context.getFuturesSymbolInverse(symbol);
 
 		return new BookTickerPatch(coin, bidPrice, bidSize, askPrice, askSize, timestamp);
 	}
@@ -74,7 +74,7 @@ class KucoinPublicMessageHandler implements PublicMessageHandler {
 		if (ts == 0) return null;
 
 		Instant timestamp = Instant.ofEpochMilli(ts);
-		return new MarkPricePatch(context.getSymbolInverse(symbol), markPrice, timestamp);
+		return new MarkPricePatch(context.getFuturesSymbolInverse(symbol), markPrice, timestamp);
 	}
 
 	private FundingRatePatch parseFundingRateInternal(JsonNode root) {
@@ -91,12 +91,12 @@ class KucoinPublicMessageHandler implements PublicMessageHandler {
 		String rateNode = data.path("fundingRate").asText();
 		BigDecimal rate = rateNode.isEmpty() ? null : new BigDecimal(rateNode);
 		if (rate == null) return null;
-		
+
 		long ts = data.path("timestamp").asLong();
 		if (ts == 0) return null;
 
 		Instant timestamp = Instant.ofEpochMilli(ts);
-		return new FundingRatePatch(context.getSymbolInverse(symbol), rate, null, timestamp);
+		return new FundingRatePatch(context.getFuturesSymbolInverse(symbol), rate, null, timestamp);
 	}
 
 	private <T> T parseErrorHandled(Function<JsonNode, T> parser, JsonNode root) {
@@ -123,6 +123,11 @@ class KucoinPublicMessageHandler implements PublicMessageHandler {
 	@Override
 	public FundingRatePatch parseFundingRateMessageSymbol(JsonNode root) {
 		return parseErrorHandled(this::parseFundingRateInternal, root);
+	}
+
+	@Override
+	public BookTickerPatch parseSpotBookTickerMessageSymbol(JsonNode root) {
+		return parseErrorHandled(this::parseBookTickerInternal, root);
 	}
 
 	@Override

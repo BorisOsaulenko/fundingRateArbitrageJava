@@ -52,4 +52,14 @@ public class GatePublicWsClient extends PublicWsFundingSettlementViaRest {
 	protected String getUnsubscribeFuturesMarkPriceFrame(Set<String> symbols) {
 		return getUnsubscribeFrame("futures.tickers", symbols);
 	}
+
+	@Override
+	protected String getSubscribeSpotBookTickerFrame(Set<String> symbols) {
+		return getSubscribeFrame("futures.book_ticker", symbols);
+	}
+
+	@Override
+	protected String getUnsubscribeSpotBookTickerFrame(Set<String> symbols) {
+		return getUnsubscribeFrame("futures.book_ticker", symbols);
+	}
 }

@@ -19,7 +19,9 @@ public abstract class PublicHttpClient {
 		this.client = client;
 	}
 
-	protected abstract CompletableFuture<Map<String, PublicOnePullData>> getPublicOnePullData();
+	protected abstract CompletableFuture<Map<String, FuturesPublicOnePullData>> getFuturesPublicOnePullData();
+
+	protected abstract CompletableFuture<Map<String, SpotPublicOnePullData>> getSpotPublicOnePullData();
 
 	protected abstract CompletableFuture<Map<String, FundingRate>> getFundingRateSymbolBatch();
 
@@ -30,7 +32,7 @@ public abstract class PublicHttpClient {
 		return symbolGetter.get().thenApply(resultBySymbols -> {
 			CoinVector<T> result = new CoinVector<>();
 			for (String coin : coins) {
-				String symbol = exchangeContext.getSymbol(coin);
+				String symbol = exchangeContext.getFuturesSymbol(coin);
 				T value = resultBySymbols.get(symbol);
 				if (value == null) throw new RuntimeException("Symbol " + symbol + " not found in exchange response");
 				result.put(coin, value);
@@ -43,12 +45,25 @@ public abstract class PublicHttpClient {
 		return withSymbol(coins, this::getFundingRateSymbolBatch);
 	}
 
-	public CompletableFuture<CoinVector<PublicOnePullData>> getOnePullData(Set<String> coins) {
-		return getPublicOnePullData().thenApply(res -> {
-			CoinVector<PublicOnePullData> result = new CoinVector<>();
+	public CompletableFuture<CoinVector<FuturesPublicOnePullData>> getFuturesOnePullData(Set<String> coins) {
+		return getFuturesPublicOnePullData().thenApply(res -> {
+			CoinVector<FuturesPublicOnePullData> result = new CoinVector<>();
 			for (String coin : coins) {
-				String symbol = exchangeContext.getSymbol(coin);
-				PublicOnePullData value = res.get(symbol);
+				String symbol = exchangeContext.getFuturesSymbol(coin);
+				FuturesPublicOnePullData value = res.get(symbol);
+				if (value == null) continue;
+				result.put(coin, value);
+			}
+			return result;
+		});
+	}
+
+	public CompletableFuture<CoinVector<SpotPublicOnePullData>> getSpotOnePullData(Set<String> coins) {
+		return getSpotPublicOnePullData().thenApply(res -> {
+			CoinVector<SpotPublicOnePullData> result = new CoinVector<>();
+			for (String coin : coins) {
+				String symbol = exchangeContext.getSpotSymbol(coin);
+				SpotPublicOnePullData value = res.get(symbol);
 				if (value == null) continue;
 				result.put(coin, value);
 			}

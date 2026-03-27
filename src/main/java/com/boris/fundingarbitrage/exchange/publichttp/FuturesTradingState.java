@@ -1,6 +1,6 @@
 package com.boris.fundingarbitrage.exchange.publichttp;
 
-public enum TradingState {
+public enum FuturesTradingState {
 	PREMARKET,
 	TRADING,
 	NOT_TRADING

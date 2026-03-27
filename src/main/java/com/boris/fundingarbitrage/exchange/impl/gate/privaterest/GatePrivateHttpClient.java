@@ -72,12 +72,12 @@ public class GatePrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
-	protected CompletableFuture<Map<String, Fees>> getTradingFeesSymbolBatch() {
+	protected CompletableFuture<Map<String, Fees>> getFuturesFeesSymbolBatch() {
 		return null;
 	}
 
 	@Override
-	public CompletableFuture<CoinVector<Fees>> getTradingFees(Set<String> coins) {
+	public CompletableFuture<CoinVector<Fees>> getFutureTradingFees(Set<String> coins) {
 		return processRequest(
 						PrivateEndpoints.tradingFeesRequestSymbols(),
 						PrivateResponses.TradingFeesSymbolsResponse.class,
@@ -199,7 +199,7 @@ public class GatePrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
-	protected CompletableFuture<List<PartialFill>> getOrderRecordSymbol(
+	protected CompletableFuture<List<PartialFill>> getFuturesOrderRecordSymbol(
 					String orderId,
 					String symbol,
 					TradeSide tradeSide

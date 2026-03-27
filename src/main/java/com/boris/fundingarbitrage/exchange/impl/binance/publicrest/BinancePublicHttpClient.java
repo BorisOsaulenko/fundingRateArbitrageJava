@@ -1,9 +1,9 @@
 package com.boris.fundingarbitrage.exchange.impl.binance.publicrest;
 
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
+import com.boris.fundingarbitrage.exchange.publichttp.FuturesPublicOnePullData;
+import com.boris.fundingarbitrage.exchange.publichttp.FuturesTradingState;
 import com.boris.fundingarbitrage.exchange.publichttp.PublicHttpClient;
-import com.boris.fundingarbitrage.exchange.publichttp.PublicOnePullData;
-import com.boris.fundingarbitrage.exchange.publichttp.TradingState;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.FundingRate;
 import com.boris.fundingarbitrage.util.https.PrettyHttpClient;
@@ -34,7 +34,7 @@ public class BinancePublicHttpClient extends PublicHttpClient {
 	}
 
 	@Override
-	protected CompletableFuture<Map<String, PublicOnePullData>> getPublicOnePullData() {
+	protected CompletableFuture<Map<String, FuturesPublicOnePullData>> getFuturesPublicOnePullData() {
 		CompletableFuture<PublicResponses.ExchangeInfoResponse> exchangeInfoFuture = requestWrapper.getResponse(
 						PublicEndpoints.exchangeInfoRequest(),
 						PublicResponses.ExchangeInfoResponse.class
@@ -66,9 +66,9 @@ public class BinancePublicHttpClient extends PublicHttpClient {
 
 		return CompletableFuture.allOf(exchangeInfoFuture, fundingGranularityFuture, bookTickersFuture, volumes24hFuture)
 						.thenApply(_ -> {
-							Map<String, PublicOnePullData> data = new HashMap<>();
+							Map<String, FuturesPublicOnePullData> data = new HashMap<>();
 							Map<String, BigDecimal> lotSizes = exchangeInfoFuture.join().getLotSizes();
-							Map<String, TradingState> tradingStates = exchangeInfoFuture.join().getTradingStates();
+							Map<String, FuturesTradingState> tradingStates = exchangeInfoFuture.join().getTradingStates();
 							for (String symbol : lotSizes.keySet()) {
 								try {
 									BigDecimal lotSize = lotSizes.get(symbol);
@@ -76,11 +76,18 @@ public class BinancePublicHttpClient extends PublicHttpClient {
 									BookTicker ticker = bookTickersFuture.join().get(symbol);
 									int fundingGranularity = fundingGranularityFuture.join().get(symbol);
 									FundingRate rate = fundingRates.join().get(symbol);
-									TradingState tradingState = tradingStates.get(symbol);
+									FuturesTradingState tradingState = tradingStates.get(symbol);
 
 									data.put(
 													symbol,
-													new PublicOnePullData(lotSize, volume24h, fundingGranularity, ticker, rate, tradingState)
+													new FuturesPublicOnePullData(
+																	lotSize,
+																	volume24h,
+																	fundingGranularity,
+																	ticker,
+																	rate,
+																	tradingState
+													)
 									);
 								} catch (Exception e) {
 									Logger.error(e.getMessage());
@@ -110,7 +117,7 @@ public class BinancePublicHttpClient extends PublicHttpClient {
 							Set<String> coins = new HashSet<>();
 							for (String symbol : res.getLotSizes().keySet()) {
 								try {
-									coins.add(exchangeContext.getSymbolInverse(symbol));
+									coins.add(exchangeContext.getFuturesSymbolInverse(symbol));
 								} catch (Exception ignored) {
 									// Ignore symbols that do not match exchange symbol format
 								}

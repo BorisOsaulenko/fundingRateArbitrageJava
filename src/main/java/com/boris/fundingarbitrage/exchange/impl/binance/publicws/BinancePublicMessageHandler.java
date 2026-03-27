@@ -33,7 +33,7 @@ class BinancePublicMessageHandler implements PublicMessageHandler {
 		long eventTime = root.path("E").asLong();
 		if (eventTime == 0) return null;
 
-		String coin = context.getSymbolInverse(symbol);
+		String coin = context.getFuturesSymbolInverse(symbol);
 
 		return new FundingRatePatch(coin, rate, Instant.ofEpochMilli(settlementTime), Instant.ofEpochMilli(eventTime));
 	}
@@ -49,7 +49,7 @@ class BinancePublicMessageHandler implements PublicMessageHandler {
 		if (markPriceNode.isEmpty()) return null;
 		BigDecimal markPrice = new BigDecimal(markPriceNode);
 
-		String coin = context.getSymbolInverse(symbol);
+		String coin = context.getFuturesSymbolInverse(symbol);
 		return new MarkPricePatch(coin, markPrice, Instant.ofEpochMilli(eventTime));
 	}
 
@@ -66,10 +66,10 @@ class BinancePublicMessageHandler implements PublicMessageHandler {
 		long eventTime = root.path("E").asLong();
 
 		if (symbol.isEmpty()) return null;
-		if (eventTime == 0) return null;
+		if (eventTime == 0) eventTime = Instant.now().toEpochMilli();
 		if (bbPrice == null && bbQty == null && baPrice == null && baQty == null) return null;
 
-		String coin = context.getSymbolInverse(symbol);
+		String coin = context.getFuturesSymbolInverse(symbol);
 		return new BookTickerPatch(coin, bbPrice, bbQty, baPrice, baQty, Instant.ofEpochMilli(eventTime));
 	}
 
@@ -86,6 +86,11 @@ class BinancePublicMessageHandler implements PublicMessageHandler {
 	@Override
 	public MarkPricePatch parseMarkPriceMessageSymbol(JsonNode root) {
 		return parseErrorHandled(this::parseMarkPriceInternal, root);
+	}
+
+	@Override
+	public BookTickerPatch parseSpotBookTickerMessageSymbol(JsonNode root) {
+		return parseErrorHandled(this::parseBookTickerInternal, root);
 	}
 
 	private <T> T parseErrorHandled(Function<JsonNode, T> parser, JsonNode root) {

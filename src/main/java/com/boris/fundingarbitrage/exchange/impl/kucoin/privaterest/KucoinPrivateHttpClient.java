@@ -83,7 +83,7 @@ public class KucoinPrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
-	protected CompletableFuture<Map<String, Fees>> getTradingFeesSymbolBatch() {
+	protected CompletableFuture<Map<String, Fees>> getFuturesFeesSymbolBatch() {
 		return processRequest(
 						PrivateEndpoints.tradingFeesRequest(),
 						PrivateResponses.TradingFeesSymbolsResponse.class,
@@ -173,7 +173,7 @@ public class KucoinPrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
-	protected CompletableFuture<List<PartialFill>> getOrderRecordSymbol(
+	protected CompletableFuture<List<PartialFill>> getFuturesOrderRecordSymbol(
 					String orderId,
 					String symbol,
 					TradeSide tradeSide

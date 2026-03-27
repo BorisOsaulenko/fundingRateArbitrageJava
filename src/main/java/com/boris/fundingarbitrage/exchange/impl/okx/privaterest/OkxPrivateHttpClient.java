@@ -64,7 +64,7 @@ public class OkxPrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
-	protected CompletableFuture<Map<String, Fees>> getTradingFeesSymbolBatch() {
+	protected CompletableFuture<Map<String, Fees>> getFuturesFeesSymbolBatch() {
 		CompletableFuture<Map<Integer, PrivateResponses.FeeGroup>> feeGroupMapFuture = requestWrapper.processRequest(
 						signRequest(PrivateEndpoints.tradingFeesRequest()),
 						PrivateResponses.TradingFeesSymbolsResponse.class,
@@ -83,7 +83,7 @@ public class OkxPrivateHttpClient extends PrivateHttpClient {
 			Map<String, Fees> result = new HashMap<>();
 
 			instruments.forEach((String symbol, Integer feeGroupId) -> {
-				BigDecimal maker = feeGroupMap.get(feeGroupId).maker().negate(); // okx expresses fees as negative
+				BigDecimal maker = feeGroupMap.get(feeGroupId).maker().negate(); // okx expresses futuresFees as negative
 				BigDecimal taker = feeGroupMap.get(feeGroupId).taker().negate();
 				result.put(symbol, new Fees(maker, taker, maker, taker, Instant.now()));
 			});
@@ -178,7 +178,7 @@ public class OkxPrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
-	protected CompletableFuture<List<PartialFill>> getOrderRecordSymbol(
+	protected CompletableFuture<List<PartialFill>> getFuturesOrderRecordSymbol(
 					String orderId,
 					String symbol,
 					TradeSide tradeSide

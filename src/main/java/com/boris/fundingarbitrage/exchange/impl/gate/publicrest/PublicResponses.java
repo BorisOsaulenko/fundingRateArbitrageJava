@@ -1,6 +1,6 @@
 package com.boris.fundingarbitrage.exchange.impl.gate.publicrest;
 
-import com.boris.fundingarbitrage.exchange.publichttp.TradingState;
+import com.boris.fundingarbitrage.exchange.publichttp.FuturesTradingState;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.FundingRate;
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -19,13 +19,13 @@ class PublicResponses {
 		public ContractsResponse {
 		}
 
-		public Map<String, TradingState> getTradingStates() {
-			Map<String, TradingState> result = new HashMap<>();
+		public Map<String, FuturesTradingState> getTradingStates() {
+			Map<String, FuturesTradingState> result = new HashMap<>();
 			for (ContractResponse item : items) {
 				if (item.in_delisting || !"trading".equalsIgnoreCase(item.status()))
-					result.put(item.name(), TradingState.NOT_TRADING);
-				else if (item.is_pre_market()) result.put(item.name(), TradingState.PREMARKET);
-				else result.put(item.name(), TradingState.TRADING);
+					result.put(item.name(), FuturesTradingState.NOT_TRADING);
+				else if (item.is_pre_market()) result.put(item.name(), FuturesTradingState.PREMARKET);
+				else result.put(item.name(), FuturesTradingState.TRADING);
 			}
 			return result;
 		}

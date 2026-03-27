@@ -64,7 +64,7 @@ public class BybitPrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
-	protected CompletableFuture<Map<String, Fees>> getTradingFeesSymbolBatch() {
+	protected CompletableFuture<Map<String, Fees>> getFuturesFeesSymbolBatch() {
 		return requestWrapper.processRequest(
 						signRequest(PrivateEndpoints.tradingFeesRequest()),
 						PrivateResponses.TradingFeesResponse.class,
@@ -155,7 +155,7 @@ public class BybitPrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
-	protected CompletableFuture<List<PartialFill>> getOrderRecordSymbol(
+	protected CompletableFuture<List<PartialFill>> getFuturesOrderRecordSymbol(
 					String orderId,
 					String symbol,
 					TradeSide tradeSide

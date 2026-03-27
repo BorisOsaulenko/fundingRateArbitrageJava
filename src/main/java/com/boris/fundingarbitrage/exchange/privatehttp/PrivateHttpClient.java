@@ -33,7 +33,9 @@ public abstract class PrivateHttpClient {
 
 	protected abstract SimpleHttpRequest signRequest(SimpleHttpRequest request);
 
-	protected abstract CompletableFuture<Map<String, Fees>> getTradingFeesSymbolBatch();
+	protected abstract CompletableFuture<Map<String, Fees>> getFuturesFeesSymbolBatch();
+
+	protected abstract CompletableFuture<Map<String, Fees>> getSpotFeesSymbolBatch();
 
 	protected abstract CompletableFuture<Void> changeLeverageSymbol(String symbol, int leverage);
 
@@ -56,7 +58,13 @@ public abstract class PrivateHttpClient {
 					FuturesOrder futuresOrder
 	); // returns orderId
 
-	protected abstract CompletableFuture<List<PartialFill>> getOrderRecordSymbol(
+	protected abstract CompletableFuture<List<PartialFill>> getFuturesOrderRecordSymbol(
+					String orderId,
+					String symbol,
+					TradeSide tradeSide
+	);
+
+	protected abstract CompletableFuture<List<PartialFill>> getSpotOrderRecordSymbol(
 					String orderId,
 					String symbol,
 					TradeSide tradeSide
@@ -64,19 +72,24 @@ public abstract class PrivateHttpClient {
 
 	public abstract CompletableFuture<Void> internalTransfer(InternalTransfer internalTransfer);
 
-	private <T> CompletableFuture<T> withSymbol(String coin, Function<String, CompletableFuture<T>> symbolGetter) {
-		String symbol = context.getSymbol(coin);
+	private <T> CompletableFuture<T> withSymbol(
+					String coin,
+					Function<String, CompletableFuture<T>> symbolGetter,
+					Function<String, String> coinToSymbol
+	) {
+		String symbol = coinToSymbol.apply(coin);
 		return symbolGetter.apply(symbol);
 	}
 
 	private <T> CompletableFuture<CoinVector<T>> withSymbolBatch(
 					Set<String> coins,
-					Supplier<CompletableFuture<Map<String, T>>> symbolGetter
+					Supplier<CompletableFuture<Map<String, T>>> symbolGetter,
+					Function<String, String> coinToSymbol
 	) {
 		return symbolGetter.get().thenApply(resultBySymbol -> {
 			CoinVector<T> result = new CoinVector<>();
 			for (String coin : coins) {
-				String symbol = context.getSymbol(coin);
+				String symbol = coinToSymbol.apply(coin);
 				T value = resultBySymbol.get(symbol);
 				if (value == null) continue;
 				result.put(coin, value);
@@ -86,26 +99,42 @@ public abstract class PrivateHttpClient {
 	}
 
 	public CompletableFuture<CoinVector<Integer>> getMaxLeverage(Set<String> coins) {
-		return withSymbolBatch(coins, this::getMaxLeverageSymbolBatch);
+		return withSymbolBatch(coins, this::getMaxLeverageSymbolBatch, context::getFuturesSymbol);
 	}
 
-	public CompletableFuture<CoinVector<Fees>> getTradingFees(Set<String> coins) {
-		return withSymbolBatch(coins, this::getTradingFeesSymbolBatch);
+	public CompletableFuture<CoinVector<Fees>> getFutureTradingFees(Set<String> coins) {
+		return withSymbolBatch(coins, this::getFuturesFeesSymbolBatch, context::getFuturesSymbol);
+	}
+
+	public CompletableFuture<CoinVector<Fees>> getSpotTradingFees(Set<String> coins) {
+		return withSymbolBatch(coins, this::getSpotFeesSymbolBatch, context::getSpotSymbol);
 	}
 
 	public CompletableFuture<Void> changeLeverage(String coin, int leverage) {
-		return withSymbol(coin, (symbol) -> changeLeverageSymbol(symbol, leverage));
+		return withSymbol(coin, (symbol) -> changeLeverageSymbol(symbol, leverage), context::getFuturesSymbol);
 	}
 
 	public CompletableFuture<Void> setMarginMode(String coin, MarginMode marginMode) {
-		return withSymbol(coin, (symbol) -> setMarginModeSymbol(symbol, marginMode));
+		return withSymbol(coin, (symbol) -> setMarginModeSymbol(symbol, marginMode), context::getFuturesSymbol);
 	}
 
 	public CompletableFuture<String> placeFuturesOrder(String coin, FuturesOrder futuresOrder) {
-		return withSymbol(coin, (symbol) -> placeFuturesOrderSymbol(symbol, futuresOrder));
+		return withSymbol(coin, (symbol) -> placeFuturesOrderSymbol(symbol, futuresOrder), context::getFuturesSymbol);
 	}
 
-	public CompletableFuture<List<PartialFill>> getOrderRecord(String orderId, String coin, TradeSide tradeSide) {
-		return withSymbol(coin, (symbol) -> getOrderRecordSymbol(orderId, symbol, tradeSide));
+	public CompletableFuture<List<PartialFill>> getFuturesOrderRecord(String orderId, String coin, TradeSide tradeSide) {
+		return withSymbol(
+						coin,
+						(symbol) -> getFuturesOrderRecordSymbol(orderId, symbol, tradeSide),
+						context::getFuturesSymbol
+		);
+	}
+
+	public CompletableFuture<List<PartialFill>> getSpotOrderRecord(String orderId, String coin, TradeSide tradeSide) {
+		return withSymbol(
+						coin,
+						(symbol) -> getSpotOrderRecordSymbol(orderId, symbol, tradeSide),
+						context::getSpotSymbol
+		);
 	}
 }

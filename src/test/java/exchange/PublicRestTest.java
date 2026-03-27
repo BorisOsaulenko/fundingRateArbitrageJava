@@ -1,7 +1,7 @@
 package exchange;
 
+import com.boris.fundingarbitrage.exchange.publichttp.FuturesTradingState;
 import com.boris.fundingarbitrage.exchange.publichttp.PublicHttpClient;
-import com.boris.fundingarbitrage.exchange.publichttp.TradingState;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.FundingRate;
 import org.junit.jupiter.api.Tag;
@@ -89,7 +89,7 @@ public abstract class PublicRestTest {
 	@Test
 	@Tag("rest")
 	void publicOnePullData() throws Exception {
-		var result = getWithTimeout(publicRest().getOnePullData(coins));
+		var result = getWithTimeout(publicRest().getFuturesOnePullData(coins));
 		assertNotNull(result, "One pull data should not be null");
 		assertEquals(result.size(), coins.size(), "One pull data should contain data for each requested symbol");
 		for (String coin : coins) {
@@ -99,14 +99,14 @@ public abstract class PublicRestTest {
 			validateBookTicker(data.ticker());
 			validateTradingVolume(data.volume24h());
 			validateFundingInterval(data.fundingInterval());
-			assertEquals(TradingState.TRADING, data.tradingState(), "Trading state should be TRADING");
+			assertEquals(FuturesTradingState.TRADING, data.tradingState(), "Trading state should be TRADING");
 		}
 	}
 
 	@Test
 	@Tag("rest")
 	void publicOnePullDataReturnNullOnNonExistentSymbol() throws Exception {
-		var result = getWithTimeout(publicRest().getOnePullData(Set.of("NONEXISTENT")));
+		var result = getWithTimeout(publicRest().getFuturesOnePullData(Set.of("NONEXISTENT")));
 		assertNotNull(result, "One pull data should be null for non-existent symbol");
 		assertEquals(0, result.size(), "Should be empty CoinVector");
 	}

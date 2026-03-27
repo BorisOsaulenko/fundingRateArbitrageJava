@@ -22,13 +22,13 @@ public class OkxContext extends ExchangeContext {
 	}
 
 	@Override
-	public String getSymbol(String coin) {
+	public String getFuturesSymbol(String coin) {
 		String base = coin.toUpperCase();
 		return base + "-" + QUOTE + SWAP_SUFFIX;
 	}
 
 	@Override
-	public String getSymbolInverse(String symbol) {
+	public String getFuturesSymbolInverse(String symbol) {
 		String suffix = "-" + QUOTE + SWAP_SUFFIX;
 		if (!symbol.endsWith(suffix)) {
 			throw new IllegalArgumentException("Symbol does not end with " + suffix + ": " + symbol);

@@ -21,9 +21,11 @@ public abstract class PublicWsTest {
 	private static final Duration WAIT_TIMEOUT = Duration.ofSeconds(240);
 	private static final int MIN_MESSAGES_PER_STREAM = 3;
 	private final CoinVector<Integer> bookTickerMessageCounts = new CoinVector<>();
+	private final CoinVector<Integer> spotBookTickerMessageCounts = new CoinVector<>();
 	private final CoinVector<Integer> fundingRateMessageCounts = new CoinVector<>();
 	private final CoinVector<Integer> markPriceMessageCounts = new CoinVector<>();
 	private final CoinVector<BookTickerPatch> latestBookTickerPatches = new CoinVector<>();
+	private final CoinVector<BookTickerPatch> latestSpotBookTickerPatches = new CoinVector<>();
 	private final CoinVector<FundingRatePatch> latestFundingRatePatches = new CoinVector<>();
 	private final CoinVector<MarkPricePatch> latestMarkPricePatches = new CoinVector<>();
 
@@ -34,6 +36,7 @@ public abstract class PublicWsTest {
 	private void initializeMessageCounts() {
 		for (String coin : COINS) {
 			bookTickerMessageCounts.put(coin, 0);
+			spotBookTickerMessageCounts.put(coin, 0);
 			fundingRateMessageCounts.put(coin, 0);
 			markPriceMessageCounts.put(coin, 0);
 		}
@@ -41,6 +44,7 @@ public abstract class PublicWsTest {
 
 	private void checkMessages() {
 		if (bookTickerMessageCounts.filter((Integer value) -> value < MIN_MESSAGES_PER_STREAM).isEmpty() &&
+				spotBookTickerMessageCounts.filter((Integer value) -> value < MIN_MESSAGES_PER_STREAM).isEmpty() &&
 				fundingRateMessageCounts.filter((Integer value) -> value < MIN_MESSAGES_PER_STREAM).isEmpty() &&
 				markPriceMessageCounts.filter((Integer value) -> value < MIN_MESSAGES_PER_STREAM).isEmpty()) {
 			this.waitingFuture.complete(null);
@@ -49,6 +53,21 @@ public abstract class PublicWsTest {
 
 	private void updateBookTickerPatch(BookTickerPatch patch) {
 		latestBookTickerPatches.merge(
+						patch.coin(), patch, (existing, incoming) -> {
+							return new BookTickerPatch(
+											incoming.coin(),
+											incoming.bidPrice() != null ? incoming.bidPrice() : existing.bidPrice(),
+											incoming.bidSize() != null ? incoming.bidSize() : existing.bidSize(),
+											incoming.askPrice() != null ? incoming.askPrice() : existing.askPrice(),
+											incoming.askSize() != null ? incoming.askSize() : existing.askSize(),
+											incoming.timestamp()
+							);
+						}
+		);
+	}
+
+	private void updateSpotBookTickerPatch(BookTickerPatch patch) {
+		latestSpotBookTickerPatches.merge(
 						patch.coin(), patch, (existing, incoming) -> {
 							return new BookTickerPatch(
 											incoming.coin(),
@@ -103,6 +122,14 @@ public abstract class PublicWsTest {
 							checkMessages();
 						}
 		);
+
+		publicWsClient().subscribeSpotBookTicker(
+						COINS, (patch) -> {
+							updateSpotBookTickerPatch(patch);
+							spotBookTickerMessageCounts.merge(patch.coin(), 1, Integer::sum);
+							checkMessages();
+						}
+		);
 	}
 
 	@Test
@@ -121,14 +148,17 @@ public abstract class PublicWsTest {
 
 		for (String coin : COINS) {
 			Integer bookTickerCount = bookTickerMessageCounts.get(coin);
+			Integer spotBookTickerCount = spotBookTickerMessageCounts.get(coin);
 			Integer fundingRateCount = fundingRateMessageCounts.get(coin);
 			Integer markPriceCount = markPriceMessageCounts.get(coin);
 			BookTickerPatch bookTickerPatch = latestBookTickerPatches.get(coin);
+			BookTickerPatch spotBookTickerPatch = latestSpotBookTickerPatches.get(coin);
 			FundingRatePatch fundingRatePatch = latestFundingRatePatches.get(coin);
 			MarkPricePatch markPricePatch = latestMarkPricePatches.get(coin);
 
 			if (NumberUtils.min(
 							bookTickerCount == null ? 0 : bookTickerCount,
+							spotBookTickerCount == null ? 0 : spotBookTickerCount,
 							fundingRateCount == null ? 0 : fundingRateCount,
 							markPriceCount == null ? 0 : markPriceCount
 			) < MIN_MESSAGES_PER_STREAM) {
@@ -141,6 +171,11 @@ public abstract class PublicWsTest {
 					bookTickerPatch.bidSize() == null ||
 					bookTickerPatch.askPrice() == null ||
 					bookTickerPatch.askSize() == null ||
+					spotBookTickerPatch == null ||
+					spotBookTickerPatch.bidPrice() == null ||
+					spotBookTickerPatch.bidSize() == null ||
+					spotBookTickerPatch.askPrice() == null ||
+					spotBookTickerPatch.askSize() == null ||
 					fundingRatePatch == null ||
 					fundingRatePatch.rate() == null ||
 					fundingRatePatch.settlement() == null ||
@@ -162,6 +197,10 @@ public abstract class PublicWsTest {
 		Logger.log("Book Ticker: ");
 		Logger.logCoinVector(bookTickerMessageCounts);
 		Logger.logCoinVector(latestBookTickerPatches);
+
+		Logger.log("Spot Book Ticker: ");
+		Logger.logCoinVector(spotBookTickerMessageCounts);
+		Logger.logCoinVector(latestSpotBookTickerPatches);
 
 		Logger.log("Funding Rate: ");
 		Logger.logCoinVector(fundingRateMessageCounts);

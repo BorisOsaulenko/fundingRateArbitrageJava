@@ -8,7 +8,7 @@ import com.boris.fundingarbitrage.model.contract.Fees;
 import com.boris.fundingarbitrage.model.contract.FundingRate;
 import com.boris.fundingarbitrage.model.contract.MarkPrice;
 import com.boris.fundingarbitrage.model.exchange.ExchangeConstantData;
-import com.boris.fundingarbitrage.model.exchange.ExchangeSnapshot;
+import com.boris.fundingarbitrage.model.exchange.FuturesSnapshot;
 import com.boris.fundingarbitrage.strategy.PreTradeStrategy;
 import org.junit.jupiter.api.Test;
 
@@ -37,8 +37,8 @@ public abstract class PreTradeArbitrageStrategyTest {
 		FundingRate shortFunding = new FundingRate(shortFundingRate, now.plusSeconds(3600), now);
 		MarkPrice longMark = markPrice(longMarkPrice, now);
 		MarkPrice shortMark = markPrice(shortMarkPrice, now);
-		ExchangeSnapshot longExchange = new ExchangeSnapshot(longBook, longFunding, longMark);
-		ExchangeSnapshot shortExchange = new ExchangeSnapshot(shortBook, shortFunding, shortMark);
+		FuturesSnapshot longExchange = new FuturesSnapshot(longBook, longFunding, longMark);
+		FuturesSnapshot shortExchange = new FuturesSnapshot(shortBook, shortFunding, shortMark);
 		ExchangeConstantData longConstantData = new ExchangeConstantData(new BigDecimal("0.1"), fees, 4);
 		ExchangeConstantData shortConstantData = new ExchangeConstantData(new BigDecimal("0.1"), fees, 4);
 		return new ArbitrageData(
@@ -154,7 +154,7 @@ public abstract class PreTradeArbitrageStrategyTest {
 						new BigDecimal("0.25617"),
 						Instant.parse("2026-03-13T10:18:26Z")
 		);
-		ExchangeSnapshot longExchange = new ExchangeSnapshot(longBook, longFunding, longMark);
+		FuturesSnapshot longExchange = new FuturesSnapshot(longBook, longFunding, longMark);
 
 		BookTicker shortBook = new BookTicker(
 						new BigDecimal("0.25834"),
@@ -179,7 +179,7 @@ public abstract class PreTradeArbitrageStrategyTest {
 						new BigDecimal("0.25856"),
 						Instant.parse("2026-03-13T10:18:32.770Z")
 		);
-		ExchangeSnapshot shortExchange = new ExchangeSnapshot(shortBook, shortFunding, shortMark);
+		FuturesSnapshot shortExchange = new FuturesSnapshot(shortBook, shortFunding, shortMark);
 
 		ExchangeConstantData longConstantData = new ExchangeConstantData(new BigDecimal("0.1"), longFees, 4);
 		ExchangeConstantData shortConstantData = new ExchangeConstantData(new BigDecimal("0.1"), shortFees, 1);

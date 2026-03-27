@@ -33,7 +33,7 @@ class WhitebitPublicMessageHandler implements PublicMessageHandler {
 
 		String symbol = data.get(2).asText();
 		if (symbol == null || symbol.isEmpty()) return null;
-		String coin = context.getSymbolInverse(symbol);
+		String coin = context.getFuturesSymbolInverse(symbol);
 
 		String bidPriceNode = data.get(4).asText();
 		String bidSizeNode = data.get(5).asText();
@@ -60,7 +60,7 @@ class WhitebitPublicMessageHandler implements PublicMessageHandler {
 
 		String symbol = params.get(0).asText();
 		if (symbol == null || symbol.isEmpty()) return null;
-		String coin = context.getSymbolInverse(symbol);
+		String coin = context.getFuturesSymbolInverse(symbol);
 
 		String lastPriceNode = params.get(1).asText(); // whitebit has no mark price indicator
 		BigDecimal lastPrice = lastPriceNode.isEmpty() ? null : new BigDecimal(lastPriceNode);
@@ -93,6 +93,11 @@ class WhitebitPublicMessageHandler implements PublicMessageHandler {
 	@Override
 	public MarkPricePatch parseMarkPriceMessageSymbol(JsonNode root) {
 		return parseErrorHandled(this::parseMarkPriceInternal, root);
+	}
+
+	@Override
+	public BookTickerPatch parseSpotBookTickerMessageSymbol(JsonNode root) {
+		return parseErrorHandled(this::parseBookTickerInternal, root);
 	}
 
 	@Override

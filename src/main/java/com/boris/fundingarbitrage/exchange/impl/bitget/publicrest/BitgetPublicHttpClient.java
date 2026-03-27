@@ -1,9 +1,9 @@
 package com.boris.fundingarbitrage.exchange.impl.bitget.publicrest;
 
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
+import com.boris.fundingarbitrage.exchange.publichttp.FuturesPublicOnePullData;
+import com.boris.fundingarbitrage.exchange.publichttp.FuturesTradingState;
 import com.boris.fundingarbitrage.exchange.publichttp.PublicHttpClient;
-import com.boris.fundingarbitrage.exchange.publichttp.PublicOnePullData;
-import com.boris.fundingarbitrage.exchange.publichttp.TradingState;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.FundingRate;
 import com.boris.fundingarbitrage.util.https.PrettyHttpClient;
@@ -33,7 +33,7 @@ public class BitgetPublicHttpClient extends PublicHttpClient {
 	}
 
 	@Override
-	protected CompletableFuture<Map<String, PublicOnePullData>> getPublicOnePullData() {
+	protected CompletableFuture<Map<String, FuturesPublicOnePullData>> getFuturesPublicOnePullData() {
 		CompletableFuture<PublicResponses.ContractsResponse> contractsResponseFuture = requestWrapper.getResponse(
 						PublicEndpoints.contractConfigRequest(),
 						PublicResponses.ContractsResponse.class
@@ -49,17 +49,17 @@ public class BitgetPublicHttpClient extends PublicHttpClient {
 
 		return CompletableFuture.allOf(contractsResponseFuture, fundingResponseFuture, tickersResponse).thenApply(_ -> {
 			Map<String, BigDecimal> lotSizes = contractsResponseFuture.join().getLotSizes();
-			Map<String, TradingState> tradingStates = contractsResponseFuture.join().getTradingStates();
+			Map<String, FuturesTradingState> tradingStates = contractsResponseFuture.join().getTradingStates();
 			Map<String, BigDecimal> volume24h = tickersResponse.join().getUsdtVolumes();
 			Map<String, BookTicker> bookTickers = tickersResponse.join().getBookTickers();
 			Map<String, Integer> fundingGranularity = fundingResponseFuture.join().getFundingGranularity();
 			Map<String, FundingRate> fundingRates = fundingResponseFuture.join().getFundingRates();
 
-			Map<String, PublicOnePullData> data = new HashMap<>();
+			Map<String, FuturesPublicOnePullData> data = new HashMap<>();
 			for (String symbol : lotSizes.keySet()) {
 				data.put(
 								symbol,
-								new PublicOnePullData(
+								new FuturesPublicOnePullData(
 												lotSizes.get(symbol),
 												volume24h.get(symbol),
 												fundingGranularity.get(symbol),
@@ -82,7 +82,7 @@ public class BitgetPublicHttpClient extends PublicHttpClient {
 							Set<String> coins = new HashSet<>();
 							for (String symbol : res.getLotSizes().keySet()) {
 								try {
-									coins.add(exchangeContext.getSymbolInverse(symbol));
+									coins.add(exchangeContext.getFuturesSymbolInverse(symbol));
 								} catch (Exception ignored) {
 									// Ignore symbols that do not match exchange symbol format
 								}

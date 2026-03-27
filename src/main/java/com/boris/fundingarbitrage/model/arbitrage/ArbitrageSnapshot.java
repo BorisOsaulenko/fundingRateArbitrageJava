@@ -11,17 +11,22 @@ public record ArbitrageSnapshot(
 				@NonNull ExchangeSnapshot longExchange, @NonNull ExchangeSnapshot shortExchange
 ) {
 	public Instant closestSettlement() {
-		Instant longSettlement = longExchange.fundingRate().settlement();
-		Instant shortSettlement = shortExchange.fundingRate().settlement();
+		Instant longSettlement = longExchange.futuresSnapshot().fundingRate().settlement();
+		Instant shortSettlement = shortExchange.futuresSnapshot().fundingRate().settlement();
 		return longSettlement.isBefore(shortSettlement) ? longSettlement : shortSettlement;
 	}
 
-	public BigDecimal notional() {
-		ExchangeSnapshot longExchange = this.longExchange();
-		ExchangeSnapshot shortExchange = this.shortExchange();
-		BigDecimal longAsk = longExchange.bookTicker().askPrice();
-		BigDecimal shortBid = shortExchange.bookTicker().bidPrice();
+	public BigDecimal futuresNotional() {
+		BigDecimal longAsk = longExchange().futuresSnapshot().bookTicker().askPrice();
+		BigDecimal shortBid = shortExchange().futuresSnapshot().bookTicker().bidPrice();
 
-		return longAsk.add(shortBid).divide(BigDecimal.TWO, 8, RoundingMode.HALF_EVEN);
+		return longAsk.add(shortBid).divide(BigDecimal.TWO, 8, RoundingMode.HALF_UP);
+	}
+
+	public BigDecimal spotNotional() {
+		BigDecimal longBid = longExchange().spotSnapshot().bookTicker().bidPrice();
+		BigDecimal shortAsk = shortExchange().spotSnapshot().bookTicker().askPrice();
+
+		return longBid.add(shortAsk).divide(BigDecimal.TWO, 8, RoundingMode.HALF_UP);
 	}
 }

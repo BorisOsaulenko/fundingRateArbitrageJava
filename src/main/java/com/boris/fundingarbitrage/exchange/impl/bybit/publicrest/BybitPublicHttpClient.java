@@ -1,9 +1,9 @@
 package com.boris.fundingarbitrage.exchange.impl.bybit.publicrest;
 
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
+import com.boris.fundingarbitrage.exchange.publichttp.FuturesPublicOnePullData;
+import com.boris.fundingarbitrage.exchange.publichttp.FuturesTradingState;
 import com.boris.fundingarbitrage.exchange.publichttp.PublicHttpClient;
-import com.boris.fundingarbitrage.exchange.publichttp.PublicOnePullData;
-import com.boris.fundingarbitrage.exchange.publichttp.TradingState;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.FundingRate;
 import com.boris.fundingarbitrage.util.https.PrettyHttpClient;
@@ -34,7 +34,7 @@ public class BybitPublicHttpClient extends PublicHttpClient {
 	}
 
 	@Override
-	protected CompletableFuture<Map<String, PublicOnePullData>> getPublicOnePullData() {
+	protected CompletableFuture<Map<String, FuturesPublicOnePullData>> getFuturesPublicOnePullData() {
 		Map<String, BigDecimal> lotSizes = new HashMap<>();
 		Map<String, Integer> fundingGranularityHours = new HashMap<>();
 
@@ -54,16 +54,16 @@ public class BybitPublicHttpClient extends PublicHttpClient {
 			Map<String, FundingRate> fundingRates = tickersResponseFuture.join().getFundingRates();
 			Map<String, BigDecimal> volume24h = tickersResponseFuture.join().getVolume24h();
 
-			Map<String, PublicOnePullData> data = new HashMap<>();
+			Map<String, FuturesPublicOnePullData> data = new HashMap<>();
 			for (String symbol : lotSizes.keySet()) {
 				data.put(
-								symbol, new PublicOnePullData(
+								symbol, new FuturesPublicOnePullData(
 												lotSizes.get(symbol),
 												volume24h.get(symbol),
 												fundingGranularityHours.get(symbol),
 												bookTickers.get(symbol),
 												fundingRates.get(symbol),
-												TradingState.TRADING // Bybit only returns trading coins
+												FuturesTradingState.TRADING // Bybit only returns trading coins
 								)
 				);
 			}
@@ -81,7 +81,7 @@ public class BybitPublicHttpClient extends PublicHttpClient {
 						res -> {
 							for (String symbol : res.getLotSizes().keySet()) {
 								try {
-									coins.add(exchangeContext.getSymbolInverse(symbol));
+									coins.add(exchangeContext.getFuturesSymbolInverse(symbol));
 								} catch (Exception ignored) {
 									// Ignore symbols that do not match exchange symbol format
 								}

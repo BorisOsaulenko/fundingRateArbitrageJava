@@ -7,6 +7,7 @@ import java.util.Collection;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 
 public class ExchangeCoinMap<T> {
 	private final ConcurrentHashMap<BaseExchange, CoinVector<T>> exchangeCoinMap;
@@ -34,6 +35,27 @@ public class ExchangeCoinMap<T> {
 
 	public void compute(BaseExchange exchange, String coin, BiFunction<String, T, T> remappingFunction) {
 		exchangeCoinMap.computeIfAbsent(exchange, (e) -> new CoinVector<>()).compute(coin, remappingFunction);
+	}
+
+	public void compute(BaseExchange exchange, String coin, Function<T, T> mappingFunction) {
+		exchangeCoinMap.computeIfAbsent(exchange, (e) -> new CoinVector<>())
+						.compute(coin, (k, oldValue) -> mappingFunction.apply(oldValue));
+	}
+
+	public <V> T merge(BaseExchange exchange, String coin, V value, BiFunction<V, T, T> remappingFunction) {
+		return exchangeCoinMap.computeIfAbsent(exchange, e -> new CoinVector<>())
+						.compute(coin, (k, oldValue) -> remappingFunction.apply(value, oldValue));
+	}
+
+	public T computeIfAbsent(BaseExchange exchange, String coin, Function<String, ? extends T> mappingFunction) {
+		return exchangeCoinMap.computeIfAbsent(exchange, e -> new CoinVector<>())
+						.computeIfAbsent(coin, mappingFunction);
+	}
+
+	public T computeIfPresent(BaseExchange exchange, String coin, BiFunction<String, T, T> remappingFunction) {
+		CoinVector<T> coinVector = exchangeCoinMap.get(exchange);
+		if (coinVector == null) return null;
+		return coinVector.computeIfPresent(coin, remappingFunction);
 	}
 
 	public Collection<T> values() {

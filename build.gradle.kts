@@ -41,6 +41,7 @@ dependencies {
     implementation("org.bouncycastle:bcprov-jdk18on:1.78")
     implementation("org.bouncycastle:bcpkix-jdk18on:1.83")
     implementation("org.jsoup:jsoup:1.22.1")
+    implementation("org.apache.commons:commons-lang3:3.20.0")
 }
 
 tasks.test {

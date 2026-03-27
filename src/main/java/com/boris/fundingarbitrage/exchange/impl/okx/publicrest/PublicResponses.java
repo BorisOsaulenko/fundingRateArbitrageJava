@@ -1,8 +1,8 @@
 package com.boris.fundingarbitrage.exchange.impl.okx.publicrest;
 
+import com.boris.fundingarbitrage.exchange.publichttp.FuturesTradingState;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.FundingRate;
-import com.boris.fundingarbitrage.exchange.publichttp.TradingState;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -15,23 +15,23 @@ class PublicResponses {
 	}
 
 	public record InstrumentsResponse(int code, String msg, List<Instrument> data) {
+		private static FuturesTradingState toTradingState(String state) {
+			if (state == null) return FuturesTradingState.PREMARKET;
+			if ("live".equalsIgnoreCase(state)) return FuturesTradingState.TRADING;
+			if ("preopen".equalsIgnoreCase(state)) return FuturesTradingState.PREMARKET;
+			return FuturesTradingState.NOT_TRADING;
+		}
+
 		public Map<String, BigDecimal> getLotSizes() {
 			Map<String, BigDecimal> result = new HashMap<>();
 			for (Instrument item : data) result.put(item.instId(), item.lotSz());
 			return result;
 		}
 
-		public Map<String, TradingState> getTradingStates() {
-			Map<String, TradingState> result = new HashMap<>();
+		public Map<String, FuturesTradingState> getTradingStates() {
+			Map<String, FuturesTradingState> result = new HashMap<>();
 			for (Instrument item : data) result.put(item.instId(), toTradingState(item.state()));
 			return result;
-		}
-
-		private static TradingState toTradingState(String state) {
-			if (state == null) return TradingState.PREMARKET;
-			if ("live".equalsIgnoreCase(state)) return TradingState.TRADING;
-			if ("preopen".equalsIgnoreCase(state)) return TradingState.PREMARKET;
-			return TradingState.NOT_TRADING;
 		}
 	}
 

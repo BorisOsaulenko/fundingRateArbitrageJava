@@ -51,7 +51,7 @@ public abstract class PrivateRestTest {
 	@Test
 	@Tag("rest")
 	public void getTradingFeesTest() throws Exception {
-		CoinVector<Fees> fees = getWithTimeout(privateRest().getTradingFees(testCoins));
+		CoinVector<Fees> fees = getWithTimeout(privateRest().getFutureTradingFees(testCoins));
 		assertNotNull(fees, "Fees result should not be null");
 		assertEquals(testCoins.size(), fees.size(), "Fees result should contain data for each requested coin");
 		for (String coin : testCoins) {

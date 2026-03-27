@@ -7,9 +7,13 @@ public abstract class ExchangeContext {
 		this.credentials = getCredentialsOrThrow();
 	}
 
-	public abstract String getSymbol(String coin);
+	public abstract String getFuturesSymbol(String coin);
 
-	public abstract String getSymbolInverse(String symbol);
+	public abstract String getFuturesSymbolInverse(String symbol);
+
+	public abstract String getSpotSymbol(String coin);
+
+	public abstract String getSpotSymbolInverse(String symbol);
 
 	protected abstract ExchangeCredentials getCredentialsOrThrow();
 }

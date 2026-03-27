@@ -55,4 +55,14 @@ public class BybitPublicWsClient extends FullFundingViaRest {
 	protected String getUnsubscribeFuturesMarkPriceFrame(Set<String> symbols) {
 		return getUnsubscribeFrame(symbols);
 	}
+
+	@Override
+	protected String getSubscribeSpotBookTickerFrame(Set<String> symbols) {
+		return getSubscribeFrame(symbols);
+	}
+
+	@Override
+	protected String getUnsubscribeSpotBookTickerFrame(Set<String> symbols) {
+		return getUnsubscribeFrame(symbols);
+	}
 }

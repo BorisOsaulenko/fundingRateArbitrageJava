@@ -77,15 +77,36 @@ public class WhitebitPublicWsClient extends FullFundingViaRest {
 	}
 
 	@Override
+	protected String getSubscribeSpotBookTickerFrame(Set<String> symbols) {
+		return subscribe("bookTicker_subscribe", symbols);
+	}
+
+	@Override
+	protected String getUnsubscribeSpotBookTickerFrame(Set<String> symbols) {
+		return unsubscribe("bookTicker_unsubscribe", symbols);
+	}
+
+	@Override
 	public void subscribeFuturesBookTicker(Set<String> coins, Consumer<@NonNull BookTickerPatch> handler) {
 		for (String coin : coins) {
-			String symbol = context.getSymbol(coin);
+			String symbol = context.getFuturesSymbol(coin);
 			sendMessage(getSubscribeFuturesBookTickerFrame(Set.of(symbol)));
 			Set<Consumer<@NonNull BookTickerPatch>> handlers = futuresBookTickerHandlers.get(coin);
 			if (handlers == null) futuresBookTickerHandlers.put(coin, handlers = new HashSet<>());
 			handlers.add(handler);
 		}
 	} // Whitebit does not allow subscribing to multiple book tickers at once, so we subscribe to each one separately.
+
+	@Override
+	public void subscribeSpotBookTicker(Set<String> coins, Consumer<@NonNull BookTickerPatch> handler) {
+		for (String coin : coins) {
+			String symbol = context.getFuturesSymbol(coin);
+			sendMessage(getSubscribeSpotBookTickerFrame(Set.of(symbol)));
+			Set<Consumer<@NonNull BookTickerPatch>> handlers = spotBookTickerHandlers.get(coin);
+			if (handlers == null) spotBookTickerHandlers.put(coin, handlers = new HashSet<>());
+			handlers.add(handler);
+		}
+	}
 
 	@Override
 	public void close() {

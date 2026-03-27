@@ -17,12 +17,12 @@ public class WhitebitContext extends ExchangeContext {
 	}
 
 	@Override
-	public String getSymbol(String coin) {
+	public String getFuturesSymbol(String coin) {
 		return coin.toUpperCase() + "_PERP";
 	}
 
 	@Override
-	public String getSymbolInverse(String symbol) {
+	public String getFuturesSymbolInverse(String symbol) {
 		if (symbol.endsWith("_PERP")) {
 			return symbol.substring(0, symbol.length() - 5);
 		}

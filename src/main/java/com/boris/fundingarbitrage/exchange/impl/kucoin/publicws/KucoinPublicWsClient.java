@@ -114,6 +114,16 @@ public class KucoinPublicWsClient extends FullFundingViaRest {
 		return null;
 	}
 
+	@Override
+	protected String getSubscribeSpotBookTickerFrame(Set<String> symbols) {
+		return getSubscribeFrame(tickerTopic + String.join(",", symbols));
+	}
+
+	@Override
+	protected String getUnsubscribeSpotBookTickerFrame(Set<String> symbols) {
+		return getUnsubscribeFrame(tickerTopic + String.join(",", symbols));
+	}
+
 	private void sendChunked(Set<String> symbols, Function<Set<String>, String> frameBuilder) {
 		List<Set<String>> adjustedToLimits = split(symbols);
 		for (Set<String> chunk : adjustedToLimits) {
@@ -135,7 +145,9 @@ public class KucoinPublicWsClient extends FullFundingViaRest {
 			}
 		}
 
-		Set<String> symbolsToSubscribe = coinsToSubscribe.stream().map(context::getSymbol).collect(Collectors.toSet());
+		Set<String> symbolsToSubscribe = coinsToSubscribe.stream()
+						.map(context::getFuturesSymbol)
+						.collect(Collectors.toSet());
 		if (!coinsToSubscribe.isEmpty()) sendChunked(symbolsToSubscribe, this::getSubscribeFuturesFundingRateFrame);
 	}
 
@@ -152,7 +164,9 @@ public class KucoinPublicWsClient extends FullFundingViaRest {
 			}
 		}
 
-		Set<String> symbolsToUnsubscribe = coinsToUnsubscribe.stream().map(context::getSymbol).collect(Collectors.toSet());
+		Set<String> symbolsToUnsubscribe = coinsToUnsubscribe.stream()
+						.map(context::getFuturesSymbol)
+						.collect(Collectors.toSet());
 		if (!coinsToUnsubscribe.isEmpty()) sendChunked(symbolsToUnsubscribe, this::getUnsubscribeFuturesFundingRateFrame);
 	}
 

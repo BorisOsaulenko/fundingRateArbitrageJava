@@ -36,7 +36,7 @@ class BybitPublicMessageHandler implements PublicMessageHandler {
 		BigDecimal markPrice = markPriceNode.isEmpty() ? null : new BigDecimal(markPriceNode);
 		if (markPrice == null) return null;
 
-		String coin = context.getSymbolInverse(symbol);
+		String coin = context.getFuturesSymbolInverse(symbol);
 		return new MarkPricePatch(coin, markPrice, parseTimestamp(root));
 	}
 
@@ -47,7 +47,7 @@ class BybitPublicMessageHandler implements PublicMessageHandler {
 		String symbol = data.path("symbol").asText();
 		if (symbol.isEmpty()) return null;
 
-		String coin = context.getSymbolInverse(symbol);
+		String coin = context.getFuturesSymbolInverse(symbol);
 		String bidPrNode = data.path("bid1Price").asText();
 		String bidSzNode = data.path("bid1Size").asText();
 		String askPrNode = data.path("ask1Price").asText();
@@ -86,6 +86,11 @@ class BybitPublicMessageHandler implements PublicMessageHandler {
 	@Override
 	public MarkPricePatch parseMarkPriceMessageSymbol(JsonNode root) {
 		return parseErrorHandled(this::parseMarkPriceInternal, root);
+	}
+
+	@Override
+	public BookTickerPatch parseSpotBookTickerMessageSymbol(JsonNode root) {
+		return parseErrorHandled(this::parseBookTickerInternal, root);
 	}
 
 	@Override

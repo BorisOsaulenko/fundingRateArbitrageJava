@@ -3,7 +3,7 @@ package com.boris.fundingarbitrage.strategy;
 import com.boris.fundingarbitrage.model.arbitrage.ArbitrageConstantData;
 import com.boris.fundingarbitrage.model.arbitrage.ArbitrageData;
 import com.boris.fundingarbitrage.model.arbitrage.ArbitrageSnapshot;
-import com.boris.fundingarbitrage.model.exchange.ExchangeSnapshot;
+import com.boris.fundingarbitrage.model.exchange.FuturesSnapshot;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -19,11 +19,11 @@ public class ClassicPreTradeStrategy implements PreTradeStrategy {
 	private static final BigDecimal GOOD_OSPREAD = new BigDecimal("0.01"); // 1%
 
 	public static BigDecimal oSpread(ArbitrageSnapshot snapshot) {
-		ExchangeSnapshot longExchange = snapshot.longExchange();
-		ExchangeSnapshot shortExchange = snapshot.shortExchange();
+		FuturesSnapshot longExchange = snapshot.longExchange();
+		FuturesSnapshot shortExchange = snapshot.shortExchange();
 		BigDecimal longAsk = longExchange.bookTicker().askPrice();
 		BigDecimal shortBid = shortExchange.bookTicker().bidPrice();
-		BigDecimal perCoinNotional = snapshot.notional();
+		BigDecimal perCoinNotional = snapshot.futuresNotional();
 
 		return shortBid.subtract(longAsk).divide(perCoinNotional, 8, RoundingMode.HALF_EVEN);
 	}
@@ -42,10 +42,10 @@ public class ClassicPreTradeStrategy implements PreTradeStrategy {
 
 	public static BigDecimal totalFees(ArbitrageConstantData data) {
 		BigDecimal result = BigDecimal.ZERO;
-		result = result.add(data.longData().fees().openTaker());
-		result = result.add(data.shortData().fees().openTaker());
-		result = result.add(data.longData().fees().closeTaker());
-		result = result.add(data.shortData().fees().closeTaker());
+		result = result.add(data.longData().futuresFees().openTaker());
+		result = result.add(data.shortData().futuresFees().openTaker());
+		result = result.add(data.longData().futuresFees().closeTaker());
+		result = result.add(data.shortData().futuresFees().closeTaker());
 
 		return result;
 	}

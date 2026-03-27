@@ -117,7 +117,7 @@ public abstract class PublicWsClient {
 	) {
 		Set<String> newSymbols = new HashSet<>();
 		for (String coin : coins) {
-			String symbol = context.getSymbol(coin);
+			String symbol = context.getFuturesSymbol(coin);
 			handlersMap.computeIfAbsent(
 							coin, key -> {
 								newSymbols.add(symbol);
@@ -135,7 +135,7 @@ public abstract class PublicWsClient {
 	) {
 		Set<String> removedSymbols = new HashSet<>();
 		for (String coin : coins) {
-			String symbol = context.getSymbol(coin);
+			String symbol = context.getFuturesSymbol(coin);
 			if (handlersMap.containsKey(coin)) {
 				handlersMap.remove(coin);
 				removedSymbols.add(symbol);
@@ -158,7 +158,7 @@ public abstract class PublicWsClient {
 			handlers.remove(handler);
 			if (handlers.isEmpty()) {
 				handlersMap.remove(coin, handlers);
-				removedSymbols.add(context.getSymbol(coin));
+				removedSymbols.add(context.getFuturesSymbol(coin));
 			}
 		}
 
@@ -181,10 +181,6 @@ public abstract class PublicWsClient {
 		unsubscribeFuturesFundingRates(Set.of(coin));
 	}
 
-	public void removeFuturesFundingRatesHandler(Set<String> coins, Consumer<@NonNull FundingRatePatch> handler) {
-		removeHandler(coins, futuresFundingRateHandlers, handler, this::getUnsubscribeFuturesFundingRateFrame);
-	}
-
 	public void subscribeFuturesBookTicker(Set<String> coins, Consumer<@NonNull BookTickerPatch> handler) {
 		subscribe(coins, futuresBookTickerHandlers, handler, this::getSubscribeFuturesBookTickerFrame);
 	}
@@ -199,10 +195,6 @@ public abstract class PublicWsClient {
 
 	public void unsubscribeFuturesBookTicker(String coin) {
 		unsubscribeFuturesBookTicker(Set.of(coin));
-	}
-
-	public void removeFuturesBookTickerHandler(Set<String> coins, Consumer<@NonNull BookTickerPatch> handler) {
-		removeHandler(coins, futuresBookTickerHandlers, handler, this::getUnsubscribeFuturesBookTickerFrame);
 	}
 
 	public void subscribeFuturesMarkPrice(Set<String> coins, Consumer<@NonNull MarkPricePatch> handler) {
@@ -221,20 +213,16 @@ public abstract class PublicWsClient {
 		unsubscribeFuturesMarkPrice(Set.of(coin));
 	}
 
-	public void removeFuturesMarkPriceHandler(Set<String> coins, Consumer<@NonNull MarkPricePatch> handler) {
-		removeHandler(coins, futuresMarkPriceHandlers, handler, this::getUnsubscribeFuturesMarkPriceFrame);
-	}
-
 	public void subscribeSpotBookTicker(Set<String> coins, Consumer<@NonNull BookTickerPatch> handler) {
 		subscribe(coins, spotBookTickerHandlers, handler, this::getSubscribeSpotBookTickerFrame);
 	}
 
-	public void unsubscribeSpotBookTicker(Set<String> coins) {
-		unsubscribe(coins, spotBookTickerHandlers, this::getUnsubscribeSpotBookTickerFrame);
+	public void subscribeSpotBookTicker(String coin, Consumer<@NonNull BookTickerPatch> handler) {
+		subscribeSpotBookTicker(Set.of(coin), handler);
 	}
 
-	public void removeSpotBookTickerHandler(Set<String> coins, Consumer<@NonNull BookTickerPatch> handler) {
-		removeHandler(coins, spotBookTickerHandlers, handler, this::getUnsubscribeSpotBookTickerFrame);
+	public void unsubscribeSpotBookTicker(Set<String> coins) {
+		unsubscribe(coins, spotBookTickerHandlers, this::getUnsubscribeSpotBookTickerFrame);
 	}
 
 	protected <R extends GenericPublicWsPatch> void dispatchPatchToHandlers(
@@ -308,19 +296,19 @@ public abstract class PublicWsClient {
 	public void onConnect(Session session) {
 		Set<String> frSymbols = futuresFundingRateHandlers.keySet()
 						.stream()
-						.map(context::getSymbol)
+						.map(context::getFuturesSymbol)
 						.collect(Collectors.toSet());
 		if (!frSymbols.isEmpty()) this.sendMessage(getSubscribeFuturesFundingRateFrame(frSymbols));
 
 		Set<String> btSymbols = futuresBookTickerHandlers.keySet()
 						.stream()
-						.map(context::getSymbol)
+						.map(context::getFuturesSymbol)
 						.collect(Collectors.toSet());
 		if (!btSymbols.isEmpty()) this.sendMessage(getSubscribeFuturesBookTickerFrame(btSymbols));
 
 		Set<String> mpSymbols = futuresMarkPriceHandlers.keySet()
 						.stream()
-						.map(context::getSymbol)
+						.map(context::getFuturesSymbol)
 						.collect(Collectors.toSet());
 		if (!mpSymbols.isEmpty()) this.sendMessage(getSubscribeFuturesMarkPriceFrame(mpSymbols));
 	}

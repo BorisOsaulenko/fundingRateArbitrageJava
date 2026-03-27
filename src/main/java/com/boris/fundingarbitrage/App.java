@@ -3,11 +3,10 @@ package com.boris.fundingarbitrage;
 import com.boris.fundingarbitrage.coinParser.AllExchangeCoinsParser;
 import com.boris.fundingarbitrage.coinParser.ICoinSupplier;
 import com.boris.fundingarbitrage.coinfilter.CoinFilterConfig;
-import com.boris.fundingarbitrage.exchange.impl.binance.BinanceExchange;
+import com.boris.fundingarbitrage.exchange.impl.bitget.BitgetExchange;
 import com.boris.fundingarbitrage.logic.ArbitrageBotConfig;
 import com.boris.fundingarbitrage.logic.ArbitrageLogic;
 import com.boris.fundingarbitrage.logic.RebalancingArbitrageLogic;
-import com.boris.fundingarbitrage.model.assetops.TradeSide;
 import com.boris.fundingarbitrage.strategy.ClassicPreTradeStrategy;
 import com.boris.fundingarbitrage.strategy.PreTradeStrategy;
 import com.boris.fundingarbitrage.util.logger.Logger;
@@ -47,9 +46,14 @@ public class App {
 	}
 
 	static void main() throws Exception {
-		BinanceExchange bn = new BinanceExchange();
-		bn.privateHttpClient.getOrderRecord("1046019459", "BARD", TradeSide.CLOSE)
-						.thenAccept(System.out::println)
-						.get();
+		BitgetExchange bn = new BitgetExchange();
+		bn.publicWsClient.connect().join();
+		bn.publicWsClient.subscribeSpotBookTicker(
+						"SOL", patch -> {
+							System.out.println("Book ticker patch: " + patch);
+						}
+		);
+
+		Thread.sleep(60_000);
 	}
 }

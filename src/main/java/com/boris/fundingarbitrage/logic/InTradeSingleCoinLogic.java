@@ -91,8 +91,8 @@ public class InTradeSingleCoinLogic {
 	}
 
 	private TradeParams getEnterParams() {
-		BigDecimal longLotSize = constantData.longData().lotSize(); // 2 COIN
-		BigDecimal shortLotSize = constantData.shortData().lotSize(); // 3 COIN
+		BigDecimal longLotSize = constantData.longData().futuresLotSize(); // 2 COIN
+		BigDecimal shortLotSize = constantData.shortData().futuresLotSize(); // 3 COIN
 		BigDecimal effectiveLotSize = lcm(longLotSize, shortLotSize); // 6 COIN
 
 		BigDecimal longAsk = enterSnapshot.longExchange().bookTicker().askPrice(); // 10 usdt/COIN
@@ -169,7 +169,7 @@ public class InTradeSingleCoinLogic {
 					TradeSide tradeSide,
 					String name
 	) {
-		return ex.privateHttpClient.getOrderRecord(orderId, coin, tradeSide)
+		return ex.privateHttpClient.getFuturesOrderRecord(orderId, coin, tradeSide)
 						.whenComplete((r, t) -> {
 							if (t == null && r != null && !r.isEmpty()) return; // Everything good
 							fillsFetchSuccess.set(false);
@@ -225,10 +225,13 @@ public class InTradeSingleCoinLogic {
 							BigDecimal avgLongExitPrice = getAvgPrice(longExitFills);
 							BigDecimal avgShortExitPrice = getAvgPrice(shortExitFills);
 
-							BigDecimal longEnterFee = constantData.longData().fees().openTaker().multiply(avgLongEnterPrice);
-							BigDecimal shortEnterFee = constantData.shortData().fees().openTaker().multiply(avgShortEnterPrice);
-							BigDecimal longExitFee = constantData.longData().fees().closeTaker().multiply(avgLongExitPrice);
-							BigDecimal shortExitFee = constantData.shortData().fees().closeTaker().multiply(avgShortExitPrice);
+							BigDecimal longEnterFee = constantData.longData().futuresFees().openTaker().multiply(avgLongEnterPrice);
+							BigDecimal shortEnterFee = constantData.shortData()
+											.futuresFees()
+											.openTaker()
+											.multiply(avgShortEnterPrice);
+							BigDecimal longExitFee = constantData.longData().futuresFees().closeTaker().multiply(avgLongExitPrice);
+							BigDecimal shortExitFee = constantData.shortData().futuresFees().closeTaker().multiply(avgShortExitPrice);
 							BigDecimal totalFees = longEnterFee.add(shortEnterFee).add(longExitFee).add(shortExitFee);
 
 							List<ArbitrageSnapshot> fundingSnapshots = strategy.getFundingSnapshots();
@@ -259,8 +262,8 @@ public class InTradeSingleCoinLogic {
 
 							BigDecimal oAfterFees = oTotalGain.subtract(totalFees);
 							BigDecimal eAfterFees = eTotalGain.subtract(totalFees);
-							tradeLogger.log("[Observed] After fees: " + oAfterFees);
-							tradeLogger.log("[Executed] After fees: " + eAfterFees);
+							tradeLogger.log("[Observed] After futuresFees: " + oAfterFees);
+							tradeLogger.log("[Executed] After futuresFees: " + eAfterFees);
 
 							tradeLogger.log("[Observed] PnL: " + oAfterFees.multiply(baseAssetQty));
 							tradeLogger.log("[Executed] PnL: " + eAfterFees.multiply(baseAssetQty));

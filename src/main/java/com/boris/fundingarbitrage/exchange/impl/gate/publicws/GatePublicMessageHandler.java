@@ -34,7 +34,7 @@ class GatePublicMessageHandler implements PublicMessageHandler {
 
 		String symbol = entry.path("contract").asText();
 		if (symbol == null || symbol.isEmpty()) return null;
-		String coin = context.getSymbolInverse(symbol);
+		String coin = context.getFuturesSymbolInverse(symbol);
 
 		String rateNode = entry.get("funding_rate").asText();
 		BigDecimal rate = rateNode.isEmpty() ? null : new BigDecimal(rateNode);
@@ -56,7 +56,7 @@ class GatePublicMessageHandler implements PublicMessageHandler {
 		JsonNode entry = result.get(0);
 		String symbol = entry.path("contract").asText();
 		if (symbol == null || symbol.isEmpty()) return null;
-		String coin = context.getSymbolInverse(symbol);
+		String coin = context.getFuturesSymbolInverse(symbol);
 
 		String markNode = entry.path("mark_price").asText();
 		BigDecimal mark = markNode.isEmpty() ? null : new BigDecimal(markNode);
@@ -75,7 +75,7 @@ class GatePublicMessageHandler implements PublicMessageHandler {
 
 		String symbol = result.path("s").asText();
 		if (symbol == null || symbol.isEmpty()) return null;
-		String coin = context.getSymbolInverse(symbol);
+		String coin = context.getFuturesSymbolInverse(symbol);
 
 		String bidPriceNode = result.path("b").asText();
 		String bidSizeNode = result.path("B").asText();
@@ -117,6 +117,11 @@ class GatePublicMessageHandler implements PublicMessageHandler {
 	@Override
 	public MarkPricePatch parseMarkPriceMessageSymbol(JsonNode root) {
 		return parseErrorHandled(this::parseMarkPriceInternal, root);
+	}
+
+	@Override
+	public BookTickerPatch parseSpotBookTickerMessageSymbol(JsonNode root) {
+		return parseErrorHandled(this::parseBookTickerInternal, root);
 	}
 
 	@Override

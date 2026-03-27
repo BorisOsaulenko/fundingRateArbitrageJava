@@ -65,12 +65,12 @@ public class BitgetPrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
-	protected CompletableFuture<Map<String, Fees>> getTradingFeesSymbolBatch() {
+	protected CompletableFuture<Map<String, Fees>> getFuturesFeesSymbolBatch() {
 		return null;
 	}
 
 	@Override
-	public CompletableFuture<CoinVector<Fees>> getTradingFees(Set<String> coins) {
+	public CompletableFuture<CoinVector<Fees>> getFutureTradingFees(Set<String> coins) {
 		BigDecimal maker = new BigDecimal("0.00036");
 		BigDecimal taker = new BigDecimal("0.001");
 		CoinVector<Fees> result = new CoinVector<>();
@@ -164,7 +164,7 @@ public class BitgetPrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
-	protected CompletableFuture<List<PartialFill>> getOrderRecordSymbol(
+	protected CompletableFuture<List<PartialFill>> getFuturesOrderRecordSymbol(
 					String orderId,
 					String symbol,
 					TradeSide tradeSide

@@ -27,7 +27,7 @@ class OkxPublicMessageHandler implements PublicMessageHandler {
 		if (dataArray == null || !dataArray.isArray() || dataArray.isEmpty()) return null;
 		JsonNode data = dataArray.get(0);
 
-		String coin = context.getSymbolInverse(symbol);
+		String coin = context.getFuturesSymbolInverse(symbol);
 		String markPxNode = data.path("markPx").asText();
 		BigDecimal markPx = markPxNode.isEmpty() ? null : new BigDecimal(markPxNode);
 
@@ -46,7 +46,7 @@ class OkxPublicMessageHandler implements PublicMessageHandler {
 		if (dataArray == null || !dataArray.isArray() || dataArray.isEmpty()) return null;
 		JsonNode data = dataArray.get(0);
 
-		String coin = context.getSymbolInverse(symbol);
+		String coin = context.getFuturesSymbolInverse(symbol);
 		String bidPxNode = data.path("bidPx").asText();
 		String bidSzNode = data.path("bidSz").asText();
 		String askPxNode = data.path("askPx").asText();
@@ -89,6 +89,11 @@ class OkxPublicMessageHandler implements PublicMessageHandler {
 	@Override
 	public MarkPricePatch parseMarkPriceMessageSymbol(JsonNode root) {
 		return parseErrorHandled(this::parseMarkPriceInternal, root);
+	}
+
+	@Override
+	public BookTickerPatch parseSpotBookTickerMessageSymbol(JsonNode root) {
+		return parseErrorHandled(this::parseBookTickerInternal, root);
 	}
 
 	@Override

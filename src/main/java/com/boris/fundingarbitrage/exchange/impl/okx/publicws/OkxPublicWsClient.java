@@ -61,4 +61,14 @@ public class OkxPublicWsClient extends FullFundingViaRest {
 	protected String getUnsubscribeFuturesMarkPriceFrame(Set<String> symbols) {
 		return unsubscribe("mark-price", symbols);
 	}
+
+	@Override
+	protected String getSubscribeSpotBookTickerFrame(Set<String> symbols) {
+		return subscribe("tickers", symbols);
+	}
+
+	@Override
+	protected String getUnsubscribeSpotBookTickerFrame(Set<String> symbols) {
+		return unsubscribe("tickers", symbols);
+	}
 }

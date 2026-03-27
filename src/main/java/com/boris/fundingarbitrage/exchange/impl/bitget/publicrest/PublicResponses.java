@@ -1,6 +1,6 @@
 package com.boris.fundingarbitrage.exchange.impl.bitget.publicrest;
 
-import com.boris.fundingarbitrage.exchange.publichttp.TradingState;
+import com.boris.fundingarbitrage.exchange.publichttp.FuturesTradingState;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.FundingRate;
 
@@ -12,9 +12,9 @@ import java.util.Map;
 
 class PublicResponses {
 	public record ContractsResponse(String code, String msg, long requestTime, List<Contract> data) {
-		private static TradingState toTradingState(String symbolStatus) {
-			if ("normal".equalsIgnoreCase(symbolStatus)) return TradingState.TRADING;
-			return TradingState.NOT_TRADING;
+		private static FuturesTradingState toTradingState(String symbolStatus) {
+			if ("normal".equalsIgnoreCase(symbolStatus)) return FuturesTradingState.TRADING;
+			return FuturesTradingState.NOT_TRADING;
 		}
 
 		public Map<String, BigDecimal> getLotSizes() {
@@ -23,8 +23,8 @@ class PublicResponses {
 			return result;
 		}
 
-		public Map<String, TradingState> getTradingStates() {
-			Map<String, TradingState> result = new HashMap<>();
+		public Map<String, FuturesTradingState> getTradingStates() {
+			Map<String, FuturesTradingState> result = new HashMap<>();
 			for (Contract contract : data) {
 				result.put(contract.symbol(), toTradingState(contract.symbolStatus()));
 			}

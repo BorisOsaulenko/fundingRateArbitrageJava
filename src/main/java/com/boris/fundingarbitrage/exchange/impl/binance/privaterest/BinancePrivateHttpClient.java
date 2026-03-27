@@ -55,19 +55,19 @@ public class BinancePrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
-	protected CompletableFuture<Map<String, Fees>> getTradingFeesSymbolBatch() {
+	protected CompletableFuture<Map<String, Fees>> getFuturesFeesSymbolBatch() {
 		return null;
 	}
 
 	@Override
-	public CompletableFuture<CoinVector<Fees>> getTradingFees(Set<String> coins) {
+	public CompletableFuture<CoinVector<Fees>> getFutureTradingFees(Set<String> coins) {
 		CoinVector<Fees> fees = new CoinVector<>();
 		BigDecimal maker = new BigDecimal("0.0002");
 		BigDecimal taker = new BigDecimal("0.0005");
 
 		for (String coin : coins) {
 			fees.put(coin, new Fees(maker, taker, maker, taker, Instant.now()));
-		} // those fees are true, for binance vip level = 1, not going higher than that for some time :)
+		} // those futuresFees are true, for binance vip level = 1, not going higher than that for some time :)
 		return CompletableFuture.completedFuture(fees);
 	}
 
@@ -157,7 +157,7 @@ public class BinancePrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
-	protected CompletableFuture<List<PartialFill>> getOrderRecordSymbol(
+	protected CompletableFuture<List<PartialFill>> getFuturesOrderRecordSymbol(
 					String orderId,
 					String symbol,
 					TradeSide tradeSide

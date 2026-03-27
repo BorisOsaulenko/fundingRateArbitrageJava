@@ -9,7 +9,6 @@ import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
 import com.boris.fundingarbitrage.model.websocket.patch.GenericPublicWsPatch;
 import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
-import com.boris.fundingarbitrage.util.logger.Logger;
 import com.boris.fundingarbitrage.util.wss.prettyclient.PrettyWsClient;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -28,11 +27,13 @@ import java.util.stream.Collectors;
 
 public class BinancePublicWsClient extends PublicWsClient {
 	private static final URI endpoint = URI.create("wss://fstream.binance.com/ws");
+	private static final URI spotEndpoint = URI.create("wss://stream.binance.com:9443/ws");
 	private static final AtomicInteger NEXT_ID = new AtomicInteger(1);
 	private final ObjectMapper mapper = ObjectMapperSingleton.getInstance();
 
 	private final PrettyWsClient fundingAndMarkClient;
 	private final PrettyWsClient bookTickerClient;
+	private final PrettyWsClient spotBookTickerClient;
 
 	public BinancePublicWsClient(ExchangeContext context, PublicHttpClient publicHttp) {
 		BinancePublicMessageHandler messageHandler = new BinancePublicMessageHandler(context);
@@ -43,6 +44,11 @@ public class BinancePublicWsClient extends PublicWsClient {
 						this::handleFundingAndMarkMessage
 		);
 		this.bookTickerClient = new PrettyWsClient(endpoint, "Binance Public Book Ticker", this::handleBookTickerMessage);
+		this.spotBookTickerClient = new PrettyWsClient(
+						spotEndpoint,
+						"Binance Public Spot Book Ticker",
+						this::handleSpotBookTickerMessage
+		);
 	}
 
 	public static int getNextId() {
@@ -100,11 +106,20 @@ public class BinancePublicWsClient extends PublicWsClient {
 	}
 
 	@Override
+	protected String getSubscribeSpotBookTickerFrame(Set<String> symbols) {
+		return this.getSubscribeFrame(symbols, this::getBookTickerStream);
+	}
+
+	@Override
+	protected String getUnsubscribeSpotBookTickerFrame(Set<String> symbols) {
+		return this.getUnsubscribeFrame(symbols, this::getBookTickerStream);
+	}
+
+	@Override
 	public void subscribeFuturesBookTicker(
 					Set<String> coins,
 					Consumer<BookTickerPatch> handler
 	) {
-		Logger.log("Subscribing book ticker for: " + coins);
 		subscribeCommon(
 						coins,
 						handler,
@@ -123,6 +138,29 @@ public class BinancePublicWsClient extends PublicWsClient {
 						futuresBookTickerHandlers::containsKey,
 						this::getUnsubscribeFuturesBookTickerFrame,
 						bookTickerClient::sendMessage
+		);
+	}
+
+	@Override
+	public void subscribeSpotBookTicker(Set<String> coins, Consumer<BookTickerPatch> handler) {
+		subscribeCommon(
+						coins,
+						handler,
+						spotBookTickerHandlers,
+						spotBookTickerHandlers::containsKey,
+						this::getSubscribeSpotBookTickerFrame,
+						spotBookTickerClient::sendMessage
+		);
+	}
+
+	@Override
+	public void unsubscribeSpotBookTicker(Set<String> coins) {
+		unsubscribeCommon(
+						coins,
+						spotBookTickerHandlers,
+						spotBookTickerHandlers::containsKey,
+						this::getUnsubscribeSpotBookTickerFrame,
+						spotBookTickerClient::sendMessage
 		);
 	}
 
@@ -203,7 +241,9 @@ public class BinancePublicWsClient extends PublicWsClient {
 			if (!wasSubscribed) coinsToSubscribe.add(coin);
 		}
 
-		Set<String> symbolsToSubscribe = coinsToSubscribe.stream().map(context::getSymbol).collect(Collectors.toSet());
+		Set<String> symbolsToSubscribe = coinsToSubscribe.stream()
+						.map(context::getFuturesSymbol)
+						.collect(Collectors.toSet());
 		if (!coinsToSubscribe.isEmpty()) sendInBatches(symbolsToSubscribe, subscribeFrame, sender);
 	}
 
@@ -223,7 +263,9 @@ public class BinancePublicWsClient extends PublicWsClient {
 			if (!isSubscribed.test(coin)) coinsToUnsubscribe.add(coin);
 		}
 
-		Set<String> symbolsToUnsubscribe = coinsToUnsubscribe.stream().map(context::getSymbol).collect(Collectors.toSet());
+		Set<String> symbolsToUnsubscribe = coinsToUnsubscribe.stream()
+						.map(context::getFuturesSymbol)
+						.collect(Collectors.toSet());
 		if (!coinsToUnsubscribe.isEmpty()) sendInBatches(symbolsToUnsubscribe, unsubscribeFrame, sender);
 	}
 
@@ -258,10 +300,21 @@ public class BinancePublicWsClient extends PublicWsClient {
 		}
 	}
 
+	private void handleSpotBookTickerMessage(String message) {
+		if (message == null || message.isEmpty()) return;
+
+		try {
+			JsonNode root = mapper.readTree(message);
+			tryHandle(root, messageHandler::parseSpotBookTickerMessageSymbol, this::handleSpotBookTickerPatch);
+		} catch (JsonProcessingException ignored) {
+		}
+	}
+
 	@Override
 	public CompletableFuture<Void> connect() {
 		this.fundingAndMarkClient.connect();
 		this.bookTickerClient.connect();
+		this.spotBookTickerClient.connect();
 		return CompletableFuture.completedFuture(null);
 	}
 
@@ -269,5 +322,6 @@ public class BinancePublicWsClient extends PublicWsClient {
 	public void close() {
 		this.fundingAndMarkClient.close();
 		this.bookTickerClient.close();
+		this.spotBookTickerClient.close();
 	}
 }

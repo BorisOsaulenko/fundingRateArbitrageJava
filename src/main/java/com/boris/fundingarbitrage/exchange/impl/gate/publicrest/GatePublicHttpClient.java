@@ -1,9 +1,9 @@
 package com.boris.fundingarbitrage.exchange.impl.gate.publicrest;
 
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
+import com.boris.fundingarbitrage.exchange.publichttp.FuturesPublicOnePullData;
+import com.boris.fundingarbitrage.exchange.publichttp.FuturesTradingState;
 import com.boris.fundingarbitrage.exchange.publichttp.PublicHttpClient;
-import com.boris.fundingarbitrage.exchange.publichttp.PublicOnePullData;
-import com.boris.fundingarbitrage.exchange.publichttp.TradingState;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.FundingRate;
 import com.boris.fundingarbitrage.util.https.PrettyHttpClient;
@@ -33,7 +33,7 @@ public class GatePublicHttpClient extends PublicHttpClient {
 	}
 
 	@Override
-	protected CompletableFuture<Map<String, PublicOnePullData>> getPublicOnePullData() {
+	protected CompletableFuture<Map<String, FuturesPublicOnePullData>> getFuturesPublicOnePullData() {
 		CompletableFuture<PublicResponses.ContractsResponse> contractsResponseFuture = requestWrapper.getResponse(
 						PublicEndpoints.contractsRequestSymbols(),
 						PublicResponses.ContractsResponse.class
@@ -50,13 +50,13 @@ public class GatePublicHttpClient extends PublicHttpClient {
 			Map<String, FundingRate> fundingRates = contractsResponseFuture.join().getFundingRates();
 			Map<String, BookTicker> bookTickers = tickersResponseFuture.join().getBookTickers();
 			Map<String, BigDecimal> volumes24h = tickersResponseFuture.join().getVolume24h();
-			Map<String, TradingState> tradingStates = contractsResponseFuture.join().getTradingStates();
+			Map<String, FuturesTradingState> tradingStates = contractsResponseFuture.join().getTradingStates();
 
-			Map<String, PublicOnePullData> data = new HashMap<>();
+			Map<String, FuturesPublicOnePullData> data = new HashMap<>();
 			for (String symbol : lotSizes.keySet()) {
 				data.put(
 								symbol,
-								new PublicOnePullData(
+								new FuturesPublicOnePullData(
 												lotSizes.get(symbol),
 												volumes24h.get(symbol),
 												fundingIntervals.get(symbol),
@@ -79,7 +79,7 @@ public class GatePublicHttpClient extends PublicHttpClient {
 							Set<String> coins = new HashSet<>();
 							for (String symbol : res.getLotSizes().keySet()) {
 								try {
-									coins.add(exchangeContext.getSymbolInverse(symbol));
+									coins.add(exchangeContext.getFuturesSymbolInverse(symbol));
 								} catch (Exception ignored) {
 									// Ignore symbols that do not match exchange symbol format
 								}

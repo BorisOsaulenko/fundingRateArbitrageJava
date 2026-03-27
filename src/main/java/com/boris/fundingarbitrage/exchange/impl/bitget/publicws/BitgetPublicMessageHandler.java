@@ -28,7 +28,7 @@ class BitgetPublicMessageHandler implements PublicMessageHandler {
 		if (dataArray == null || !dataArray.isArray() || dataArray.isEmpty()) return null;
 		JsonNode data = dataArray.get(0);
 
-		String coin = context.getSymbolInverse(symbol);
+		String coin = context.getFuturesSymbolInverse(symbol);
 		String markPriceText = data.path("markPrice").asText();
 		BigDecimal markPrice = markPriceText.isEmpty() ? null : new BigDecimal(markPriceText);
 		if (markPrice == null) return null;
@@ -49,7 +49,7 @@ class BitgetPublicMessageHandler implements PublicMessageHandler {
 		if (dataArray == null || !dataArray.isArray() || dataArray.isEmpty()) return null;
 		JsonNode data = dataArray.get(0);
 
-		String coin = context.getSymbolInverse(symbol);
+		String coin = context.getFuturesSymbolInverse(symbol);
 		String bidPrNode = data.get("bidPr").asText();
 		String bidSzNode = data.get("bidSz").asText();
 		String askPrNode = data.get("askPr").asText();
@@ -91,6 +91,11 @@ class BitgetPublicMessageHandler implements PublicMessageHandler {
 	@Override
 	public MarkPricePatch parseMarkPriceMessageSymbol(JsonNode root) {
 		return parseErrorHandled(this::parseMarkPriceInternal, root);
+	}
+
+	@Override
+	public BookTickerPatch parseSpotBookTickerMessageSymbol(JsonNode root) {
+		return parseErrorHandled(this::parseBookTickerInternal, root);
 	}
 
 	@Override

@@ -17,12 +17,12 @@ public class BybitContext extends ExchangeContext {
 	}
 
 	@Override
-	public String getSymbol(String coin) {
+	public String getFuturesSymbol(String coin) {
 		return coin.toUpperCase() + "USDT";
 	}
 
 	@Override
-	public String getSymbolInverse(String symbol) {
+	public String getFuturesSymbolInverse(String symbol) {
 		if (symbol.endsWith("USDT")) {
 			return symbol.substring(0, symbol.length() - 4);
 		}
