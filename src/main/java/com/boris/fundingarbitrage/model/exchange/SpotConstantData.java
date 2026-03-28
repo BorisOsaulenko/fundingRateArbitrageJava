@@ -6,7 +6,7 @@ import lombok.NonNull;
 import java.math.BigDecimal;
 
 public record SpotConstantData(
-				@NonNull BigDecimal spotLotSize,
-				@NonNull Fees spotFees
+				@NonNull BigDecimal lotSize,
+				@NonNull Fees fees
 ) {
 }

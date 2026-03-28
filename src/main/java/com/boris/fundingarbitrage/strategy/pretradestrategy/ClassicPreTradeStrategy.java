@@ -1,8 +1,5 @@
-package com.boris.fundingarbitrage.strategy;
+package com.boris.fundingarbitrage.strategy.pretradestrategy;
 
-import com.boris.fundingarbitrage.model.arbitrage.ArbitrageConstantData;
-import com.boris.fundingarbitrage.model.arbitrage.ArbitrageData;
-import com.boris.fundingarbitrage.model.arbitrage.ArbitrageSnapshot;
 import com.boris.fundingarbitrage.model.exchange.FuturesSnapshot;
 
 import java.math.BigDecimal;
@@ -11,7 +8,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 
-public class ClassicPreTradeStrategy implements PreTradeStrategy {
+public class ClassicPreTradeStrategy implements CrossPreTradeStrategy {
 	private static final BigDecimal MIN_GAIN = new BigDecimal("0.03"); // 0.3%
 	private static final BigDecimal MIN_OSPREAD = new BigDecimal("-0.005"); // -0.5%
 	private static final Duration BEFORE_ENTER = Duration.of(5, ChronoUnit.SECONDS);

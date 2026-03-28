@@ -6,22 +6,27 @@ import com.boris.fundingarbitrage.coinfilter.CoinFilterConfig;
 import com.boris.fundingarbitrage.coinfilter.CoinFilterResult;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.exchange.Instances;
-import com.boris.fundingarbitrage.model.arbitrage.ArbitrageConstantData;
-import com.boris.fundingarbitrage.model.arbitrage.ArbitrageData;
+import com.boris.fundingarbitrage.logic.coinopportunities.CoinOpportunity;
+import com.boris.fundingarbitrage.logic.coinopportunities.CrossCoinOpportunity;
+import com.boris.fundingarbitrage.logic.coinopportunities.SingleCoinOpportunity;
 import com.boris.fundingarbitrage.model.exchange.ExchangeConstantData;
+import com.boris.fundingarbitrage.model.exchange.ExchangeData;
+import com.boris.fundingarbitrage.model.exchange.ExchangeSnapshot;
 import com.boris.fundingarbitrage.monitor.CoinMonitor;
 import com.boris.fundingarbitrage.monitor.ExchangeCoinMap;
-import com.boris.fundingarbitrage.strategy.ClassicPreTradeStrategy;
-import com.boris.fundingarbitrage.strategy.PreTradeStrategy;
+import com.boris.fundingarbitrage.strategy.pretradestrategy.CrossPreTradeStrategy;
+import com.boris.fundingarbitrage.strategy.pretradestrategy.SinglePreTradeStrategy;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import com.boris.fundingarbitrage.util.logger.Logger;
 
 import java.math.BigDecimal;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.function.BiFunction;
 
 public abstract class ArbitrageLogic {
-	protected final PreTradeStrategy preTradeStrategy;
+	protected final CrossPreTradeStrategy crossPreTradeStrategy;
+	protected final SinglePreTradeStrategy singlePreTradeStrategy;
 	protected final ArbitrageBotConfig config;
 	protected final ScheduledExecutorService logScheduler = Executors.newSingleThreadScheduledExecutor();
 	protected final ExecutorService cpuPool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
@@ -38,12 +43,14 @@ public abstract class ArbitrageLogic {
 
 	public ArbitrageLogic(
 					ICoinSupplier coinSupplier,
-					PreTradeStrategy strategy,
+					CrossPreTradeStrategy crossStrategy,
+					SinglePreTradeStrategy singleStrategy,
 					CoinFilterConfig filterConfig,
 					ArbitrageBotConfig arbConfig
 	) {
 		this.coinSupplier = coinSupplier;
-		this.preTradeStrategy = strategy;
+		this.crossPreTradeStrategy = crossStrategy;
+		this.singlePreTradeStrategy = singleStrategy;
 		this.config = arbConfig;
 
 		init(filterConfig);
@@ -68,7 +75,6 @@ public abstract class ArbitrageLogic {
 		constantDataMap = filterResult.constantData();
 
 		this.monitor = new CoinMonitor(availableExchangesByCoin, availableCoinsByExchange);
-
 		initFuture = CompletableFuture.allOf(prettyMonitorInitFuture(), balancesFuture);
 	}
 
@@ -200,32 +206,65 @@ public abstract class ArbitrageLogic {
 		Set<BaseExchange> availableExchanges = availableExchangesByCoin.get(coin);
 		if (availableExchanges == null) throw new IllegalStateException("Available exchanges for " + coin + " not found");
 
-		ArbitrageData bestSnapshot = null;
 		BaseExchange bestLongEx = null;
 		BaseExchange bestShortEx = null;
+		BigDecimal bestExpectedGain = null;
+		ExchangeData bestLongData = null;
+		ExchangeData bestShortData = null;
 
 		for (BaseExchange longEx : availableExchanges) {
 			for (BaseExchange shortEx : availableExchanges) {
 				if (longEx == shortEx) continue;
 
-				ArbitrageData coinArbData = getCurrentArbData(new ExchangePair(longEx, shortEx), coin);
-				if (bestSnapshot == null || preTradeStrategy.compareArbData(coinArbData, bestSnapshot) > 0) {
-					bestSnapshot = coinArbData;
+				ExchangeData longData = getExchangeData(longEx, coin);
+				ExchangeData shortData = getExchangeData(shortEx, coin);
+
+				BigDecimal gain = crossPreTradeStrategy.expectedGain(longData, shortData);
+				if (bestLongEx == null || gain.compareTo(bestExpectedGain) > 0) {
 					bestLongEx = longEx;
 					bestShortEx = shortEx;
+					bestExpectedGain = gain;
+					bestLongData = longData;
+					bestShortData = shortData;
 				}
 			}
 		}
 
+		BaseExchange bestSingleExchange = null;
+		ExchangeData bestSingleData = null;
+		for (BaseExchange ex : availableExchanges) {
+			ExchangeData data = getExchangeData(ex, coin);
+			BigDecimal gain = singlePreTradeStrategy.expectedGain(data);
+			if (gain.compareTo(bestExpectedGain) >= 0) {
+				bestSingleExchange = ex;
+				bestExpectedGain = gain;
+				bestSingleData = data;
+			}
+		}
+
 		assert bestLongEx != null;
-		return new CoinOpportunity(bestSnapshot, new ExchangePair(bestLongEx, bestShortEx));
+		if (bestSingleExchange != null)
+			return new SingleCoinOpportunity(bestSingleExchange, bestExpectedGain, bestSingleData);
+		else return new CrossCoinOpportunity(
+						new ExchangePair(bestLongEx, bestShortEx),
+						bestExpectedGain,
+						bestLongData,
+						bestShortData
+		);
 	}
 
-	private ArbitrageData getCurrentArbData(ExchangePair exchanges, String coin) {
-		ExchangeConstantData longConstantData = constantDataMap.get(exchanges.longEx(), coin);
-		ExchangeConstantData shortConstantData = constantDataMap.get(exchanges.shortEx(), coin);
-		var arbSnapshot = monitor.getSnapshot(new ExchangePair(exchanges.longEx(), exchanges.shortEx()), coin);
-		return new ArbitrageData(arbSnapshot, new ArbitrageConstantData(longConstantData, shortConstantData));
+	private ExchangeData getExchangeData(BaseExchange ex, String coin) {
+		return getExchangeData(ex, coin, monitor::getSnapshot);
+	}
+
+	private ExchangeData getExchangeData(
+					BaseExchange ex,
+					String coin,
+					BiFunction<BaseExchange, String, ExchangeSnapshot> snapshotExtractor
+	) {
+		ExchangeSnapshot sn = snapshotExtractor.apply(ex, coin);
+		ExchangeConstantData constantData = constantDataMap.get(ex, coin);
+		return new ExchangeData(sn, constantData);
 	}
 
 	private void logDataErrorHandled(CoinVector<CoinOpportunity> bestOpportunities) {
@@ -244,24 +283,28 @@ public abstract class ArbitrageLogic {
 		if (bestOpportunities == null) return;
 
 		Logger.log("The best arbitrage opportunities:");
-		bestOpportunities.sortDesc((a, b) -> preTradeStrategy.compareArbData(a.data(), b.data()))
+		bestOpportunities.sortDesc(Comparator.comparing(CoinOpportunity::expectedGain))
 						.subList(0, Math.min(config.logBestArbSnapshotsAmount(), bestOpportunities.size()))
 						.forEach(entry -> {
-							var bestCoinExchanges = entry.getValue().exchanges();
-							assert bestCoinExchanges != null;
 
-							var snapshot = entry.getValue().data().snapshot();
-
-							Logger.log(entry.getKey() +
-												 ": " +
-												 bestCoinExchanges.longEx().name +
-												 " (long) / " +
-												 bestCoinExchanges.shortEx().name +
-												 " (short) - " +
-												 (preTradeStrategy.goodToEnter(entry.getValue().data()) ? "GOOD" : "BAD") +
-												 "[OSpread: " + ClassicPreTradeStrategy.oSpread(snapshot) + "] " +
-												 "[FSpread: " + ClassicPreTradeStrategy.closestFSpread(snapshot) + "]");
-							Logger.log("Snaphshot: " + entry.getValue().data());
+							if (entry.getValue() instanceof CrossCoinOpportunity(
+											ExchangePair exchanges,
+											BigDecimal expectedGain,
+											ExchangeData longData,
+											ExchangeData shortData
+							)) {
+								Logger.log(entry.getKey() + ": " + exchanges + " - " +
+													 (crossPreTradeStrategy.goodToEnter(longData, shortData) ? "GOOD" : "BAD") +
+													 "[Expected Gain: " + expectedGain + "]");
+							} else if (entry.getValue() instanceof SingleCoinOpportunity(
+											BaseExchange exchange,
+											BigDecimal expectedGain,
+											ExchangeData data
+							)) {
+								Logger.log(entry.getKey() + ": " + exchange.name + " - " +
+													 (singlePreTradeStrategy.goodToEnter(data) ? "GOOD" : "BAD") +
+													 "[Expected Gain: " + expectedGain + "]");
+							}
 						});
 	}
 
@@ -293,11 +336,5 @@ public abstract class ArbitrageLogic {
 		if (!monitor.getInitFuture().isDone()) monitor.getInitFuture().cancel(true);
 		Logger.log("Arbitrage logic stopped.");
 		Logger.closeLogFile();
-	}
-
-	protected record CoinOpportunity(
-					ArbitrageData data,
-					ExchangePair exchanges
-	) {
 	}
 }

@@ -7,8 +7,8 @@ import com.boris.fundingarbitrage.exchange.impl.bitget.BitgetExchange;
 import com.boris.fundingarbitrage.logic.ArbitrageBotConfig;
 import com.boris.fundingarbitrage.logic.ArbitrageLogic;
 import com.boris.fundingarbitrage.logic.RebalancingArbitrageLogic;
-import com.boris.fundingarbitrage.strategy.ClassicPreTradeStrategy;
-import com.boris.fundingarbitrage.strategy.PreTradeStrategy;
+import com.boris.fundingarbitrage.strategy.pretradestrategy.ClassicPreTradeStrategy;
+import com.boris.fundingarbitrage.strategy.pretradestrategy.CrossPreTradeStrategy;
 import com.boris.fundingarbitrage.util.logger.Logger;
 import lombok.extern.slf4j.Slf4j;
 
@@ -21,7 +21,7 @@ public class App {
 		Logger.init(Path.of("app.log"));
 
 		ICoinSupplier coinSupplier = new AllExchangeCoinsParser();
-		PreTradeStrategy strategy = new ClassicPreTradeStrategy();
+		CrossPreTradeStrategy strategy = new ClassicPreTradeStrategy();
 		ArbitrageBotConfig botConfig = new ArbitrageBotConfig(
 						new BigDecimal("20"), // leg usdt amount
 						new BigDecimal("3"), // safety margin

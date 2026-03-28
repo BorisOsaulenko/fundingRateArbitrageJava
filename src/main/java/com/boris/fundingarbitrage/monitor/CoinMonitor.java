@@ -3,10 +3,10 @@ package com.boris.fundingarbitrage.monitor;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.exchange.Instances;
 import com.boris.fundingarbitrage.logic.ExchangePair;
-import com.boris.fundingarbitrage.model.arbitrage.ArbitrageSnapshot;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.FundingRate;
 import com.boris.fundingarbitrage.model.contract.MarkPrice;
+import com.boris.fundingarbitrage.model.exchange.ExchangeSnapshot;
 import com.boris.fundingarbitrage.model.exchange.FuturesSnapshot;
 import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
 import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
@@ -18,7 +18,6 @@ import lombok.Getter;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -257,7 +256,7 @@ public class CoinMonitor {
 		completionScheduler.shutdownNow();
 	}
 
-	public FuturesSnapshot getSnapshot(BaseExchange exchange, String coin) {
+	public ExchangeSnapshot getSnapshot(BaseExchange exchange, String coin) {
 		BookTicker ticker = futuresBookTickers.get(exchange, coin);
 		MarkPrice markPrice = futuresMarkPrices.get(exchange, coin);
 		FundingRate fundingRate = futuresFundingRates.get(exchange, coin);
@@ -266,16 +265,16 @@ public class CoinMonitor {
 	}
 
 	public ArbitrageSnapshot getSnapshot(ExchangePair exchanges, String coin) {
-		FuturesSnapshot longSnapshot = getSnapshot(exchanges.longEx(), coin);
-		FuturesSnapshot shortSnapshot = getSnapshot(exchanges.shortEx(), coin);
+		ExchangeSnapshot longSnapshot = getSnapshot(exchanges.longEx(), coin);
+		ExchangeSnapshot shortSnapshot = getSnapshot(exchanges.shortEx(), coin);
 		return new ArbitrageSnapshot(longSnapshot, shortSnapshot);
 	}
 
-	private void performOnTimestamp(
+	public void performOnTimestamp(
 					long timestamp,
 					BaseExchange exchange,
 					String coin,
-					Consumer<FuturesSnapshot> handler
+					Consumer<ExchangeSnapshot> handler
 	) {
 		long now = Instant.now().toEpochMilli();
 		long duration = timestamp - now;
@@ -294,49 +293,15 @@ public class CoinMonitor {
 		completionFutures.get(exchange, coin).get(timestamp).add(sFuture);
 	}
 
-	public void performOnTimestamp(
-					long timestamp,
-					ExchangePair exchanges,
-					String coin,
-					Consumer<ArbitrageSnapshot> handler
-	) {
-		AtomicReference<FuturesSnapshot> longSnapshot = new AtomicReference<>();
-		AtomicReference<FuturesSnapshot> shortSnapshot = new AtomicReference<>();
-
-		Runnable tryCallback = () -> {
-			if (longSnapshot.get() != null && shortSnapshot.get() != null) {
-				handler.accept(new ArbitrageSnapshot(longSnapshot.get(), shortSnapshot.get()));
-			}
-		};
-
-		performOnTimestamp(
-						timestamp, exchanges.longEx(), coin, (sn) -> {
-							longSnapshot.set(sn);
-							tryCallback.run();
-						}
-		);
-		performOnTimestamp(
-						timestamp, exchanges.shortEx(), coin, (sn) -> {
-							shortSnapshot.set(sn);
-							tryCallback.run();
-						}
-		);
-	}
-
-	public void cancelTimestampExecution(long timestamp, ExchangePair exchanges, String coin) {
-		Set<ScheduledFuture<?>> longFuture = completionFutures.get(exchanges.longEx(), coin).remove(timestamp);
+	public void cancelTimestampExecution(long timestamp, BaseExchange ex, String coin) {
+		Set<ScheduledFuture<?>> longFuture = completionFutures.get(ex, coin).remove(timestamp);
 		longFuture.forEach(f -> f.cancel(true));
-		timestampsToProcess.get(exchanges.longEx(), coin).remove(timestamp);
-		timestampHandlers.get(exchanges.longEx(), coin).remove(timestamp);
-
-		Set<ScheduledFuture<?>> shortFuture = completionFutures.get(exchanges.shortEx(), coin).remove(timestamp);
-		shortFuture.forEach(f -> f.cancel(true));
-		timestampsToProcess.get(exchanges.shortEx(), coin).remove(timestamp);
-		timestampHandlers.get(exchanges.shortEx(), coin).remove(timestamp);
+		timestampsToProcess.get(ex, coin).remove(timestamp);
+		timestampHandlers.get(ex, coin).remove(timestamp);
 	}
 
 	private void registerCurrentState(BaseExchange ex, String coin) {
-		FuturesSnapshot current = getSnapshot(ex, coin);
+		ExchangeSnapshot current = getSnapshot(ex, coin);
 		futuresFundingCompletions.put(ex, coin, current.fundingRate());
 		futuresTickerCompletions.put(ex, coin, current.bookTicker());
 		futuresMarkCompletions.put(ex, coin, current.markPrice());

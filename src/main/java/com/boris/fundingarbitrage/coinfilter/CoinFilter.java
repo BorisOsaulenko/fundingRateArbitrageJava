@@ -255,7 +255,7 @@ public class CoinFilter {
 						coin,
 						futuresTradingVolumeMap,
 						(sn) -> sn.futuresSnapshot().bookTicker(),
-						(sn) -> sn.futuresConstantData().futuresLotSize()
+						(sn) -> sn.futuresConstantData().lotSize()
 		);
 	}
 
@@ -265,7 +265,7 @@ public class CoinFilter {
 						coin,
 						spotTradingVolumeMap,
 						(sn) -> sn.spotSnapshot().bookTicker(),
-						(sn) -> sn.spotConstantData().spotLotSize()
+						(sn) -> sn.spotConstantData().lotSize()
 		);
 	}
 }

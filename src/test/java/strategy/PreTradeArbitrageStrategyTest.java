@@ -1,21 +1,17 @@
 package strategy;
 
-import com.boris.fundingarbitrage.model.arbitrage.ArbitrageConstantData;
-import com.boris.fundingarbitrage.model.arbitrage.ArbitrageData;
-import com.boris.fundingarbitrage.model.arbitrage.ArbitrageSnapshot;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.Fees;
 import com.boris.fundingarbitrage.model.contract.FundingRate;
 import com.boris.fundingarbitrage.model.contract.MarkPrice;
 import com.boris.fundingarbitrage.model.exchange.ExchangeConstantData;
 import com.boris.fundingarbitrage.model.exchange.FuturesSnapshot;
-import com.boris.fundingarbitrage.strategy.PreTradeStrategy;
+import com.boris.fundingarbitrage.strategy.pretradestrategy.CrossPreTradeStrategy;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
 public abstract class PreTradeArbitrageStrategyTest {
@@ -51,7 +47,7 @@ public abstract class PreTradeArbitrageStrategyTest {
 		return new MarkPrice(price, timestamp);
 	}
 
-	protected abstract PreTradeStrategy strategy();
+	protected abstract CrossPreTradeStrategy strategy();
 
 	@Test
 	public void compareSnapshotsReturnsMinusOneWhenFirstIsWorse() {

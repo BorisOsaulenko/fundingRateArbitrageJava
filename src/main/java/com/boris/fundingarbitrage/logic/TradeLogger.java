@@ -16,7 +16,7 @@ public class TradeLogger {
 	private final Path logFilePath;
 	private final BufferedWriter writer;
 
-	public TradeLogger(String coin, ExchangePair exchanges) {
+	public TradeLogger(String coin) {
 		String path = String.format("logs/%s_%s.log", coin, fmt.format(Instant.now()));
 		this.logFilePath = Path.of(path);
 		OutputStream out;
@@ -30,8 +30,6 @@ public class TradeLogger {
 			out = System.out;
 		}
 		this.writer = new BufferedWriter(new OutputStreamWriter(out));
-
-		log("Trade logs for: " + coin + ". Long: " + exchanges.longEx().name + ". short: " + exchanges.shortEx().name);
 	}
 
 	String getPrefix(String type) {

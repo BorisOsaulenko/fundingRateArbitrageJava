@@ -4,11 +4,15 @@ import com.boris.fundingarbitrage.coinParser.ICoinSupplier;
 import com.boris.fundingarbitrage.coinfilter.CoinFilterConfig;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.exchange.Instances;
-import com.boris.fundingarbitrage.model.arbitrage.ArbitrageConstantData;
+import com.boris.fundingarbitrage.logic.coinopportunities.CoinOpportunity;
+import com.boris.fundingarbitrage.logic.coinopportunities.CrossCoinOpportunity;
+import com.boris.fundingarbitrage.logic.coinopportunities.SingleCoinOpportunity;
 import com.boris.fundingarbitrage.model.assetops.InternalAccount;
 import com.boris.fundingarbitrage.model.assetops.InternalTransfer;
 import com.boris.fundingarbitrage.model.assetops.Leverages;
-import com.boris.fundingarbitrage.strategy.PreTradeStrategy;
+import com.boris.fundingarbitrage.model.exchange.ExchangeData;
+import com.boris.fundingarbitrage.strategy.pretradestrategy.CrossPreTradeStrategy;
+import com.boris.fundingarbitrage.strategy.pretradestrategy.SinglePreTradeStrategy;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import com.boris.fundingarbitrage.util.logger.Logger;
 
@@ -24,7 +28,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class RebalancingArbitrageLogic extends ArbitrageLogic {
 	private final static BigDecimal rebalanceThreshold = new BigDecimal("0.3"); // 30%
-	private final List<InTradeSingleCoinLogic> inTradeCoins = new CopyOnWriteArrayList<>();
+	private final List<InTradeCoinLogic> inTradeCoins = new CopyOnWriteArrayList<>();
 	private final List<CompletableFuture<Void>> exitFutures = new ArrayList<>();
 	private final int maxParallelTrades = 1;
 	private final AtomicInteger currentParallelTrades = new AtomicInteger(0);
@@ -33,11 +37,12 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 
 	public RebalancingArbitrageLogic(
 					ICoinSupplier coinSupplier,
-					PreTradeStrategy strategy,
+					CrossPreTradeStrategy crossPreTradeStrategy,
+					SinglePreTradeStrategy singlePreTradeStrategy,
 					CoinFilterConfig filterConfig,
 					ArbitrageBotConfig arbConfig
 	) {
-		super(coinSupplier, strategy, filterConfig, arbConfig);
+		super(coinSupplier, crossPreTradeStrategy, singlePreTradeStrategy, filterConfig, arbConfig);
 	}
 
 	@Override
@@ -119,15 +124,21 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 	}
 
 	private void processExits() {
-		for (InTradeSingleCoinLogic logic : inTradeCoins) {
+		for (InTradeCoinLogic logic : inTradeCoins) {
 			try {
-				boolean exiting = logic.exitTradeIfShould();
-				if (exiting) {
-					exitFutures.add(logic.getExitFuture());
-					exchangeUsageCounterMap.merge(logic.getExchanges().longEx(), -1, Integer::sum);
-					exchangeUsageCounterMap.merge(logic.getExchanges().shortEx(), -1, Integer::sum);
+				CompletableFuture<Void> exiting = logic.exitTradeIfShould();
+				if (exiting != null) {
+					exitFutures.add(exiting);
 					inTradeCoins.remove(logic);
 					currentParallelTrades.decrementAndGet();
+
+					if (logic instanceof ClassicInCrossTradeCoinLogic) {
+
+					} else if (logic instanceof ClassicInSingleTradeCoinLogic) {
+
+					}
+					exchangeUsageCounterMap.merge(logic.getExchanges().longEx(), -1, Integer::sum);
+					exchangeUsageCounterMap.merge(logic.getExchanges().shortEx(), -1, Integer::sum);
 				}
 			} catch (Exception e) {
 				Logger.error("Exiting trade for " + logic.getCoin() + " failed. Exit manually. " + e.getMessage());
@@ -137,37 +148,41 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 	}
 
 	private void processEnters(CoinVector<CoinOpportunity> bestOpportunities) {
-		if (currentParallelTrades.get() >= maxParallelTrades) return;
-
 		for (Map.Entry<String, CoinOpportunity> entry : bestOpportunities.entrySet()) {
+			if (currentParallelTrades.get() >= maxParallelTrades) return;
+
 			String coin = entry.getKey();
-			BaseExchange longEx = entry.getValue().exchanges().longEx();
-			BaseExchange shortEx = entry.getValue().exchanges().shortEx();
-
-			if (!preTradeStrategy.goodToEnter(entry.getValue().data())) continue;
-			if (exchangeUsageCounterMap.get(longEx) >= config.leverage()) continue;
-			if (exchangeUsageCounterMap.get(shortEx) >= config.leverage()) continue;
-
-			exchangeUsageCounterMap.merge(longEx, 1, Integer::sum);
-			exchangeUsageCounterMap.merge(shortEx, 1, Integer::sum);
-
-			enterCoin(coin, entry.getValue());
-			forgetCoin(coin);
+			CoinOpportunity opportunity = entry.getValue();
+			if (opportunity instanceof SingleCoinOpportunity(
+							BaseExchange exchange,
+							BigDecimal expectedGain,
+							ExchangeData data
+			)) {
+				if (singlePreTradeStrategy.goodToEnter(data)) enterSingleCoin(coin, (SingleCoinOpportunity) opportunity);
+			} else if (opportunity instanceof CrossCoinOpportunity(
+							ExchangePair exchanges,
+							BigDecimal expectedGain,
+							ExchangeData longData,
+							ExchangeData shortData
+			)) {
+				if (crossPreTradeStrategy.goodToEnter(longData, shortData))
+					enterCrossCoin(coin, (CrossCoinOpportunity) opportunity);
+			}
 		}
 	}
 
-	private void enterCoin(String coin, CoinOpportunity opportunity) {
+	private void enterSingleCoin(String coin, SingleCoinOpportunity opportunity) {
+
+	}
+
+	private void enterCrossCoin(String coin, CrossCoinOpportunity opportunity) {
 		ExchangePair exchanges = opportunity.exchanges();
 		try {
-			InTradeSingleCoinLogic inTradeLogic = new InTradeSingleCoinLogic(
+			ClassicInCrossTradeCoinLogic inTradeLogic = new ClassicInCrossTradeCoinLogic(
 							coin,
 							monitor,
 							exchanges,
 							config.legUsdtAmount(),
-							new ArbitrageConstantData(
-											constantDataMap.get(exchanges.longEx(), coin),
-											constantDataMap.get(exchanges.shortEx(), coin)
-							),
 							new Leverages(config.leverage(), config.leverage())
 			);
 			inTradeCoins.add(inTradeLogic);

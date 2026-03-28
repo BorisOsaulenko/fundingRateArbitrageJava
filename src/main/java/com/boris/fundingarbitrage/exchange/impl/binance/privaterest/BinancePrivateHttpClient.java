@@ -67,7 +67,7 @@ public class BinancePrivateHttpClient extends PrivateHttpClient {
 
 		for (String coin : coins) {
 			fees.put(coin, new Fees(maker, taker, maker, taker, Instant.now()));
-		} // those futuresFees are true, for binance vip level = 1, not going higher than that for some time :)
+		} // those fees are true, for binance vip level = 1, not going higher than that for some time :)
 		return CompletableFuture.completedFuture(fees);
 	}
 

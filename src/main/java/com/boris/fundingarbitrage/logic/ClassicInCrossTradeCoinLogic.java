@@ -2,18 +2,18 @@ package com.boris.fundingarbitrage.logic;
 
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.execution.CoinExecution;
-import com.boris.fundingarbitrage.model.arbitrage.ArbitrageConstantData;
-import com.boris.fundingarbitrage.model.arbitrage.ArbitrageData;
-import com.boris.fundingarbitrage.model.arbitrage.ArbitrageSnapshot;
 import com.boris.fundingarbitrage.model.assetops.Leverages;
 import com.boris.fundingarbitrage.model.assetops.TradeParams;
 import com.boris.fundingarbitrage.model.assetops.TradeSide;
 import com.boris.fundingarbitrage.model.contract.PartialFill;
+import com.boris.fundingarbitrage.model.exchange.ExchangeConstantData;
+import com.boris.fundingarbitrage.model.exchange.ExchangeData;
+import com.boris.fundingarbitrage.model.exchange.ExchangeSnapshot;
 import com.boris.fundingarbitrage.monitor.CoinMonitor;
-import com.boris.fundingarbitrage.strategy.ClassicInTradeStrategy;
-import com.boris.fundingarbitrage.strategy.ClassicPreTradeStrategy;
-import com.boris.fundingarbitrage.strategy.InTradeStrategy;
-import lombok.Getter;
+import com.boris.fundingarbitrage.strategy.TradeMarket;
+import com.boris.fundingarbitrage.strategy.intradestrategy.ClassicInCrossTradeStrategy;
+import com.boris.fundingarbitrage.strategy.intradestrategy.InCrossTradeStrategy;
+import kotlin.jvm.functions.Function3;
 import lombok.NonNull;
 
 import java.math.BigDecimal;
@@ -21,54 +21,47 @@ import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class InTradeSingleCoinLogic {
-	private final BigDecimal usdtAmount;
-	@Getter private final String coin;
-	@Getter private final ExchangePair exchanges;
-	private final CoinMonitor monitor;
-	private final InTradeStrategy strategy;
+public class ClassicInCrossTradeCoinLogic extends InCrossTradeCoinLogic {
 	private final CoinExecution execution;
-	private final ArbitrageSnapshot enterSnapshot;
 	private final CompletableFuture<Void> enterFuture;
-	private final ScheduledExecutorService fundingRegisterExecutor = Executors.newSingleThreadScheduledExecutor();
 	private final AtomicBoolean fillsFetchSuccess = new AtomicBoolean(true);
-	private final ArbitrageConstantData constantData;
-	private final TradeLogger tradeLogger;
 	private final TradeParams enterParams;
-	private long nextFundingTimestamp;
-	@Getter private CompletableFuture<Void> exitFuture = null;
-	private volatile boolean shouldRegisterNewFunding = true;
+	private final ExchangeSnapshot longEnterSn;
+	private final ExchangeSnapshot shortEnterSn;
 	private BigDecimal baseAssetQty;
 
-	public InTradeSingleCoinLogic(
+	public ClassicInCrossTradeCoinLogic(
 					@NonNull String coin,
 					@NonNull CoinMonitor monitor,
 					@NonNull ExchangePair exchanges,
 					@NonNull BigDecimal usdtAmount,
-					@NonNull ArbitrageConstantData constantData,
-					@NonNull Leverages leverages
+					@NonNull Leverages leverages,
+					@NonNull ExchangeConstantData longConstantData,
+					@NonNull ExchangeConstantData shortConstantData,
+					@NonNull TradeMarket longMarket,
+					@NonNull TradeMarket shortMarket
 	) {
-		this.coin = coin;
-		this.exchanges = exchanges;
-		this.monitor = monitor;
-		this.usdtAmount = usdtAmount;
-		this.constantData = constantData;
-		this.enterSnapshot = monitor.getSnapshot(exchanges, coin);
-		this.strategy = new ClassicInTradeStrategy(new ArbitrageData(enterSnapshot, constantData));
-		this.tradeLogger = new TradeLogger(coin, exchanges);
+		ExchangeSnapshot longEnterSnapshot = monitor.getSnapshot(exchanges.longEx(), coin);
+		ExchangeSnapshot shortEnterSnapshot = monitor.getSnapshot(exchanges.shortEx(), coin);
 
-		enterParams = getEnterParams();
+		InCrossTradeStrategy strategy = new ClassicInCrossTradeStrategy(
+						new ExchangeData(longEnterSnapshot, longConstantData),
+						new ExchangeData(shortEnterSnapshot, shortConstantData),
+						longMarket,
+						shortMarket
+		);
+
+		super(coin, monitor, usdtAmount, exchanges, longMarket, shortMarket, longConstantData, shortConstantData, strategy);
+		this.longEnterSn = longEnterSnapshot;
+		this.shortEnterSn = shortEnterSnapshot;
+
+		enterParams = getEnterParams(longEnterSnapshot, shortEnterSnapshot);
 		this.execution = new CoinExecution(coin, enterParams, leverages, tradeLogger);
 
 		this.enterFuture = this.execution.enterTrade().exceptionally(this::fail);
-
-		// Funding occurs at most once an hour, so checking every 30 minutes is sufficient to not miss any funding while also not checking too often
-		this.fundingRegisterExecutor.scheduleAtFixedRate(this::registerFunding, 0, 30, TimeUnit.MINUTES);
 	}
 
 	private static BigDecimal lcm(BigDecimal a, BigDecimal b) {
@@ -90,19 +83,19 @@ public class InTradeSingleCoinLogic {
 		throw new RuntimeException(t);
 	}
 
-	private TradeParams getEnterParams() {
-		BigDecimal longLotSize = constantData.longData().futuresLotSize(); // 2 COIN
-		BigDecimal shortLotSize = constantData.shortData().futuresLotSize(); // 3 COIN
+	private TradeParams getEnterParams(ExchangeSnapshot longEnter, ExchangeSnapshot shortEnter) {
+		BigDecimal longLotSize = longConstantData.lotSize(longMarket); // 2 COIN
+		BigDecimal shortLotSize = shortConstantData.lotSize(shortMarket); // 3 COIN
 		BigDecimal effectiveLotSize = lcm(longLotSize, shortLotSize); // 6 COIN
 
-		BigDecimal longAsk = enterSnapshot.longExchange().bookTicker().askPrice(); // 10 usdt/COIN
-		BigDecimal shortBid = enterSnapshot.shortExchange().bookTicker().bidPrice(); // 15 usdt/COIN
+		BigDecimal longAsk = longEnter.bookTicker(longMarket).askPrice(); // 10 usdt/COIN
+		BigDecimal shortBid = shortEnter.bookTicker(shortMarket).bidPrice(); // 15 usdt/COIN
 
-		BigDecimal longELSMultiplier = usdtAmount // 300 usdt
+		BigDecimal longELSMultiplier = this.legUsdtAmount // 300 usdt
 						.divide(longAsk, RoundingMode.FLOOR)
 						.divide(effectiveLotSize, RoundingMode.FLOOR); // 5 -
 
-		BigDecimal shortELSMultiplier = usdtAmount
+		BigDecimal shortELSMultiplier = this.legUsdtAmount
 						.divide(shortBid, RoundingMode.FLOOR)
 						.divide(effectiveLotSize, RoundingMode.FLOOR); // 3 -
 
@@ -124,52 +117,37 @@ public class InTradeSingleCoinLogic {
 		);
 	}
 
-	private void registerFunding() {
-		if (!shouldRegisterNewFunding) return;
-		shouldRegisterNewFunding = false;
+	public CompletableFuture<Void> exitTradeIfShould() {
+		if (!enterFuture.isDone()) return null;
 
-		ArbitrageSnapshot currentSnapshot = monitor.getSnapshot(exchanges, coin);
-		nextFundingTimestamp = currentSnapshot.closestSettlement().toEpochMilli();
-		monitor.performOnTimestamp(
-						nextFundingTimestamp, exchanges, coin, sn -> {
-							tradeLogger.log("Funding: [FSpread: " + ClassicPreTradeStrategy.closestFSpread(sn) + "] " + sn);
-							strategy.addFundingSnapshot(sn);
-							shouldRegisterNewFunding = true;
-						}
-		);
+		ExchangeSnapshot currLong = monitor.getSnapshot(exchanges.longEx(), coin);
+		ExchangeSnapshot currShort = monitor.getSnapshot(exchanges.shortEx(), coin);
+		if (!strategy.shouldExitTrade(currLong, currShort)) return null;
+
+		return execution.exitTrade().thenCompose((v) -> shutdown(currLong, currShort));
 	}
 
-	public boolean exitTradeIfShould() {
-		if (!enterFuture.isDone()) return false;
-
-		ArbitrageSnapshot current = monitor.getSnapshot(exchanges, coin);
-		if (!strategy.shouldExitTrade(current)) return false;
-
-		this.exitFuture = execution.exitTrade()
-						.thenCompose(v -> new CompletableFuture<>().completeOnTimeout(
-										null,
-										5,
-										TimeUnit.SECONDS
-						)) // In case exit hangs for some reason, we don't want to wait indefinitely before finishing the logic and logging the trade info
-						.thenCompose((v) -> finish(current));
-
-		return true;
-	}
-
-	private CompletableFuture<Void> finish(ArbitrageSnapshot current) {
-		monitor.cancelTimestampExecution(nextFundingTimestamp, exchanges, coin);
-		shouldRegisterNewFunding = false;
-		fundingRegisterExecutor.shutdownNow();
-		return logTradeInfo(current);
+	private CompletableFuture<Void> shutdown(ExchangeSnapshot currLong, ExchangeSnapshot currShort) {
+		return new CompletableFuture<>().completeOnTimeout(
+						null,
+						5,
+						TimeUnit.SECONDS
+		).thenCompose(v -> logTradeInfo(currLong, currShort));
 	}
 
 	private CompletableFuture<List<PartialFill>> errorHandledFillsFetch(
 					BaseExchange ex,
 					String orderId,
 					TradeSide tradeSide,
-					String name
+					String name,
+					TradeMarket market
 	) {
-		return ex.privateHttpClient.getFuturesOrderRecord(orderId, coin, tradeSide)
+		Function3<String, String, TradeSide, CompletableFuture<List<PartialFill>>> fetchFun =
+						market == TradeMarket.FUTURES ?
+										ex.privateHttpClient::getFuturesOrderRecord :
+										ex.privateHttpClient::getSpotOrderRecord;
+
+		return fetchFun.invoke(orderId, coin, tradeSide)
 						.whenComplete((r, t) -> {
 							if (t == null && r != null && !r.isEmpty()) return; // Everything good
 							fillsFetchSuccess.set(false);
@@ -178,32 +156,36 @@ public class InTradeSingleCoinLogic {
 						});
 	}
 
-	private CompletableFuture<Void> logTradeInfo(ArbitrageSnapshot exitSnapshot) {
+	private CompletableFuture<Void> logTradeInfo(ExchangeSnapshot currLong, ExchangeSnapshot currShort) {
 		CompletableFuture<List<PartialFill>> LEnterFuture = errorHandledFillsFetch(
 						exchanges.longEx(),
 						execution.getEnterIds().longId(),
 						TradeSide.OPEN,
-						"Long Enter"
+						"Long Enter",
+						longMarket
 		);
 		CompletableFuture<List<PartialFill>> SEnterFuture = errorHandledFillsFetch(
 						exchanges.shortEx(),
 						execution.getEnterIds().shortId(),
 						TradeSide.OPEN,
-						"Short Enter"
+						"Short Enter",
+						shortMarket
 		);
 
 		CompletableFuture<List<PartialFill>> LExitFuture = errorHandledFillsFetch(
 						exchanges.longEx(),
 						execution.getExitIds().longId(),
 						TradeSide.CLOSE,
-						"Long Exit"
+						"Long Exit",
+						longMarket
 		);
 
 		CompletableFuture<List<PartialFill>> SExitFuture = errorHandledFillsFetch(
 						exchanges.shortEx(),
 						execution.getExitIds().shortId(),
 						TradeSide.CLOSE,
-						"Short Exit"
+						"Short Exit",
+						shortMarket
 		);
 
 		return CompletableFuture.allOf(LEnterFuture, SEnterFuture, LExitFuture, SExitFuture)
@@ -215,31 +197,31 @@ public class InTradeSingleCoinLogic {
 							List<PartialFill> longExitFills = LExitFuture.join();
 							List<PartialFill> shortExitFills = SExitFuture.join();
 
-							BigDecimal oLongEnterPrice = enterSnapshot.longExchange().bookTicker().askPrice();
-							BigDecimal oShortEnterPrice = enterSnapshot.shortExchange().bookTicker().bidPrice();
-							BigDecimal oLongExitPrice = exitSnapshot.longExchange().bookTicker().bidPrice();
-							BigDecimal oShortExitPrice = exitSnapshot.shortExchange().bookTicker().askPrice();
+							BigDecimal oLongEnterPrice = longEnterSn.bookTicker(longMarket).askPrice();
+							BigDecimal oShortEnterPrice = shortEnterSn.bookTicker(shortMarket).bidPrice();
+							BigDecimal oLongExitPrice = longEnterSn.bookTicker(longMarket).bidPrice();
+							BigDecimal oShortExitPrice = shortEnterSn.bookTicker(shortMarket).askPrice();
 
 							BigDecimal avgLongEnterPrice = getAvgPrice(longEnterFills);
 							BigDecimal avgShortEnterPrice = getAvgPrice(shortEnterFills);
 							BigDecimal avgLongExitPrice = getAvgPrice(longExitFills);
 							BigDecimal avgShortExitPrice = getAvgPrice(shortExitFills);
 
-							BigDecimal longEnterFee = constantData.longData().futuresFees().openTaker().multiply(avgLongEnterPrice);
-							BigDecimal shortEnterFee = constantData.shortData()
-											.futuresFees()
-											.openTaker()
-											.multiply(avgShortEnterPrice);
-							BigDecimal longExitFee = constantData.longData().futuresFees().closeTaker().multiply(avgLongExitPrice);
-							BigDecimal shortExitFee = constantData.shortData().futuresFees().closeTaker().multiply(avgShortExitPrice);
+							BigDecimal longEnterFee = longConstantData.fees(longMarket).openTaker().multiply(avgLongEnterPrice);
+							BigDecimal shortEnterFee = shortConstantData.fees(shortMarket).openTaker().multiply(avgShortEnterPrice);
+							BigDecimal longExitFee = longConstantData.fees(longMarket).closeTaker().multiply(avgLongExitPrice);
+							BigDecimal shortExitFee = shortConstantData.fees(shortMarket).closeTaker().multiply(avgShortExitPrice);
 							BigDecimal totalFees = longEnterFee.add(shortEnterFee).add(longExitFee).add(shortExitFee);
 
-							List<ArbitrageSnapshot> fundingSnapshots = strategy.getFundingSnapshots();
+							List<ExchangeSnapshot> longFundingSnapshots = strategy.getLongFundingSnapshots();
+							List<ExchangeSnapshot> shortFundingSnapshots = strategy.getShortFundingSnapshots();
 
 							tradeLogger.log("Trade info for " + coin + ": ");
 							logTradeStep(oLongEnterPrice, avgLongEnterPrice, longEnterFee, true, true);
 							logTradeStep(oShortEnterPrice, avgShortEnterPrice, shortEnterFee, false, true);
-							BigDecimal totalFundingGain = logFundingSteps(fundingSnapshots);
+							BigDecimal totalLongFundingGain = logFundingSteps(longFundingSnapshots, true);
+							BigDecimal totalShortFundingGain = logFundingSteps(shortFundingSnapshots, false);
+							BigDecimal totalFundingGain = totalLongFundingGain.add(totalShortFundingGain);
 							logTradeStep(oLongExitPrice, avgLongExitPrice, longExitFee, true, false);
 							logTradeStep(oShortExitPrice, avgShortExitPrice, shortExitFee, false, false);
 
@@ -262,8 +244,8 @@ public class InTradeSingleCoinLogic {
 
 							BigDecimal oAfterFees = oTotalGain.subtract(totalFees);
 							BigDecimal eAfterFees = eTotalGain.subtract(totalFees);
-							tradeLogger.log("[Observed] After futuresFees: " + oAfterFees);
-							tradeLogger.log("[Executed] After futuresFees: " + eAfterFees);
+							tradeLogger.log("[Observed] After fees: " + oAfterFees);
+							tradeLogger.log("[Executed] After fees: " + eAfterFees);
 
 							tradeLogger.log("[Observed] PnL: " + oAfterFees.multiply(baseAssetQty));
 							tradeLogger.log("[Executed] PnL: " + eAfterFees.multiply(baseAssetQty));
@@ -294,20 +276,19 @@ public class InTradeSingleCoinLogic {
 		tradeLogger.log(tag1 + tag2 + "Fee: " + fee);
 	}
 
-	private BigDecimal logFundingSteps(List<ArbitrageSnapshot> snapshots) {
+	private BigDecimal logFundingSteps(List<ExchangeSnapshot> snapshots, boolean isLong) {
 		tradeLogger.log("Registered funding transactions: ");
 		BigDecimal totalFundingGain = BigDecimal.ZERO;
 
-		for (ArbitrageSnapshot sn : snapshots) {
-			BigDecimal longMark = sn.longExchange().markPrice().price();
-			BigDecimal longFunding = sn.longExchange().fundingRate().rate().multiply(longMark).negate();
-			BigDecimal shortMark = sn.shortExchange().markPrice().price();
-			BigDecimal shortFunding = sn.shortExchange().fundingRate().rate().multiply(shortMark);
+		for (ExchangeSnapshot sn : snapshots) {
+			BigDecimal mark = sn.markPrice();
+			BigDecimal funding = sn.fundingRate().multiply(mark);
+			if (isLong) funding = funding.negate();
 
-			totalFundingGain = totalFundingGain.add(longFunding).add(shortFunding);
+			totalFundingGain = totalFundingGain.add(funding);
 
-			tradeLogger.log("[Funding] [Long] Received funding: " + longFunding);
-			tradeLogger.log("[Funding] [Short] Received funding: " + shortFunding);
+			String tag = isLong ? "[Long]" : "[Short]";
+			tradeLogger.log("[Funding] " + tag + " Received funding: " + funding);
 		}
 
 		return totalFundingGain;

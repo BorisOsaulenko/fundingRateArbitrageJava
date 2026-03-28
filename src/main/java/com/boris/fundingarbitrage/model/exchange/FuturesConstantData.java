@@ -6,8 +6,8 @@ import lombok.NonNull;
 import java.math.BigDecimal;
 
 public record FuturesConstantData(
-				@NonNull BigDecimal futuresLotSize,
-				@NonNull Fees futuresFees,
+				@NonNull BigDecimal lotSize,
+				@NonNull Fees fees,
 				int fundingInterval
 ) {
 }

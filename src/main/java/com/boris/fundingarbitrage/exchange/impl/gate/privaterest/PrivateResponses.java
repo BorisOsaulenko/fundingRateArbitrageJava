@@ -195,11 +195,11 @@ class PrivateResponses {
 		}
 
 		public BigDecimal getFeeForChain(SupportedChain chain) {
-			if (items == null) throw new IllegalStateException("Withdrawal futuresFees info not found");
+			if (items == null) throw new IllegalStateException("Withdrawal fees info not found");
 			for (WithdrawalFeeItem item : items) {
 				if (!"USDT".equalsIgnoreCase(item.currency)) continue;
 				Map<String, BigDecimal> chains = item.withdraw_fix_on_chains;
-				if (chains == null) throw new IllegalStateException("Withdrawal futuresFees chains info not found");
+				if (chains == null) throw new IllegalStateException("Withdrawal fees chains info not found");
 
 				String gateChain = chainsMap.get(chain);
 				String key = chains.keySet().stream().filter(gateChain::equalsIgnoreCase).findFirst().orElse(null);
