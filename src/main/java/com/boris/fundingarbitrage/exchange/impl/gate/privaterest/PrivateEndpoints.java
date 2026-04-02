@@ -132,6 +132,15 @@ class PrivateEndpoints {
 		return new SimpleHttpRequest("GET", uri);
 	}
 
+	@SneakyThrows
+	public static @NonNull SimpleHttpRequest spotOrderRecordRequestSymbol(String orderId, String symbol) {
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v4/spot/my_trades")
+						.addParameter("currency_pair", symbol)
+						.addParameter("order_id", orderId)
+						.build();
+		return new SimpleHttpRequest("GET", uri);
+	}
+
 	private static String mapTransferType(InternalTransfer transfer, boolean from) {
 		if (transfer.from() == InternalAccount.SPOT && transfer.to() == InternalAccount.FUTURES) {
 			return from ? "spot" : "futures";

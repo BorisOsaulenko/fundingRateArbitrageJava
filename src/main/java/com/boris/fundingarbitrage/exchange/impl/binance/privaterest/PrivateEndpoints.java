@@ -47,6 +47,12 @@ class PrivateEndpoints {
 	}
 
 	@SneakyThrows
+	public static @NonNull SimpleHttpRequest spotTradingFeesRequest() {
+		URI uri = new URIBuilder(spotBaseUrl).setPath("/sapi/v1/asset/tradeFee").build();
+		return new SimpleHttpRequest("GET", uri);
+	}
+
+	@SneakyThrows
 	public static @NonNull SimpleHttpRequest maxLeverageRequest() {
 		URI uri = new URIBuilder(futuresBaseUrl).setPath("/fapi/v1/leverageBracket").build();
 		return new SimpleHttpRequest("GET", uri);
@@ -111,6 +117,15 @@ class PrivateEndpoints {
 						orderId
 		).build();
 
+		return new SimpleHttpRequest("GET", uri);
+	}
+
+	@SneakyThrows
+	public static @NonNull SimpleHttpRequest spotOrderRecordRequestSymbol(String orderId, String symbol) {
+		URI uri = new URIBuilder(spotBaseUrl).setPath("/api/v3/myTrades")
+						.addParameter("symbol", symbol)
+						.addParameter("orderId", orderId)
+						.build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 

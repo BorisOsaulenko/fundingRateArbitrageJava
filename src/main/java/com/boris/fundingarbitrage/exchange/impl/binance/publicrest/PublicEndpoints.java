@@ -9,6 +9,7 @@ import java.net.URI;
 
 class PublicEndpoints {
 	private static final String futuresBaseUrl = "https://fapi.binance.com";
+	private static final String spotBaseUrl = "https://api.binance.com";
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest premiumIndexRequest() {
@@ -37,6 +38,24 @@ class PublicEndpoints {
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest fundingInfoRequest() {
 		URI uri = new URIBuilder(futuresBaseUrl).setPath("/fapi/v1/fundingInfo").build();
+		return new SimpleHttpRequest("GET", uri);
+	}
+
+	@SneakyThrows
+	public static @NonNull SimpleHttpRequest spotBookTickerRequest() {
+		URI uri = new URIBuilder(spotBaseUrl).setPath("/api/v3/ticker/bookTicker").build();
+		return new SimpleHttpRequest("GET", uri);
+	}
+
+	@SneakyThrows
+	public static @NonNull SimpleHttpRequest spotExchangeInfoRequest() {
+		URI uri = new URIBuilder(spotBaseUrl).setPath("/api/v3/exchangeInfo").build();
+		return new SimpleHttpRequest("GET", uri);
+	}
+
+	@SneakyThrows
+	public static @NonNull SimpleHttpRequest spotStatistic24hRequest() {
+		URI uri = new URIBuilder(spotBaseUrl).setPath("/api/v3/ticker/24hr").build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 }

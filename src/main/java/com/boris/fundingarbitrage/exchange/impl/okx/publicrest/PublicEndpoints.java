@@ -9,23 +9,36 @@ import java.net.URI;
 
 class PublicEndpoints {
 	private static final String baseUrl = "https://www.okx.com";
-	private static final String instType = "SWAP";
+	private static final String swapInstType = "SWAP";
+	private static final String spotInstType = "SPOT";
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest instrumentsRequestSymbols() {
-		URI uri = new URIBuilder(baseUrl).setPath("/api/v5/public/instruments").addParameter("instType", instType).build();
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v5/public/instruments").addParameter("instType", swapInstType).build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest tickersRequestSymbols() {
-		URI uri = new URIBuilder(baseUrl).setPath("/api/v5/market/tickers").addParameter("instType", instType).build();
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v5/market/tickers").addParameter("instType", swapInstType).build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest fundingRateRequestSymbols() {
 		URI uri = new URIBuilder(baseUrl).setPath("/api/v5/public/funding-rate").addParameter("instId", "ANY").build();
+		return new SimpleHttpRequest("GET", uri);
+	}
+
+	@SneakyThrows
+	public static @NonNull SimpleHttpRequest spotInstrumentsRequestSymbols() {
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v5/public/instruments").addParameter("instType", spotInstType).build();
+		return new SimpleHttpRequest("GET", uri);
+	}
+
+	@SneakyThrows
+	public static @NonNull SimpleHttpRequest spotTickersRequestSymbols() {
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v5/market/tickers").addParameter("instType", spotInstType).build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 }

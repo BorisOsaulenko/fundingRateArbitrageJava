@@ -4,6 +4,7 @@ import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.publichttp.FuturesPublicOnePullData;
 import com.boris.fundingarbitrage.exchange.publichttp.FuturesTradingState;
 import com.boris.fundingarbitrage.exchange.publichttp.PublicHttpClient;
+import com.boris.fundingarbitrage.exchange.publichttp.SpotPublicOnePullData;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.FundingRate;
 import com.boris.fundingarbitrage.util.https.PrettyHttpClient;
@@ -25,7 +26,7 @@ public class BinancePublicHttpClient extends PublicHttpClient {
 	}
 
 	@Override
-	protected CompletableFuture<Map<String, FundingRate>> getFundingRateSymbolBatch() {
+	protected CompletableFuture<Map<String, FundingRate>> getFundingRateSymbols() {
 		return requestWrapper.processRequest(
 						PublicEndpoints.premiumIndexRequest(),
 						PublicResponses.PremiumIndexResponse.class,
@@ -34,7 +35,7 @@ public class BinancePublicHttpClient extends PublicHttpClient {
 	}
 
 	@Override
-	protected CompletableFuture<Map<String, FuturesPublicOnePullData>> getFuturesPublicOnePullData() {
+	protected CompletableFuture<Map<String, FuturesPublicOnePullData>> getFuturesPublicOnePullDataSymbols() {
 		CompletableFuture<PublicResponses.ExchangeInfoResponse> exchangeInfoFuture = requestWrapper.getResponse(
 						PublicEndpoints.exchangeInfoRequest(),
 						PublicResponses.ExchangeInfoResponse.class
@@ -106,6 +107,40 @@ public class BinancePublicHttpClient extends PublicHttpClient {
 
 							return data;
 						});
+	}
+
+	@Override
+	protected CompletableFuture<Map<String, SpotPublicOnePullData>> getSpotPublicOnePullDataSymbols() {
+		CompletableFuture<PublicResponses.ExchangeInfoResponse> exchangeInfoFuture = requestWrapper.getResponse(
+						PublicEndpoints.spotExchangeInfoRequest(),
+						PublicResponses.ExchangeInfoResponse.class
+		);
+		CompletableFuture<Map<String, BookTicker>> bookTickersFuture = requestWrapper.processRequest(
+						PublicEndpoints.spotBookTickerRequest(),
+						PublicResponses.BookTickerResponse.class,
+						PublicResponses.BookTickerResponse::getBookTickers
+		);
+		CompletableFuture<Map<String, BigDecimal>> volumes24hFuture = requestWrapper.processRequest(
+						PublicEndpoints.spotStatistic24hRequest(),
+						PublicResponses.Statistics24hResponse.class,
+						PublicResponses.Statistics24hResponse::getVolume24h
+		);
+
+		return CompletableFuture.allOf(exchangeInfoFuture, bookTickersFuture, volumes24hFuture).thenApply(_ -> {
+			Map<String, BigDecimal> lotSizes = exchangeInfoFuture.join().getSpotLotSizes();
+			Map<String, SpotPublicOnePullData> data = new HashMap<>();
+			for (String symbol : lotSizes.keySet()) {
+				data.put(
+								symbol,
+								new SpotPublicOnePullData(
+												lotSizes.get(symbol),
+												volumes24hFuture.join().get(symbol),
+												bookTickersFuture.join().get(symbol)
+								)
+				);
+			}
+			return data;
+		});
 	}
 
 	@Override

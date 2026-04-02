@@ -35,4 +35,18 @@ public class OkxContext extends ExchangeContext {
 		}
 		return symbol.substring(0, symbol.length() - suffix.length());
 	}
+
+	@Override
+	public String getSpotSymbol(String coin) {
+		return coin.toUpperCase() + "-" + QUOTE;
+	}
+
+	@Override
+	public String getSpotSymbolInverse(String symbol) {
+		String suffix = "-" + QUOTE;
+		if (!symbol.endsWith(suffix)) {
+			throw new IllegalArgumentException("Symbol does not end with " + suffix + ": " + symbol);
+		}
+		return symbol.substring(0, symbol.length() - suffix.length());
+	}
 }

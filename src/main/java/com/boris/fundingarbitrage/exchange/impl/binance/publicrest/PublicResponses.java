@@ -38,6 +38,17 @@ class PublicResponses {
 			return result;
 		}
 
+		public Map<String, BigDecimal> getSpotLotSizes() {
+			Map<String, BigDecimal> result = new HashMap<>();
+			for (SymbolInfo info : symbols) {
+				if (!"TRADING".equalsIgnoreCase(info.status()) || !"USDT".equalsIgnoreCase(info.quoteAsset())) continue;
+				for (Filter filter : info.filters()) {
+					if ("LOT_SIZE".equals(filter.filterType())) result.put(info.symbol(), filter.stepSize());
+				}
+			}
+			return result;
+		}
+
 		public Map<String, FuturesTradingState> getTradingStates() {
 			Map<String, FuturesTradingState> result = new HashMap<>();
 			for (SymbolInfo info : symbols) {
@@ -59,6 +70,7 @@ class PublicResponses {
 		private record SymbolInfo(
 						String symbol,
 						String status,
+						String quoteAsset,
 						String underlyingType,
 						String contractType,
 						Filter[] filters

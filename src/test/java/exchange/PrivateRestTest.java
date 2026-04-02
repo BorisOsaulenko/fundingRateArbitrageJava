@@ -61,6 +61,17 @@ public abstract class PrivateRestTest {
 
 	@Test
 	@Tag("rest")
+	public void getSpotTradingFeesTest() throws Exception {
+		CoinVector<Fees> fees = getWithTimeout(privateRest().getSpotTradingFees(testCoins));
+		assertNotNull(fees, "Fees result should not be null");
+		assertEquals(testCoins.size(), fees.size(), "Fees result should contain data for each requested coin");
+		for (String coin : testCoins) {
+			assertValidFees(fees.get(coin));
+		}
+	}
+
+	@Test
+	@Tag("rest")
 	public void getSpotUsdtBalanceTest() throws Exception {
 		BigDecimal spotBalance = getWithTimeout(privateRest().getSpotUsdtBalance());
 		assertTrue(spotBalance.compareTo(BigDecimal.ZERO) > 0, "Spot USDT balance should be non-negative");

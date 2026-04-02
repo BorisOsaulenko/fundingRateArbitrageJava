@@ -1,6 +1,7 @@
 package com.boris.fundingarbitrage.exchange.impl.binance.privaterest;
 
 import com.boris.fundingarbitrage.model.assetops.SupportedChain;
+import com.boris.fundingarbitrage.model.contract.Fees;
 import com.boris.fundingarbitrage.model.contract.PartialFill;
 import com.boris.fundingarbitrage.model.exchange.ExchangeChains;
 import com.boris.fundingarbitrage.model.exchange.ExchangeChainsBuilder;
@@ -70,6 +71,33 @@ class PrivateResponses {
 			}
 
 			return BigDecimal.ZERO;
+		}
+	}
+
+	private record SpotTradingFeeItem(String symbol, String makerCommission, String takerCommission) {
+	}
+
+	@JsonFormat(shape = JsonFormat.Shape.ARRAY)
+	public record SpotTradingFeesResponse(SpotTradingFeeItem[] items) {
+		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
+		public SpotTradingFeesResponse {
+		}
+
+		public Map<String, Fees> getFeesBySymbols() {
+			Map<String, Fees> feesBySymbol = new HashMap<>();
+			if (items == null) return feesBySymbol;
+
+			for (SpotTradingFeeItem item : items) {
+				if (item.symbol == null || item.symbol.isEmpty()) continue;
+				if (item.makerCommission == null || item.makerCommission.isEmpty()) continue;
+				if (item.takerCommission == null || item.takerCommission.isEmpty()) continue;
+
+				BigDecimal maker = new BigDecimal(item.makerCommission);
+				BigDecimal taker = new BigDecimal(item.takerCommission);
+				feesBySymbol.put(item.symbol, new Fees(maker, taker, maker, taker, Instant.now()));
+			}
+
+			return feesBySymbol;
 		}
 	}
 
@@ -190,6 +218,42 @@ class PrivateResponses {
 				result.add(partialFill);
 			}
 
+			return result;
+		}
+	}
+
+	private record SpotOrderRecordItem(
+					BigDecimal commission,
+					String commissionAsset,
+					long orderId,
+					BigDecimal price,
+					BigDecimal qty,
+					String symbol,
+					long time
+	) {
+	}
+
+	@JsonFormat(shape = JsonFormat.Shape.ARRAY)
+	public record GetSpotOrderRecordResponse(SpotOrderRecordItem[] items) {
+
+		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
+		public GetSpotOrderRecordResponse {
+		}
+
+		public List<PartialFill> get() {
+			ArrayList<PartialFill> result = new ArrayList<>();
+			if (items == null) return result;
+			for (SpotOrderRecordItem item : items) {
+				BigDecimal fee = "USDT".equalsIgnoreCase(item.commissionAsset()) ? item.commission() : null;
+				result.add(new PartialFill(
+								String.valueOf(item.orderId()),
+								item.symbol(),
+								item.qty(),
+								item.price(),
+								fee,
+								Instant.ofEpochMilli(item.time())
+				));
+			}
 			return result;
 		}
 	}

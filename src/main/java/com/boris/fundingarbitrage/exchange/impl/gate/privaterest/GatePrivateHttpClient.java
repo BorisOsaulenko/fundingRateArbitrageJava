@@ -77,11 +77,25 @@ public class GatePrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
+	protected CompletableFuture<Map<String, Fees>> getSpotFeesSymbolBatch() {
+		return CompletableFuture.failedFuture(new UnsupportedOperationException("Use getSpotTradingFees for Gate spot fees"));
+	}
+
+	@Override
 	public CompletableFuture<CoinVector<Fees>> getFutureTradingFees(Set<String> coins) {
 		return processRequest(
 						PrivateEndpoints.tradingFeesRequestSymbols(),
 						PrivateResponses.TradingFeesSymbolsResponse.class,
 						PrivateResponses.TradingFeesSymbolsResponse::getAccountFees
+		).thenApply(fees -> CoinVector.byDefaultValue(coins, fees));
+	}
+
+	@Override
+	public CompletableFuture<CoinVector<Fees>> getSpotTradingFees(Set<String> coins) {
+		return processRequest(
+						PrivateEndpoints.tradingFeesRequestSymbols(),
+						PrivateResponses.TradingFeesSymbolsResponse.class,
+						PrivateResponses.TradingFeesSymbolsResponse::getSpotAccountFees
 		).thenApply(fees -> CoinVector.byDefaultValue(coins, fees));
 	}
 
@@ -208,6 +222,19 @@ public class GatePrivateHttpClient extends PrivateHttpClient {
 						PrivateEndpoints.orderRecordRequestSymbol(orderId, symbol, tradeSide),
 						PrivateResponses.GetOrderRecordResponse.class,
 						PrivateResponses.GetOrderRecordResponse::get
+		);
+	}
+
+	@Override
+	protected CompletableFuture<List<PartialFill>> getSpotOrderRecordSymbol(
+					String orderId,
+					String symbol,
+					TradeSide tradeSide
+	) {
+		return processRequest(
+						PrivateEndpoints.spotOrderRecordRequestSymbol(orderId, symbol),
+						PrivateResponses.GetSpotOrderRecordResponse.class,
+						PrivateResponses.GetSpotOrderRecordResponse::get
 		);
 	}
 

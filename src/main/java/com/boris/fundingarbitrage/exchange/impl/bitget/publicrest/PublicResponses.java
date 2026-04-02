@@ -11,6 +11,10 @@ import java.util.List;
 import java.util.Map;
 
 class PublicResponses {
+	private static BigDecimal precisionToStep(String precision) {
+		return BigDecimal.ONE.scaleByPowerOfTen(-Integer.parseInt(precision));
+	}
+
 	public record ContractsResponse(String code, String msg, long requestTime, List<Contract> data) {
 		private static FuturesTradingState toTradingState(String symbolStatus) {
 			if ("normal".equalsIgnoreCase(symbolStatus)) return FuturesTradingState.TRADING;
@@ -80,6 +84,20 @@ class PublicResponses {
 		private record FundingRateItem(
 						String symbol, String fundingRateInterval, BigDecimal fundingRate, long nextUpdate
 		) {
+		}
+	}
+
+	public record SpotSymbolsResponse(String code, String msg, long requestTime, List<SpotSymbol> data) {
+		public Map<String, BigDecimal> getLotSizes() {
+			Map<String, BigDecimal> result = new HashMap<>();
+			for (SpotSymbol symbol : data) {
+				if (!"USDT".equalsIgnoreCase(symbol.quoteCoin()) || !"online".equalsIgnoreCase(symbol.status())) continue;
+				result.put(symbol.symbol(), precisionToStep(symbol.quantityPrecision()));
+			}
+			return result;
+		}
+
+		private record SpotSymbol(String symbol, String quoteCoin, String quantityPrecision, String status) {
 		}
 	}
 }

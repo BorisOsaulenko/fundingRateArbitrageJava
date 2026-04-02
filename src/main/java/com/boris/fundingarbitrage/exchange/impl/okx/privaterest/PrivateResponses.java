@@ -1,6 +1,7 @@
 package com.boris.fundingarbitrage.exchange.impl.okx.privaterest;
 
 import com.boris.fundingarbitrage.model.assetops.SupportedChain;
+import com.boris.fundingarbitrage.model.contract.Fees;
 import com.boris.fundingarbitrage.model.contract.PartialFill;
 import com.boris.fundingarbitrage.model.exchange.ExchangeChains;
 import com.boris.fundingarbitrage.model.exchange.ExchangeChainsBuilder;
@@ -34,6 +35,20 @@ class PrivateResponses {
 		public Map<Integer, FeeGroup> getFeeGroups() {
 			Map<Integer, FeeGroup> feeGroups = new HashMap<>();
 			var entry = data.getFirst();
+			for (FeeGroup group : entry.feeGroup) {
+				feeGroups.put(group.groupId, group);
+			}
+			return feeGroups;
+		}
+	}
+
+	public record SpotTradingFeesResponse(String code, String msg, List<TradingFeeGroupItem> data) {
+		public Map<Integer, PrivateResponses.FeeGroup> getFeeGroups() {
+			ensureOk(code, msg);
+			Map<Integer, FeeGroup> feeGroups = new HashMap<>();
+			if (data == null || data.isEmpty()) return feeGroups;
+			var entry = data.getFirst();
+			if (entry.feeGroup == null) return feeGroups;
 			for (FeeGroup group : entry.feeGroup) {
 				feeGroups.put(group.groupId, group);
 			}
@@ -122,6 +137,18 @@ class PrivateResponses {
 		}
 
 		public Map<String, Integer> getFeeGroupId() {
+			Map<String, Integer> feeGroupIdBySymbol = new HashMap<>();
+			if (data == null) return feeGroupIdBySymbol;
+			for (InstrumentItem item : data) {
+				feeGroupIdBySymbol.put(item.instId, item.groupId);
+			}
+			return feeGroupIdBySymbol;
+		}
+	}
+
+	public record SpotInstrumentsResponse(String code, String msg, List<InstrumentItem> data) {
+		public Map<String, Integer> getFeeGroupId() {
+			ensureOk(code, msg);
 			Map<String, Integer> feeGroupIdBySymbol = new HashMap<>();
 			if (data == null) return feeGroupIdBySymbol;
 			for (InstrumentItem item : data) {

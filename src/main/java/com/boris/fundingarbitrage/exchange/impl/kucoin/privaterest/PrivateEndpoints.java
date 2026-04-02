@@ -31,7 +31,7 @@ public final class PrivateEndpoints {
 	}
 
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest tradingFeesRequest() {
+	public static @NonNull SimpleHttpRequest futuresFeesRequest() {
 		URI uri = new URIBuilder(baseUrlFutures).setPath("/api/v1/contracts/active").build();
 		return new SimpleHttpRequest("GET", uri);
 	}
@@ -63,6 +63,14 @@ public final class PrivateEndpoints {
 	public static @NonNull SimpleHttpRequest futuresUsdtBalanceRequest() {
 		URI uri = new URIBuilder(baseUrlFutures).setPath("/api/v1/account-overview")
 						.addParameter("currency", "USDT")
+						.build();
+		return new SimpleHttpRequest("GET", uri);
+	}
+
+	@SneakyThrows
+	public static @NonNull SimpleHttpRequest spotTradingFeesRequest() {
+		URI uri = new URIBuilder(baseUrlSpot).setPath("/api/v1/base-fee")
+						.addParameter("currencyType", "0")
 						.build();
 		return new SimpleHttpRequest("GET", uri);
 	}
@@ -136,6 +144,15 @@ public final class PrivateEndpoints {
 					TradeSide tradeSide
 	) {
 		URI uri = new URIBuilder(baseUrlFutures).setPath("/api/v1/fills")
+						.addParameter("orderId", orderId)
+						.addParameter("symbol", symbol)
+						.build();
+		return new SimpleHttpRequest("GET", uri);
+	}
+
+	@SneakyThrows
+	public static @NonNull SimpleHttpRequest spotOrderRecordRequestSymbol(String orderId, String symbol) {
+		URI uri = new URIBuilder(baseUrlSpot).setPath("/api/v1/fills")
 						.addParameter("orderId", orderId)
 						.addParameter("symbol", symbol)
 						.build();

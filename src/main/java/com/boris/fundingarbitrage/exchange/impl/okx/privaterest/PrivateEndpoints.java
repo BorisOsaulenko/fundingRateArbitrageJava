@@ -32,6 +32,12 @@ class PrivateEndpoints {
 		return new SimpleHttpRequest("GET", uri);
 	}
 
+	@SneakyThrows
+	public static @NonNull SimpleHttpRequest spotTradingFeesRequest() {
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v5/account/trade-fee").addParameter("instType", "SPOT").build();
+		return new SimpleHttpRequest("GET", uri);
+	}
+
 	public static @NonNull SimpleHttpRequest changeLeverageRequestSymbol(String symbol, int leverage, MarginMode mode) {
 		Map<String, Object> body = new HashMap<>();
 		body.put("instId", symbol);
@@ -64,6 +70,12 @@ class PrivateEndpoints {
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest instrumentsRequest() {
 		URI uri = new URIBuilder(baseUrl).setPath("/api/v5/public/instruments").addParameter("instType", instType).build();
+		return new SimpleHttpRequest("GET", uri);
+	}
+
+	@SneakyThrows
+	public static @NonNull SimpleHttpRequest spotInstrumentsRequest() {
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v5/account/instruments").addParameter("instType", "SPOT").build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
@@ -119,6 +131,16 @@ class PrivateEndpoints {
 	public static @NonNull SimpleHttpRequest orderRecordRequestSymbol(String orderId, String symbol) {
 		URI uri = new URIBuilder(baseUrl).setPath("/api/v5/trade/fills")
 						.addParameter("instType", instType)
+						.addParameter("instId", symbol)
+						.addParameter("ordId", orderId)
+						.build();
+		return new SimpleHttpRequest("GET", uri);
+	}
+
+	@SneakyThrows
+	public static @NonNull SimpleHttpRequest spotOrderRecordRequestSymbol(String orderId, String symbol) {
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v5/trade/fills")
+						.addParameter("instType", "SPOT")
 						.addParameter("instId", symbol)
 						.addParameter("ordId", orderId)
 						.build();

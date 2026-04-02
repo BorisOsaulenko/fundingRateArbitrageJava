@@ -26,7 +26,7 @@ public class Instances {
 		exchanges.put(ExchangeName.GATE, new GateExchange());
 		exchanges.put(ExchangeName.KUCOIN, new KucoinExchange());
 		exchanges.put(ExchangeName.OKX, new OkxExchange());
-		//		exchanges.put(ExchangeName.WHITEBIT, new WhitebitExchange());
+		//				exchanges.put(ExchangeName.WHITEBIT, new WhitebitExchange());
 
 		exchangeArray.addAll(exchanges.values());
 	}

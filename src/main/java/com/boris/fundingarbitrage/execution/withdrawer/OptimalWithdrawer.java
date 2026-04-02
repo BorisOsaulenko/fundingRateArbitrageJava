@@ -53,7 +53,7 @@ public class OptimalWithdrawer {
 
 	public void setExchangePair(ExchangePair pair) {
 		this.exchanges = pair;
-		this.otherExchanges = Instances.getExchangeArray()
+		this.otherExchanges = Instances.getExchangesSet()
 						.stream()
 						.filter(ex -> !ex.equals(pair.longEx()) && !ex.equals(pair.shortEx()))
 						.collect(java.util.stream.Collectors.toList());

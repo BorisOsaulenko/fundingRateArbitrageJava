@@ -6,6 +6,7 @@ import lombok.NonNull;
 
 public class KucoinContext extends ExchangeContext {
 	private static final String QUOTE = "USDTM";
+	private static final String SPOT_QUOTE = "-USDT";
 
 	@Override
 	protected @NonNull ExchangeCredentials getCredentialsOrThrow() {
@@ -35,5 +36,18 @@ public class KucoinContext extends ExchangeContext {
 		String base = symbol.substring(0, symbol.length() - QUOTE.length());
 		if ("XBT".equalsIgnoreCase(base)) return "BTC";
 		return base;
+	}
+
+	@Override
+	public String getSpotSymbol(String coin) {
+		return coin.toUpperCase() + SPOT_QUOTE;
+	}
+
+	@Override
+	public String getSpotSymbolInverse(String symbol) {
+		if (!symbol.endsWith(SPOT_QUOTE)) {
+			throw new IllegalArgumentException("Symbol does not end with " + SPOT_QUOTE + ": " + symbol);
+		}
+		return symbol.substring(0, symbol.length() - SPOT_QUOTE.length());
 	}
 }

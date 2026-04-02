@@ -21,31 +21,6 @@ public class PrivateResponses {
 	private static final String expectedSuccessCode = "200000";
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
-	private record TradingFeeData(String makerFeeRate, String takerFeeRate) {
-	}
-
-	public record TradingFeesResponse(String code, String msg, TradingFeeData data) {
-		public Fees getFees() {
-			if (!expectedSuccessCode.equals(code)) {
-				throw new IllegalStateException("KuCoin contract detail response code not OK: " + code + ", msg: " + msg);
-			}
-			if (data == null) {
-				throw new IllegalStateException("KuCoin contract detail data missing");
-			}
-			if (data.makerFeeRate == null || data.makerFeeRate.isEmpty()) {
-				throw new IllegalStateException("KuCoin makerFeeRate missing");
-			}
-			if (data.takerFeeRate == null || data.takerFeeRate.isEmpty()) {
-				throw new IllegalStateException("KuCoin takerFeeRate missing");
-			}
-			BigDecimal maker = new BigDecimal(data.makerFeeRate);
-			BigDecimal taker = new BigDecimal(data.takerFeeRate);
-			Instant ts = Instant.now();
-			return new Fees(maker, taker, maker, taker, ts);
-		}
-	}
-
-	@JsonIgnoreProperties(ignoreUnknown = true)
 	private record TradingFeeSymbolData(String symbol, String makerFeeRate, String takerFeeRate) {
 	}
 
@@ -62,6 +37,28 @@ public class PrivateResponses {
 				feesBySymbol.put(contract.symbol, new Fees(maker, taker, maker, taker, Instant.now()));
 			}
 			return feesBySymbol;
+		}
+	}
+
+	private record SpotTradingFeesData(String takerFeeRate, String makerFeeRate) {
+	}
+
+	public record SpotTradingFeesValues(BigDecimal takerFeeRate, BigDecimal makerFeeRate) {
+	}
+
+	public record SpotTradingFeesResponse(String code, SpotTradingFeesData data) {
+		public SpotTradingFeesValues getFees() {
+			if (!expectedSuccessCode.equals(code)) {
+				throw new IllegalStateException("KuCoin spot fee response code not OK: " + code);
+			}
+
+			if (data.makerFeeRate.isEmpty() || data.takerFeeRate.isEmpty())
+				throw new IllegalStateException("KuCoin spot fee rates missing in response");
+
+			BigDecimal takerFee = new BigDecimal(data.takerFeeRate);
+			BigDecimal makerFee = new BigDecimal(data.makerFeeRate);
+
+			return new SpotTradingFeesValues(takerFee, makerFee);
 		}
 	}
 

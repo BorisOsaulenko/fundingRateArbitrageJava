@@ -37,4 +37,16 @@ class PublicEndpoints {
 						.build();
 		return new SimpleHttpRequest("GET", uri);
 	}
+
+	@SneakyThrows
+	public static @NonNull SimpleHttpRequest spotTickersRequest() {
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v2/spot/market/tickers").build();
+		return new SimpleHttpRequest("GET", uri);
+	}
+
+	@SneakyThrows
+	public static @NonNull SimpleHttpRequest spotSymbolsRequest() {
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v2/spot/public/symbols").build();
+		return new SimpleHttpRequest("GET", uri);
+	}
 }

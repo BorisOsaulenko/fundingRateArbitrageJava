@@ -93,6 +93,37 @@ public class OkxPrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
+	protected CompletableFuture<Map<String, Fees>> getSpotFeesSymbolBatch() {
+		CompletableFuture<Map<Integer, PrivateResponses.FeeGroup>> feeGroupMapFuture = requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.spotTradingFeesRequest()),
+						PrivateResponses.SpotTradingFeesResponse.class,
+						PrivateResponses.SpotTradingFeesResponse::getFeeGroups
+		);
+
+		CompletableFuture<Map<String, Integer>> instrumentsResponseFuture = requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.spotInstrumentsRequest()),
+						PrivateResponses.SpotInstrumentsResponse.class,
+						PrivateResponses.SpotInstrumentsResponse::getFeeGroupId
+		);
+
+		return CompletableFuture.allOf(feeGroupMapFuture, instrumentsResponseFuture).thenApply(_ -> {
+			Map<String, Integer> instruments = instrumentsResponseFuture.join();
+			Map<Integer, PrivateResponses.FeeGroup> feeGroupMap = feeGroupMapFuture.join();
+			Map<String, Fees> result = new HashMap<>();
+
+			instruments.forEach((symbol, feeGroupId) -> {
+				PrivateResponses.FeeGroup feeGroup = feeGroupMap.get(feeGroupId);
+				if (feeGroup == null) return;
+				BigDecimal maker = feeGroup.maker().negate();
+				BigDecimal taker = feeGroup.taker().negate();
+				result.put(symbol, new Fees(maker, taker, maker, taker, Instant.now()));
+			});
+
+			return result;
+		});
+	}
+
+	@Override
 	protected CompletableFuture<Void> changeLeverageSymbol(String symbol, int leverage) {
 		return requestWrapper.processRequest(
 						signRequest(PrivateEndpoints.changeLeverageRequestSymbol(symbol, leverage, MarginMode.CROSS)),
@@ -185,6 +216,19 @@ public class OkxPrivateHttpClient extends PrivateHttpClient {
 	) {
 		return requestWrapper.processRequest(
 						signRequest(PrivateEndpoints.orderRecordRequestSymbol(orderId, symbol)),
+						PrivateResponses.GetOrderRecordResponse.class,
+						(resp) -> resp.get(orderId)
+		);
+	}
+
+	@Override
+	protected CompletableFuture<List<PartialFill>> getSpotOrderRecordSymbol(
+					String orderId,
+					String symbol,
+					TradeSide tradeSide
+	) {
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.spotOrderRecordRequestSymbol(orderId, symbol)),
 						PrivateResponses.GetOrderRecordResponse.class,
 						(resp) -> resp.get(orderId)
 		);

@@ -70,13 +70,20 @@ public class BitgetPrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
+	protected CompletableFuture<Map<String, Fees>> getSpotFeesSymbolBatch() {
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.spotTradingFeesRequest()),
+						PrivateResponses.SpotTradingFeesResponse.class,
+						PrivateResponses.SpotTradingFeesResponse::getFees
+		);
+	}
+
+	@Override
 	public CompletableFuture<CoinVector<Fees>> getFutureTradingFees(Set<String> coins) {
 		BigDecimal maker = new BigDecimal("0.00036");
 		BigDecimal taker = new BigDecimal("0.001");
-		CoinVector<Fees> result = new CoinVector<>();
-		for (String coin : coins) {
-			result.put(coin, new Fees(maker, taker, maker, taker, Instant.now()));
-		}
+		Fees fee = new Fees(maker, taker, maker, taker, Instant.now());
+		CoinVector<Fees> result = CoinVector.byDefaultValue(coins, fee);
 
 		return CompletableFuture.completedFuture(result);
 	}
@@ -171,6 +178,19 @@ public class BitgetPrivateHttpClient extends PrivateHttpClient {
 	) {
 		return requestWrapper.processRequest(
 						signRequest(PrivateEndpoints.orderRecordRequestSymbol(orderId, symbol, tradeSide)),
+						PrivateResponses.GetOrderRecordResponse.class,
+						PrivateResponses.GetOrderRecordResponse::get
+		);
+	}
+
+	@Override
+	protected CompletableFuture<List<PartialFill>> getSpotOrderRecordSymbol(
+					String orderId,
+					String symbol,
+					TradeSide tradeSide
+	) {
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.spotOrderRecordRequestSymbol(orderId, symbol)),
 						PrivateResponses.GetOrderRecordResponse.class,
 						PrivateResponses.GetOrderRecordResponse::get
 		);

@@ -36,6 +36,11 @@ class PrivateEndpoints {
 		return privatePost("/api/v4/market/fee", Map.of());
 	}
 
+	@SneakyThrows
+	public static @NonNull SimpleHttpRequest spotTradingFeesRequest() {
+		return privatePost("/api/v4/market/fee", Map.of());
+	}
+
 	public static @NonNull SimpleHttpRequest changeLeverageRequest(int leverage) {
 		Map<String, Object> body = new HashMap<>();
 		body.put("leverage", String.valueOf(leverage));
@@ -103,6 +108,12 @@ class PrivateEndpoints {
 	}
 
 	public static @NonNull SimpleHttpRequest orderRecordRequestSymbol(String orderId) {
+		Map<String, Object> body = new HashMap<>();
+		body.put("orderId", orderId);
+		return privatePost("/api/v4/trade-account/order", body);
+	}
+
+	public static @NonNull SimpleHttpRequest spotOrderRecordRequestSymbol(String orderId) {
 		Map<String, Object> body = new HashMap<>();
 		body.put("orderId", orderId);
 		return privatePost("/api/v4/trade-account/order", body);

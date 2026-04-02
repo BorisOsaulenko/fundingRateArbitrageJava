@@ -26,14 +26,6 @@ class PrivateResponses {
 		}
 	}
 
-	public record SetMarginModeResponse(String code, String msg, long requestTime) {
-		public SetMarginModeResponse {
-			if (!"00000".equals(code)) {
-				throw new IllegalStateException("Change margin mode failed: " + code + " " + msg);
-			}
-		}
-	}
-
 	public record SpotUsdtBalanceResponse(String code, String msg, long requestTime, List<FundingAsset> data) {
 		public BigDecimal get() {
 			if (data == null || data.isEmpty()) throw new IllegalStateException("USDT funding balance missing");
@@ -64,6 +56,30 @@ class PrivateResponses {
 				return account.available;
 			}
 			throw new IllegalStateException("USDT account balance not found");
+		}
+	}
+
+	private record TradingFeeData(String symbol, BigDecimal takerFeeRate, BigDecimal makerFeeRate) {
+	}
+
+	public record SpotTradingFeesResponse(String code, String msg, long requestTime, List<TradingFeeData> data) {
+		public Map<String, Fees> getFees() {
+			if (!"00000".equals(code))
+				throw new IllegalStateException("Bitget spot trading fees failed: " + code + " " + msg);
+
+			Map<String, Fees> result = new HashMap<>();
+			for (TradingFeeData entry : data) {
+				Fees f = new Fees(
+								entry.makerFeeRate,
+								entry.takerFeeRate,
+								entry.makerFeeRate,
+								entry.takerFeeRate,
+								Instant.ofEpochMilli(requestTime)
+				);
+				result.put(entry.symbol, f);
+			}
+
+			return result;
 		}
 	}
 

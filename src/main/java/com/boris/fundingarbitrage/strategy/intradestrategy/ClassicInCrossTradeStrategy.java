@@ -5,6 +5,7 @@ import com.boris.fundingarbitrage.model.contract.Fees;
 import com.boris.fundingarbitrage.model.exchange.ExchangeData;
 import com.boris.fundingarbitrage.model.exchange.ExchangeSnapshot;
 import com.boris.fundingarbitrage.strategy.TradeMarket;
+import com.boris.fundingarbitrage.strategy.pretradestrategy.TradeDirections;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -21,11 +22,10 @@ public class ClassicInCrossTradeStrategy extends InCrossTradeStrategy {
 	public ClassicInCrossTradeStrategy(
 					ExchangeData longEnter,
 					ExchangeData shortEnter,
-					TradeMarket longMarket,
-					TradeMarket shortMarket
+					TradeDirections directions
 	) {
-		this.longMarket = longMarket;
-		this.shortMarket = shortMarket;
+		this.longMarket = directions.longMarket();
+		this.shortMarket = directions.shortMarket();
 
 		this.longFees = getFees(longEnter, longMarket);
 		this.shortFees = getFees(shortEnter, shortMarket);

@@ -49,13 +49,19 @@ class PrivateEndpoints {
 	}
 
 	@SneakyThrows
+	public static @NonNull SimpleHttpRequest spotTradingFeesRequest() {
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v2/spot/public/symbols").build();
+		return new SimpleHttpRequest("GET", uri);
+	}
+
+	@SneakyThrows
 	public static @NonNull SimpleHttpRequest contractsRequest() {
 		URI uri = new URIBuilder(baseUrl).setPath("/api/v3/market/instruments")
 						.addParameter("category", category)
 						.build();
 		return new SimpleHttpRequest("GET", uri);
 	}
-	
+
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest supportedChainsRequest() {
 		URI uri = new URIBuilder(baseUrl).setPath("/api/v2/spot/public/coins").addParameter("coin", "USDT").build();
@@ -111,6 +117,16 @@ class PrivateEndpoints {
 	) {
 		URI uri = new URIBuilder(baseUrl).setPath("/api/v3/trade/fills")
 						.addParameter("category", category)
+						.addParameter("symbol", symbol)
+						.addParameter("orderId", orderId)
+						.build();
+		return new SimpleHttpRequest("GET", uri);
+	}
+
+	@SneakyThrows
+	public static @NonNull SimpleHttpRequest spotOrderRecordRequestSymbol(String orderId, String symbol) {
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v3/trade/fills")
+						.addParameter("category", "SPOT")
 						.addParameter("symbol", symbol)
 						.addParameter("orderId", orderId)
 						.build();

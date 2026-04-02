@@ -8,7 +8,6 @@ import com.boris.fundingarbitrage.model.exchange.ExchangeChainsBuilder;
 import com.boris.fundingarbitrage.model.exchange.WalletAddress;
 import com.boris.fundingarbitrage.model.exchange.WithdrawChain;
 import com.boris.fundingarbitrage.util.https.PaginatedResponse;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -20,9 +19,8 @@ import java.util.Map;
 class PrivateResponses {
 	private static final BybitChainsMap chainsMap = new BybitChainsMap();
 
-	@JsonIgnoreProperties(ignoreUnknown = true)
-	public record TradingFeesResponse(int retCode, String retMsg, long time, TradingFeesResult result) {
-		public Map<String, Fees> getFeesBySymbols() {
+	record FuturesTradingFeesResponse(int retCode, String retMsg, long time, TradingFeesResult result) {
+		Map<String, Fees> getFeesBySymbols() {
 			Map<String, Fees> feesBySymbol = new HashMap<>();
 			List<TradingFeeItem> list = result == null ? null : result.list;
 			if (list == null) return feesBySymbol;
@@ -36,11 +34,24 @@ class PrivateResponses {
 		}
 	}
 
-	@JsonIgnoreProperties(ignoreUnknown = true)
+	record SpotTradingFeesResponse(int retCode, String retMsg, long time, TradingFeesResult result) {
+		Map<String, Fees> getFeesSymbolMap() {
+			if (retCode != 0) throw new RuntimeException("Failed to get spot trading fees");
+			Map<String, Fees> feesBySymbol = new HashMap<>();
+			for (TradingFeeItem item : result.list) {
+				String symbol = item.symbol;
+				BigDecimal maker = new BigDecimal(item.makerFeeRate);
+				BigDecimal taker = new BigDecimal(item.takerFeeRate);
+				feesBySymbol.put(symbol, new Fees(maker, taker, maker, taker, Instant.ofEpochMilli(time)));
+			}
+
+			return feesBySymbol;
+		}
+	}
+
 	private record TradingFeesResult(List<TradingFeeItem> list) {
 	}
 
-	@JsonIgnoreProperties(ignoreUnknown = true)
 	private record TradingFeeItem(String symbol, String makerFeeRate, String takerFeeRate) {
 	}
 
@@ -55,7 +66,6 @@ class PrivateResponses {
 	public record SetMarginModeResponse(int retCode, String retMsg) {
 	}
 
-	@JsonIgnoreProperties(ignoreUnknown = true)
 	public record SpotUsdtBalanceResponse(int retCode, String retMsg, long time, SpotBalanceResult result) {
 		public BigDecimal get() {
 			for (BalanceItem item : result.balance()) {
@@ -72,7 +82,6 @@ class PrivateResponses {
 		}
 	}
 
-	@JsonIgnoreProperties(ignoreUnknown = true)
 	public record FuturesUsdtBalanceResponse(int retCode, String retMsg, long time, FuturesBalanceResult result) {
 		public BigDecimal get() {
 			for (BalanceAccount account : result.list) {
@@ -117,19 +126,15 @@ class PrivateResponses {
 		}
 	}
 
-	@JsonIgnoreProperties(ignoreUnknown = true)
 	private record MaxLeverageResult(List<MaxLeverageItem> list, String nextPageCursor) {
 	}
 
-	@JsonIgnoreProperties(ignoreUnknown = true)
 	private record MaxLeverageItem(String symbol, LeverageFilter leverageFilter) {
 	}
 
-	@JsonIgnoreProperties(ignoreUnknown = true)
 	private record LeverageFilter(String maxLeverage) {
 	}
 
-	@JsonIgnoreProperties(ignoreUnknown = true)
 	public record SupportedChainsResponse(int retCode, String retMsg, long time, SupportedChainsResult result) {
 		public ExchangeChains getSupportedChains() {
 			ExchangeChainsBuilder builder = new ExchangeChainsBuilder();
@@ -211,14 +216,12 @@ class PrivateResponses {
 		}
 	}
 
-	@JsonIgnoreProperties(ignoreUnknown = true)
 	private record WithdrawResult(String id) {
 	}
 
 	public record WithdrawUsdtResponse(int retCode, String retMsg, long time, WithdrawResult result) {
 	}
 
-	@JsonIgnoreProperties(ignoreUnknown = true)
 	private record PlaceFuturesOrderResult(String orderId, String orderLinkId) {
 	}
 
@@ -230,11 +233,9 @@ class PrivateResponses {
 		}
 	}
 
-	@JsonIgnoreProperties(ignoreUnknown = true)
 	private record OrderRecordsResult(List<OrderRecordItem> list) {
 	}
 
-	@JsonIgnoreProperties(ignoreUnknown = true)
 	private record OrderRecordItem(
 					String orderId,
 					String symbol,
@@ -267,12 +268,9 @@ class PrivateResponses {
 		}
 	}
 
-	@JsonIgnoreProperties(ignoreUnknown = true)
 	private record InternalTransferResult(String transferId, String status) {
 	}
 
 	public record InternalTransferResponse(int retCode, String retMsg, long time, InternalTransferResult result) {
-		public InternalTransferResponse {
-		}
 	}
 }

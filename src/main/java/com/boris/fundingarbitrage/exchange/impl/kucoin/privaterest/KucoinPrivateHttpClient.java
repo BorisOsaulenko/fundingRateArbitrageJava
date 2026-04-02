@@ -9,6 +9,7 @@ import com.boris.fundingarbitrage.model.contract.Fees;
 import com.boris.fundingarbitrage.model.contract.PartialFill;
 import com.boris.fundingarbitrage.model.exchange.ExchangeChains;
 import com.boris.fundingarbitrage.model.exchange.WalletAddress;
+import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import com.boris.fundingarbitrage.util.cryptography.Signers;
 import com.boris.fundingarbitrage.util.https.PrettyHttpClient;
 import com.boris.fundingarbitrage.util.https.RequestProcessingClientWrapper;
@@ -19,8 +20,10 @@ import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
 
 import java.math.BigDecimal;
 import java.net.URI;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
@@ -85,10 +88,33 @@ public class KucoinPrivateHttpClient extends PrivateHttpClient {
 	@Override
 	protected CompletableFuture<Map<String, Fees>> getFuturesFeesSymbolBatch() {
 		return processRequest(
-						PrivateEndpoints.tradingFeesRequest(),
+						PrivateEndpoints.futuresFeesRequest(),
 						PrivateResponses.TradingFeesSymbolsResponse.class,
 						PrivateResponses.TradingFeesSymbolsResponse::getFeesBySymbols
 		);
+	}
+
+	@Override
+	protected CompletableFuture<Map<String, Fees>> getSpotFeesSymbolBatch() {
+		return CompletableFuture.failedFuture(new UnsupportedOperationException(
+						"Use getSpotTradingFees for KuCoin spot fees"));
+	}
+
+	@Override
+	public CompletableFuture<CoinVector<Fees>> getSpotTradingFees(Set<String> coins) {
+		CompletableFuture<PrivateResponses.SpotTradingFeesValues> feeValues = processRequest(
+						PrivateEndpoints.spotTradingFeesRequest(),
+						PrivateResponses.SpotTradingFeesResponse.class,
+						PrivateResponses.SpotTradingFeesResponse::getFees
+		);
+
+		return feeValues.thenApply(v -> {
+			CoinVector<Fees> fees = new CoinVector<>();
+			for (String coin : coins) {
+				fees.put(coin, new Fees(v.makerFeeRate(), v.takerFeeRate(), v.makerFeeRate(), v.takerFeeRate(), Instant.now()));
+			}
+			return fees;
+		});
 	}
 
 	@Override
@@ -180,6 +206,19 @@ public class KucoinPrivateHttpClient extends PrivateHttpClient {
 	) {
 		return processRequest(
 						PrivateEndpoints.orderRecordRequestSymbol(orderId, symbol, tradeSide),
+						PrivateResponses.GetOrderRecordResponse.class,
+						PrivateResponses.GetOrderRecordResponse::get
+		);
+	}
+
+	@Override
+	protected CompletableFuture<List<PartialFill>> getSpotOrderRecordSymbol(
+					String orderId,
+					String symbol,
+					TradeSide tradeSide
+	) {
+		return processRequest(
+						PrivateEndpoints.spotOrderRecordRequestSymbol(orderId, symbol),
 						PrivateResponses.GetOrderRecordResponse.class,
 						PrivateResponses.GetOrderRecordResponse::get
 		);

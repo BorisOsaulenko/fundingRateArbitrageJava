@@ -18,18 +18,6 @@ import java.time.Instant;
 class BinancePrivateMessageHandler implements PrivateMessageHandler {
 	private final ObjectMapper mapper = ObjectMapperSingleton.getInstance();
 
-	private static double parseDouble(JsonNode node, String field) {
-		JsonNode val = node.get(field);
-		if (val == null || val.isNull()) return 0.0;
-		String text = val.asText();
-		if (text == null || text.isEmpty()) return 0.0;
-		try {
-			return Double.parseDouble(text);
-		} catch (NumberFormatException ignored) {
-			return 0.0;
-		}
-	}
-
 	private DepositPatch parseDepositInternal(String message) throws JsonProcessingException {
 		JsonNode root = mapper.readTree(message);
 		JsonNode eventNode = root.has("event") ? root.get("event") : root;
@@ -76,15 +64,18 @@ class BinancePrivateMessageHandler implements PrivateMessageHandler {
 		}
 	}
 
-	@Override public DepositPatch parseDepositMessageSymbol(String message) {
+	@Override
+	public DepositPatch parseDepositMessageSymbol(String message) {
 		return parseErrorHandled(this::parseDepositInternal, message);
 	}
 
-	@Override public PartialFill parsePartialFillMessageSymbol(String message) {
+	@Override
+	public PartialFill parsePartialFillMessageSymbol(String message) {
 		return parseErrorHandled(this::parsePartialFillInternal, message);
 	}
 
-	@Override public String getResponseToPingMessage(String message) {
+	@Override
+	public String getResponseToPingMessage(String message) {
 		return null;
 	}
 }

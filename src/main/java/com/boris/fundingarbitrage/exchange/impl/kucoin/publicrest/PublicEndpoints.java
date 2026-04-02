@@ -9,6 +9,7 @@ import java.net.URI;
 
 class PublicEndpoints {
 	private static final String baseUrl = "https://api-futures.kucoin.com";
+	private static final String spotBaseUrl = "https://api.kucoin.com";
 
 	private PublicEndpoints() {}
 
@@ -28,5 +29,17 @@ class PublicEndpoints {
 	public static @NonNull SimpleHttpRequest publicWsToken() {
 		URI uri = new URIBuilder(baseUrl).setPath("/api/v1/bullet-public").build();
 		return new SimpleHttpRequest("POST", uri);
+	}
+
+	@SneakyThrows
+	public static @NonNull SimpleHttpRequest spotSymbolsRequest() {
+		URI uri = new URIBuilder(spotBaseUrl).setPath("/api/v2/symbols").build();
+		return new SimpleHttpRequest("GET", uri);
+	}
+
+	@SneakyThrows
+	public static @NonNull SimpleHttpRequest spotAllTickersRequest() {
+		URI uri = new URIBuilder(spotBaseUrl).setPath("/api/v1/market/allTickers").build();
+		return new SimpleHttpRequest("GET", uri);
 	}
 }

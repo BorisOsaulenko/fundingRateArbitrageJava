@@ -13,6 +13,10 @@ import java.util.List;
 import java.util.Map;
 
 class PublicResponses {
+	private static BigDecimal precisionToStep(Integer precision) {
+		return BigDecimal.ONE.scaleByPowerOfTen(-precision);
+	}
+
 	@JsonFormat(shape = JsonFormat.Shape.ARRAY)
 	public record ContractsResponse(List<ContractResponse> items) {
 		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
@@ -98,6 +102,53 @@ class PublicResponses {
 						BigDecimal highest_size,
 						BigDecimal lowest_size
 		) {
+		}
+	}
+
+	@JsonFormat(shape = JsonFormat.Shape.ARRAY)
+	public record SpotCurrencyPairsResponse(List<SpotCurrencyPair> items) {
+		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
+		public SpotCurrencyPairsResponse {
+		}
+
+		public Map<String, BigDecimal> getLotSizes() {
+			Map<String, BigDecimal> result = new HashMap<>();
+			for (SpotCurrencyPair item : items) {
+				if (!item.id().endsWith("_USDT") || !"tradable".equalsIgnoreCase(item.trade_status())) continue;
+				result.put(item.id(), item.min_base_amount() != null ? item.min_base_amount() : precisionToStep(item.amount_precision()));
+			}
+			return result;
+		}
+
+		private record SpotCurrencyPair(String id, BigDecimal min_base_amount, Integer amount_precision, String trade_status) {
+		}
+	}
+
+	@JsonFormat(shape = JsonFormat.Shape.ARRAY)
+	public record SpotTickersResponse(List<SpotTickerResponse> items) {
+		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
+		public SpotTickersResponse {
+		}
+
+		public Map<String, BookTicker> getBookTickers() {
+			Map<String, BookTicker> result = new HashMap<>();
+			Instant now = Instant.now();
+			for (SpotTickerResponse item : items) {
+				result.put(
+								item.currency_pair(),
+								new BookTicker(item.highest_bid(), BigDecimal.TEN, item.lowest_ask(), BigDecimal.TEN, now)
+				);
+			}
+			return result;
+		}
+
+		public Map<String, BigDecimal> getVolume24h() {
+			Map<String, BigDecimal> result = new HashMap<>();
+			for (SpotTickerResponse item : items) result.put(item.currency_pair(), item.quote_volume());
+			return result;
+		}
+
+		private record SpotTickerResponse(String currency_pair, BigDecimal quote_volume, BigDecimal highest_bid, BigDecimal lowest_ask) {
 		}
 	}
 }

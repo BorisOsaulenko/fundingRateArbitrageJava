@@ -1,16 +1,14 @@
 package com.boris.fundingarbitrage.monitor;
 
 import com.boris.fundingarbitrage.exchange.BaseExchange;
-import com.boris.fundingarbitrage.exchange.Instances;
-import com.boris.fundingarbitrage.logic.ExchangePair;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.FundingRate;
 import com.boris.fundingarbitrage.model.contract.MarkPrice;
 import com.boris.fundingarbitrage.model.exchange.ExchangeSnapshot;
-import com.boris.fundingarbitrage.model.exchange.FuturesSnapshot;
 import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
 import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
 import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
+import com.boris.fundingarbitrage.strategy.TradeMarket;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import com.boris.fundingarbitrage.util.logger.Logger;
 import lombok.Getter;
@@ -34,7 +32,7 @@ public class CoinMonitor {
 	private final ExchangeCoinMap<FundingRate> futuresFundingCompletions = new ExchangeCoinMap<>();
 	private final ExchangeCoinMap<MarkPrice> futuresMarkCompletions = new ExchangeCoinMap<>();
 	private final ExchangeCoinMap<BookTicker> spotBookTickerCompletions = new ExchangeCoinMap<>();
-	private final ExchangeCoinMap<Map<Long, Set<Consumer<FuturesSnapshot>>>> timestampHandlers = new ExchangeCoinMap<>();
+	private final ExchangeCoinMap<Map<Long, Set<Consumer<ExchangeSnapshot>>>> timestampHandlers = new ExchangeCoinMap<>();
 	private final ExchangeCoinMap<Map<Long, Set<ScheduledFuture<?>>>> completionFutures = new ExchangeCoinMap<>();
 	private final ScheduledExecutorService completionScheduler = Executors.newSingleThreadScheduledExecutor();
 	private final long completionDelayMs = 500;
@@ -78,8 +76,9 @@ public class CoinMonitor {
 	private void checkDataCompleteness() {
 		List<ExchangeCoinPair> toUnsubscribe = new ArrayList<>();
 
-		for (BaseExchange ex : Instances.getExchangeArray()) {
-			for (String coin : availableExchangesByCoin.keySet()) {
+		for (Map.Entry<BaseExchange, Set<String>> entry : availableCoinsByExchange.entrySet()) {
+			BaseExchange ex = entry.getKey();
+			for (String coin : entry.getValue()) {
 				BookTicker ticker = futuresBookTickers.get(ex, coin);
 				FundingRate funding = futuresFundingRates.get(ex, coin);
 				MarkPrice mark = futuresMarkPrices.get(ex, coin);
@@ -105,7 +104,7 @@ public class CoinMonitor {
 	private void clearCoinsWithInsufficientExchanges() {
 		for (String coin : availableExchangesByCoin.keySet()) {
 			Set<BaseExchange> exchanges = availableExchangesByCoin.get(coin);
-			if (exchanges == null || exchanges.size() < 2) {
+			if (exchanges == null || exchanges.isEmpty()) {
 				Logger.warn("Not enough exchanges support " + coin + ". Removing from monitoring.");
 				unsubscribeCoin(coin);
 			}
@@ -150,10 +149,11 @@ public class CoinMonitor {
 		}
 	}
 
-	private Consumer<BookTickerPatch> createSpotBookHandler(BaseExchange exchange) {
+	private Consumer<BookTickerPatch> createSpotBookHandler(BaseExchange ex) {
 		return tickerPatch -> spotBookTickers.compute(
-						exchange, tickerPatch.coin(), (k, v) -> {
+						ex, tickerPatch.coin(), (k, v) -> {
 							if (v == null) return null;
+							var timestamps = timestampsToProcess.get(ex, tickerPatch.coin());
 							BookTicker result = new BookTicker(
 											tickerPatch.bidPrice() != null ? tickerPatch.bidPrice() : v.bidPrice(),
 											tickerPatch.bidSize() != null ? tickerPatch.bidSize() : v.bidSize(),
@@ -161,7 +161,10 @@ public class CoinMonitor {
 											tickerPatch.askSize() != null ? tickerPatch.askSize() : v.askSize(),
 											tickerPatch.timestamp()
 							);
-							spotBookTickerCompletions.put(exchange, tickerPatch.coin(), result);
+							if (timestamps != null && !timestamps.isEmpty()) {
+								if (timestamps.first() < tickerPatch.timestamp().toEpochMilli()) return result;
+								spotBookTickerCompletions.put(ex, tickerPatch.coin(), result);
+							}
 							return result;
 						}
 		);
@@ -260,14 +263,9 @@ public class CoinMonitor {
 		BookTicker ticker = futuresBookTickers.get(exchange, coin);
 		MarkPrice markPrice = futuresMarkPrices.get(exchange, coin);
 		FundingRate fundingRate = futuresFundingRates.get(exchange, coin);
+		BookTicker spotTicker = spotBookTickers.get(exchange, coin);
 
-		return new FuturesSnapshot(ticker, fundingRate, markPrice);
-	}
-
-	public ArbitrageSnapshot getSnapshot(ExchangePair exchanges, String coin) {
-		ExchangeSnapshot longSnapshot = getSnapshot(exchanges.longEx(), coin);
-		ExchangeSnapshot shortSnapshot = getSnapshot(exchanges.shortEx(), coin);
-		return new ArbitrageSnapshot(longSnapshot, shortSnapshot);
+		return new ExchangeSnapshot(ticker, fundingRate, markPrice, spotTicker);
 	}
 
 	public void performOnTimestamp(
@@ -294,24 +292,28 @@ public class CoinMonitor {
 	}
 
 	public void cancelTimestampExecution(long timestamp, BaseExchange ex, String coin) {
-		Set<ScheduledFuture<?>> longFuture = completionFutures.get(ex, coin).remove(timestamp);
-		longFuture.forEach(f -> f.cancel(true));
+		var futuresByTimestamps = this.completionFutures.get(ex, coin);
+		if (futuresByTimestamps == null || !futuresByTimestamps.containsKey(timestamp)) return;
+
+		Set<ScheduledFuture<?>> completionFutures = futuresByTimestamps.remove(timestamp);
+		completionFutures.forEach(f -> f.cancel(true));
 		timestampsToProcess.get(ex, coin).remove(timestamp);
 		timestampHandlers.get(ex, coin).remove(timestamp);
 	}
 
 	private void registerCurrentState(BaseExchange ex, String coin) {
 		ExchangeSnapshot current = getSnapshot(ex, coin);
-		futuresFundingCompletions.put(ex, coin, current.fundingRate());
-		futuresTickerCompletions.put(ex, coin, current.bookTicker());
-		futuresMarkCompletions.put(ex, coin, current.markPrice());
+		futuresFundingCompletions.put(ex, coin, current.futuresSnapshot().fundingRate());
+		futuresTickerCompletions.put(ex, coin, current.bookTicker(TradeMarket.FUTURES));
+		futuresMarkCompletions.put(ex, coin, current.futuresSnapshot().markPrice());
+		spotBookTickerCompletions.put(ex, coin, current.bookTicker(TradeMarket.SPOT));
 	}
 
 	private void registerTimestampAndHandler(
 					long timestamp,
 					BaseExchange ex,
 					String coin,
-					Consumer<FuturesSnapshot> handler
+					Consumer<ExchangeSnapshot> handler
 	) {
 		Map<Long, Set<ScheduledFuture<?>>> futuresMap = completionFutures.get(ex, coin);
 		if (futuresMap == null) {
@@ -327,10 +329,10 @@ public class CoinMonitor {
 		}
 		timestamps.add(timestamp);
 
-		Map<Long, Set<Consumer<FuturesSnapshot>>> handlers = timestampHandlers.get(ex, coin);
+		Map<Long, Set<Consumer<ExchangeSnapshot>>> handlers = timestampHandlers.get(ex, coin);
 		if (handlers == null) {
 			handlers = new ConcurrentHashMap<>();
-			Set<Consumer<FuturesSnapshot>> set = ConcurrentHashMap.newKeySet();
+			Set<Consumer<ExchangeSnapshot>> set = ConcurrentHashMap.newKeySet();
 			handlers.put(timestamp, set);
 			timestampHandlers.put(ex, coin, handlers);
 		}
@@ -338,21 +340,22 @@ public class CoinMonitor {
 	}
 
 	private void fireCallbacksOnTimestamp(long timestamp, BaseExchange ex, String coin) {
-		FuturesSnapshot timestampSnapshot = getTimestampCompletion(ex, coin);
+		ExchangeSnapshot timestampSnapshot = getTimestampCompletion(ex, coin);
 
 		timestampsToProcess.get(ex, coin).remove(timestamp);
-		Set<Consumer<FuturesSnapshot>> handlers = timestampHandlers.get(ex, coin).get(timestamp);
+		Set<Consumer<ExchangeSnapshot>> handlers = timestampHandlers.get(ex, coin).get(timestamp);
 		if (handlers != null) {
 			handlers.forEach(handler -> handler.accept(timestampSnapshot));
 			timestampHandlers.get(ex, coin).remove(timestamp);
 		}
 	}
 
-	private FuturesSnapshot getTimestampCompletion(BaseExchange ex, String coin) {
+	private ExchangeSnapshot getTimestampCompletion(BaseExchange ex, String coin) {
 		BookTicker ticker = futuresTickerCompletions.get(ex, coin);
 		MarkPrice markPrice = futuresMarkCompletions.get(ex, coin);
 		FundingRate fundingRate = futuresFundingCompletions.get(ex, coin);
-		return new FuturesSnapshot(ticker, fundingRate, markPrice);
+		BookTicker spotTicker = spotBookTickerCompletions.get(ex, coin);
+		return new ExchangeSnapshot(ticker, fundingRate, markPrice, spotTicker);
 	}
 
 	private record ExchangeCoinPair(BaseExchange ex, String coin) {

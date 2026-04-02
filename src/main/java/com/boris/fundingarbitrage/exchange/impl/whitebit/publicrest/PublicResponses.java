@@ -44,6 +44,15 @@ class PublicResponses {
 			}
 			return result;
 		}
+
+		public Map<String, BigDecimal> getSpotLotSizes() {
+			Map<String, BigDecimal> result = new HashMap<>();
+			for (Market market : markets) {
+				if (!"spot".equalsIgnoreCase(market.type()) || !market.tradesEnabled() || !market.name().endsWith("_USDT")) continue;
+				result.put(market.name(), market.minAmount());
+			}
+			return result;
+		}
 	}
 
 	private record FuturesEntry(
@@ -100,6 +109,35 @@ class PublicResponses {
 				// We use 10 because Whitebit does not provide the bid/ask sizes. Does not affect logic.
 				BookTicker ticker = new BookTicker(entry.bid(), BigDecimal.TEN, entry.ask(), BigDecimal.TEN, Instant.now());
 				resultMap.put(entry.ticker_id(), ticker);
+			}
+			return resultMap;
+		}
+	}
+
+	private record SpotTickerEntry(BigDecimal last_price, BigDecimal quote_volume, boolean isFrozen) {
+	}
+
+	public record SpotTickersResponse(Map<String, SpotTickerEntry> entries) {
+		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
+		public SpotTickersResponse {
+		}
+
+		public Map<String, BigDecimal> getVolume24h() {
+			Map<String, BigDecimal> resultMap = new HashMap<>();
+			for (Map.Entry<String, SpotTickerEntry> entry : entries.entrySet()) {
+				if (entry.getValue().isFrozen()) continue;
+				resultMap.put(entry.getKey(), entry.getValue().quote_volume());
+			}
+			return resultMap;
+		}
+
+		public Map<String, BookTicker> getBookTickers() {
+			Map<String, BookTicker> resultMap = new HashMap<>();
+			Instant now = Instant.now();
+			for (Map.Entry<String, SpotTickerEntry> entry : entries.entrySet()) {
+				if (entry.getValue().isFrozen()) continue;
+				BigDecimal lastPrice = entry.getValue().last_price();
+				resultMap.put(entry.getKey(), new BookTicker(lastPrice, BigDecimal.TEN, lastPrice, BigDecimal.TEN, now));
 			}
 			return resultMap;
 		}

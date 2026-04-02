@@ -3,25 +3,30 @@ package com.boris.fundingarbitrage;
 import com.boris.fundingarbitrage.coinParser.AllExchangeCoinsParser;
 import com.boris.fundingarbitrage.coinParser.ICoinSupplier;
 import com.boris.fundingarbitrage.coinfilter.CoinFilterConfig;
-import com.boris.fundingarbitrage.exchange.impl.bitget.BitgetExchange;
+import com.boris.fundingarbitrage.exchange.impl.whitebit.WhitebitExchange;
 import com.boris.fundingarbitrage.logic.ArbitrageBotConfig;
 import com.boris.fundingarbitrage.logic.ArbitrageLogic;
 import com.boris.fundingarbitrage.logic.RebalancingArbitrageLogic;
-import com.boris.fundingarbitrage.strategy.pretradestrategy.ClassicPreTradeStrategy;
+import com.boris.fundingarbitrage.strategy.pretradestrategy.ClassicCrossPreTradeStrategy;
+import com.boris.fundingarbitrage.strategy.pretradestrategy.ClassicSinglePreTradeStrategy;
 import com.boris.fundingarbitrage.strategy.pretradestrategy.CrossPreTradeStrategy;
+import com.boris.fundingarbitrage.strategy.pretradestrategy.SinglePreTradeStrategy;
 import com.boris.fundingarbitrage.util.logger.Logger;
 import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigDecimal;
 import java.nio.file.Path;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 public class App {
-	static void main(String[] args) {
+	static void main2(String[] args) {
 		Logger.init(Path.of("app.log"));
 
 		ICoinSupplier coinSupplier = new AllExchangeCoinsParser();
-		CrossPreTradeStrategy strategy = new ClassicPreTradeStrategy();
+		CrossPreTradeStrategy crossStrategy = new ClassicCrossPreTradeStrategy();
+		SinglePreTradeStrategy singleStrategy = new ClassicSinglePreTradeStrategy();
 		ArbitrageBotConfig botConfig = new ArbitrageBotConfig(
 						new BigDecimal("20"), // leg usdt amount
 						new BigDecimal("3"), // safety margin
@@ -31,13 +36,17 @@ public class App {
 		);
 		CoinFilterConfig filterConfig = new CoinFilterConfig(
 						new BigDecimal("100000"),
-						new BigDecimal("20"),
-						200,
-						strategy::compareArbData
+						new BigDecimal("20")
 		);
 
 		try {
-			ArbitrageLogic logic = new RebalancingArbitrageLogic(coinSupplier, strategy, filterConfig, botConfig);
+			ArbitrageLogic logic = new RebalancingArbitrageLogic(
+							coinSupplier,
+							crossStrategy,
+							singleStrategy,
+							filterConfig,
+							botConfig
+			);
 			logic.waitForInitSync();
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -46,14 +55,11 @@ public class App {
 	}
 
 	static void main() throws Exception {
-		BitgetExchange bn = new BitgetExchange();
-		bn.publicWsClient.connect().join();
-		bn.publicWsClient.subscribeSpotBookTicker(
-						"SOL", patch -> {
-							System.out.println("Book ticker patch: " + patch);
-						}
-		);
+		WhitebitExchange bn = new WhitebitExchange();
+		CompletableFuture f3 = bn.privateHttpClient.getSpotTradingFees(Set.of("KAITO", "SOL"))
+						.thenAccept(Logger::logCoinVector);
 
-		Thread.sleep(60_000);
+		CompletableFuture.allOf(f3).get();
+
 	}
 }

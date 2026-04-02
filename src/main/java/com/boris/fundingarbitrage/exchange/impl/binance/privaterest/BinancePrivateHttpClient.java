@@ -60,6 +60,15 @@ public class BinancePrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
+	protected CompletableFuture<Map<String, Fees>> getSpotFeesSymbolBatch() {
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.spotTradingFeesRequest()),
+						PrivateResponses.SpotTradingFeesResponse.class,
+						PrivateResponses.SpotTradingFeesResponse::getFeesBySymbols
+		);
+	}
+
+	@Override
 	public CompletableFuture<CoinVector<Fees>> getFutureTradingFees(Set<String> coins) {
 		CoinVector<Fees> fees = new CoinVector<>();
 		BigDecimal maker = new BigDecimal("0.0002");
@@ -166,6 +175,19 @@ public class BinancePrivateHttpClient extends PrivateHttpClient {
 						signRequest(PrivateEndpoints.orderRecordRequestSymbol(orderId, symbol, tradeSide)),
 						PrivateResponses.GetOrderRecordResponse.class,
 						PrivateResponses.GetOrderRecordResponse::get
+		);
+	}
+
+	@Override
+	protected CompletableFuture<List<PartialFill>> getSpotOrderRecordSymbol(
+					String orderId,
+					String symbol,
+					TradeSide tradeSide
+	) {
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.spotOrderRecordRequestSymbol(orderId, symbol)),
+						PrivateResponses.GetSpotOrderRecordResponse.class,
+						PrivateResponses.GetSpotOrderRecordResponse::get
 		);
 	}
 

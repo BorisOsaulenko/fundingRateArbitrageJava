@@ -22,4 +22,16 @@ class PublicEndpoints {
 		URI uri = new URIBuilder(baseUrl).setPath("/api/v4/futures/" + settle + "/tickers").build();
 		return new SimpleHttpRequest("GET", uri);
 	}
+
+	@SneakyThrows
+	public static @NonNull SimpleHttpRequest spotCurrencyPairsRequest() {
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v4/spot/currency_pairs").build();
+		return new SimpleHttpRequest("GET", uri);
+	}
+
+	@SneakyThrows
+	public static @NonNull SimpleHttpRequest spotTickersRequest() {
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v4/spot/tickers").build();
+		return new SimpleHttpRequest("GET", uri);
+	}
 }

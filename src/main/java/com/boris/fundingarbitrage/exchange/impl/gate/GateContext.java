@@ -39,4 +39,17 @@ public class GateContext extends ExchangeContext {
 		}
 		throw new IllegalArgumentException("Symbol does not end with _USDT: " + symbol);
 	}
+
+	@Override
+	public String getSpotSymbol(String coin) {
+		return coin.toUpperCase() + "_USDT";
+	}
+
+	@Override
+	public String getSpotSymbolInverse(String symbol) {
+		if (symbol.endsWith("_USDT")) {
+			return symbol.substring(0, symbol.length() - 5);
+		}
+		throw new IllegalArgumentException("Symbol does not end with _USDT: " + symbol);
+	}
 }

@@ -1,11 +1,15 @@
-package com.boris.fundingarbitrage.logic;
+package com.boris.fundingarbitrage.logic.crosstrade;
 
 import com.boris.fundingarbitrage.exchange.BaseExchange;
+import com.boris.fundingarbitrage.logic.ExchangePair;
+import com.boris.fundingarbitrage.logic.InTradeCoinLogic;
 import com.boris.fundingarbitrage.model.exchange.ExchangeConstantData;
 import com.boris.fundingarbitrage.model.exchange.ExchangeSnapshot;
 import com.boris.fundingarbitrage.monitor.CoinMonitor;
 import com.boris.fundingarbitrage.strategy.TradeMarket;
 import com.boris.fundingarbitrage.strategy.intradestrategy.InCrossTradeStrategy;
+import com.boris.fundingarbitrage.strategy.pretradestrategy.TradeDirections;
+import lombok.Getter;
 
 import java.math.BigDecimal;
 import java.util.concurrent.Executors;
@@ -15,7 +19,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 public abstract class InCrossTradeCoinLogic extends InTradeCoinLogic {
-	protected final ExchangePair exchanges;
+	@Getter protected final ExchangePair exchanges;
 	protected final TradeMarket longMarket;
 	protected final TradeMarket shortMarket;
 	protected final ExchangeConstantData longConstantData;
@@ -32,8 +36,7 @@ public abstract class InCrossTradeCoinLogic extends InTradeCoinLogic {
 					CoinMonitor monitor,
 					BigDecimal legUsdtAmount,
 					ExchangePair exchanges,
-					TradeMarket longMarket,
-					TradeMarket shortMarket,
+					TradeDirections tradeDirections,
 					ExchangeConstantData longConstantData,
 					ExchangeConstantData shortConstantData,
 					InCrossTradeStrategy strategy
@@ -42,8 +45,8 @@ public abstract class InCrossTradeCoinLogic extends InTradeCoinLogic {
 		this.exchanges = exchanges;
 		this.strategy = strategy;
 
-		this.longMarket = longMarket;
-		this.shortMarket = shortMarket;
+		this.longMarket = tradeDirections.longMarket();
+		this.shortMarket = tradeDirections.shortMarket();
 		this.longConstantData = longConstantData;
 		this.shortConstantData = shortConstantData;
 
@@ -66,13 +69,13 @@ public abstract class InCrossTradeCoinLogic extends InTradeCoinLogic {
 		AtomicLong settlementUtc = isLong ? longSettlementUtc : shortSettlementUtc;
 		if (shouldRegister.get()) {
 			shouldRegister.set(false);
-			ExchangeSnapshot longSn = monitor.getSnapshot(exchanges.longEx(), coin);
-			settlementUtc.set(longSn.fundingSettlement().toEpochMilli());
+			ExchangeSnapshot snapshot = monitor.getSnapshot(ex, coin);
+			settlementUtc.set(snapshot.fundingSettlement().toEpochMilli());
 			monitor.performOnTimestamp(
-							settlementUtc.get(), exchanges.longEx(), coin, (sn) -> {
+							settlementUtc.get(), ex, coin, (sn) -> {
 								tradeLogger.log("Funding on " + ex.name + ": [Rate: " + sn.fundingRate() + "]");
 								strategy.accountForFundingEvent(sn, isLong);
-								shouldRegisterLongFunding.set(true);
+								shouldRegister.set(true);
 							}
 			);
 		}

@@ -30,4 +30,17 @@ public class BitgetContext extends ExchangeContext {
 		}
 		throw new IllegalArgumentException("Symbol does not end with USDT: " + symbol);
 	}
+
+	@Override
+	public String getSpotSymbol(String coin) {
+		return coin.toUpperCase() + "USDT";
+	}
+
+	@Override
+	public String getSpotSymbolInverse(String symbol) {
+		if (symbol.endsWith("USDT")) {
+			return symbol.substring(0, symbol.length() - 4);
+		}
+		throw new IllegalArgumentException("Symbol does not end with USDT: " + symbol);
+	}
 }

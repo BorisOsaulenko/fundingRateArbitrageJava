@@ -19,13 +19,21 @@ import java.util.Map;
 class PrivateResponses {
 	private static final WhitebitChainsMap chainsMap = new WhitebitChainsMap();
 
-	@JsonIgnoreProperties(ignoreUnknown = true)
-	public record TradingFeesSymbolsResponse(BigDecimal futures_maker, BigDecimal futures_taker) {
+	public record TradingFeesSymbolsResponse(
+					BigDecimal maker, BigDecimal taker, BigDecimal futures_maker, BigDecimal futures_taker
+	) {
 		public Fees getAccountFees() {
 			BigDecimal divider = BigDecimal.valueOf(100);
 			BigDecimal maker = futures_maker.divide(divider);
 			BigDecimal taker = futures_taker.divide(divider);
 			return new Fees(maker, taker, maker, taker, Instant.now());
+		}
+
+		public Fees getSpotFees() {
+			BigDecimal divider = BigDecimal.valueOf(100);
+			BigDecimal makerFee = maker.divide(divider);
+			BigDecimal takerFee = taker.divide(divider);
+			return new Fees(makerFee, takerFee, makerFee, takerFee, Instant.now());
 		}
 	}
 

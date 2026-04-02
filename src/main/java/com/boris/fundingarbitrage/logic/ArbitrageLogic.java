@@ -208,46 +208,49 @@ public abstract class ArbitrageLogic {
 
 		BaseExchange bestLongEx = null;
 		BaseExchange bestShortEx = null;
-		BigDecimal bestExpectedGain = null;
+		BigDecimal bestCrossGain = null;
 		ExchangeData bestLongData = null;
 		ExchangeData bestShortData = null;
 
-		for (BaseExchange longEx : availableExchanges) {
-			for (BaseExchange shortEx : availableExchanges) {
-				if (longEx == shortEx) continue;
+		if (availableExchanges.size() >= 2) {
+			for (BaseExchange longEx : availableExchanges) {
+				for (BaseExchange shortEx : availableExchanges) {
+					if (longEx == shortEx) continue;
 
-				ExchangeData longData = getExchangeData(longEx, coin);
-				ExchangeData shortData = getExchangeData(shortEx, coin);
+					ExchangeData longData = getExchangeData(longEx, coin);
+					ExchangeData shortData = getExchangeData(shortEx, coin);
 
-				BigDecimal gain = crossPreTradeStrategy.expectedGain(longData, shortData);
-				if (bestLongEx == null || gain.compareTo(bestExpectedGain) > 0) {
-					bestLongEx = longEx;
-					bestShortEx = shortEx;
-					bestExpectedGain = gain;
-					bestLongData = longData;
-					bestShortData = shortData;
+					BigDecimal gain = crossPreTradeStrategy.expectedGain(longData, shortData);
+					if (bestLongEx == null || gain.compareTo(bestCrossGain) > 0) {
+						bestLongEx = longEx;
+						bestShortEx = shortEx;
+						bestCrossGain = gain;
+						bestLongData = longData;
+						bestShortData = shortData;
+					}
 				}
 			}
 		}
 
 		BaseExchange bestSingleExchange = null;
 		ExchangeData bestSingleData = null;
+		BigDecimal bestSingleGain = null;
 		for (BaseExchange ex : availableExchanges) {
 			ExchangeData data = getExchangeData(ex, coin);
 			BigDecimal gain = singlePreTradeStrategy.expectedGain(data);
-			if (gain.compareTo(bestExpectedGain) >= 0) {
+			if (bestSingleGain == null || gain.compareTo(bestSingleGain) >= 0) {
 				bestSingleExchange = ex;
-				bestExpectedGain = gain;
+				bestSingleGain = gain;
 				bestSingleData = data;
 			}
 		}
 
-		assert bestLongEx != null;
-		if (bestSingleExchange != null)
-			return new SingleCoinOpportunity(bestSingleExchange, bestExpectedGain, bestSingleData);
+		assert bestSingleGain != null;
+		if (bestCrossGain == null || bestCrossGain.compareTo(bestSingleGain) < 0)
+			return new SingleCoinOpportunity(bestSingleExchange, bestSingleGain, bestSingleData);
 		else return new CrossCoinOpportunity(
 						new ExchangePair(bestLongEx, bestShortEx),
-						bestExpectedGain,
+						bestCrossGain,
 						bestLongData,
 						bestShortData
 		);

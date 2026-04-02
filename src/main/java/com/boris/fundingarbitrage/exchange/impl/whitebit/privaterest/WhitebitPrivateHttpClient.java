@@ -61,6 +61,23 @@ public class WhitebitPrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
+	protected CompletableFuture<Map<String, Fees>> getSpotFeesSymbolBatch() {
+		return CompletableFuture.failedFuture(new UnsupportedOperationException(
+						"Whitebit does not provide batch endpoint for spot fees. Use getSpotTradingFees(Set<String> coins) instead."));
+	}
+
+	@Override
+	public CompletableFuture<CoinVector<Fees>> getSpotTradingFees(Set<String> coins) {
+		CompletableFuture<Fees> future = requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.spotTradingFeesRequest()),
+						PrivateResponses.TradingFeesSymbolsResponse.class,
+						PrivateResponses.TradingFeesSymbolsResponse::getSpotFees
+		);
+
+		return future.thenApply(fees -> CoinVector.byDefaultValue(coins, fees));
+	}
+
+	@Override
 	public CompletableFuture<CoinVector<Fees>> getFutureTradingFees(Set<String> coins) {
 		return requestWrapper.processRequest(
 						signRequest(PrivateEndpoints.tradingFeesRequest()),
@@ -162,6 +179,19 @@ public class WhitebitPrivateHttpClient extends PrivateHttpClient {
 	) {
 		return requestWrapper.processRequest(
 						signRequest(PrivateEndpoints.orderRecordRequestSymbol(orderId)),
+						PrivateResponses.OrderDealsResponse.class,
+						PrivateResponses.OrderDealsResponse::get
+		);
+	}
+
+	@Override
+	protected CompletableFuture<List<PartialFill>> getSpotOrderRecordSymbol(
+					String orderId,
+					String symbol,
+					TradeSide tradeSide
+	) {
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.spotOrderRecordRequestSymbol(orderId)),
 						PrivateResponses.OrderDealsResponse.class,
 						PrivateResponses.OrderDealsResponse::get
 		);

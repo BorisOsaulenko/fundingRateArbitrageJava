@@ -67,8 +67,17 @@ public class BybitPrivateHttpClient extends PrivateHttpClient {
 	protected CompletableFuture<Map<String, Fees>> getFuturesFeesSymbolBatch() {
 		return requestWrapper.processRequest(
 						signRequest(PrivateEndpoints.tradingFeesRequest()),
-						PrivateResponses.TradingFeesResponse.class,
-						PrivateResponses.TradingFeesResponse::getFeesBySymbols
+						PrivateResponses.FuturesTradingFeesResponse.class,
+						PrivateResponses.FuturesTradingFeesResponse::getFeesBySymbols
+		);
+	}
+
+	@Override
+	protected CompletableFuture<Map<String, Fees>> getSpotFeesSymbolBatch() {
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.spotTradingFeesRequest()),
+						PrivateResponses.SpotTradingFeesResponse.class,
+						PrivateResponses.SpotTradingFeesResponse::getFeesSymbolMap
 		);
 	}
 
@@ -162,6 +171,19 @@ public class BybitPrivateHttpClient extends PrivateHttpClient {
 	) {
 		return requestWrapper.processRequest(
 						signRequest(PrivateEndpoints.orderRecordRequest(orderId, symbol, tradeSide)),
+						PrivateResponses.GetOrderRecordResponse.class,
+						PrivateResponses.GetOrderRecordResponse::get
+		);
+	}
+
+	@Override
+	protected CompletableFuture<List<PartialFill>> getSpotOrderRecordSymbol(
+					String orderId,
+					String symbol,
+					TradeSide tradeSide
+	) {
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.spotOrderRecordRequest(orderId, symbol)),
 						PrivateResponses.GetOrderRecordResponse.class,
 						PrivateResponses.GetOrderRecordResponse::get
 		);

@@ -23,6 +23,10 @@ class PrivateResponses {
 		public Fees getAccountFees() {
 			return new Fees(futures_maker_fee, futures_taker_fee, futures_maker_fee, futures_taker_fee, Instant.now());
 		}
+
+		public Fees getSpotAccountFees() {
+			return new Fees(maker_fee, taker_fee, maker_fee, taker_fee, Instant.now());
+		}
 	}
 
 	private record SpotBalanceItem(String currency, String available) {
@@ -159,6 +163,45 @@ class PrivateResponses {
 				BigDecimal fee = new BigDecimal(item.fee);
 				Instant ts = Instant.ofEpochSecond(item.create_time);
 				result.add(new PartialFill(orderId, symbol, size.abs(), price, fee, ts));
+			}
+			return result;
+		}
+	}
+
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	private record SpotOrderRecordItem(
+					String order_id,
+					String currency_pair,
+					String amount,
+					String price,
+					String fee,
+					String fee_currency,
+					String create_time_ms
+	) {
+	}
+
+	@JsonFormat(shape = JsonFormat.Shape.ARRAY)
+	public record GetSpotOrderRecordResponse(List<SpotOrderRecordItem> items) {
+		@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
+		public GetSpotOrderRecordResponse {
+		}
+
+		public List<PartialFill> get() {
+			if (items == null) return List.of();
+			ArrayList<PartialFill> result = new ArrayList<>();
+			for (SpotOrderRecordItem item : items) {
+				String orderId = item.order_id;
+				if (orderId == null || orderId.isEmpty()) continue;
+				String symbol = item.currency_pair;
+				if (symbol == null || symbol.isEmpty()) continue;
+				BigDecimal amount = new BigDecimal(item.amount);
+				BigDecimal price = new BigDecimal(item.price);
+				BigDecimal fee = null;
+				if (item.fee != null && !item.fee.isEmpty() && "USDT".equalsIgnoreCase(item.fee_currency)) {
+					fee = new BigDecimal(item.fee).abs();
+				}
+				Instant ts = Instant.ofEpochMilli(Long.parseLong(item.create_time_ms));
+				result.add(new PartialFill(orderId, symbol, amount.abs(), price, fee, ts));
 			}
 			return result;
 		}

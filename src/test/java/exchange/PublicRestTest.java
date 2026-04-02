@@ -2,6 +2,7 @@ package exchange;
 
 import com.boris.fundingarbitrage.exchange.publichttp.FuturesTradingState;
 import com.boris.fundingarbitrage.exchange.publichttp.PublicHttpClient;
+import com.boris.fundingarbitrage.exchange.publichttp.SpotPublicOnePullData;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.FundingRate;
 import org.junit.jupiter.api.Tag;
@@ -108,6 +109,29 @@ public abstract class PublicRestTest {
 	void publicOnePullDataReturnNullOnNonExistentSymbol() throws Exception {
 		var result = getWithTimeout(publicRest().getFuturesOnePullData(Set.of("NONEXISTENT")));
 		assertNotNull(result, "One pull data should be null for non-existent symbol");
+		assertEquals(0, result.size(), "Should be empty CoinVector");
+	}
+
+	@Test
+	@Tag("rest")
+	void spotPublicOnePullData() throws Exception {
+		Map<String, SpotPublicOnePullData> result = getWithTimeout(publicRest().getSpotOnePullData(coins));
+		assertNotNull(result, "Spot one pull data should not be null");
+		assertEquals(result.size(), coins.size(), "Spot one pull data should contain data for each requested symbol");
+		for (String coin : coins) {
+			SpotPublicOnePullData data = result.get(coin);
+			assertNotNull(data, "Spot one pull data for " + coin + " should not be null");
+			validateLotSize(data.lotSize());
+			validateBookTicker(data.ticker());
+			validateTradingVolume(data.volume24h());
+		}
+	}
+
+	@Test
+	@Tag("rest")
+	void spotPublicOnePullDataReturnNullOnNonExistentSymbol() throws Exception {
+		Map<String, SpotPublicOnePullData> result = getWithTimeout(publicRest().getSpotOnePullData(Set.of("NONEXISTENT")));
+		assertNotNull(result, "Spot one pull data should be null for non-existent symbol");
 		assertEquals(0, result.size(), "Should be empty CoinVector");
 	}
 

@@ -75,7 +75,11 @@ public class PrettyHttpClient {
 			public void completed(SimpleHttpResponse res) {
 				if (checkCodes && isHttpError(res)) {
 					logHttpError(req, res);
-					cf.completeExceptionally(new RuntimeException(req.getMethod() + " " + safeUri(req) + " failed: HTTP " + res.getCode()));
+					cf.completeExceptionally(new RuntimeException(req.getMethod() +
+																												" " +
+																												safeUri(req) +
+																												" failed: HTTP " +
+																												res.getCode()));
 				} else {
 					cf.complete(res);
 				}

@@ -19,11 +19,11 @@ public abstract class PublicHttpClient {
 		this.client = client;
 	}
 
-	protected abstract CompletableFuture<Map<String, FuturesPublicOnePullData>> getFuturesPublicOnePullData();
+	protected abstract CompletableFuture<Map<String, FuturesPublicOnePullData>> getFuturesPublicOnePullDataSymbols();
 
-	protected abstract CompletableFuture<Map<String, SpotPublicOnePullData>> getSpotPublicOnePullData();
+	protected abstract CompletableFuture<Map<String, SpotPublicOnePullData>> getSpotPublicOnePullDataSymbols();
 
-	protected abstract CompletableFuture<Map<String, FundingRate>> getFundingRateSymbolBatch();
+	protected abstract CompletableFuture<Map<String, FundingRate>> getFundingRateSymbols();
 
 	private <T> CompletableFuture<CoinVector<T>> withSymbol(
 					Set<String> coins,
@@ -42,33 +42,15 @@ public abstract class PublicHttpClient {
 	}
 
 	public CompletableFuture<CoinVector<FundingRate>> getFundingRate(Set<String> coins) {
-		return withSymbol(coins, this::getFundingRateSymbolBatch);
+		return withSymbol(coins, this::getFundingRateSymbols);
 	}
 
 	public CompletableFuture<CoinVector<FuturesPublicOnePullData>> getFuturesOnePullData(Set<String> coins) {
-		return getFuturesPublicOnePullData().thenApply(res -> {
-			CoinVector<FuturesPublicOnePullData> result = new CoinVector<>();
-			for (String coin : coins) {
-				String symbol = exchangeContext.getFuturesSymbol(coin);
-				FuturesPublicOnePullData value = res.get(symbol);
-				if (value == null) continue;
-				result.put(coin, value);
-			}
-			return result;
-		});
+		return withSymbol(coins, this::getFuturesPublicOnePullDataSymbols);
 	}
 
 	public CompletableFuture<CoinVector<SpotPublicOnePullData>> getSpotOnePullData(Set<String> coins) {
-		return getSpotPublicOnePullData().thenApply(res -> {
-			CoinVector<SpotPublicOnePullData> result = new CoinVector<>();
-			for (String coin : coins) {
-				String symbol = exchangeContext.getSpotSymbol(coin);
-				SpotPublicOnePullData value = res.get(symbol);
-				if (value == null) continue;
-				result.put(coin, value);
-			}
-			return result;
-		});
+		return withSymbol(coins, this::getSpotPublicOnePullDataSymbols);
 	}
 
 	public abstract CompletableFuture<Set<String>> getAvailableCoins();

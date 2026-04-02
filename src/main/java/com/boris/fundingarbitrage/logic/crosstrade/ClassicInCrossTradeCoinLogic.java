@@ -1,7 +1,8 @@
-package com.boris.fundingarbitrage.logic;
+package com.boris.fundingarbitrage.logic.crosstrade;
 
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.execution.CoinExecution;
+import com.boris.fundingarbitrage.logic.ExchangePair;
 import com.boris.fundingarbitrage.model.assetops.Leverages;
 import com.boris.fundingarbitrage.model.assetops.TradeParams;
 import com.boris.fundingarbitrage.model.assetops.TradeSide;
@@ -13,6 +14,7 @@ import com.boris.fundingarbitrage.monitor.CoinMonitor;
 import com.boris.fundingarbitrage.strategy.TradeMarket;
 import com.boris.fundingarbitrage.strategy.intradestrategy.ClassicInCrossTradeStrategy;
 import com.boris.fundingarbitrage.strategy.intradestrategy.InCrossTradeStrategy;
+import com.boris.fundingarbitrage.strategy.pretradestrategy.TradeDirections;
 import kotlin.jvm.functions.Function3;
 import lombok.NonNull;
 
@@ -41,8 +43,7 @@ public class ClassicInCrossTradeCoinLogic extends InCrossTradeCoinLogic {
 					@NonNull Leverages leverages,
 					@NonNull ExchangeConstantData longConstantData,
 					@NonNull ExchangeConstantData shortConstantData,
-					@NonNull TradeMarket longMarket,
-					@NonNull TradeMarket shortMarket
+					@NonNull TradeDirections tradeDirections
 	) {
 		ExchangeSnapshot longEnterSnapshot = monitor.getSnapshot(exchanges.longEx(), coin);
 		ExchangeSnapshot shortEnterSnapshot = monitor.getSnapshot(exchanges.shortEx(), coin);
@@ -50,11 +51,10 @@ public class ClassicInCrossTradeCoinLogic extends InCrossTradeCoinLogic {
 		InCrossTradeStrategy strategy = new ClassicInCrossTradeStrategy(
 						new ExchangeData(longEnterSnapshot, longConstantData),
 						new ExchangeData(shortEnterSnapshot, shortConstantData),
-						longMarket,
-						shortMarket
+						tradeDirections
 		);
 
-		super(coin, monitor, usdtAmount, exchanges, longMarket, shortMarket, longConstantData, shortConstantData, strategy);
+		super(coin, monitor, usdtAmount, exchanges, tradeDirections, longConstantData, shortConstantData, strategy);
 		this.longEnterSn = longEnterSnapshot;
 		this.shortEnterSn = shortEnterSnapshot;
 

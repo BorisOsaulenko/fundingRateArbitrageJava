@@ -23,24 +23,8 @@ class PublicEndpoints {
 	}
 
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest orderBookRequestSymbol(String symbol) {
-		URI uri = new URIBuilder(baseUrl)
-						.setPath("/api/v4/public/orderbook/" + symbol)
-						.addParameter("limit", "1")
-						.addParameter("level", "0")
-						.build();
-		return new SimpleHttpRequest("GET", uri);
-	}
-
-	@SneakyThrows
-	public static @NonNull SimpleHttpRequest recentTradesRequestSymbol(String symbol) {
-		URI uri = new URIBuilder(baseUrl).setPath("/api/v4/public/trades/" + symbol).build();
-		return new SimpleHttpRequest("GET", uri);
-	}
-
-	@SneakyThrows
-	public static @NonNull SimpleHttpRequest fundingGranularityRequestSymbols() {
-		URI uri = new URIBuilder(baseUrl).setPath("/api/v4/public/futures").build();
+	public static @NonNull SimpleHttpRequest tickerRequest() {
+		URI uri = new URIBuilder(baseUrl).setPath("/api/v4/public/ticker").build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 }

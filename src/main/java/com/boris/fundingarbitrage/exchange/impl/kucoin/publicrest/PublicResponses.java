@@ -115,4 +115,61 @@ class PublicResponses {
 			return data.instanceServers().get(0).endpoint();
 		}
 	}
+
+	private record SpotSymbol(
+					String symbol,
+					String quoteCurrency,
+					String enableTrading,
+					BigDecimal baseIncrement
+	) {
+	}
+
+	public record SpotSymbolsResponse(String code, List<SpotSymbol> data) {
+		public Map<String, BigDecimal> getLotSizes() {
+			Map<String, BigDecimal> result = new HashMap<>();
+			for (SpotSymbol symbol : data) {
+				if (!"USDT".equalsIgnoreCase(symbol.quoteCurrency()) || !"true".equalsIgnoreCase(symbol.enableTrading())) continue;
+				result.put(symbol.symbol(), symbol.baseIncrement());
+			}
+			return result;
+		}
+	}
+
+	private record SpotTicker(
+					String symbol,
+					BigDecimal buy,
+					BigDecimal bestBidSize,
+					BigDecimal sell,
+					BigDecimal bestAskSize,
+					BigDecimal volValue
+	) {
+	}
+
+	private record SpotTickerData(long time, List<SpotTicker> ticker) {
+	}
+
+	public record SpotAllTickersResponse(String code, SpotTickerData data) {
+		public Map<String, BookTicker> getBookTickers() {
+			Map<String, BookTicker> result = new HashMap<>();
+			for (SpotTicker ticker : data.ticker()) {
+				result.put(
+								ticker.symbol(),
+								new BookTicker(
+												ticker.buy(),
+												ticker.bestBidSize(),
+												ticker.sell(),
+												ticker.bestAskSize(),
+												Instant.ofEpochMilli(data.time())
+								)
+				);
+			}
+			return result;
+		}
+
+		public Map<String, BigDecimal> getVolume24h() {
+			Map<String, BigDecimal> result = new HashMap<>();
+			for (SpotTicker ticker : data.ticker()) result.put(ticker.symbol(), ticker.volValue());
+			return result;
+		}
+	}
 }

@@ -32,6 +32,14 @@ class PrivateEndpoints {
 		return new SimpleHttpRequest("GET", uri);
 	}
 
+	@SneakyThrows
+	public static @NonNull SimpleHttpRequest spotTradingFeesRequest() {
+		URIBuilder uriBuilder = new URIBuilder(baseUrl).setPath("/v5/account/fee-rate")
+						.addParameter("category", "spot");
+
+		return new SimpleHttpRequest("GET", uriBuilder.build());
+	}
+
 	public static @NonNull SimpleHttpRequest changeLeverageRequest(String symbol, int leverage) {
 		Map<String, Object> body = new HashMap<>();
 		body.put("category", category);
@@ -132,6 +140,16 @@ class PrivateEndpoints {
 	public static @NonNull SimpleHttpRequest orderRecordRequest(String orderId, String symbol, TradeSide tradeSide) {
 		URI uri = new URIBuilder(baseUrl).setPath("/v5/execution/list")
 						.addParameter("category", category)
+						.addParameter("symbol", symbol)
+						.addParameter("orderId", orderId)
+						.build();
+		return new SimpleHttpRequest("GET", uri);
+	}
+
+	@SneakyThrows
+	public static @NonNull SimpleHttpRequest spotOrderRecordRequest(String orderId, String symbol) {
+		URI uri = new URIBuilder(baseUrl).setPath("/v5/execution/list")
+						.addParameter("category", "spot")
 						.addParameter("symbol", symbol)
 						.addParameter("orderId", orderId)
 						.build();
