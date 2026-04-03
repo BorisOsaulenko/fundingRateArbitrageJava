@@ -58,6 +58,11 @@ public abstract class PrivateHttpClient {
 					FuturesOrder futuresOrder
 	); // returns orderId
 
+	protected abstract CompletableFuture<String> placeSpotOrderSymbol(
+					String symbol,
+					SpotOrder spotOrder
+	);
+
 	protected abstract CompletableFuture<List<PartialFill>> getFuturesOrderRecordSymbol(
 					String orderId,
 					String symbol,
@@ -120,6 +125,10 @@ public abstract class PrivateHttpClient {
 
 	public CompletableFuture<String> placeFuturesOrder(String coin, FuturesOrder futuresOrder) {
 		return withSymbol(coin, (symbol) -> placeFuturesOrderSymbol(symbol, futuresOrder), context::getFuturesSymbol);
+	}
+
+	public CompletableFuture<String> placeSpotOrder(String coin, SpotOrder spotOrder) {
+		return withSymbol(coin, (symbol) -> placeSpotOrderSymbol(symbol, spotOrder), context::getSpotSymbol);
 	}
 
 	public CompletableFuture<List<PartialFill>> getFuturesOrderRecord(String orderId, String coin, TradeSide tradeSide) {

@@ -79,6 +79,8 @@ public class KucoinPublicHttpClient extends PublicHttpClient {
 						PublicResponses.SpotAllTickersResponse.class
 		);
 
+		//		System.out.println(symbolsResponseFuture.join());
+
 		return CompletableFuture.allOf(symbolsResponseFuture, tickersResponseFuture).thenApply(_ -> {
 			Map<String, BigDecimal> lotSizes = symbolsResponseFuture.join().getLotSizes();
 			Map<String, BigDecimal> volumes24h = tickersResponseFuture.join().getVolume24h();

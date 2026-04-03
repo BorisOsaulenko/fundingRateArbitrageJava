@@ -8,6 +8,7 @@ import com.boris.fundingarbitrage.util.https.PrettyHttpClient;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 public abstract class PublicHttpClient {
@@ -27,14 +28,15 @@ public abstract class PublicHttpClient {
 
 	private <T> CompletableFuture<CoinVector<T>> withSymbol(
 					Set<String> coins,
-					Supplier<CompletableFuture<Map<String, T>>> symbolGetter
+					Supplier<CompletableFuture<Map<String, T>>> symbolGetter,
+					Function<String, String> getSymbol
 	) {
 		return symbolGetter.get().thenApply(resultBySymbols -> {
 			CoinVector<T> result = new CoinVector<>();
 			for (String coin : coins) {
-				String symbol = exchangeContext.getFuturesSymbol(coin);
+				String symbol = getSymbol.apply(coin);
 				T value = resultBySymbols.get(symbol);
-				if (value == null) throw new RuntimeException("Symbol " + symbol + " not found in exchange response");
+				if (value == null) continue;
 				result.put(coin, value);
 			}
 			return result;
@@ -42,15 +44,15 @@ public abstract class PublicHttpClient {
 	}
 
 	public CompletableFuture<CoinVector<FundingRate>> getFundingRate(Set<String> coins) {
-		return withSymbol(coins, this::getFundingRateSymbols);
+		return withSymbol(coins, this::getFundingRateSymbols, exchangeContext::getFuturesSymbol);
 	}
 
 	public CompletableFuture<CoinVector<FuturesPublicOnePullData>> getFuturesOnePullData(Set<String> coins) {
-		return withSymbol(coins, this::getFuturesPublicOnePullDataSymbols);
+		return withSymbol(coins, this::getFuturesPublicOnePullDataSymbols, exchangeContext::getFuturesSymbol);
 	}
 
 	public CompletableFuture<CoinVector<SpotPublicOnePullData>> getSpotOnePullData(Set<String> coins) {
-		return withSymbol(coins, this::getSpotPublicOnePullDataSymbols);
+		return withSymbol(coins, this::getSpotPublicOnePullDataSymbols, exchangeContext::getSpotSymbol);
 	}
 
 	public abstract CompletableFuture<Set<String>> getAvailableCoins();

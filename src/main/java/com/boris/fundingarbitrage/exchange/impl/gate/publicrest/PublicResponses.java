@@ -115,12 +115,17 @@ class PublicResponses {
 			Map<String, BigDecimal> result = new HashMap<>();
 			for (SpotCurrencyPair item : items) {
 				if (!item.id().endsWith("_USDT") || !"tradable".equalsIgnoreCase(item.trade_status())) continue;
-				result.put(item.id(), item.min_base_amount() != null ? item.min_base_amount() : precisionToStep(item.amount_precision()));
+				result.put(item.id(), item.min_base_amount());
 			}
 			return result;
 		}
 
-		private record SpotCurrencyPair(String id, BigDecimal min_base_amount, Integer amount_precision, String trade_status) {
+		private record SpotCurrencyPair(
+						String id,
+						BigDecimal min_base_amount,
+						Integer amount_precision,
+						String trade_status
+		) {
 		}
 	}
 
@@ -148,7 +153,12 @@ class PublicResponses {
 			return result;
 		}
 
-		private record SpotTickerResponse(String currency_pair, BigDecimal quote_volume, BigDecimal highest_bid, BigDecimal lowest_ask) {
+		private record SpotTickerResponse(
+						String currency_pair,
+						BigDecimal quote_volume,
+						BigDecimal highest_bid,
+						BigDecimal lowest_ask
+		) {
 		}
 	}
 }

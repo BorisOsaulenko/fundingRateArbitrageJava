@@ -8,7 +8,6 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -55,12 +54,6 @@ class PublicResponses {
 				if (!"PERPETUAL".equalsIgnoreCase(info.contractType())) continue;
 				result.put(info.symbol(), toTradingState(info.status(), info.underlyingType()));
 			}
-			return result;
-		}
-
-		public List<String> getExistingSymbols() {
-			List<String> result = new ArrayList<>();
-			for (SymbolInfo info : symbols) result.add(info.symbol());
 			return result;
 		}
 

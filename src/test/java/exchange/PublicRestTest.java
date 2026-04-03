@@ -117,7 +117,7 @@ public abstract class PublicRestTest {
 	void spotPublicOnePullData() throws Exception {
 		Map<String, SpotPublicOnePullData> result = getWithTimeout(publicRest().getSpotOnePullData(coins));
 		assertNotNull(result, "Spot one pull data should not be null");
-		assertEquals(result.size(), coins.size(), "Spot one pull data should contain data for each requested symbol");
+		assertEquals(coins.size(), result.size(), "Spot one pull data should contain data for each requested symbol");
 		for (String coin : coins) {
 			SpotPublicOnePullData data = result.get(coin);
 			assertNotNull(data, "Spot one pull data for " + coin + " should not be null");

@@ -3,7 +3,7 @@ package com.boris.fundingarbitrage;
 import com.boris.fundingarbitrage.coinParser.AllExchangeCoinsParser;
 import com.boris.fundingarbitrage.coinParser.ICoinSupplier;
 import com.boris.fundingarbitrage.coinfilter.CoinFilterConfig;
-import com.boris.fundingarbitrage.exchange.impl.whitebit.WhitebitExchange;
+import com.boris.fundingarbitrage.exchange.impl.kucoin.KucoinExchange;
 import com.boris.fundingarbitrage.logic.ArbitrageBotConfig;
 import com.boris.fundingarbitrage.logic.ArbitrageLogic;
 import com.boris.fundingarbitrage.logic.RebalancingArbitrageLogic;
@@ -17,7 +17,6 @@ import lombok.extern.slf4j.Slf4j;
 import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 public class App {
@@ -55,11 +54,7 @@ public class App {
 	}
 
 	static void main() throws Exception {
-		WhitebitExchange bn = new WhitebitExchange();
-		CompletableFuture f3 = bn.privateHttpClient.getSpotTradingFees(Set.of("KAITO", "SOL"))
-						.thenAccept(Logger::logCoinVector);
-
-		CompletableFuture.allOf(f3).get();
-
+		KucoinExchange bn = new KucoinExchange();
+		bn.publicHttpClient.getSpotOnePullData(Set.of("SOL")).thenAccept(Logger::logCoinVector).get();
 	}
 }
