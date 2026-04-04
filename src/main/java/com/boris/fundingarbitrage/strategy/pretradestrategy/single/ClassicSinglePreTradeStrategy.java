@@ -11,7 +11,7 @@ import java.math.RoundingMode;
 
 public final class ClassicSinglePreTradeStrategy implements SinglePreTradeStrategy {
 	private static final BigDecimal O_SPREAD_FLOOR = new BigDecimal("0.005"); // 0.5%
-	private static final BigDecimal F_SPREAD_FLOOR = new BigDecimal("0.005"); // 0%
+	private static final BigDecimal F_SPREAD_FLOOR = new BigDecimal("0.005"); // 0.5%
 
 	public static BigDecimal oSpread(ExchangeSnapshot sn) {
 		BigDecimal spotAsk = sn.spotSnapshot().bookTicker().askPrice();

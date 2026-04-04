@@ -298,11 +298,4 @@ public class ClassicInSingleTradeCoinLogic extends InSingleTradeCoinLogic {
 	private char getSlippageSign(BigDecimal slippage) {
 		return slippage.compareTo(BigDecimal.ZERO) >= 0 ? '+' : ' ';
 	}
-
-	private record InitContext(
-					ExchangeSnapshot enterSnapshot,
-					InSingleTradeStrategy strategy
-	) {
-	}
-
 }

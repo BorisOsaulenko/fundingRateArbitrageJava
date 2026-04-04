@@ -7,6 +7,7 @@ import com.boris.fundingarbitrage.exchange.Instances;
 import com.boris.fundingarbitrage.logic.coinopportunities.CoinOpportunity;
 import com.boris.fundingarbitrage.logic.coinopportunities.CrossCoinOpportunity;
 import com.boris.fundingarbitrage.logic.coinopportunities.SingleCoinOpportunity;
+import com.boris.fundingarbitrage.logic.crosstrade.FuturesInCrossTradeCoinLogic;
 import com.boris.fundingarbitrage.logic.crosstrade.SpotInCrossTradeCoinLogic;
 import com.boris.fundingarbitrage.logic.singletrade.ClassicInSingleTradeCoinLogic;
 import com.boris.fundingarbitrage.model.assetops.InternalAccount;
@@ -195,15 +196,17 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 
 	private void enterCrossCoin(String coin, CrossCoinOpportunity op) {
 		ExchangePair exchanges = op.exchanges();
+		Leverages leverages = new Leverages(1, 1);
 		TradeDirections directions = preTradeStrategy.cross().getDirections(op.longData(), op.shortData());
 		exchangeUsageCounterMap.merge(exchanges.longEx(), 1, Integer::sum);
 		exchangeUsageCounterMap.merge(exchanges.shortEx(), 1, Integer::sum);
 		try {
-			SpotInCrossTradeCoinLogic inTradeLogic = new SpotInCrossTradeCoinLogic(
+			FuturesInCrossTradeCoinLogic inTradeLogic = new FuturesInCrossTradeCoinLogic(
 							coin,
 							monitor,
 							exchanges,
 							config.legUsdtAmount(),
+							leverages,
 							constantDataMap.get(exchanges.longEx(), coin),
 							constantDataMap.get(exchanges.shortEx(), coin),
 							directions

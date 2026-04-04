@@ -8,11 +8,13 @@ import com.boris.fundingarbitrage.strategy.pretradestrategy.TradeDirections;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Duration;
 import java.time.Instant;
 
 public final class FuturesCrossPreTradeStrategy implements CrossPreTradeStrategy {
 	private static final BigDecimal F_SPREAD_FLOOR = new BigDecimal("0.005");
 	private static final BigDecimal O_SPREAD_FLOOR = new BigDecimal("0.005"); // 0.5%
+	private static final Duration beforeFunding = Duration.ofSeconds(10);
 
 	public static BigDecimal notional(FuturesSnapshot longSn, FuturesSnapshot shortSn) {
 		BigDecimal longAsk = longSn.bookTicker().askPrice();
@@ -60,8 +62,21 @@ public final class FuturesCrossPreTradeStrategy implements CrossPreTradeStrategy
 		return futuresOSpread.add(futuresFSpread).subtract(totalFuturesFees);
 	}
 
+	private Instant fundingTimestamp(ExchangeData longData, ExchangeData shortData) {
+		Instant longSettlement = longData.futuresSnapshot().fundingRate().settlement();
+		Instant shortSettlement = shortData.futuresSnapshot().fundingRate().settlement();
+
+		if (longSettlement.isBefore(shortSettlement))
+			return longSettlement;
+		return shortSettlement;
+	}
+
 	@Override
 	public boolean goodToEnter(ExchangeData longData, ExchangeData shortData) {
+		Instant now = Instant.now();
+		Instant fundingTimestamp = fundingTimestamp(longData, shortData);
+		if (now.isBefore(fundingTimestamp.minus(beforeFunding))) return false;
+
 		BigDecimal futuresFSpread = closestFuturesFSpread(longData.futuresSnapshot(), shortData.futuresSnapshot());
 		BigDecimal futuresOSpread = futuresOSpread(longData.futuresSnapshot(), shortData.futuresSnapshot());
 		BigDecimal totalFuturesFees = totalFuturesFees(longData.futuresConstantData(), shortData.futuresConstantData());
