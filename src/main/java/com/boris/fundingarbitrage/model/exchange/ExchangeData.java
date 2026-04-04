@@ -3,13 +3,12 @@ package com.boris.fundingarbitrage.model.exchange;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.Fees;
 import com.boris.fundingarbitrage.strategy.TradeMarket;
-import lombok.NonNull;
 
 public record ExchangeData(
-				@NonNull FuturesConstantData futuresConstantData,
-				@NonNull FuturesSnapshot futuresSnapshot,
-				@NonNull SpotConstantData spotConstantData,
-				@NonNull SpotSnapshot spotSnapshot
+				FuturesConstantData futuresConstantData,
+				FuturesSnapshot futuresSnapshot,
+				SpotConstantData spotConstantData,
+				SpotSnapshot spotSnapshot
 ) {
 	public ExchangeData(ExchangeSnapshot sn, ExchangeConstantData cd) {
 		this(cd.futuresConstantData(), sn.futuresSnapshot(), cd.spotConstantData(), sn.spotSnapshot());

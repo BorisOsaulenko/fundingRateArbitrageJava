@@ -252,6 +252,25 @@ public class PrivateResponses {
 		}
 	}
 
+	public record PlaceSpotOrderResponse(String code, String msg, OperationData data) {
+		public String orderId() {
+			if (!expectedSuccessCode.equals(code)) {
+				throw new IllegalStateException("KuCoin klines response code not OK: " + code + ", msg: " + msg);
+			}
+
+			if (data == null) {
+				throw new IllegalStateException("KuCoin order response data missing");
+			}
+
+			String orderId = data.orderId;
+			if (orderId == null || orderId.isEmpty()) {
+				throw new IllegalStateException("KuCoin orderId missing in response");
+			}
+
+			return orderId;
+		}
+	}
+
 	@JsonIgnoreProperties(ignoreUnknown = true)
 	private record FillItem(
 					String orderId, String symbol, String size, String price, String fee, long createdAt, String feeCurrency

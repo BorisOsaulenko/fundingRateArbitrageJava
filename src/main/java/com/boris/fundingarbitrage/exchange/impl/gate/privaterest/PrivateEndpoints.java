@@ -107,6 +107,14 @@ class PrivateEndpoints {
 		return Math.abs(qty);
 	}
 
+	private static String mapOrderSide(OrderSide orderSide, TradeSide tradeSide) {
+		if (orderSide == OrderSide.LONG && tradeSide == TradeSide.OPEN) return "buy";
+		if (orderSide == OrderSide.LONG && tradeSide == TradeSide.CLOSE) return "sell";
+		if (orderSide == OrderSide.SHORT && tradeSide == TradeSide.OPEN) return "sell";
+		if (orderSide == OrderSide.SHORT && tradeSide == TradeSide.CLOSE) return "buy";
+		throw new IllegalArgumentException("Unsupported order side combination");
+	}
+
 	public static @NonNull SimpleHttpRequest placeFuturesOrderRequestSymbol(String symbol, FuturesOrder futuresOrder) {
 		Map<String, Object> body = new HashMap<>();
 		body.put("contract", symbol);
@@ -117,6 +125,16 @@ class PrivateEndpoints {
 			body.put("reduce_only", true);
 		}
 		return postJson("/api/v4/futures/" + settle + "/orders", body);
+	}
+
+	public static @NonNull SimpleHttpRequest placeSpotOrderRequestSymbol(String symbol, SpotOrder spotOrder) {
+		Map<String, Object> body = new HashMap<>();
+		body.put("currency_pair", symbol);
+		body.put("type", "market");
+		body.put("account", "spot");
+		body.put("side", mapOrderSide(spotOrder.orderSide(), spotOrder.tradeSide()));
+		body.put("amount", String.valueOf(spotOrder.baseAssetQty()));
+		return postJson("/api/v4/spot/orders", body);
 	}
 
 	@SneakyThrows

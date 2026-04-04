@@ -1,6 +1,7 @@
 package com.boris.fundingarbitrage.logic.singletrade;
 
 import com.boris.fundingarbitrage.exchange.BaseExchange;
+import com.boris.fundingarbitrage.execution.ClassicSingleCoinExecution;
 import com.boris.fundingarbitrage.execution.CoinExecution;
 import com.boris.fundingarbitrage.logic.InSingleTradeCoinLogic;
 import com.boris.fundingarbitrage.model.assetops.Leverages;
@@ -52,7 +53,14 @@ public class ClassicInSingleTradeCoinLogic extends InSingleTradeCoinLogic {
 		this.enterSn = enterSnapshot;
 
 		this.enterParams = getEnterParams(enterSn);
-		this.execution = new CoinExecution(coin, enterParams, leverages, tradeLogger);
+		this.execution = new ClassicSingleCoinExecution(
+						coin,
+						exchange,
+						enterParams.baseAssetQty(),
+						enterParams.shortContractQty(),
+						leverages.shortLeverage(),
+						tradeLogger
+		);
 		this.enterFuture = this.execution.enterTrade().exceptionally(this::fail);
 	}
 
@@ -99,7 +107,7 @@ public class ClassicInSingleTradeCoinLogic extends InSingleTradeCoinLogic {
 		int longContractQty = baseAssetQty.divide(longLotSize, RoundingMode.FLOOR).intValueExact();
 		int shortContractQty = baseAssetQty.divide(shortLotSize, RoundingMode.FLOOR).intValueExact();
 
-		return new TradeParams(exchange, exchange, baseAssetQty, longContractQty, shortContractQty);
+		return new TradeParams(baseAssetQty, longContractQty, shortContractQty);
 	}
 
 	@Override

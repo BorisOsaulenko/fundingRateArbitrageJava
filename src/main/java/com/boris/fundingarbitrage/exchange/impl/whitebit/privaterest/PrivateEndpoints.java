@@ -107,6 +107,14 @@ class PrivateEndpoints {
 		return privatePost("/api/v4/order/collateral/market", body);
 	}
 
+	public static @NonNull SimpleHttpRequest placeSpotOrderRequestSymbol(String symbol, SpotOrder spotOrder) {
+		Map<String, Object> body = new HashMap<>();
+		body.put("market", symbol);
+		body.put("side", mapSide(spotOrder.orderSide(), spotOrder.tradeSide()));
+		body.put("amount", String.valueOf(spotOrder.baseAssetQty()));
+		return privatePost("/api/v4/order/market", body);
+	}
+
 	public static @NonNull SimpleHttpRequest orderRecordRequestSymbol(String orderId) {
 		Map<String, Object> body = new HashMap<>();
 		body.put("orderId", orderId);

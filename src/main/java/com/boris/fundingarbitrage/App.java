@@ -3,14 +3,13 @@ package com.boris.fundingarbitrage;
 import com.boris.fundingarbitrage.coinParser.AllExchangeCoinsParser;
 import com.boris.fundingarbitrage.coinParser.ICoinSupplier;
 import com.boris.fundingarbitrage.coinfilter.CoinFilterConfig;
-import com.boris.fundingarbitrage.exchange.impl.kucoin.KucoinExchange;
+import com.boris.fundingarbitrage.exchange.impl.bybit.BybitExchange;
 import com.boris.fundingarbitrage.logic.ArbitrageBotConfig;
 import com.boris.fundingarbitrage.logic.ArbitrageLogic;
 import com.boris.fundingarbitrage.logic.RebalancingArbitrageLogic;
 import com.boris.fundingarbitrage.strategy.pretradestrategy.ClassicCrossPreTradeStrategy;
 import com.boris.fundingarbitrage.strategy.pretradestrategy.ClassicSinglePreTradeStrategy;
-import com.boris.fundingarbitrage.strategy.pretradestrategy.CrossPreTradeStrategy;
-import com.boris.fundingarbitrage.strategy.pretradestrategy.SinglePreTradeStrategy;
+import com.boris.fundingarbitrage.strategy.pretradestrategy.PreTradeStrategy;
 import com.boris.fundingarbitrage.util.logger.Logger;
 import lombok.extern.slf4j.Slf4j;
 
@@ -20,17 +19,21 @@ import java.util.Set;
 
 @Slf4j
 public class App {
-	static void main2(String[] args) {
+	static void main(String[] args) {
 		Logger.init(Path.of("app.log"));
 
 		ICoinSupplier coinSupplier = new AllExchangeCoinsParser();
-		CrossPreTradeStrategy crossStrategy = new ClassicCrossPreTradeStrategy();
-		SinglePreTradeStrategy singleStrategy = new ClassicSinglePreTradeStrategy();
+		PreTradeStrategy preTradeStrategy = new PreTradeStrategy(
+						new ClassicCrossPreTradeStrategy(),
+						new ClassicSinglePreTradeStrategy()
+		);
+
 		ArbitrageBotConfig botConfig = new ArbitrageBotConfig(
 						new BigDecimal("20"), // leg usdt amount
-						new BigDecimal("3"), // safety margin
+						new BigDecimal("2"), // safety margin
+						100, // max coin amount
 						3, // max leverage
-						120, // log interval
+						60, // log interval
 						3 // log amount
 		);
 		CoinFilterConfig filterConfig = new CoinFilterConfig(
@@ -41,8 +44,7 @@ public class App {
 		try {
 			ArbitrageLogic logic = new RebalancingArbitrageLogic(
 							coinSupplier,
-							crossStrategy,
-							singleStrategy,
+							preTradeStrategy,
 							filterConfig,
 							botConfig
 			);
@@ -54,7 +56,9 @@ public class App {
 	}
 
 	static void main() throws Exception {
-		KucoinExchange bn = new KucoinExchange();
-		bn.publicHttpClient.getSpotOnePullData(Set.of("SOL")).thenAccept(Logger::logCoinVector).get();
+		BybitExchange ex = new BybitExchange();
+		Logger.logImmediatelly();
+		ex.publicWsClient.connect().get();
+		ex.publicWsClient.subscribeSpotBookTicker(Set.of("PUMPBTC"), Logger::log);
 	}
 }

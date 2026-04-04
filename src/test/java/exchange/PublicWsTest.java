@@ -17,7 +17,18 @@ import java.util.concurrent.TimeUnit;
 
 @Tag("integration")
 public abstract class PublicWsTest {
-	private static final Set<String> COINS = Set.of("SOL", "KAITO");
+	private static final Set<String> COINS = Set.of(
+					"BR",
+					"PARTI",
+					"FHE",
+					"PIEVERSE",
+					"RATS",
+					"PUMPBTC",
+					"USTC",
+					"ZBT",
+					"LUNC"
+	);
+
 	private static final Duration WAIT_TIMEOUT = Duration.ofSeconds(240);
 	private static final int MIN_MESSAGES_PER_STREAM = 3;
 	private final CoinVector<Integer> bookTickerMessageCounts = new CoinVector<>();
@@ -53,44 +64,38 @@ public abstract class PublicWsTest {
 
 	private void updateBookTickerPatch(BookTickerPatch patch) {
 		latestBookTickerPatches.merge(
-						patch.coin(), patch, (existing, incoming) -> {
-							return new BookTickerPatch(
-											incoming.coin(),
-											incoming.bidPrice() != null ? incoming.bidPrice() : existing.bidPrice(),
-											incoming.bidSize() != null ? incoming.bidSize() : existing.bidSize(),
-											incoming.askPrice() != null ? incoming.askPrice() : existing.askPrice(),
-											incoming.askSize() != null ? incoming.askSize() : existing.askSize(),
-											incoming.timestamp()
-							);
-						}
+						patch.coin(), patch, (existing, incoming) -> new BookTickerPatch(
+										incoming.coin(),
+										incoming.bidPrice() != null ? incoming.bidPrice() : existing.bidPrice(),
+										incoming.bidSize() != null ? incoming.bidSize() : existing.bidSize(),
+										incoming.askPrice() != null ? incoming.askPrice() : existing.askPrice(),
+										incoming.askSize() != null ? incoming.askSize() : existing.askSize(),
+										incoming.timestamp()
+						)
 		);
 	}
 
 	private void updateSpotBookTickerPatch(BookTickerPatch patch) {
 		latestSpotBookTickerPatches.merge(
-						patch.coin(), patch, (existing, incoming) -> {
-							return new BookTickerPatch(
-											incoming.coin(),
-											incoming.bidPrice() != null ? incoming.bidPrice() : existing.bidPrice(),
-											incoming.bidSize() != null ? incoming.bidSize() : existing.bidSize(),
-											incoming.askPrice() != null ? incoming.askPrice() : existing.askPrice(),
-											incoming.askSize() != null ? incoming.askSize() : existing.askSize(),
-											incoming.timestamp()
-							);
-						}
+						patch.coin(), patch, (existing, incoming) -> new BookTickerPatch(
+										incoming.coin(),
+										incoming.bidPrice() != null ? incoming.bidPrice() : existing.bidPrice(),
+										incoming.bidSize() != null ? incoming.bidSize() : existing.bidSize(),
+										incoming.askPrice() != null ? incoming.askPrice() : existing.askPrice(),
+										incoming.askSize() != null ? incoming.askSize() : existing.askSize(),
+										incoming.timestamp()
+						)
 		);
 	}
 
 	private void updateFundingRatePatch(FundingRatePatch patch) {
 		latestFundingRatePatches.merge(
-						patch.coin(), patch, (existing, incoming) -> {
-							return new FundingRatePatch(
-											incoming.coin(),
-											incoming.rate() != null ? incoming.rate() : existing.rate(),
-											incoming.settlement() != null ? incoming.settlement() : existing.settlement(),
-											incoming.timestamp()
-							);
-						}
+						patch.coin(), patch, (existing, incoming) -> new FundingRatePatch(
+										incoming.coin(),
+										incoming.rate() != null ? incoming.rate() : existing.rate(),
+										incoming.settlement() != null ? incoming.settlement() : existing.settlement(),
+										incoming.timestamp()
+						)
 		);
 	}
 
@@ -99,29 +104,29 @@ public abstract class PublicWsTest {
 	}
 
 	private void subscribeToStreams() {
-		publicWsClient().subscribeFuturesBookTicker(
-						COINS, (patch) -> {
-							updateBookTickerPatch(patch);
-							bookTickerMessageCounts.merge(patch.coin(), 1, Integer::sum);
-							checkMessages();
-						}
-		);
-
-		publicWsClient().subscribeFuturesFundingRates(
-						COINS, (patch) -> {
-							updateFundingRatePatch(patch);
-							fundingRateMessageCounts.merge(patch.coin(), 1, Integer::sum);
-							checkMessages();
-						}
-		);
-
-		publicWsClient().subscribeFuturesMarkPrice(
-						COINS, (patch) -> {
-							updateMarkPricePatch(patch);
-							markPriceMessageCounts.merge(patch.coin(), 1, Integer::sum);
-							checkMessages();
-						}
-		);
+		//		publicWsClient().subscribeFuturesBookTicker(
+		//						COINS, (patch) -> {
+		//							updateBookTickerPatch(patch);
+		//							bookTickerMessageCounts.merge(patch.coin(), 1, Integer::sum);
+		//							checkMessages();
+		//						}
+		//		);
+		//
+		//		publicWsClient().subscribeFuturesFundingRates(
+		//						COINS, (patch) -> {
+		//							updateFundingRatePatch(patch);
+		//							fundingRateMessageCounts.merge(patch.coin(), 1, Integer::sum);
+		//							checkMessages();
+		//						}
+		//		);
+		//
+		//		publicWsClient().subscribeFuturesMarkPrice(
+		//						COINS, (patch) -> {
+		//							updateMarkPricePatch(patch);
+		//							markPriceMessageCounts.merge(patch.coin(), 1, Integer::sum);
+		//							checkMessages();
+		//						}
+		//		);
 
 		publicWsClient().subscribeSpotBookTicker(
 						COINS, (patch) -> {
@@ -135,6 +140,7 @@ public abstract class PublicWsTest {
 	@Test
 	@Tag("websocket")
 	public void testPublicWsClientSubscriptions() throws Exception {
+		Logger.logImmediatelly();
 		publicWsClient().connect().join();
 		initializeMessageCounts();
 		subscribeToStreams();

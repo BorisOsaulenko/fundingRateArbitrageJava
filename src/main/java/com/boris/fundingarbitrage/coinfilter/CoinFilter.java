@@ -31,6 +31,8 @@ public class CoinFilter {
 
 	private final CoinVector<Set<BaseExchange>> availableExchangesByCoin = new CoinVector<>();
 	private final Map<BaseExchange, Set<String>> availableCoinsByExchange = new ConcurrentHashMap<>();
+	private final ExchangeCoinMap<Boolean> presentOnFutures = new ExchangeCoinMap<>();
+	private final ExchangeCoinMap<Boolean> presentOnSpot = new ExchangeCoinMap<>();
 	private final ExchangeCoinMap<BigDecimal> futuresTradingVolumeMap = new ExchangeCoinMap<>();
 	private final ExchangeCoinMap<FuturesTradingState> futuresTradingStatesMap = new ExchangeCoinMap<>();
 	private final ExchangeCoinMap<BigDecimal> spotTradingVolumeMap = new ExchangeCoinMap<>();
@@ -95,6 +97,8 @@ public class CoinFilter {
 
 							fillInMaps(
 											futuresOpdVector, ffVector, exchange, (coin, data, fees) -> {
+												presentOnFutures.put(exchange, coin, true);
+
 												FuturesSnapshot snapshot = new FuturesSnapshot(
 																data.ticker(),
 																data.fundingRate(),
@@ -124,6 +128,8 @@ public class CoinFilter {
 
 							fillInMaps(
 											spotOpdVector, sfVector, exchange, (coin, data, fees) -> {
+												presentOnSpot.put(exchange, coin, true);
+
 												SpotSnapshot snapshot = new SpotSnapshot(data.ticker());
 												SpotConstantData constantData = new SpotConstantData(data.lotSize(), fees);
 
@@ -160,20 +166,17 @@ public class CoinFilter {
 			Set<BaseExchange> exchanges = entry.getValue();
 
 			for (BaseExchange ex : exchanges) {
-				ExchangeSnapshot sn = snapshotsMap.get(ex, coin);
-
-				if (sn.futuresSnapshot() != null) {
+				if (Boolean.TRUE.equals(presentOnFutures.get(ex, coin))) {
 					String excludeFuturesMsg = getExcludeFuturesMessage(ex, coin);
 					if (excludeFuturesMsg != null) forgetFuturesCoinExchange(coin, ex);
 				}
 
-				if (sn.spotSnapshot() != null) {
+				if (Boolean.TRUE.equals(presentOnSpot.get(ex, coin))) {
 					String excludedSpotMsg = getExcludeSpotMessage(ex, coin);
 					if (excludedSpotMsg != null) forgetSpotCoinExchange(coin, ex);
 				}
 
-				sn = snapshotsMap.get(ex, coin);
-				if (sn.futuresSnapshot() == null && sn.spotSnapshot() == null) {
+				if (!Boolean.TRUE.equals(presentOnFutures.get(ex, coin)) && !Boolean.TRUE.equals(presentOnSpot.get(ex, coin))) {
 					forgetCoinExchange(coin, ex);
 					exchanges.remove(ex);
 				}
@@ -190,7 +193,12 @@ public class CoinFilter {
 		return fetchData()
 						.thenRun(this::filterCoins)
 						.thenApply(_ -> new CoinFilterResult(
-										availableExchangesByCoin, availableCoinsByExchange, constantDataMap, snapshotsMap
+										availableExchangesByCoin,
+										availableCoinsByExchange,
+										constantDataMap,
+										snapshotsMap,
+										presentOnFutures,
+										presentOnSpot
 						));
 	}
 
@@ -216,6 +224,7 @@ public class CoinFilter {
 		futuresTradingStatesMap.remove(exchange, coin);
 		snapshotsMap.computeIfPresent(exchange, coin, (ex, sn) -> new ExchangeSnapshot(null, sn.spotSnapshot()));
 		constantDataMap.computeIfPresent(exchange, coin, (ex, cd) -> new ExchangeConstantData(null, cd.spotConstantData()));
+		presentOnFutures.put(exchange, coin, false);
 	}
 
 	private void forgetSpotCoinExchange(String coin, BaseExchange exchange) {
@@ -226,6 +235,7 @@ public class CoinFilter {
 						coin,
 						(ex, cd) -> new ExchangeConstantData(cd.futuresConstantData(), null)
 		);
+		presentOnSpot.put(exchange, coin, false);
 	}
 
 	private String getExcludeMessage(
@@ -267,5 +277,11 @@ public class CoinFilter {
 						(sn) -> sn.spotSnapshot().bookTicker(),
 						(sn) -> sn.spotConstantData().lotSize()
 		);
+	}
+
+	public record CoinPresence(
+					boolean existsOnFutures,
+					boolean existsOnSpot
+	) {
 	}
 }

@@ -131,6 +131,7 @@ public abstract class PrivateHttpClient {
 		return withSymbol(coin, (symbol) -> placeSpotOrderSymbol(symbol, spotOrder), context::getSpotSymbol);
 	}
 
+
 	public CompletableFuture<List<PartialFill>> getFuturesOrderRecord(String orderId, String coin, TradeSide tradeSide) {
 		return withSymbol(
 						coin,

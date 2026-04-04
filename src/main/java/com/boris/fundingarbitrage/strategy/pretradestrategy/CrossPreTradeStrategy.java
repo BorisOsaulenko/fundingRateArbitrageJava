@@ -4,7 +4,7 @@ import com.boris.fundingarbitrage.model.exchange.ExchangeData;
 
 import java.math.BigDecimal;
 
-public interface CrossPreTradeStrategy {
+public sealed interface CrossPreTradeStrategy permits ClassicCrossPreTradeStrategy {
 	boolean goodToEnter(ExchangeData longData, ExchangeData shortData);
 
 	TradeDirections getDirections(ExchangeData longData, ExchangeData shortData);

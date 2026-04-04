@@ -8,15 +8,15 @@ import lombok.NonNull;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
-public abstract class CoinExecution {
+public abstract sealed class CoinExecution permits CrossCoinExecution, SingleCoinExecution {
 	protected final String coin;
 	protected final TradeDirections tradeDirections;
 	protected final TradeLogger tradeLogger;
+	private final boolean failed = false;
 	protected CompletableFuture<Void> enterFuture = null;
 	protected CompletableFuture<Void> exitFuture = null;
 	@Getter protected TradeIds enterIds;
 	@Getter protected TradeIds exitIds;
-	private volatile boolean failed = false;
 
 	public CoinExecution(
 					@NonNull String coin,
@@ -26,7 +26,6 @@ public abstract class CoinExecution {
 		this.coin = coin;
 		this.tradeLogger = tradeLogger;
 		this.tradeDirections = tradeDirections;
-		tradeLogger.log("Logs for %s", coin);
 	}
 
 	protected abstract CompletableFuture<TradeIds> enterInternal();
@@ -35,14 +34,16 @@ public abstract class CoinExecution {
 		if (failed) return CompletableFuture.completedFuture(null);
 		if (enterFuture != null) return enterFuture;
 
-		return this.enterFuture = enterInternal().thenAccept(ids -> {
-			this.enterIds = ids;
-			tradeLogger.log("Entered trade: " + this.enterIds);
-		}).exceptionally(t -> {
-			tradeLogger.error("Failed to enter trade: " + t.getMessage());
-			failed = true;
-			return null;
-		});
+		//		return this.enterFuture = enterInternal().thenAccept(ids -> {
+		//			this.enterIds = ids;
+		//			tradeLogger.log("Entered trade: " + this.enterIds);
+		//		}).exceptionally(t -> {
+		//			tradeLogger.error("Failed to enter trade: " + t.getMessage());
+		//			failed = true;
+		//			return null;
+		//		});
+		tradeLogger.log("Would have entered trade for " + coin);
+		return CompletableFuture.completedFuture(null);
 	}
 
 	protected abstract CompletableFuture<TradeIds> exitInternal();
@@ -51,14 +52,17 @@ public abstract class CoinExecution {
 		if (!shouldAttemptExit()) return CompletableFuture.completedFuture(null);
 		if (exitFuture != null) return exitFuture;
 
-		return this.exitFuture = exitInternal().thenAccept(ids -> {
-			this.exitIds = ids;
-			tradeLogger.log("Exited trade: " + this.exitIds);
-		}).exceptionally(t -> {
-			tradeLogger.error("Failed to exit trade: " + t.getMessage());
-			failed = true;
-			return null;
-		});
+		//		return this.exitFuture = exitInternal().thenAccept(ids -> {
+		//			this.exitIds = ids;
+		//			tradeLogger.log("Exited trade: " + this.exitIds);
+		//		}).exceptionally(t -> {
+		//			tradeLogger.error("Failed to exit trade: " + t.getMessage());
+		//			failed = true;
+		//			return null;
+		//		});
+
+		tradeLogger.log("Would have exited trade for " + coin);
+		return CompletableFuture.completedFuture(null);
 	}
 
 	private boolean shouldAttemptExit() {

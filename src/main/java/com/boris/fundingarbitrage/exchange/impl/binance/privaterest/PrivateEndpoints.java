@@ -107,6 +107,19 @@ class PrivateEndpoints {
 	}
 
 	@SneakyThrows
+	public static @NonNull SimpleHttpRequest placeSpotOrderRequestSymbol(String symbol, SpotOrder spotOrder) {
+		URIBuilder uriBuilder = new URIBuilder(spotBaseUrl)
+						.setPath("/api/v3/order")
+						.addParameter("symbol", symbol)
+						.addParameter("side", getSide(spotOrder.orderSide(), spotOrder.tradeSide()))
+						.addParameter("type", "MARKET")
+						.addParameter("quantity", spotOrder.baseAssetQty().toString());
+
+		URI uri = uriBuilder.build();
+		return new SimpleHttpRequest("POST", uri);
+	}
+
+	@SneakyThrows
 	public static @NonNull SimpleHttpRequest orderRecordRequestSymbol(
 					String orderId,
 					String symbol,

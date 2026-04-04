@@ -8,7 +8,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 public interface PublicMessageHandler {
 	FundingRatePatch parseFundingRateMessageSymbol(JsonNode root);
 
-	BookTickerPatch parseBookTickerMessageSymbol(JsonNode root);
+	BookTickerPatch parseFuturesBookTickerMessageSymbol(JsonNode root);
 
 	MarkPricePatch parseMarkPriceMessageSymbol(JsonNode root);
 

@@ -6,7 +6,7 @@ import lombok.Getter;
 import java.util.ArrayList;
 import java.util.List;
 
-public abstract class BaseInTradeStrategy {
+public abstract sealed class InTradeStrategy permits InCrossTradeStrategy, InSingleTradeStrategy {
 	@Getter private final List<ExchangeSnapshot> longFundingSnapshots = new ArrayList<>();
 	@Getter private final List<ExchangeSnapshot> shortFundingSnapshots = new ArrayList<>();
 

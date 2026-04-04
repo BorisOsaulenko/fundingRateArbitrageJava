@@ -139,6 +139,12 @@ class PrivateResponses {
 		}
 	}
 
+	public record PlaceSpotOrderResponse(String id) {
+		public String orderId() {
+			return id;
+		}
+	}
+
 	@JsonIgnoreProperties(ignoreUnknown = true)
 	private record OrderRecordItem(
 					String order_id, String contract, String size, String price, String fee, long create_time

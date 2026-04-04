@@ -206,6 +206,17 @@ class PrivateResponses {
 		}
 	}
 
+	public record PlaceSpotOrderResponse(
+					String code, String msg, long requestTime, PlaceOrderData data
+	) {
+		public String orderId() {
+			if (data == null) return null;
+			String id = data.orderId;
+			if (id == null || id.isEmpty()) id = data.orderIdStr;
+			return id;
+		}
+	}
+
 	private record OrderRecordFeeDetail(
 					String feeCoin,
 					BigDecimal fee

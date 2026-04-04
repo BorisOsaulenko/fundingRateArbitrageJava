@@ -137,6 +137,16 @@ public final class PrivateEndpoints {
 		return postJson(baseUrlFutures, "/api/v1/orders", body);
 	}
 
+	public static @NonNull SimpleHttpRequest placeSpotOrderRequestSymbol(String symbol, SpotOrder spotOrder) {
+		Map<String, Object> body = new HashMap<>();
+		body.put("clientOid", UUID.randomUUID().toString());
+		body.put("symbol", symbol);
+		body.put("type", "market");
+		body.put("side", sideFromOrder(spotOrder.orderSide(), spotOrder.tradeSide()));
+		body.put("size", String.valueOf(spotOrder.baseAssetQty()));
+		return postJson(baseUrlSpot, "/api/v1/hf/orders", body);
+	}
+
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest orderRecordRequestSymbol(
 					String orderId,

@@ -9,6 +9,7 @@ import com.boris.fundingarbitrage.model.exchange.WalletAddress;
 import com.boris.fundingarbitrage.model.exchange.WithdrawChain;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -181,6 +182,10 @@ class PrivateResponses {
 	}
 
 	public record PlaceFuturesOrderResponse(long orderId) {
+	}
+
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	public record PlaceSpotOrderResponse(long orderId) {
 	}
 
 	private record OrderRecordItem(

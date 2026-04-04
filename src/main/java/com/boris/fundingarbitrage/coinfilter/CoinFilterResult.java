@@ -14,6 +14,8 @@ public record CoinFilterResult(
 				@NonNull CoinVector<Set<BaseExchange>> availableExchangesByCoin,
 				@NonNull Map<BaseExchange, Set<String>> availableCoinsByExchange,
 				@NonNull ExchangeCoinMap<ExchangeConstantData> constantData,
-				@NonNull ExchangeCoinMap<ExchangeSnapshot> snapshots
+				@NonNull ExchangeCoinMap<ExchangeSnapshot> snapshots,
+				@NonNull ExchangeCoinMap<Boolean> presentOnFutures,
+				@NonNull ExchangeCoinMap<Boolean> presentOnSpot
 ) {
 }

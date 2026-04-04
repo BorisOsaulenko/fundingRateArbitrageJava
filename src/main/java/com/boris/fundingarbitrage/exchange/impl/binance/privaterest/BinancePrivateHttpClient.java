@@ -166,6 +166,15 @@ public class BinancePrivateHttpClient extends PrivateHttpClient {
 	}
 
 	@Override
+	protected CompletableFuture<String> placeSpotOrderSymbol(String symbol, SpotOrder spotOrder) {
+		return requestWrapper.processRequest(
+						signRequest(PrivateEndpoints.placeSpotOrderRequestSymbol(symbol, spotOrder)),
+						PrivateResponses.PlaceSpotOrderResponse.class,
+						(resp) -> String.valueOf(resp.orderId())
+		);
+	}
+
+	@Override
 	protected CompletableFuture<List<PartialFill>> getFuturesOrderRecordSymbol(
 					String orderId,
 					String symbol,

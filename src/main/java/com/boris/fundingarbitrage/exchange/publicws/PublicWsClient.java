@@ -36,6 +36,17 @@ public abstract class PublicWsClient {
 	protected final CoinVector<Set<Consumer<BookTickerPatch>>> spotBookTickerHandlers = new CoinVector<>();
 	private final CompletableFuture<PrettyWsClient> prettyWsClientFuture; // protected for custom tweaks in subclasses
 
+	protected PublicWsClient(
+					ExchangeContext context,
+					PublicMessageHandler messageHandler,
+					PublicHttpClient publicHttpClient
+	) {
+		this.context = context;
+		this.messageHandler = messageHandler;
+		this.publicHttpClient = publicHttpClient;
+		this.prettyWsClientFuture = CompletableFuture.completedFuture(null);
+	}
+
 	public PublicWsClient(
 					ExchangeContext context,
 					URI endpoint,
@@ -68,7 +79,9 @@ public abstract class PublicWsClient {
 	}
 
 	public void onUnhandledDisconnect(Runnable hook) {
-		this.prettyWsClientFuture.thenAccept(client -> client.onUnhandledDisconnect(hook));
+		this.prettyWsClientFuture.thenAccept(client -> {
+			if (client != null) client.onUnhandledDisconnect(hook);
+		});
 	}
 
 	private PrettyWsClient getClient(URI endpoint) {
@@ -82,15 +95,21 @@ public abstract class PublicWsClient {
 	}
 
 	public void sendMessage(String message) {
-		this.prettyWsClientFuture.thenAccept(client -> client.sendMessage(message));
+		this.prettyWsClientFuture.thenAccept(client -> {
+			if (client != null) client.sendMessage(message);
+		});
 	}
 
 	public void sendObject(Object obj) {
-		this.prettyWsClientFuture.thenAccept(client -> client.sendObject(obj));
+		this.prettyWsClientFuture.thenAccept(client -> {
+			if (client != null) client.sendObject(obj);
+		});
 	}
 
 	public void close() {
-		this.prettyWsClientFuture.thenAccept(PrettyWsClient::close);
+		this.prettyWsClientFuture.thenAccept(client -> {
+			if (client != null) client.close();
+		});
 	}
 
 	protected abstract String getSubscribeFuturesFundingRateFrame(Set<String> symbols);
@@ -113,7 +132,8 @@ public abstract class PublicWsClient {
 					Set<String> coins,
 					Map<String, Set<Consumer<T>>> handlersMap,
 					Consumer<T> handler,
-					Function<Set<String>, String> subscribeMessage
+					Function<Set<String>, String> subscribeMessage,
+					Consumer<String> messageSender
 	) {
 		Set<String> newSymbols = new HashSet<>();
 		for (String coin : coins) {
@@ -125,13 +145,14 @@ public abstract class PublicWsClient {
 							}
 			).add(handler);
 		}
-		if (!newSymbols.isEmpty()) this.sendMessage(subscribeMessage.apply(newSymbols));
+		if (!newSymbols.isEmpty()) messageSender.accept(subscribeMessage.apply(newSymbols));
 	}
 
 	protected <T> void unsubscribe(
 					Set<String> coins,
 					Map<String, Set<Consumer<T>>> handlersMap,
-					Function<Set<String>, String> unsubscribeMessage
+					Function<Set<String>, String> unsubscribeMessage,
+					Consumer<String> messageSender
 	) {
 		Set<String> removedSymbols = new HashSet<>();
 		for (String coin : coins) {
@@ -141,7 +162,7 @@ public abstract class PublicWsClient {
 				removedSymbols.add(symbol);
 			}
 		}
-		if (!removedSymbols.isEmpty()) this.sendMessage(unsubscribeMessage.apply(removedSymbols));
+		if (!removedSymbols.isEmpty()) messageSender.accept(unsubscribeMessage.apply(removedSymbols));
 	}
 
 	private <T> void removeHandler(
@@ -166,7 +187,7 @@ public abstract class PublicWsClient {
 	}
 
 	public void subscribeFuturesFundingRates(Set<String> coins, Consumer<@NonNull FundingRatePatch> handler) {
-		subscribe(coins, futuresFundingRateHandlers, handler, this::getSubscribeFuturesFundingRateFrame);
+		subscribe(coins, futuresFundingRateHandlers, handler, this::getSubscribeFuturesFundingRateFrame, this::sendMessage);
 	}
 
 	public void subscribeFuturesFundingRates(String coin, Consumer<@NonNull FundingRatePatch> handler) {
@@ -174,7 +195,7 @@ public abstract class PublicWsClient {
 	}
 
 	public void unsubscribeFuturesFundingRates(Set<String> coins) {
-		unsubscribe(coins, futuresFundingRateHandlers, this::getUnsubscribeFuturesFundingRateFrame);
+		unsubscribe(coins, futuresFundingRateHandlers, this::getUnsubscribeFuturesFundingRateFrame, this::sendMessage);
 	}
 
 	public void unsubscribeFuturesFundingRates(String coin) {
@@ -182,7 +203,7 @@ public abstract class PublicWsClient {
 	}
 
 	public void subscribeFuturesBookTicker(Set<String> coins, Consumer<@NonNull BookTickerPatch> handler) {
-		subscribe(coins, futuresBookTickerHandlers, handler, this::getSubscribeFuturesBookTickerFrame);
+		subscribe(coins, futuresBookTickerHandlers, handler, this::getSubscribeFuturesBookTickerFrame, this::sendMessage);
 	}
 
 	public void subscribeFuturesBookTicker(String coin, Consumer<@NonNull BookTickerPatch> handler) {
@@ -190,7 +211,7 @@ public abstract class PublicWsClient {
 	}
 
 	public void unsubscribeFuturesBookTicker(Set<String> coins) {
-		unsubscribe(coins, futuresBookTickerHandlers, this::getUnsubscribeFuturesBookTickerFrame);
+		unsubscribe(coins, futuresBookTickerHandlers, this::getUnsubscribeFuturesBookTickerFrame, this::sendMessage);
 	}
 
 	public void unsubscribeFuturesBookTicker(String coin) {
@@ -198,7 +219,7 @@ public abstract class PublicWsClient {
 	}
 
 	public void subscribeFuturesMarkPrice(Set<String> coins, Consumer<@NonNull MarkPricePatch> handler) {
-		subscribe(coins, futuresMarkPriceHandlers, handler, this::getSubscribeFuturesMarkPriceFrame);
+		subscribe(coins, futuresMarkPriceHandlers, handler, this::getSubscribeFuturesMarkPriceFrame, this::sendMessage);
 	}
 
 	public void subscribeFuturesMarkPrice(String coin, Consumer<@NonNull MarkPricePatch> handler) {
@@ -206,7 +227,7 @@ public abstract class PublicWsClient {
 	}
 
 	public void unsubscribeFuturesMarkPrice(Set<String> coins) {
-		unsubscribe(coins, futuresMarkPriceHandlers, this::getUnsubscribeFuturesMarkPriceFrame);
+		unsubscribe(coins, futuresMarkPriceHandlers, this::getUnsubscribeFuturesMarkPriceFrame, this::sendMessage);
 	}
 
 	public void unsubscribeFuturesMarkPrice(String coin) {
@@ -214,7 +235,7 @@ public abstract class PublicWsClient {
 	}
 
 	public void subscribeSpotBookTicker(Set<String> coins, Consumer<@NonNull BookTickerPatch> handler) {
-		subscribe(coins, spotBookTickerHandlers, handler, this::getSubscribeSpotBookTickerFrame);
+		subscribe(coins, spotBookTickerHandlers, handler, this::getSubscribeSpotBookTickerFrame, this::sendMessage);
 	}
 
 	public void subscribeSpotBookTicker(String coin, Consumer<@NonNull BookTickerPatch> handler) {
@@ -222,7 +243,7 @@ public abstract class PublicWsClient {
 	}
 
 	public void unsubscribeSpotBookTicker(Set<String> coins) {
-		unsubscribe(coins, spotBookTickerHandlers, this::getUnsubscribeSpotBookTickerFrame);
+		unsubscribe(coins, spotBookTickerHandlers, this::getUnsubscribeSpotBookTickerFrame, this::sendMessage);
 	}
 
 	protected <R extends GenericPublicWsPatch> void dispatchPatchToHandlers(
@@ -258,7 +279,9 @@ public abstract class PublicWsClient {
 	protected boolean handlePingMessage(String message) {
 		String pingResponse = messageHandler.getResponseToPingMessage(message);
 		if (pingResponse != null) {
-			this.prettyWsClientFuture.thenAccept(client -> client.sendMessage(pingResponse));
+			this.prettyWsClientFuture.thenAccept(client -> {
+				if (client != null) client.sendMessage(pingResponse);
+			});
 			return true;
 		}
 		return false;
@@ -275,14 +298,15 @@ public abstract class PublicWsClient {
 		return true;
 	}
 
-	private void handleMessage(String message) {
+	protected void handleMessage(String message) {
 		if (message == null || message.isEmpty()) return;
 
 		JsonNode root = null;
 		boolean s = false;
 		try {
 			root = JSON_MAPPER.readTree(message);
-			if (tryHandle(root, messageHandler::parseBookTickerMessageSymbol, this::handleFuturesBookTickerPatch)) s = true;
+			if (tryHandle(root, messageHandler::parseFuturesBookTickerMessageSymbol, this::handleFuturesBookTickerPatch))
+				s = true;
 			if (tryHandle(root, messageHandler::parseMarkPriceMessageSymbol, this::handleFuturesMarkPricePatch)) s = true;
 			if (tryHandle(root, messageHandler::parseFundingRateMessageSymbol, this::handleFuturesFundingRatePatch)) s = true;
 			if (tryHandle(root, messageHandler::parseSpotBookTickerMessageSymbol, this::handleSpotBookTickerPatch)) s = true;
@@ -314,11 +338,15 @@ public abstract class PublicWsClient {
 	}
 
 	public boolean connected() {
-		return this.prettyWsClientFuture.isDone() && this.prettyWsClientFuture.join().isConnected();
+		return this.prettyWsClientFuture.isDone()
+					 && this.prettyWsClientFuture.join() != null
+					 && this.prettyWsClientFuture.join().isConnected();
 	}
 
 	public CompletableFuture<Void> connect() {
-		return this.prettyWsClientFuture.thenAccept(PrettyWsClient::connect);
+		return this.prettyWsClientFuture.thenAccept(client -> {
+			if (client != null) client.connect();
+		});
 	}
 
 	public void unsubscribeCoin(String coin) {
@@ -327,8 +355,13 @@ public abstract class PublicWsClient {
 		unsubscribeFuturesMarkPrice(coin);
 	}
 
-	public void unsubscribeCoins(Set<String> coins) {
+	public void unsubscribeCoinsFutures(Set<String> coins) {
 		unsubscribeFuturesBookTicker(coins);
+		unsubscribeFuturesFundingRates(coins);
+		unsubscribeFuturesMarkPrice(coins);
+	}
 
+	public void unsubscribeCoinsSpot(Set<String> coins) {
+		unsubscribeSpotBookTicker(coins);
 	}
 }

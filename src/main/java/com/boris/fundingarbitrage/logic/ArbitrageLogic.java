@@ -14,8 +14,7 @@ import com.boris.fundingarbitrage.model.exchange.ExchangeData;
 import com.boris.fundingarbitrage.model.exchange.ExchangeSnapshot;
 import com.boris.fundingarbitrage.monitor.CoinMonitor;
 import com.boris.fundingarbitrage.monitor.ExchangeCoinMap;
-import com.boris.fundingarbitrage.strategy.pretradestrategy.CrossPreTradeStrategy;
-import com.boris.fundingarbitrage.strategy.pretradestrategy.SinglePreTradeStrategy;
+import com.boris.fundingarbitrage.strategy.pretradestrategy.PreTradeStrategy;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import com.boris.fundingarbitrage.util.logger.Logger;
 
@@ -25,8 +24,7 @@ import java.util.concurrent.*;
 import java.util.function.BiFunction;
 
 public abstract class ArbitrageLogic {
-	protected final CrossPreTradeStrategy crossPreTradeStrategy;
-	protected final SinglePreTradeStrategy singlePreTradeStrategy;
+	protected final PreTradeStrategy preTradeStrategy;
 	protected final ArbitrageBotConfig config;
 	protected final ScheduledExecutorService logScheduler = Executors.newSingleThreadScheduledExecutor();
 	protected final ExecutorService cpuPool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
@@ -40,17 +38,19 @@ public abstract class ArbitrageLogic {
 	private volatile boolean shuttingDown = false;
 	private volatile boolean processingActive = true;
 	private volatile boolean logOnThisCycle = false;
+	private BiFunction<BaseExchange, String, ExchangeSnapshot> snapshotExtractor;
+	private ExchangeCoinMap<ExchangeSnapshot> initialSnapshots;
+	private ExchangeCoinMap<Boolean> presentOnSpot;
+	private ExchangeCoinMap<Boolean> presentOnFutures;
 
 	public ArbitrageLogic(
 					ICoinSupplier coinSupplier,
-					CrossPreTradeStrategy crossStrategy,
-					SinglePreTradeStrategy singleStrategy,
+					PreTradeStrategy preTradeStrategy,
 					CoinFilterConfig filterConfig,
 					ArbitrageBotConfig arbConfig
 	) {
 		this.coinSupplier = coinSupplier;
-		this.crossPreTradeStrategy = crossStrategy;
-		this.singlePreTradeStrategy = singleStrategy;
+		this.preTradeStrategy = preTradeStrategy;
 		this.config = arbConfig;
 
 		init(filterConfig);
@@ -73,9 +73,35 @@ public abstract class ArbitrageLogic {
 		availableExchangesByCoin = filterResult.availableExchangesByCoin();
 		availableCoinsByExchange = filterResult.availableCoinsByExchange();
 		constantDataMap = filterResult.constantData();
+		initialSnapshots = filterResult.snapshots();
+		presentOnSpot = filterResult.presentOnSpot();
+		presentOnFutures = filterResult.presentOnFutures();
 
-		this.monitor = new CoinMonitor(availableExchangesByCoin, availableCoinsByExchange);
+		capToMaxCoinAmount().join();
+
+		this.monitor = new CoinMonitor(
+						availableExchangesByCoin,
+						availableCoinsByExchange,
+						presentOnFutures,
+						presentOnSpot
+		);
+		this.snapshotExtractor = monitor::getSnapshot;
 		initFuture = CompletableFuture.allOf(prettyMonitorInitFuture(), balancesFuture);
+	}
+
+	private CompletableFuture<Void> capToMaxCoinAmount() {
+		if (availableExchangesByCoin.size() <= config.maxCoinAmount()) return CompletableFuture.completedFuture(null);
+		this.snapshotExtractor = initialSnapshots::get;
+		return processCoins().thenAccept(bestOps -> {
+			List<Map.Entry<String, CoinOpportunity>> bestOpsSorted = bestOps.sortDesc(Comparator.comparing(CoinOpportunity::expectedGain));
+			List<String> coinsToRemove = bestOpsSorted.subList(config.maxCoinAmount(), bestOpsSorted.size())
+							.stream()
+							.map(Map.Entry::getKey)
+							.toList();
+
+			coinsToRemove.forEach(this::forgetCoin);
+			Logger.log("Capped coins to " + config.maxCoinAmount());
+		});
 	}
 
 	public void waitForInitSync() {
@@ -186,7 +212,11 @@ public abstract class ArbitrageLogic {
 		CoinVector<CoinOpportunity> result = new CoinVector<>();
 		List<CompletableFuture<Void>> futures = availableExchangesByCoin.keySet().stream().map(coin ->
 										CompletableFuture.runAsync(
-																		() -> result.put(coin, computeBestArbSnapshotForCoin(coin)),
+																		() -> {
+																			CoinOpportunity bestOp = computeBestArbSnapshotForCoin(coin);
+																			if (bestOp != null) result.put(coin, bestOp);
+																			else forgetCoin(coin);
+																		},
 																		cpuPool
 														)
 														.exceptionally(t -> {
@@ -200,9 +230,7 @@ public abstract class ArbitrageLogic {
 		return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).thenApply(v -> result);
 	}
 
-	private CoinOpportunity computeBestArbSnapshotForCoin(
-					String coin
-	) {
+	private CrossData getBestCrossData(String coin) {
 		Set<BaseExchange> availableExchanges = availableExchangesByCoin.get(coin);
 		if (availableExchanges == null) throw new IllegalStateException("Available exchanges for " + coin + " not found");
 
@@ -212,58 +240,72 @@ public abstract class ArbitrageLogic {
 		ExchangeData bestLongData = null;
 		ExchangeData bestShortData = null;
 
-		if (availableExchanges.size() >= 2) {
-			for (BaseExchange longEx : availableExchanges) {
-				for (BaseExchange shortEx : availableExchanges) {
-					if (longEx == shortEx) continue;
+		for (BaseExchange longEx : availableExchanges) {
+			for (BaseExchange shortEx : availableExchanges) {
+				if (longEx == shortEx) continue;
 
-					ExchangeData longData = getExchangeData(longEx, coin);
-					ExchangeData shortData = getExchangeData(shortEx, coin);
+				ExchangeData longData = getExchangeData(longEx, coin);
+				ExchangeData shortData = getExchangeData(shortEx, coin);
 
-					BigDecimal gain = crossPreTradeStrategy.expectedGain(longData, shortData);
-					if (bestLongEx == null || gain.compareTo(bestCrossGain) > 0) {
-						bestLongEx = longEx;
-						bestShortEx = shortEx;
-						bestCrossGain = gain;
-						bestLongData = longData;
-						bestShortData = shortData;
-					}
+				BigDecimal gain = preTradeStrategy.expectedGain(longData, shortData);
+				if (bestLongEx == null || gain.compareTo(bestCrossGain) > 0) {
+					bestLongEx = longEx;
+					bestShortEx = shortEx;
+					bestCrossGain = gain;
+					bestLongData = longData;
+					bestShortData = shortData;
 				}
 			}
 		}
+
+		return new CrossData(bestLongEx, bestShortEx, bestCrossGain, bestLongData, bestShortData);
+	}
+
+	private SingleData getBestSingleData(String coin) {
+		Set<BaseExchange> availableExchanges = availableExchangesByCoin.get(coin);
+		if (availableExchanges == null) throw new IllegalStateException("Available exchanges for " + coin + " not found");
 
 		BaseExchange bestSingleExchange = null;
 		ExchangeData bestSingleData = null;
 		BigDecimal bestSingleGain = null;
 		for (BaseExchange ex : availableExchanges) {
 			ExchangeData data = getExchangeData(ex, coin);
-			BigDecimal gain = singlePreTradeStrategy.expectedGain(data);
+			if (data.spotConstantData() == null || data.futuresConstantData() == null)
+				continue; // For single exchange trades, coin must be both in futures form and spot form
+			BigDecimal gain = preTradeStrategy.expectedGain(data);
 			if (bestSingleGain == null || gain.compareTo(bestSingleGain) >= 0) {
 				bestSingleExchange = ex;
 				bestSingleGain = gain;
 				bestSingleData = data;
 			}
 		}
-
-		assert bestSingleGain != null;
-		if (bestCrossGain == null || bestCrossGain.compareTo(bestSingleGain) < 0)
-			return new SingleCoinOpportunity(bestSingleExchange, bestSingleGain, bestSingleData);
-		else return new CrossCoinOpportunity(
-						new ExchangePair(bestLongEx, bestShortEx),
-						bestCrossGain,
-						bestLongData,
-						bestShortData
-		);
+		if (bestSingleGain == null) return null;
+		return new SingleData(bestSingleExchange, bestSingleData, bestSingleGain);
 	}
 
-	private ExchangeData getExchangeData(BaseExchange ex, String coin) {
-		return getExchangeData(ex, coin, monitor::getSnapshot);
+	private CoinOpportunity computeBestArbSnapshotForCoin(
+					String coin
+	) {
+		CrossData bestCrossOp = null;
+		//		if (availableExchanges.size() >= 2) bestCrossOp = getBestCrossData(coin);
+
+		SingleData bestSingleOp = getBestSingleData(coin);
+
+		if (bestCrossOp == null && bestSingleOp == null) return null;
+
+		if (bestCrossOp == null || bestCrossOp.gain().compareTo(bestSingleOp.gain()) < 0)
+			return new SingleCoinOpportunity(bestSingleOp.exchange(), bestSingleOp.gain(), bestSingleOp.data());
+		else return new CrossCoinOpportunity(
+						new ExchangePair(bestCrossOp.longEx(), bestCrossOp.shortEx()),
+						bestCrossOp.gain(),
+						bestCrossOp.longData(),
+						bestCrossOp.shortData()
+		);
 	}
 
 	private ExchangeData getExchangeData(
 					BaseExchange ex,
-					String coin,
-					BiFunction<BaseExchange, String, ExchangeSnapshot> snapshotExtractor
+					String coin
 	) {
 		ExchangeSnapshot sn = snapshotExtractor.apply(ex, coin);
 		ExchangeConstantData constantData = constantDataMap.get(ex, coin);
@@ -297,7 +339,7 @@ public abstract class ArbitrageLogic {
 											ExchangeData shortData
 							)) {
 								Logger.log(entry.getKey() + ": " + exchanges + " - " +
-													 (crossPreTradeStrategy.goodToEnter(longData, shortData) ? "GOOD" : "BAD") +
+													 (preTradeStrategy.goodToEnter(longData, shortData) ? "GOOD" : "BAD") +
 													 "[Expected Gain: " + expectedGain + "]");
 							} else if (entry.getValue() instanceof SingleCoinOpportunity(
 											BaseExchange exchange,
@@ -305,7 +347,7 @@ public abstract class ArbitrageLogic {
 											ExchangeData data
 							)) {
 								Logger.log(entry.getKey() + ": " + exchange.name + " - " +
-													 (singlePreTradeStrategy.goodToEnter(data) ? "GOOD" : "BAD") +
+													 (preTradeStrategy.goodToEnter(data) ? "GOOD" : "BAD") +
 													 "[Expected Gain: " + expectedGain + "]");
 							}
 						});
@@ -313,7 +355,13 @@ public abstract class ArbitrageLogic {
 
 	protected void forgetCoin(String coin) {
 		availableExchangesByCoin.remove(coin);
-		availableCoinsByExchange.forEach((_, coins) -> coins.remove(coin));
+		availableCoinsByExchange.forEach((ex, coins) -> {
+			coins.remove(coin);
+			constantDataMap.remove(ex, coin);
+			initialSnapshots.remove(ex, coin);
+			presentOnSpot.remove(ex, coin);
+			presentOnFutures.remove(ex, coin);
+		});
 	}
 
 	protected void stopCalculatingBestOptionsForAllCoins() {
@@ -339,5 +387,21 @@ public abstract class ArbitrageLogic {
 		if (!monitor.getInitFuture().isDone()) monitor.getInitFuture().cancel(true);
 		Logger.log("Arbitrage logic stopped.");
 		Logger.closeLogFile();
+	}
+
+	private record CrossData(
+					BaseExchange longEx,
+					BaseExchange shortEx,
+					BigDecimal gain,
+					ExchangeData longData,
+					ExchangeData shortData
+	) {
+	}
+
+	private record SingleData(
+					BaseExchange exchange,
+					ExchangeData data,
+					BigDecimal gain
+	) {
 	}
 }

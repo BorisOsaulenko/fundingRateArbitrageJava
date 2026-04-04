@@ -40,26 +40,50 @@ class BybitPublicMessageHandler implements PublicMessageHandler {
 		return new MarkPricePatch(coin, markPrice, parseTimestamp(root));
 	}
 
-	private BookTickerPatch parseBookTickerInternal(JsonNode root) {
+	//{
+	// "topic":"orderbook.1.PUMPBTCUSDT",
+	// "ts":1775295657176,
+	// "type":"snapshot",
+	// "data":{
+	// 		"s":"PUMPBTCUSDT",
+	// 		"b":[["0.0165","6430.7"]],
+	// 		"a":[["0.01657","27308.5"]],
+	// 		"u":2274751,"seq":153292640338
+	// 		},
+	// 	"cts":1775295657172
+	// 	}
+	private BookTickerPatch parseBookTickerInternal(JsonNode root, Function<String, String> symbolInverse) {
 		JsonNode data = root.get("data");
 		if (data == null) return null;
 
-		String symbol = data.path("symbol").asText();
+		long ts = root.path("ts").asLong();
+		if (ts == 0) return null;
+
+		String symbol = data.path("s").asText();
 		if (symbol.isEmpty()) return null;
 
-		String coin = context.getFuturesSymbolInverse(symbol);
-		String bidPrNode = data.path("bid1Price").asText();
-		String bidSzNode = data.path("bid1Size").asText();
-		String askPrNode = data.path("ask1Price").asText();
-		String askSzNode = data.path("ask1Size").asText();
-		BigDecimal bidPr = bidPrNode.isEmpty() ? null : new BigDecimal(bidPrNode);
-		BigDecimal bidSz = bidSzNode.isEmpty() ? null : new BigDecimal(bidSzNode);
-		BigDecimal askPr = askPrNode.isEmpty() ? null : new BigDecimal(askPrNode);
-		BigDecimal askSz = askSzNode.isEmpty() ? null : new BigDecimal(askSzNode);
+		String coin = symbolInverse.apply(symbol);
 
-		Instant timestamp = parseTimestamp(root);
-		if (bidPr == null && bidSz == null && askPr == null && askSz == null) return null;
-		return new BookTickerPatch(coin, bidPr, bidSz, askPr, askSz, timestamp);
+		JsonNode bids = data.path("b");
+		if (!bids.isArray()) return null;
+		JsonNode bid1 = bids.get(0);
+		BigDecimal bid1Size = new BigDecimal(bid1.get(1).asText());
+		BigDecimal bid1Price = new BigDecimal(bid1.get(0).asText());
+
+		JsonNode asks = data.path("a");
+		if (!asks.isArray()) return null;
+		JsonNode ask1 = asks.get(0);
+		BigDecimal ask1Size = new BigDecimal(ask1.get(1).asText());
+		BigDecimal ask1Price = new BigDecimal(ask1.get(0).asText());
+
+		return new BookTickerPatch(
+						coin,
+						bid1Price,
+						bid1Size,
+						ask1Price,
+						ask1Size,
+						Instant.ofEpochMilli(ts)
+		);
 	}
 
 	private <T> T parseErrorHandled(Function<JsonNode, T> parser, JsonNode root) {
@@ -79,8 +103,8 @@ class BybitPublicMessageHandler implements PublicMessageHandler {
 	}
 
 	@Override
-	public BookTickerPatch parseBookTickerMessageSymbol(JsonNode root) {
-		return parseErrorHandled(this::parseBookTickerInternal, root);
+	public BookTickerPatch parseFuturesBookTickerMessageSymbol(JsonNode root) {
+		return parseErrorHandled((json -> parseBookTickerInternal(json, context::getFuturesSymbolInverse)), root);
 	}
 
 	@Override
@@ -90,7 +114,7 @@ class BybitPublicMessageHandler implements PublicMessageHandler {
 
 	@Override
 	public BookTickerPatch parseSpotBookTickerMessageSymbol(JsonNode root) {
-		return parseErrorHandled(this::parseBookTickerInternal, root);
+		return parseErrorHandled((json -> parseBookTickerInternal(json, context::getSpotSymbolInverse)), root);
 	}
 
 	@Override

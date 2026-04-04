@@ -11,6 +11,7 @@ import org.apache.hc.core5.net.URIBuilder;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 class PrivateEndpoints {
 	private static final BitgetChainsMap chainsMap = new BitgetChainsMap();
@@ -107,6 +108,16 @@ class PrivateEndpoints {
 		body.put("orderType", "market");
 		body.put("reduceOnly", futuresOrder.tradeSide() == TradeSide.CLOSE ? "yes" : "no");
 		return postJson("/api/v3/trade/place-order", body);
+	}
+
+	public static @NonNull SimpleHttpRequest placeSpotOrderRequestSymbol(String symbol, SpotOrder spotOrder) {
+		Map<String, Object> body = new HashMap<>();
+		body.put("symbol", symbol);
+		body.put("side", mapOrderSide(spotOrder.orderSide(), spotOrder.tradeSide()));
+		body.put("orderType", "market");
+		body.put("size", String.valueOf(spotOrder.baseAssetQty()));
+		body.put("clientOid", UUID.randomUUID().toString());
+		return postJson("/api/v2/spot/trade/place-order", body);
 	}
 
 	@SneakyThrows

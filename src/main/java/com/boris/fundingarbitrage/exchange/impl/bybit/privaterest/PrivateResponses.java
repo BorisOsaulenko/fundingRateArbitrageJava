@@ -7,6 +7,7 @@ import com.boris.fundingarbitrage.model.exchange.ExchangeChains;
 import com.boris.fundingarbitrage.model.exchange.ExchangeChainsBuilder;
 import com.boris.fundingarbitrage.model.exchange.WalletAddress;
 import com.boris.fundingarbitrage.model.exchange.WithdrawChain;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.boris.fundingarbitrage.util.https.PaginatedResponse;
 
 import java.math.BigDecimal;
@@ -226,6 +227,17 @@ class PrivateResponses {
 	}
 
 	public record PlaceFuturesOrderResponse(int retCode, String retMsg, long time, PlaceFuturesOrderResult result) {
+		public String orderId() {
+			if (result == null || result.orderId == null || result.orderId.isEmpty())
+				throw new RuntimeException("Order id not found");
+			return result.orderId;
+		}
+	}
+
+	private record PlaceSpotOrderResult(String orderId, String orderLinkId) {
+	}
+
+	public record PlaceSpotOrderResponse(int retCode, String retMsg, long time, PlaceSpotOrderResult result) {
 		public String orderId() {
 			if (result == null || result.orderId == null || result.orderId.isEmpty())
 				throw new RuntimeException("Order id not found");

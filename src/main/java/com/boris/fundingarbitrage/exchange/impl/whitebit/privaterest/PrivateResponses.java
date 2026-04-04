@@ -112,6 +112,13 @@ class PrivateResponses {
 		}
 	}
 
+	public record PlaceSpotOrderResponse(String orderId) {
+		public String orderId() {
+			if (orderId == null || orderId.isEmpty()) throw new IllegalStateException("Missing orderId");
+			return orderId;
+		}
+	}
+
 	@JsonIgnoreProperties(ignoreUnknown = true)
 	private record OrderDealRecord(
 					String dealOrderId,

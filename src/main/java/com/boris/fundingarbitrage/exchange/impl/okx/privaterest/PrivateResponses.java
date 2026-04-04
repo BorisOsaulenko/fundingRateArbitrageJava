@@ -244,6 +244,21 @@ class PrivateResponses {
 	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
+	public record PlaceSpotOrderResponse(String code, String msg, List<PlaceOrderItem> data) {
+		public String orderId() {
+			ensureOk(code, msg);
+			if (data == null || data.isEmpty()) {
+				throw new IllegalStateException("OKX order response missing");
+			}
+			String ordId = data.get(0).ordId;
+			if (ordId == null || ordId.isEmpty()) {
+				throw new IllegalStateException("OKX ordId missing");
+			}
+			return ordId;
+		}
+	}
+
+	@JsonIgnoreProperties(ignoreUnknown = true)
 	private record OrderRecordItem(
 					String ordId, String instId, String fillSz, String fillPx, String fee, String feeCcy, String ts
 	) {

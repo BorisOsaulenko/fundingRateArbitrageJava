@@ -82,7 +82,7 @@ class OkxPublicMessageHandler implements PublicMessageHandler {
 	}
 
 	@Override
-	public BookTickerPatch parseBookTickerMessageSymbol(JsonNode root) {
+	public BookTickerPatch parseFuturesBookTickerMessageSymbol(JsonNode root) {
 		return parseErrorHandled(this::parseBookTickerInternal, root);
 	}
 

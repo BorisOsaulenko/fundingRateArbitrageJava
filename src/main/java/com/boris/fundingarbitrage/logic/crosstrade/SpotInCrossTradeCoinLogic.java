@@ -2,9 +2,8 @@ package com.boris.fundingarbitrage.logic.crosstrade;
 
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.execution.CoinExecution;
+import com.boris.fundingarbitrage.execution.SpotCrossCoinExecution;
 import com.boris.fundingarbitrage.logic.ExchangePair;
-import com.boris.fundingarbitrage.model.assetops.Leverages;
-import com.boris.fundingarbitrage.model.assetops.TradeParams;
 import com.boris.fundingarbitrage.model.assetops.TradeSide;
 import com.boris.fundingarbitrage.model.contract.PartialFill;
 import com.boris.fundingarbitrage.model.exchange.ExchangeConstantData;
@@ -26,25 +25,26 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class ClassicInCrossTradeCoinLogic extends InCrossTradeCoinLogic {
+public class SpotInCrossTradeCoinLogic extends InCrossTradeCoinLogic {
+	private final ExchangePair exchanges;
 	private final CoinExecution execution;
 	private final CompletableFuture<Void> enterFuture;
 	private final AtomicBoolean fillsFetchSuccess = new AtomicBoolean(true);
-	private final TradeParams enterParams;
 	private final ExchangeSnapshot longEnterSn;
 	private final ExchangeSnapshot shortEnterSn;
 	private BigDecimal baseAssetQty;
 
-	public ClassicInCrossTradeCoinLogic(
+	public SpotInCrossTradeCoinLogic(
 					@NonNull String coin,
 					@NonNull CoinMonitor monitor,
 					@NonNull ExchangePair exchanges,
 					@NonNull BigDecimal usdtAmount,
-					@NonNull Leverages leverages,
 					@NonNull ExchangeConstantData longConstantData,
 					@NonNull ExchangeConstantData shortConstantData,
 					@NonNull TradeDirections tradeDirections
 	) {
+		this.exchanges = exchanges;
+
 		ExchangeSnapshot longEnterSnapshot = monitor.getSnapshot(exchanges.longEx(), coin);
 		ExchangeSnapshot shortEnterSnapshot = monitor.getSnapshot(exchanges.shortEx(), coin);
 
@@ -58,8 +58,8 @@ public class ClassicInCrossTradeCoinLogic extends InCrossTradeCoinLogic {
 		this.longEnterSn = longEnterSnapshot;
 		this.shortEnterSn = shortEnterSnapshot;
 
-		enterParams = getEnterParams(longEnterSnapshot, shortEnterSnapshot);
-		this.execution = new CoinExecution(coin, enterParams, leverages, tradeLogger);
+		BigDecimal baseAssetQty = getBaseAssetQty(longEnterSnapshot, shortEnterSnapshot);
+		this.execution = new SpotCrossCoinExecution(coin, exchanges, baseAssetQty, tradeLogger);
 
 		this.enterFuture = this.execution.enterTrade().exceptionally(this::fail);
 	}
@@ -83,7 +83,7 @@ public class ClassicInCrossTradeCoinLogic extends InCrossTradeCoinLogic {
 		throw new RuntimeException(t);
 	}
 
-	private TradeParams getEnterParams(ExchangeSnapshot longEnter, ExchangeSnapshot shortEnter) {
+	private BigDecimal getBaseAssetQty(ExchangeSnapshot longEnter, ExchangeSnapshot shortEnter) {
 		BigDecimal longLotSize = longConstantData.lotSize(longMarket); // 2 COIN
 		BigDecimal shortLotSize = shortConstantData.lotSize(shortMarket); // 3 COIN
 		BigDecimal effectiveLotSize = lcm(longLotSize, shortLotSize); // 6 COIN
@@ -105,16 +105,7 @@ public class ClassicInCrossTradeCoinLogic extends InCrossTradeCoinLogic {
 		if (baseAssetQty.equals(BigDecimal.ZERO))
 			throw new RuntimeException("Not enough margin deposited for coin: " + coin + ". Did not enter trades");
 
-		int longContractQty = baseAssetQty.divide(longLotSize, RoundingMode.FLOOR).intValueExact(); // 9 contracts
-		int shortContractQty = baseAssetQty.divide(shortLotSize, RoundingMode.FLOOR).intValueExact(); // 6 contracts
-
-		return new TradeParams(
-						exchanges.longEx(),
-						exchanges.shortEx(),
-						baseAssetQty,
-						longContractQty,
-						shortContractQty
-		);
+		return baseAssetQty;
 	}
 
 	public CompletableFuture<Void> exitTradeIfShould() {

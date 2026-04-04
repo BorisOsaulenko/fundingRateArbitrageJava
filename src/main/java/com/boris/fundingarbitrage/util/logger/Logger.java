@@ -19,12 +19,13 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 public class Logger {
-	private static final int BATCH_LIMIT = 100;
+	private static final int DEFAULT_BATCH_LIMIT = 100;
 	private static final long IDLE_FLUSH_NANOS = TimeUnit.SECONDS.toNanos(3);
 	private static final Object bufferLock = new Object();
-	private static final List<LogEntry> buffer = new ArrayList<>(BATCH_LIMIT);
+	private static final List<LogEntry> buffer = new ArrayList<>(DEFAULT_BATCH_LIMIT);
 	private static final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(new DaemonThreadFactory());
 	private static volatile long lastWriteNanos = System.nanoTime();
+	private static volatile int batchLimit = DEFAULT_BATCH_LIMIT;
 	private static boolean schedulerStarted = false;
 	private static BufferedWriter writer;
 	private static boolean initCalled = false;
@@ -58,7 +59,7 @@ public class Logger {
 		synchronized (bufferLock) {
 			buffer.add(new LogEntry(line, toErr));
 			lastWriteNanos = System.nanoTime();
-			if (buffer.size() >= BATCH_LIMIT) {
+			if (buffer.size() >= batchLimit) {
 				flushLocked();
 			}
 		}
@@ -150,6 +151,13 @@ public class Logger {
 
 	public static void debug(String format, Object... args) {
 		enqueueLine(getLogPrefix() + formatMessage(format, args), true);
+	}
+
+	public static void logImmediatelly() {
+		synchronized (bufferLock) {
+			batchLimit = 1;
+			flushLocked();
+		}
 	}
 
 	public static <T> void logCoinVector(CoinVector<T> coinVector) {

@@ -10,14 +10,14 @@ public record BookTicker(
 ) {
 
 	public static BookTicker empty() {
-		return new BookTicker(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, Instant.EPOCH);
+		return new BookTicker(null, null, null, null, Instant.EPOCH);
 	}
 
 	public static boolean isPartiallyEmpty(BookTicker bookTicker) {
-		return bookTicker.bidPrice().equals(BigDecimal.ZERO) ||
-					 bookTicker.askPrice().equals(BigDecimal.ZERO) ||
-					 bookTicker.bidSize().equals(BigDecimal.ZERO) ||
-					 bookTicker.askSize().equals(BigDecimal.ZERO) ||
+		return bookTicker.bidPrice() == null ||
+					 bookTicker.askPrice() == null ||
+					 bookTicker.bidSize() == null ||
+					 bookTicker.askSize() == null ||
 					 Instant.EPOCH.equals(bookTicker.timestamp());
 	}
 }

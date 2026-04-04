@@ -8,7 +8,7 @@ import com.boris.fundingarbitrage.strategy.TradeMarket;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
-public class ClassicCrossPreTradeStrategy implements CrossPreTradeStrategy {
+public final class ClassicCrossPreTradeStrategy implements CrossPreTradeStrategy {
 	private static final BigDecimal GAIN_FLOOR = new BigDecimal("0.005"); // 0.5%
 
 	public static BigDecimal spotOSpread(SpotSnapshot longSn, SpotSnapshot shortSn) {

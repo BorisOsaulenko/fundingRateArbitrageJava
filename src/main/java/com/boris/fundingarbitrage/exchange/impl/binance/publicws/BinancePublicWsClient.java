@@ -295,7 +295,7 @@ public class BinancePublicWsClient extends PublicWsClient {
 
 		try {
 			JsonNode root = mapper.readTree(message);
-			tryHandle(root, messageHandler::parseBookTickerMessageSymbol, this::handleFuturesBookTickerPatch);
+			tryHandle(root, messageHandler::parseFuturesBookTickerMessageSymbol, this::handleFuturesBookTickerPatch);
 		} catch (JsonProcessingException ignored) {
 		}
 	}
