@@ -17,6 +17,7 @@ import com.boris.fundingarbitrage.monitor.ExchangeCoinMap;
 import com.boris.fundingarbitrage.strategy.pretradestrategy.PreTradeStrategy;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import com.boris.fundingarbitrage.util.logger.Logger;
+import lombok.NonNull;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -233,32 +234,41 @@ public abstract class ArbitrageLogic {
 	private CrossData getBestCrossData(String coin) {
 		Set<BaseExchange> availableExchanges = availableExchangesByCoin.get(coin);
 		if (availableExchanges == null) throw new IllegalStateException("Available exchanges for " + coin + " not found");
+		if (availableExchanges.size() < 2) return null;
 
 		BaseExchange bestLongEx = null;
 		BaseExchange bestShortEx = null;
-		BigDecimal bestCrossGain = null;
+		BigDecimal bestGain = null;
 		ExchangeData bestLongData = null;
 		ExchangeData bestShortData = null;
 
 		for (BaseExchange longEx : availableExchanges) {
 			for (BaseExchange shortEx : availableExchanges) {
 				if (longEx == shortEx) continue;
+				boolean presentSpot = Boolean.TRUE.equals(presentOnSpot.get(longEx, coin)) &&
+															Boolean.TRUE.equals(presentOnSpot.get(shortEx, coin));
+				boolean presentFutures = Boolean.TRUE.equals(presentOnFutures.get(longEx, coin)) &&
+																 Boolean.TRUE.equals(presentOnFutures.get(shortEx, coin));
+				if (preTradeStrategy.cross().requiredFutures() && !presentFutures) continue;
+				if (preTradeStrategy.cross().requiredSpot() && !presentSpot) continue;
 
 				ExchangeData longData = getExchangeData(longEx, coin);
 				ExchangeData shortData = getExchangeData(shortEx, coin);
 
 				BigDecimal gain = preTradeStrategy.expectedGain(longData, shortData);
-				if (bestLongEx == null || gain.compareTo(bestCrossGain) > 0) {
+				if (bestLongEx == null || gain.compareTo(bestGain) > 0) {
 					bestLongEx = longEx;
 					bestShortEx = shortEx;
-					bestCrossGain = gain;
+					bestGain = gain;
 					bestLongData = longData;
 					bestShortData = shortData;
 				}
 			}
 		}
 
-		return new CrossData(bestLongEx, bestShortEx, bestCrossGain, bestLongData, bestShortData);
+		if (bestGain == null) return null;
+
+		return new CrossData(bestLongEx, bestShortEx, bestGain, bestLongData, bestShortData);
 	}
 
 	private SingleData getBestSingleData(String coin) {
@@ -270,8 +280,8 @@ public abstract class ArbitrageLogic {
 		BigDecimal bestSingleGain = null;
 		for (BaseExchange ex : availableExchanges) {
 			ExchangeData data = getExchangeData(ex, coin);
-			if (data.spotConstantData() == null || data.futuresConstantData() == null)
-				continue; // For single exchange trades, coin must be both in futures form and spot form
+			if (preTradeStrategy.single().requiredFutures() && !Boolean.TRUE.equals(presentOnFutures.get(ex, coin))) continue;
+			if (preTradeStrategy.single().requiredSpot() && !Boolean.TRUE.equals(presentOnSpot.get(ex, coin))) continue;
 			BigDecimal gain = preTradeStrategy.expectedGain(data);
 			if (bestSingleGain == null || gain.compareTo(bestSingleGain) >= 0) {
 				bestSingleExchange = ex;
@@ -283,24 +293,35 @@ public abstract class ArbitrageLogic {
 		return new SingleData(bestSingleExchange, bestSingleData, bestSingleGain);
 	}
 
+	private CrossCoinOpportunity getOp(CrossData data) {
+		return new CrossCoinOpportunity(
+						new ExchangePair(data.longEx(), data.shortEx()),
+						data.gain(),
+						data.longData(),
+						data.shortData()
+		);
+	}
+
+	private SingleCoinOpportunity getOp(SingleData data) {
+		return new SingleCoinOpportunity(
+						data.exchange(),
+						data.gain(),
+						data.data()
+		);
+	}
+
 	private CoinOpportunity computeBestArbSnapshotForCoin(
 					String coin
 	) {
-		CrossData bestCrossOp = null;
-		//		if (availableExchanges.size() >= 2) bestCrossOp = getBestCrossData(coin);
-
+		CrossData bestCrossOp = getBestCrossData(coin);
 		SingleData bestSingleOp = getBestSingleData(coin);
 
 		if (bestCrossOp == null && bestSingleOp == null) return null;
+		if (bestCrossOp == null) return getOp(bestSingleOp);
+		if (bestSingleOp == null) return getOp(bestCrossOp);
 
-		if (bestCrossOp == null || bestCrossOp.gain().compareTo(bestSingleOp.gain()) < 0)
-			return new SingleCoinOpportunity(bestSingleOp.exchange(), bestSingleOp.gain(), bestSingleOp.data());
-		else return new CrossCoinOpportunity(
-						new ExchangePair(bestCrossOp.longEx(), bestCrossOp.shortEx()),
-						bestCrossOp.gain(),
-						bestCrossOp.longData(),
-						bestCrossOp.shortData()
-		);
+		if (bestCrossOp.gain().compareTo(bestSingleOp.gain()) > 0) return getOp(bestCrossOp);
+		else return getOp(bestSingleOp);
 	}
 
 	private ExchangeData getExchangeData(
@@ -390,18 +411,18 @@ public abstract class ArbitrageLogic {
 	}
 
 	private record CrossData(
-					BaseExchange longEx,
-					BaseExchange shortEx,
-					BigDecimal gain,
-					ExchangeData longData,
-					ExchangeData shortData
+					@NonNull BaseExchange longEx,
+					@NonNull BaseExchange shortEx,
+					@NonNull BigDecimal gain,
+					@NonNull ExchangeData longData,
+					@NonNull ExchangeData shortData
 	) {
 	}
 
 	private record SingleData(
-					BaseExchange exchange,
-					ExchangeData data,
-					BigDecimal gain
+					@NonNull BaseExchange exchange,
+					@NonNull ExchangeData data,
+					@NonNull BigDecimal gain
 	) {
 	}
 }

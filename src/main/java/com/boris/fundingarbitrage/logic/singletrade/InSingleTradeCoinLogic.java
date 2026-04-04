@@ -1,6 +1,7 @@
-package com.boris.fundingarbitrage.logic;
+package com.boris.fundingarbitrage.logic.singletrade;
 
 import com.boris.fundingarbitrage.exchange.BaseExchange;
+import com.boris.fundingarbitrage.logic.InTradeCoinLogic;
 import com.boris.fundingarbitrage.model.exchange.ExchangeConstantData;
 import com.boris.fundingarbitrage.model.exchange.ExchangeSnapshot;
 import com.boris.fundingarbitrage.monitor.CoinMonitor;

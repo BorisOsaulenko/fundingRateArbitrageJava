@@ -17,5 +17,5 @@ public abstract sealed class InTradeStrategy permits InCrossTradeStrategy, InSin
 		accountForFundingEvent(sn, isLong);
 	}
 
-	public abstract void accountForFundingEvent(ExchangeSnapshot sn, boolean isLong);
+	protected abstract void accountForFundingEvent(ExchangeSnapshot sn, boolean isLong);
 }

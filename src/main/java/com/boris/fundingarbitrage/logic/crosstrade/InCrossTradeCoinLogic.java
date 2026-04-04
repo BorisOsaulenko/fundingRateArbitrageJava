@@ -74,7 +74,7 @@ public abstract class InCrossTradeCoinLogic extends InTradeCoinLogic {
 			monitor.performOnTimestamp(
 							settlementUtc.get(), ex, coin, (sn) -> {
 								tradeLogger.log("Funding on " + ex.name + ": [Rate: " + sn.fundingRate() + "]");
-								strategy.accountForFundingEvent(sn, isLong);
+								strategy.registerFunding(sn, isLong);
 								shouldRegister.set(true);
 							}
 			);

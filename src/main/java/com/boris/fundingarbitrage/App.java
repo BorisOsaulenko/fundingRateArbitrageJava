@@ -7,9 +7,9 @@ import com.boris.fundingarbitrage.exchange.impl.bybit.BybitExchange;
 import com.boris.fundingarbitrage.logic.ArbitrageBotConfig;
 import com.boris.fundingarbitrage.logic.ArbitrageLogic;
 import com.boris.fundingarbitrage.logic.RebalancingArbitrageLogic;
-import com.boris.fundingarbitrage.strategy.pretradestrategy.ClassicCrossPreTradeStrategy;
-import com.boris.fundingarbitrage.strategy.pretradestrategy.ClassicSinglePreTradeStrategy;
 import com.boris.fundingarbitrage.strategy.pretradestrategy.PreTradeStrategy;
+import com.boris.fundingarbitrage.strategy.pretradestrategy.cross.FuturesCrossPreTradeStrategy;
+import com.boris.fundingarbitrage.strategy.pretradestrategy.single.ClassicSinglePreTradeStrategy;
 import com.boris.fundingarbitrage.util.logger.Logger;
 import lombok.extern.slf4j.Slf4j;
 
@@ -24,7 +24,7 @@ public class App {
 
 		ICoinSupplier coinSupplier = new AllExchangeCoinsParser();
 		PreTradeStrategy preTradeStrategy = new PreTradeStrategy(
-						new ClassicCrossPreTradeStrategy(),
+						new FuturesCrossPreTradeStrategy(),
 						new ClassicSinglePreTradeStrategy()
 		);
 

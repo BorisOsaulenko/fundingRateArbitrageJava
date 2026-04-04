@@ -1,6 +1,7 @@
-package com.boris.fundingarbitrage.strategy.pretradestrategy;
+package com.boris.fundingarbitrage.strategy.pretradestrategy.single;
 
 import com.boris.fundingarbitrage.model.exchange.ExchangeData;
+import com.boris.fundingarbitrage.strategy.pretradestrategy.TradeDirections;
 
 import java.math.BigDecimal;
 
@@ -10,4 +11,8 @@ public sealed interface SinglePreTradeStrategy permits ClassicSinglePreTradeStra
 	TradeDirections getDirections(ExchangeData data);
 
 	BigDecimal expectedGain(ExchangeData data);
+
+	boolean requiredSpot();
+
+	boolean requiredFutures();
 }

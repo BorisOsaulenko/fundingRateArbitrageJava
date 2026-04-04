@@ -1,14 +1,15 @@
-package com.boris.fundingarbitrage.strategy.pretradestrategy;
+package com.boris.fundingarbitrage.strategy.pretradestrategy.cross;
 
 import com.boris.fundingarbitrage.model.exchange.ExchangeData;
 import com.boris.fundingarbitrage.model.exchange.SpotConstantData;
 import com.boris.fundingarbitrage.model.exchange.SpotSnapshot;
 import com.boris.fundingarbitrage.strategy.TradeMarket;
+import com.boris.fundingarbitrage.strategy.pretradestrategy.TradeDirections;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
-public final class ClassicCrossPreTradeStrategy implements CrossPreTradeStrategy {
+public final class SpotCrossPreTradeStrategy implements CrossPreTradeStrategy {
 	private static final BigDecimal GAIN_FLOOR = new BigDecimal("0.005"); // 0.5%
 
 	public static BigDecimal spotOSpread(SpotSnapshot longSn, SpotSnapshot shortSn) {
@@ -44,5 +45,15 @@ public final class ClassicCrossPreTradeStrategy implements CrossPreTradeStrategy
 	@Override
 	public TradeDirections getDirections(ExchangeData longData, ExchangeData shortData) {
 		return new TradeDirections(TradeMarket.SPOT, TradeMarket.SPOT);
+	}
+
+	@Override
+	public boolean requiredSpot() {
+		return true;
+	}
+
+	@Override
+	public boolean requiredFutures() {
+		return false;
 	}
 }

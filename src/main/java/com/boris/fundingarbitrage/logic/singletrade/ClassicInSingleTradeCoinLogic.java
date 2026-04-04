@@ -3,7 +3,6 @@ package com.boris.fundingarbitrage.logic.singletrade;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.execution.ClassicSingleCoinExecution;
 import com.boris.fundingarbitrage.execution.CoinExecution;
-import com.boris.fundingarbitrage.logic.InSingleTradeCoinLogic;
 import com.boris.fundingarbitrage.model.assetops.Leverages;
 import com.boris.fundingarbitrage.model.assetops.TradeParams;
 import com.boris.fundingarbitrage.model.assetops.TradeSide;
@@ -13,8 +12,8 @@ import com.boris.fundingarbitrage.model.exchange.ExchangeData;
 import com.boris.fundingarbitrage.model.exchange.ExchangeSnapshot;
 import com.boris.fundingarbitrage.monitor.CoinMonitor;
 import com.boris.fundingarbitrage.strategy.TradeMarket;
-import com.boris.fundingarbitrage.strategy.intradestrategy.ClassicInSingleTradeStrategy;
 import com.boris.fundingarbitrage.strategy.intradestrategy.InSingleTradeStrategy;
+import com.boris.fundingarbitrage.strategy.intradestrategy.single.ClassicInSingleTradeStrategy;
 import com.boris.fundingarbitrage.strategy.pretradestrategy.TradeDirections;
 import kotlin.jvm.functions.Function3;
 

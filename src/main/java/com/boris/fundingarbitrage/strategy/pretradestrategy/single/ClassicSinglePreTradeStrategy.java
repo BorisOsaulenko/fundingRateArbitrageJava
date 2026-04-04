@@ -1,16 +1,17 @@
-package com.boris.fundingarbitrage.strategy.pretradestrategy;
+package com.boris.fundingarbitrage.strategy.pretradestrategy.single;
 
 import com.boris.fundingarbitrage.model.exchange.ExchangeConstantData;
 import com.boris.fundingarbitrage.model.exchange.ExchangeData;
 import com.boris.fundingarbitrage.model.exchange.ExchangeSnapshot;
 import com.boris.fundingarbitrage.strategy.TradeMarket;
+import com.boris.fundingarbitrage.strategy.pretradestrategy.TradeDirections;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
 public final class ClassicSinglePreTradeStrategy implements SinglePreTradeStrategy {
 	private static final BigDecimal O_SPREAD_FLOOR = new BigDecimal("0.005"); // 0.5%
-	private static final BigDecimal F_SPREAD_FLOOR = new BigDecimal("0"); // 0%
+	private static final BigDecimal F_SPREAD_FLOOR = new BigDecimal("0.005"); // 0%
 
 	public static BigDecimal oSpread(ExchangeSnapshot sn) {
 		BigDecimal spotAsk = sn.spotSnapshot().bookTicker().askPrice();
@@ -52,5 +53,15 @@ public final class ClassicSinglePreTradeStrategy implements SinglePreTradeStrate
 		BigDecimal fSpread = fSpread(data.snapshot());
 		BigDecimal fees = totalFees(data.constantData());
 		return oSpread.add(fSpread).subtract(fees);
+	}
+
+	@Override
+	public boolean requiredSpot() {
+		return true;
+	}
+
+	@Override
+	public boolean requiredFutures() {
+		return true;
 	}
 }

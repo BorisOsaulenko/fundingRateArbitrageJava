@@ -20,7 +20,7 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class CoinMonitor {
-	private static final int waitForDataSeconds = 10;
+	private static final int waitForDataSeconds = 60;
 
 	private final ExchangeCoinMap<FundingRate> futuresFundingRates = new ExchangeCoinMap<>();
 	private final ExchangeCoinMap<BookTicker> futuresBookTickers = new ExchangeCoinMap<>();
@@ -41,6 +41,9 @@ public class CoinMonitor {
 	private final Map<BaseExchange, Set<String>> availableCoinsByExchange;
 	@Getter private final CompletableFuture<Void> initFuture;
 
+	private final ExchangeCoinMap<Boolean> presentOnFutures;
+	private final ExchangeCoinMap<Boolean> presentOnSpot;
+
 	public CoinMonitor(
 					CoinVector<Set<BaseExchange>> availableExchangesByCoin,
 					Map<BaseExchange, Set<String>> availableCoinsByExchange,
@@ -49,6 +52,8 @@ public class CoinMonitor {
 	) {
 		this.availableExchangesByCoin = availableExchangesByCoin;
 		this.availableCoinsByExchange = availableCoinsByExchange;
+		this.presentOnFutures = presentOnFutures;
+		this.presentOnSpot = presentOnSpot;
 
 		Logger.log(availableCoinsByExchange.toString());
 
@@ -110,6 +115,7 @@ public class CoinMonitor {
 			}
 		}
 
+		if (!toUnsubAll.isEmpty()) unsubscribeAllEntries(toUnsubAll);
 		if (!toUnsubscribeFutures.isEmpty()) unsubscribeFuturesEntries(toUnsubscribeFutures);
 		if (!toUnsubscribeSpot.isEmpty()) unsubscribeSpotEntries(toUnsubscribeSpot);
 	}
@@ -260,9 +266,13 @@ public class CoinMonitor {
 			BaseExchange ex = entry.getKey();
 
 			ex.publicWsClient.unsubscribeCoinsFutures(entry.getValue());
-			futuresFundingRates.removeAll(entry.getKey(), entry.getValue());
-			futuresBookTickers.removeAll(entry.getKey(), entry.getValue());
-			futuresMarkPrices.removeAll(entry.getKey(), entry.getValue());
+			futuresFundingRates.removeAll(ex, entry.getValue());
+			futuresBookTickers.removeAll(ex, entry.getValue());
+			futuresMarkPrices.removeAll(ex, entry.getValue());
+			futuresFundingCompletions.removeAll(ex, entry.getValue());
+			futuresTickerCompletions.removeAll(ex, entry.getValue());
+			futuresMarkCompletions.removeAll(ex, entry.getValue());
+			presentOnFutures.removeAll(ex, entry.getValue());
 		}
 	}
 
@@ -276,6 +286,63 @@ public class CoinMonitor {
 
 			ex.publicWsClient.unsubscribeCoinsSpot(entry.getValue());
 			spotBookTickers.removeAll(entry.getKey(), entry.getValue());
+			spotBookTickerCompletions.removeAll(entry.getKey(), entry.getValue());
+			presentOnSpot.removeAll(entry.getKey(), entry.getValue());
+		}
+	}
+
+	private void unsubscribeAllEntries(List<ExchangeCoinPair> toUnsubscribe) {
+		Map<BaseExchange, Set<String>> unsubByExchange = new HashMap<>();
+		for (var entry : toUnsubscribe)
+			unsubByExchange.computeIfAbsent(entry.ex(), k -> new HashSet<>()).add(entry.coin());
+
+		for (Map.Entry<BaseExchange, Set<String>> entry : unsubByExchange.entrySet()) {
+			BaseExchange ex = entry.getKey();
+			Set<String> coins = entry.getValue();
+
+			ex.publicWsClient.unsubscribeCoinsFutures(coins);
+			ex.publicWsClient.unsubscribeCoinsSpot(coins);
+			futuresFundingRates.removeAll(ex, coins);
+			futuresBookTickers.removeAll(ex, coins);
+			futuresMarkPrices.removeAll(ex, coins);
+			spotBookTickers.removeAll(ex, coins);
+			futuresFundingCompletions.removeAll(ex, coins);
+			futuresTickerCompletions.removeAll(ex, coins);
+			futuresMarkCompletions.removeAll(ex, coins);
+			spotBookTickerCompletions.removeAll(ex, coins);
+			presentOnFutures.removeAll(ex, coins);
+			presentOnSpot.removeAll(ex, coins);
+			clearPendingEntries(ex, coins);
+			removeAvailability(ex, coins);
+		}
+	}
+
+	private void clearPendingEntries(BaseExchange ex, Set<String> coins) {
+		for (String coin : coins) {
+			Map<Long, Set<ScheduledFuture<?>>> futuresByTimestamp = completionFutures.get(ex, coin);
+			if (futuresByTimestamp != null) {
+				futuresByTimestamp.values().forEach(futures -> futures.forEach(future -> future.cancel(true)));
+			}
+
+			completionFutures.remove(ex, coin);
+			timestampsToProcess.remove(ex, coin);
+			timestampHandlers.remove(ex, coin);
+		}
+	}
+
+	private void removeAvailability(BaseExchange ex, Set<String> coins) {
+		Set<String> exchangeCoins = availableCoinsByExchange.get(ex);
+		if (exchangeCoins != null) {
+			exchangeCoins.removeAll(coins);
+			if (exchangeCoins.isEmpty()) availableCoinsByExchange.remove(ex);
+		}
+
+		for (String coin : coins) {
+			Set<BaseExchange> exchanges = availableExchangesByCoin.get(coin);
+			if (exchanges != null) {
+				exchanges.remove(ex);
+				if (exchanges.isEmpty()) availableExchangesByCoin.remove(coin);
+			}
 		}
 	}
 
