@@ -1,4 +1,4 @@
-package com.boris.fundingarbitrage.logic;
+package com.boris.fundingarbitrage.util;
 
 import com.boris.fundingarbitrage.util.logger.Logger;
 import lombok.Getter;

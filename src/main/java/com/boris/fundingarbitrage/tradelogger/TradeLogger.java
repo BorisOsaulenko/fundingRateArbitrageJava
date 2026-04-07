@@ -1,4 +1,4 @@
-package com.boris.fundingarbitrage.logic;
+package com.boris.fundingarbitrage.tradelogger;
 
 import java.io.BufferedWriter;
 import java.io.OutputStream;
@@ -9,7 +9,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 
-public class TradeLogger {
+public sealed abstract class TradeLogger permits CrossTradeLogger, SingleTradeLogger {
 	private static final DateTimeFormatter fmt = DateTimeFormatter
 					.ofPattern("yyyy_MM_dd-HH:mm:ss")
 					.withZone(ZoneId.of("UTC"));

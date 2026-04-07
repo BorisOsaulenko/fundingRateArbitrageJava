@@ -1,4 +1,4 @@
-package com.boris.fundingarbitrage.logic;
+package com.boris.fundingarbitrage.model.exchange;
 
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import lombok.NonNull;

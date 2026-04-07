@@ -1,8 +1,8 @@
 package com.boris.fundingarbitrage.execution;
 
 import com.boris.fundingarbitrage.exchange.BaseExchange;
-import com.boris.fundingarbitrage.logic.TradeLogger;
 import com.boris.fundingarbitrage.strategy.pretradestrategy.TradeDirections;
+import com.boris.fundingarbitrage.tradelogger.TradeLogger;
 import lombok.NonNull;
 
 public abstract non-sealed class SingleCoinExecution extends CoinExecution {

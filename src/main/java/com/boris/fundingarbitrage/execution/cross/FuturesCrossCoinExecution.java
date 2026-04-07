@@ -1,10 +1,11 @@
-package com.boris.fundingarbitrage.execution;
+package com.boris.fundingarbitrage.execution.cross;
 
-import com.boris.fundingarbitrage.logic.ExchangePair;
-import com.boris.fundingarbitrage.logic.TradeLogger;
+import com.boris.fundingarbitrage.execution.CrossCoinExecution;
 import com.boris.fundingarbitrage.model.assetops.*;
+import com.boris.fundingarbitrage.model.exchange.ExchangePair;
 import com.boris.fundingarbitrage.strategy.TradeMarket;
 import com.boris.fundingarbitrage.strategy.pretradestrategy.TradeDirections;
+import com.boris.fundingarbitrage.tradelogger.TradeLogger;
 import lombok.NonNull;
 
 import java.util.concurrent.CompletableFuture;

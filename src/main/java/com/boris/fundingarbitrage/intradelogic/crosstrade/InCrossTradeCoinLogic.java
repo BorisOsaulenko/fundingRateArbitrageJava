@@ -1,13 +1,13 @@
-package com.boris.fundingarbitrage.logic.crosstrade;
+package com.boris.fundingarbitrage.intradelogic.crosstrade;
 
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.execution.CrossCoinExecution;
-import com.boris.fundingarbitrage.logic.ExchangePair;
-import com.boris.fundingarbitrage.logic.InTradeCoinLogic;
+import com.boris.fundingarbitrage.intradelogic.InTradeCoinLogic;
 import com.boris.fundingarbitrage.model.assetops.TradeSide;
 import com.boris.fundingarbitrage.model.contract.PartialFill;
 import com.boris.fundingarbitrage.model.exchange.ExchangeConstantData;
 import com.boris.fundingarbitrage.model.exchange.ExchangeData;
+import com.boris.fundingarbitrage.model.exchange.ExchangePair;
 import com.boris.fundingarbitrage.model.exchange.ExchangeSnapshot;
 import com.boris.fundingarbitrage.monitor.CoinMonitor;
 import com.boris.fundingarbitrage.strategy.TradeMarket;
@@ -16,6 +16,7 @@ import com.boris.fundingarbitrage.strategy.intradestrategy.cross.ClassicInCrossT
 import com.boris.fundingarbitrage.strategy.pretradestrategy.TradeDirections;
 import kotlin.jvm.functions.Function3;
 import lombok.Getter;
+import lombok.NonNull;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -48,13 +49,13 @@ public abstract class InCrossTradeCoinLogic extends InTradeCoinLogic {
 	protected CompletableFuture<Void> enterFuture;
 
 	public InCrossTradeCoinLogic(
-					String coin,
-					CoinMonitor monitor,
-					BigDecimal legUsdtAmount,
-					ExchangePair exchanges,
-					TradeDirections tradeDirections,
-					ExchangeConstantData longConstantData,
-					ExchangeConstantData shortConstantData
+					@NonNull String coin,
+					@NonNull CoinMonitor monitor,
+					@NonNull BigDecimal legUsdtAmount,
+					@NonNull ExchangePair exchanges,
+					@NonNull TradeDirections tradeDirections,
+					@NonNull ExchangeConstantData longConstantData,
+					@NonNull ExchangeConstantData shortConstantData
 	) {
 		super(coin, monitor, legUsdtAmount);
 

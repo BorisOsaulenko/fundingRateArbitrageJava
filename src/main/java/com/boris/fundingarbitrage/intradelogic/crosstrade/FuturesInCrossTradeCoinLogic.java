@@ -1,10 +1,10 @@
-package com.boris.fundingarbitrage.logic.crosstrade;
+package com.boris.fundingarbitrage.intradelogic.crosstrade;
 
-import com.boris.fundingarbitrage.execution.FuturesCrossCoinExecution;
-import com.boris.fundingarbitrage.logic.ExchangePair;
+import com.boris.fundingarbitrage.execution.cross.FuturesCrossCoinExecution;
 import com.boris.fundingarbitrage.model.assetops.Leverages;
 import com.boris.fundingarbitrage.model.assetops.TradeParams;
 import com.boris.fundingarbitrage.model.exchange.ExchangeConstantData;
+import com.boris.fundingarbitrage.model.exchange.ExchangePair;
 import com.boris.fundingarbitrage.model.exchange.ExchangeSnapshot;
 import com.boris.fundingarbitrage.monitor.CoinMonitor;
 import com.boris.fundingarbitrage.strategy.TradeMarket;
@@ -26,7 +26,6 @@ public class FuturesInCrossTradeCoinLogic extends InCrossTradeCoinLogic {
 					@NonNull ExchangeConstantData shortConstantData,
 					@NonNull TradeDirections tradeDirections
 	) {
-
 		super(coin, monitor, usdtAmount, exchanges, tradeDirections, longConstantData, shortConstantData);
 		TradeParams enterParams = getEnterParams(longEnterSn, shortEnterSn);
 		this.execution = new FuturesCrossCoinExecution(coin, exchanges, enterParams, leverages, tradeLogger);

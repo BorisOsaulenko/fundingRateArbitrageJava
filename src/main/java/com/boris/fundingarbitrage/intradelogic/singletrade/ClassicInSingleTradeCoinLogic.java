@@ -1,8 +1,8 @@
-package com.boris.fundingarbitrage.logic.singletrade;
+package com.boris.fundingarbitrage.intradelogic.singletrade;
 
 import com.boris.fundingarbitrage.exchange.BaseExchange;
-import com.boris.fundingarbitrage.execution.ClassicSingleCoinExecution;
 import com.boris.fundingarbitrage.execution.CoinExecution;
+import com.boris.fundingarbitrage.execution.single.ClassicSingleCoinExecution;
 import com.boris.fundingarbitrage.model.assetops.Leverages;
 import com.boris.fundingarbitrage.model.assetops.TradeParams;
 import com.boris.fundingarbitrage.model.assetops.TradeSide;

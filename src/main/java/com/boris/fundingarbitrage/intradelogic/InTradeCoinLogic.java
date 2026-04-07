@@ -1,6 +1,7 @@
-package com.boris.fundingarbitrage.logic;
+package com.boris.fundingarbitrage.intradelogic;
 
 import com.boris.fundingarbitrage.monitor.CoinMonitor;
+import com.boris.fundingarbitrage.tradelogger.TradeLogger;
 import lombok.Getter;
 
 import java.math.BigDecimal;

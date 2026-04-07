@@ -1,9 +1,9 @@
-package com.boris.fundingarbitrage.logic.crosstrade;
+package com.boris.fundingarbitrage.intradelogic.crosstrade;
 
 import com.boris.fundingarbitrage.execution.CoinExecution;
-import com.boris.fundingarbitrage.execution.SpotCrossCoinExecution;
-import com.boris.fundingarbitrage.logic.ExchangePair;
+import com.boris.fundingarbitrage.execution.cross.SpotCrossCoinExecution;
 import com.boris.fundingarbitrage.model.exchange.ExchangeConstantData;
+import com.boris.fundingarbitrage.model.exchange.ExchangePair;
 import com.boris.fundingarbitrage.monitor.CoinMonitor;
 import com.boris.fundingarbitrage.strategy.pretradestrategy.TradeDirections;
 import lombok.NonNull;

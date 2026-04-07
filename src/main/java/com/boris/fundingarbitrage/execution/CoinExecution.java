@@ -1,7 +1,7 @@
 package com.boris.fundingarbitrage.execution;
 
-import com.boris.fundingarbitrage.logic.TradeLogger;
 import com.boris.fundingarbitrage.strategy.pretradestrategy.TradeDirections;
+import com.boris.fundingarbitrage.tradelogger.TradeLogger;
 import lombok.Getter;
 import lombok.NonNull;
 
@@ -69,8 +69,5 @@ public abstract sealed class CoinExecution permits CrossCoinExecution, SingleCoi
 		if (failed) return false;
 		if (enterFuture == null) return false;
 		return enterFuture.state().equals(Future.State.SUCCESS);
-	}
-
-	public record TradeIds(String longId, String shortId) {
 	}
 }

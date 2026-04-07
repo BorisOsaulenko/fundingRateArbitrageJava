@@ -1,10 +1,11 @@
-package com.boris.fundingarbitrage.execution;
+package com.boris.fundingarbitrage.execution.single;
 
 import com.boris.fundingarbitrage.exchange.BaseExchange;
-import com.boris.fundingarbitrage.logic.TradeLogger;
+import com.boris.fundingarbitrage.execution.SingleCoinExecution;
 import com.boris.fundingarbitrage.model.assetops.*;
 import com.boris.fundingarbitrage.strategy.TradeMarket;
 import com.boris.fundingarbitrage.strategy.pretradestrategy.TradeDirections;
+import com.boris.fundingarbitrage.tradelogger.TradeLogger;
 import lombok.NonNull;
 
 import java.math.BigDecimal;

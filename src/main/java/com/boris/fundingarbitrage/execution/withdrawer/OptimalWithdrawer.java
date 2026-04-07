@@ -2,9 +2,9 @@ package com.boris.fundingarbitrage.execution.withdrawer;
 
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.exchange.Instances;
-import com.boris.fundingarbitrage.logic.ExchangePair;
 import com.boris.fundingarbitrage.model.assetops.SupportedChain;
 import com.boris.fundingarbitrage.model.exchange.ExchangeChains;
+import com.boris.fundingarbitrage.model.exchange.ExchangePair;
 import com.boris.fundingarbitrage.model.exchange.WithdrawChain;
 
 import java.math.BigDecimal;
