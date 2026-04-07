@@ -68,7 +68,7 @@ public class BinancePublicWsClient extends PublicWsClient {
 	}
 
 	private String getFundingRateStream(@NotNull String symbol) {
-		return String.format("%s@markPrice@1s", symbol.toLowerCase());
+		return String.format("%s@mark@1s", symbol.toLowerCase());
 	}
 
 	private String getBookTickerStream(@NotNull String symbol) {

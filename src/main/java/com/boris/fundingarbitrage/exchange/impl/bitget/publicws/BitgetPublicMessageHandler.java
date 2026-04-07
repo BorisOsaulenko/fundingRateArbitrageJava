@@ -29,7 +29,7 @@ class BitgetPublicMessageHandler implements PublicMessageHandler {
 		JsonNode data = dataArray.get(0);
 
 		String coin = context.getFuturesSymbolInverse(symbol);
-		String markPriceText = data.path("markPrice").asText();
+		String markPriceText = data.path("mark").asText();
 		BigDecimal markPrice = markPriceText.isEmpty() ? null : new BigDecimal(markPriceText);
 		if (markPrice == null) return null;
 

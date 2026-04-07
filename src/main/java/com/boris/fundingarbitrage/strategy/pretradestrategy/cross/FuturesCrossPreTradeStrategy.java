@@ -1,8 +1,7 @@
 package com.boris.fundingarbitrage.strategy.pretradestrategy.cross;
 
-import com.boris.fundingarbitrage.model.exchange.ExchangeData;
-import com.boris.fundingarbitrage.model.exchange.FuturesConstantData;
-import com.boris.fundingarbitrage.model.exchange.FuturesSnapshot;
+import com.boris.fundingarbitrage.model.exchange.constantdata.FuturesConstantData;
+import com.boris.fundingarbitrage.model.exchange.snapshot.FuturesSnapshot;
 import com.boris.fundingarbitrage.strategy.TradeMarket;
 import com.boris.fundingarbitrage.strategy.pretradestrategy.TradeDirections;
 
@@ -31,11 +30,11 @@ public final class FuturesCrossPreTradeStrategy implements CrossPreTradeStrategy
 	}
 
 	public static BigDecimal closestFuturesFSpread(FuturesSnapshot longSn, FuturesSnapshot shortSn) {
-		Instant longSettlement = longSn.fundingRate().settlement();
-		Instant shortSettlement = shortSn.fundingRate().settlement();
+		Instant longSettlement = longSn.funding().settlement();
+		Instant shortSettlement = shortSn.funding().settlement();
 
-		BigDecimal longFunding = longSn.fundingRate().rate().multiply(longSn.markPrice().price()).negate();
-		BigDecimal shortFunding = shortSn.fundingRate().rate().multiply(shortSn.markPrice().price());
+		BigDecimal longFunding = longSn.funding().rate().multiply(longSn.mark().price()).negate();
+		BigDecimal shortFunding = shortSn.funding().rate().multiply(shortSn.mark().price());
 
 		if (longSettlement.equals(shortSettlement))
 			return shortFunding.add(longFunding).divide(notional(longSn, shortSn), 8, RoundingMode.HALF_UP);

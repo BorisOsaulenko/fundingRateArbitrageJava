@@ -6,7 +6,7 @@ import com.boris.fundingarbitrage.exchange.publichttp.FuturesTradingState;
 import com.boris.fundingarbitrage.exchange.publichttp.PublicHttpClient;
 import com.boris.fundingarbitrage.exchange.publichttp.SpotPublicOnePullData;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
-import com.boris.fundingarbitrage.model.contract.FundingRate;
+import com.boris.fundingarbitrage.model.contract.Funding;
 import com.boris.fundingarbitrage.util.https.PrettyHttpClient;
 import com.boris.fundingarbitrage.util.https.RequestProcessingClientWrapper;
 
@@ -25,7 +25,7 @@ public class OkxPublicHttpClient extends PublicHttpClient {
 	}
 
 	@Override
-	protected CompletableFuture<Map<String, FundingRate>> getFundingRateSymbols() {
+	protected CompletableFuture<Map<String, Funding>> getFundingRateSymbols() {
 		return requestWrapper.processRequest(
 						PublicEndpoints.fundingRateRequestSymbols(),
 						PublicResponses.FundingRatesResponse.class,
@@ -55,7 +55,7 @@ public class OkxPublicHttpClient extends PublicHttpClient {
 							Map<String, BookTicker> bookTickers = tickersResponseFuture.join().getBookTickers();
 							Map<String, BigDecimal> volumes24h = tickersResponseFuture.join().getVolume24h();
 							Map<String, Integer> fundingIntervals = fundingResponseFuture.join().getFundingGranularityHours();
-							Map<String, FundingRate> fundingRates = fundingResponseFuture.join().getFundingRates();
+							Map<String, Funding> fundingRates = fundingResponseFuture.join().getFundingRates();
 
 							Map<String, FuturesPublicOnePullData> data = new HashMap<>();
 							for (String symbol : lotSizes.keySet()) {

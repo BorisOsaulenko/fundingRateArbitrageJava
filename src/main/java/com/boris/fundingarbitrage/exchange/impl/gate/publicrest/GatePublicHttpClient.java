@@ -6,7 +6,7 @@ import com.boris.fundingarbitrage.exchange.publichttp.FuturesTradingState;
 import com.boris.fundingarbitrage.exchange.publichttp.PublicHttpClient;
 import com.boris.fundingarbitrage.exchange.publichttp.SpotPublicOnePullData;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
-import com.boris.fundingarbitrage.model.contract.FundingRate;
+import com.boris.fundingarbitrage.model.contract.Funding;
 import com.boris.fundingarbitrage.util.https.PrettyHttpClient;
 import com.boris.fundingarbitrage.util.https.RequestProcessingClientWrapper;
 
@@ -25,7 +25,7 @@ public class GatePublicHttpClient extends PublicHttpClient {
 	}
 
 	@Override
-	protected CompletableFuture<Map<String, FundingRate>> getFundingRateSymbols() {
+	protected CompletableFuture<Map<String, Funding>> getFundingRateSymbols() {
 		return requestWrapper.processRequest(
 						PublicEndpoints.contractsRequestSymbols(),
 						PublicResponses.ContractsResponse.class,
@@ -48,7 +48,7 @@ public class GatePublicHttpClient extends PublicHttpClient {
 		return CompletableFuture.allOf(contractsResponseFuture, tickersResponseFuture).thenApply(_ -> {
 			Map<String, BigDecimal> lotSizes = contractsResponseFuture.join().getLotSizes();
 			Map<String, Integer> fundingIntervals = contractsResponseFuture.join().getFundingGranularityHours();
-			Map<String, FundingRate> fundingRates = contractsResponseFuture.join().getFundingRates();
+			Map<String, Funding> fundingRates = contractsResponseFuture.join().getFundingRates();
 			Map<String, BookTicker> bookTickers = tickersResponseFuture.join().getBookTickers();
 			Map<String, BigDecimal> volumes24h = tickersResponseFuture.join().getVolume24h();
 			Map<String, FuturesTradingState> tradingStates = contractsResponseFuture.join().getTradingStates();

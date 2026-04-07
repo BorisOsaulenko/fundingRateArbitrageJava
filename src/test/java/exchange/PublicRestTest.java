@@ -4,7 +4,7 @@ import com.boris.fundingarbitrage.exchange.publichttp.FuturesTradingState;
 import com.boris.fundingarbitrage.exchange.publichttp.PublicHttpClient;
 import com.boris.fundingarbitrage.exchange.publichttp.SpotPublicOnePullData;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
-import com.boris.fundingarbitrage.model.contract.FundingRate;
+import com.boris.fundingarbitrage.model.contract.Funding;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -48,7 +48,7 @@ public abstract class PublicRestTest {
 		assertTrue(askAndBidNotTooFarAway, "Spread should be less than maxSpread");
 	}
 
-	void validateFundingRate(FundingRate fundingRate) {
+	void validateFundingRate(Funding fundingRate) {
 		assertNotNull(fundingRate, "Funding rate should not be null");
 		assertNotNull(fundingRate.settlement(), "Settlement time should not be null");
 		assertTrue(
@@ -66,10 +66,10 @@ public abstract class PublicRestTest {
 	@Test
 	@Tag("rest")
 	void getFundingRatesBatch() throws Exception {
-		Map<String, FundingRate> fundingRates = getWithTimeout(publicRest().getFundingRate(coins));
+		Map<String, Funding> fundingRates = getWithTimeout(publicRest().getFundingRate(coins));
 		assertNotNull(fundingRates, "Funding rates map should not be null");
 		assertEquals(coins.size(), fundingRates.size(), "Funding rates should be returned for each requested symbol");
-		for (FundingRate fundingRate : fundingRates.values()) {
+		for (Funding fundingRate : fundingRates.values()) {
 			validateFundingRate(fundingRate);
 		}
 	}

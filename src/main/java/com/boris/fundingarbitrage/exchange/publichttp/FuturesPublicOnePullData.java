@@ -1,7 +1,7 @@
 package com.boris.fundingarbitrage.exchange.publichttp;
 
 import com.boris.fundingarbitrage.model.contract.BookTicker;
-import com.boris.fundingarbitrage.model.contract.FundingRate;
+import com.boris.fundingarbitrage.model.contract.Funding;
 
 import java.math.BigDecimal;
 
@@ -11,7 +11,7 @@ public record FuturesPublicOnePullData(
 				BigDecimal volume24h,
 				int fundingInterval,
 				BookTicker ticker,
-				FundingRate fundingRate,
+				Funding fundingRate,
 				FuturesTradingState tradingState
 ) {
 	public boolean isEmpty() {

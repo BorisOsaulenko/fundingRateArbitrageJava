@@ -2,7 +2,7 @@ package com.boris.fundingarbitrage.exchange.impl.gate.publicrest;
 
 import com.boris.fundingarbitrage.exchange.publichttp.FuturesTradingState;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
-import com.boris.fundingarbitrage.model.contract.FundingRate;
+import com.boris.fundingarbitrage.model.contract.Funding;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
@@ -46,12 +46,12 @@ class PublicResponses {
 			return result;
 		}
 
-		public Map<String, FundingRate> getFundingRates() {
-			Map<String, FundingRate> result = new HashMap<>();
+		public Map<String, Funding> getFundingRates() {
+			Map<String, Funding> result = new HashMap<>();
 			for (ContractResponse item : items) {
-				FundingRate
+				Funding
 								fr =
-								new FundingRate(item.funding_rate(), Instant.ofEpochSecond(item.funding_next_apply()), Instant.now());
+								new Funding(item.funding_rate(), Instant.ofEpochSecond(item.funding_next_apply()), Instant.now());
 				result.put(item.name(), fr);
 			}
 			return result;

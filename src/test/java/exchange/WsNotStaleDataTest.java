@@ -3,8 +3,8 @@ package exchange;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.exchange.Instances;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
-import com.boris.fundingarbitrage.model.contract.FundingRate;
-import com.boris.fundingarbitrage.model.contract.MarkPrice;
+import com.boris.fundingarbitrage.model.contract.Funding;
+import com.boris.fundingarbitrage.model.contract.Mark;
 import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
 import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
 import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
@@ -95,8 +95,8 @@ public class WsNotStaleDataTest {
 	private static class ExchangeStats {
 		private final BaseExchange exchange;
 		private final AtomicReference<BookTicker> latestBookTicker = new AtomicReference<>(BookTicker.empty());
-		private final AtomicReference<FundingRate> latestFundingRate = new AtomicReference<>(FundingRate.empty());
-		private final AtomicReference<MarkPrice> latestMarkPrice = new AtomicReference<>(MarkPrice.empty());
+		private final AtomicReference<Funding> latestFundingRate = new AtomicReference<>(Funding.empty());
+		private final AtomicReference<Mark> latestMarkPrice = new AtomicReference<>(Mark.empty());
 
 		private final FieldTracker<BigDecimal> bookBidPrice = new FieldTracker<>();
 		private final FieldTracker<BigDecimal> bookBidSize = new FieldTracker<>();
@@ -133,8 +133,8 @@ public class WsNotStaleDataTest {
 		}
 
 		private void updateFundingRate(FundingRatePatch patch) {
-			FundingRate previous = latestFundingRate.get();
-			FundingRate updated = new FundingRate(
+			Funding previous = latestFundingRate.get();
+			Funding updated = new Funding(
 							patch.rate() != null ? patch.rate() : previous.rate(),
 							patch.settlement() != null ? patch.settlement() : previous.settlement(),
 							patch.timestamp()
@@ -146,7 +146,7 @@ public class WsNotStaleDataTest {
 		}
 
 		private void updateMarkPrice(MarkPricePatch patch) {
-			MarkPrice updated = new MarkPrice(patch.price(), patch.timestamp());
+			Mark updated = new Mark(patch.price(), patch.timestamp());
 			latestMarkPrice.set(updated);
 			markPrice.update(updated.price());
 			markTimestamp.update(updated.timestamp());

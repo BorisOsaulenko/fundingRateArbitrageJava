@@ -2,7 +2,7 @@ package com.boris.fundingarbitrage.exchange.impl.kucoin.publicrest;
 
 import com.boris.fundingarbitrage.exchange.publichttp.FuturesTradingState;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
-import com.boris.fundingarbitrage.model.contract.FundingRate;
+import com.boris.fundingarbitrage.model.contract.Funding;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -44,13 +44,13 @@ class PublicResponses {
 			return result;
 		}
 
-		public Map<String, FundingRate> getFundingRates() {
-			Map<String, FundingRate> result = new HashMap<>();
+		public Map<String, Funding> getFundingRates() {
+			Map<String, Funding> result = new HashMap<>();
 			Instant now = Instant.now();
 			for (ActiveContract contract : data) {
 				result.put(
 								contract.symbol(),
-								new FundingRate(
+								new Funding(
 												contract.fundingFeeRate(),
 												Instant.ofEpochMilli(contract.nextFundingRateDateTime()),
 												now
@@ -128,7 +128,8 @@ class PublicResponses {
 		public Map<String, BigDecimal> getLotSizes() {
 			Map<String, BigDecimal> result = new HashMap<>();
 			for (SpotSymbol symbol : data) {
-				if (!"USDT".equalsIgnoreCase(symbol.quoteCurrency()) || !"true".equalsIgnoreCase(symbol.enableTrading())) continue;
+				if (!"USDT".equalsIgnoreCase(symbol.quoteCurrency()) || !"true".equalsIgnoreCase(symbol.enableTrading()))
+					continue;
 				result.put(symbol.symbol(), symbol.baseIncrement());
 			}
 			return result;

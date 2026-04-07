@@ -8,7 +8,6 @@ import com.boris.fundingarbitrage.model.assetops.TradeParams;
 import com.boris.fundingarbitrage.model.assetops.TradeSide;
 import com.boris.fundingarbitrage.model.contract.PartialFill;
 import com.boris.fundingarbitrage.model.exchange.ExchangeConstantData;
-import com.boris.fundingarbitrage.model.exchange.ExchangeData;
 import com.boris.fundingarbitrage.model.exchange.ExchangeSnapshot;
 import com.boris.fundingarbitrage.monitor.CoinMonitor;
 import com.boris.fundingarbitrage.strategy.TradeMarket;
@@ -42,7 +41,7 @@ public class ClassicInSingleTradeCoinLogic extends InSingleTradeCoinLogic {
 					ExchangeConstantData constantData,
 					TradeDirections directions
 	) {
-		ExchangeSnapshot enterSnapshot = monitor.getSnapshot(exchange, coin);
+		ExchangeSnapshot enterSnapshot = monitor.getFuturesSnapshot(exchange, coin);
 		InSingleTradeStrategy strategy = new ClassicInSingleTradeStrategy(
 						new ExchangeData(enterSnapshot, constantData),
 						directions
@@ -113,7 +112,7 @@ public class ClassicInSingleTradeCoinLogic extends InSingleTradeCoinLogic {
 	public CompletableFuture<Void> exitTradeIfShould() {
 		if (!enterFuture.isDone()) return null;
 
-		ExchangeSnapshot current = monitor.getSnapshot(exchange, coin);
+		ExchangeSnapshot current = monitor.getFuturesSnapshot(exchange, coin);
 		if (!strategy.shouldExitTrade(current)) return null;
 
 		return execution.exitTrade().thenCompose(v -> shutdown(current));

@@ -6,7 +6,7 @@ import com.boris.fundingarbitrage.exchange.publichttp.FuturesTradingState;
 import com.boris.fundingarbitrage.exchange.publichttp.PublicHttpClient;
 import com.boris.fundingarbitrage.exchange.publichttp.SpotPublicOnePullData;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
-import com.boris.fundingarbitrage.model.contract.FundingRate;
+import com.boris.fundingarbitrage.model.contract.Funding;
 import com.boris.fundingarbitrage.util.https.PrettyHttpClient;
 import com.boris.fundingarbitrage.util.https.RequestProcessingClientWrapper;
 import com.boris.fundingarbitrage.util.logger.Logger;
@@ -26,7 +26,7 @@ public class BinancePublicHttpClient extends PublicHttpClient {
 	}
 
 	@Override
-	protected CompletableFuture<Map<String, FundingRate>> getFundingRateSymbols() {
+	protected CompletableFuture<Map<String, Funding>> getFundingRateSymbols() {
 		return requestWrapper.processRequest(
 						PublicEndpoints.premiumIndexRequest(),
 						PublicResponses.PremiumIndexResponse.class,
@@ -59,7 +59,7 @@ public class BinancePublicHttpClient extends PublicHttpClient {
 						PublicResponses.Statistics24hResponse::getVolume24h
 		);
 
-		CompletableFuture<Map<String, FundingRate>> fundingRates = requestWrapper.processRequest(
+		CompletableFuture<Map<String, Funding>> fundingRates = requestWrapper.processRequest(
 						PublicEndpoints.premiumIndexRequest(),
 						PublicResponses.PremiumIndexResponse.class,
 						PublicResponses.PremiumIndexResponse::getFundingRates
@@ -76,7 +76,7 @@ public class BinancePublicHttpClient extends PublicHttpClient {
 									BigDecimal volume24h = volumes24hFuture.join().get(symbol);
 									BookTicker ticker = bookTickersFuture.join().get(symbol);
 									int fundingGranularity = fundingGranularityFuture.join().get(symbol);
-									FundingRate rate = fundingRates.join().get(symbol);
+									Funding rate = fundingRates.join().get(symbol);
 									FuturesTradingState tradingState = tradingStates.get(symbol);
 
 									data.put(

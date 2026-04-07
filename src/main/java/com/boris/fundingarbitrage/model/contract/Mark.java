@@ -6,18 +6,18 @@ import lombok.NonNull;
 import java.math.BigDecimal;
 import java.time.Instant;
 
-public record MarkPrice(BigDecimal price, @NonNull Instant timestamp) {
-	public MarkPrice {
+public record Mark(BigDecimal price, @NonNull Instant timestamp) {
+	public Mark {
 		if (!Instant.EPOCH.equals(timestamp)) {
 			Validations.requirePositive(price, "Price");
 		}
 	}
 
-	public static MarkPrice empty() {
-		return new MarkPrice(BigDecimal.ZERO, Instant.EPOCH);
+	public static Mark empty() {
+		return new Mark(BigDecimal.ZERO, Instant.EPOCH);
 	}
 
-	public static boolean isPartiallyEmpty(MarkPrice markPrice) {
+	public static boolean isPartiallyEmpty(Mark markPrice) {
 		return markPrice.price().equals(BigDecimal.ZERO) || Instant.EPOCH.equals(markPrice.timestamp());
 	}
 }

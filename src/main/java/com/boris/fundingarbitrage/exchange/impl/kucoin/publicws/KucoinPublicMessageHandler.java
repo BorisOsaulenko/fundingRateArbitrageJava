@@ -66,7 +66,7 @@ class KucoinPublicMessageHandler implements PublicMessageHandler {
 		String symbol = symbolFromTopic(topic);
 		if (symbol == null || symbol.isEmpty()) return null;
 
-		String markPriceNode = data.path("markPrice").asText();
+		String markPriceNode = data.path("mark").asText();
 		BigDecimal markPrice = markPriceNode.isEmpty() ? null : new BigDecimal(markPriceNode);
 		if (markPrice == null) return null;
 
@@ -88,7 +88,7 @@ class KucoinPublicMessageHandler implements PublicMessageHandler {
 		String symbol = symbolFromTopic(topic);
 		if (symbol == null || symbol.isEmpty()) return null;
 
-		String rateNode = data.path("fundingRate").asText();
+		String rateNode = data.path("funding").asText();
 		BigDecimal rate = rateNode.isEmpty() ? null : new BigDecimal(rateNode);
 		if (rate == null) return null;
 

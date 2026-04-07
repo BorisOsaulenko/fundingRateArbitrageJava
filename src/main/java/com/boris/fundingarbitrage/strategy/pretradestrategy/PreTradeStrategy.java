@@ -3,7 +3,6 @@ package com.boris.fundingarbitrage.strategy.pretradestrategy;
 import com.boris.fundingarbitrage.logic.coinopportunities.CoinOpportunity;
 import com.boris.fundingarbitrage.logic.coinopportunities.CrossCoinOpportunity;
 import com.boris.fundingarbitrage.logic.coinopportunities.SingleCoinOpportunity;
-import com.boris.fundingarbitrage.model.exchange.ExchangeData;
 import com.boris.fundingarbitrage.strategy.pretradestrategy.cross.CrossPreTradeStrategy;
 import com.boris.fundingarbitrage.strategy.pretradestrategy.single.SinglePreTradeStrategy;
 

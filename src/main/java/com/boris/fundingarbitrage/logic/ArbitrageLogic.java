@@ -10,7 +10,6 @@ import com.boris.fundingarbitrage.logic.coinopportunities.CoinOpportunity;
 import com.boris.fundingarbitrage.logic.coinopportunities.CrossCoinOpportunity;
 import com.boris.fundingarbitrage.logic.coinopportunities.SingleCoinOpportunity;
 import com.boris.fundingarbitrage.model.exchange.ExchangeConstantData;
-import com.boris.fundingarbitrage.model.exchange.ExchangeData;
 import com.boris.fundingarbitrage.model.exchange.ExchangePair;
 import com.boris.fundingarbitrage.model.exchange.ExchangeSnapshot;
 import com.boris.fundingarbitrage.monitor.CoinMonitor;
@@ -88,7 +87,7 @@ public abstract class ArbitrageLogic {
 						presentOnFutures,
 						presentOnSpot
 		);
-		this.snapshotExtractor = monitor::getSnapshot;
+		this.snapshotExtractor = monitor::getFuturesSnapshot;
 		initFuture = CompletableFuture.allOf(prettyMonitorInitFuture(), balancesFuture);
 	}
 

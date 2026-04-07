@@ -1,8 +1,7 @@
 package com.boris.fundingarbitrage.strategy.pretradestrategy.cross;
 
-import com.boris.fundingarbitrage.model.exchange.ExchangeData;
-import com.boris.fundingarbitrage.model.exchange.SpotConstantData;
-import com.boris.fundingarbitrage.model.exchange.SpotSnapshot;
+import com.boris.fundingarbitrage.model.exchange.constantdata.SpotConstantData;
+import com.boris.fundingarbitrage.model.exchange.snapshot.SpotSnapshot;
 import com.boris.fundingarbitrage.strategy.TradeMarket;
 import com.boris.fundingarbitrage.strategy.pretradestrategy.TradeDirections;
 

@@ -2,7 +2,6 @@ package com.boris.fundingarbitrage.strategy.intradestrategy.cross;
 
 import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.Fees;
-import com.boris.fundingarbitrage.model.exchange.ExchangeData;
 import com.boris.fundingarbitrage.model.exchange.ExchangeSnapshot;
 import com.boris.fundingarbitrage.strategy.TradeMarket;
 import com.boris.fundingarbitrage.strategy.intradestrategy.InCrossTradeStrategy;

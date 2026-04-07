@@ -1,22 +1,56 @@
 package com.boris.fundingarbitrage.tradelogger;
 
+import com.boris.fundingarbitrage.exchange.BaseExchange;
+import com.boris.fundingarbitrage.execution.TradeIds;
+import com.boris.fundingarbitrage.model.assetops.TradeSide;
+import com.boris.fundingarbitrage.model.contract.PartialFill;
+import com.boris.fundingarbitrage.model.exchange.ExchangePair;
+import com.boris.fundingarbitrage.model.exchange.constantdata.ConstantData;
+import com.boris.fundingarbitrage.model.exchange.snapshot.FuturesSnapshot;
+import com.boris.fundingarbitrage.model.exchange.snapshot.Snapshot;
+import com.boris.fundingarbitrage.strategy.TradeMarket;
+import com.boris.fundingarbitrage.strategy.pretradestrategy.TradeDirections;
+import kotlin.jvm.functions.Function3;
+
 import java.io.BufferedWriter;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-public sealed abstract class TradeLogger permits CrossTradeLogger, SingleTradeLogger {
+public class TradeLogger {
 	private static final DateTimeFormatter fmt = DateTimeFormatter
 					.ofPattern("yyyy_MM_dd-HH:mm:ss")
 					.withZone(ZoneId.of("UTC"));
 	private final Path logFilePath;
 	private final BufferedWriter writer;
+	private final String coin;
+	private final AtomicBoolean fillsFetchSuccess = new AtomicBoolean(true);
+	private final ExchangePair exchanges;
+	private final TradeDirections tradeDirections;
+	private final BigDecimal baseAssetQty;
+	private ConstantData longCd;
+	private ConstantData shortCd;
+	private Snapshot longEnterSn;
+	private Snapshot shortEnterSn;
+	private Snapshot longExitSn;
+	private Snapshot shortExitSn;
+	private BigDecimal totalFundingGain = BigDecimal.ZERO;
 
-	public TradeLogger(String coin) {
+	public TradeLogger(String coin, ExchangePair exchanges, TradeDirections tradeDirections, BigDecimal baseAssetQty) {
+		this.coin = coin;
+		this.exchanges = exchanges;
+		this.tradeDirections = tradeDirections;
+		this.baseAssetQty = baseAssetQty;
+
 		String path = String.format("logs/%s_%s.log", coin, fmt.format(Instant.now()));
 		this.logFilePath = Path.of(path);
 		OutputStream out;
@@ -76,5 +110,199 @@ public sealed abstract class TradeLogger permits CrossTradeLogger, SingleTradeLo
 
 	public void error(String message, Object... args) {
 		error(String.format(message, args));
+	}
+
+	public void setup(ConstantData longCd, ConstantData shortCd) {
+		this.longCd = longCd;
+		this.shortCd = shortCd;
+	}
+
+	public void logEnter(Snapshot longSn, Snapshot shortSn) {
+		this.longEnterSn = longSn;
+		this.shortEnterSn = shortSn;
+
+		BigDecimal longAsk = longSn.askPrice();
+		BigDecimal shortBid = shortSn.bidPrice();
+		BigDecimal longFee = longAsk.multiply(longCd.openTaker());
+		BigDecimal shortFee = shortBid.multiply(shortCd.openTaker());
+		log("Entered trades: [Long: %s], [Short: %s]", longAsk, shortBid);
+		log("Fees: [Long: %s], [Short: %s]", longFee, shortFee);
+	}
+
+	public void logFunding(FuturesSnapshot sn, boolean isLong) {
+		String tag = isLong ? "Long" : "Short";
+		BigDecimal mark = sn.mark().price();
+		BigDecimal funding = sn.funding().rate().multiply(mark);
+		if (isLong) funding = funding.negate();
+		log("Funding: [%s: %s]", tag, funding);
+		totalFundingGain = totalFundingGain.add(funding);
+	}
+
+	public void logExit(Snapshot longSn, Snapshot shortSn) {
+		this.longExitSn = longSn;
+		this.shortExitSn = shortSn;
+
+		BigDecimal longBid = longSn.bidPrice();
+		BigDecimal shortAsk = shortSn.askPrice();
+		BigDecimal longFee = longBid.multiply(longCd.closeTaker());
+		BigDecimal shortFee = shortAsk.multiply(shortCd.closeTaker());
+		log("Exited trades: [Long: %s], [Short: %s]", longBid, shortAsk);
+		log("Fees: [Long: %s], [Short: %s]", longFee, shortFee);
+	}
+
+	public CompletableFuture<Void> finish(TradeIds enterIds, TradeIds exitIds) {
+		CompletableFuture<List<PartialFill>> LEnterFuture = errorHandledFillsFetch(
+						exchanges.longEx(),
+						enterIds.longId(),
+						TradeSide.OPEN,
+						"Long Enter",
+						tradeDirections.longMarket()
+		);
+		CompletableFuture<List<PartialFill>> SEnterFuture = errorHandledFillsFetch(
+						exchanges.shortEx(),
+						enterIds.shortId(),
+						TradeSide.OPEN,
+						"Short Enter",
+						tradeDirections.shortMarket()
+		);
+
+		CompletableFuture<List<PartialFill>> LExitFuture = errorHandledFillsFetch(
+						exchanges.longEx(),
+						exitIds.longId(),
+						TradeSide.CLOSE,
+						"Long Exit",
+						tradeDirections.longMarket()
+		);
+
+		CompletableFuture<List<PartialFill>> SExitFuture = errorHandledFillsFetch(
+						exchanges.shortEx(),
+						exitIds.shortId(),
+						TradeSide.CLOSE,
+						"Short Exit",
+						tradeDirections.shortMarket()
+		);
+
+		return CompletableFuture.allOf(LEnterFuture, SEnterFuture, LExitFuture, SExitFuture)
+						.whenComplete((v, t) -> {
+							if (!fillsFetchSuccess.get()) return;
+
+							List<PartialFill> longEnterFills = LEnterFuture.join();
+							List<PartialFill> shortEnterFills = SEnterFuture.join();
+							List<PartialFill> longExitFills = LExitFuture.join();
+							List<PartialFill> shortExitFills = SExitFuture.join();
+
+							BigDecimal oLongEnterPrice = longEnterSn.bookTicker().askPrice();
+							BigDecimal oShortEnterPrice = shortEnterSn.bookTicker().bidPrice();
+							BigDecimal oLongExitPrice = longExitSn.bookTicker().bidPrice();
+							BigDecimal oShortExitPrice = shortExitSn.bookTicker().askPrice();
+
+							BigDecimal avgLongEnterPrice = getAvgPrice(longEnterFills);
+							BigDecimal avgShortEnterPrice = getAvgPrice(shortEnterFills);
+							BigDecimal avgLongExitPrice = getAvgPrice(longExitFills);
+							BigDecimal avgShortExitPrice = getAvgPrice(shortExitFills);
+
+							BigDecimal oLongEnterFee = longCd.openTaker().multiply(oLongEnterPrice);
+							BigDecimal oShortEnterFee = shortCd.openTaker().multiply(oShortEnterPrice);
+							BigDecimal oLongExitFee = longCd.closeTaker().multiply(oLongExitPrice);
+							BigDecimal oShortExitFee = shortCd.closeTaker().multiply(oShortExitPrice);
+							BigDecimal oTotalFees = oLongEnterFee.add(oShortEnterFee).add(oLongExitFee).add(oShortExitFee);
+
+							BigDecimal eLongEnterFee = longCd.fees().openTaker().multiply(avgLongEnterPrice);
+							BigDecimal eShortEnterFee = shortCd.fees().openTaker().multiply(avgShortEnterPrice);
+							BigDecimal eLongExitFee = longCd.fees().closeTaker().multiply(avgLongExitPrice);
+							BigDecimal eShortExitFee = shortCd.fees().closeTaker().multiply(avgShortExitPrice);
+							BigDecimal eTotalFees = eLongEnterFee.add(eShortEnterFee).add(eLongExitFee).add(eShortExitFee);
+
+							log("Trade info for " + coin + ": ");
+							logTradeStep(oLongEnterPrice, avgLongEnterPrice, longCd.openTaker(), true, true);
+							logTradeStep(oShortEnterPrice, avgShortEnterPrice, shortCd.openTaker(), false, true);
+							logTradeStep(oLongExitPrice, avgLongExitPrice, longCd.closeTaker(), true, false);
+							logTradeStep(oShortExitPrice, avgShortExitPrice, shortCd.closeTaker(), false, false);
+
+							log("Observed vs executed total gain (for one coin): ");
+							log("[Same] Funding gain: " + totalFundingGain);
+							var o = calculateGainFromPriceMoves(oLongEnterPrice, oShortEnterPrice, oLongExitPrice, oShortExitPrice);
+							var e = calculateGainFromPriceMoves(
+											avgLongEnterPrice,
+											avgShortEnterPrice,
+											avgLongExitPrice,
+											avgShortExitPrice
+							);
+							log("[Observed] Price moves: " + o);
+							log("[Executed] Price moves: " + e);
+
+							BigDecimal oTotalGain = o.add(totalFundingGain);
+							BigDecimal eTotalGain = e.add(totalFundingGain);
+							log("[Observed] Total gain: " + oTotalGain);
+							log("[Executed] Total gain: " + eTotalGain);
+
+							BigDecimal oAfterFees = oTotalGain.subtract(oTotalFees);
+							BigDecimal eAfterFees = eTotalGain.subtract(eTotalFees);
+							log("[Observed] After fees: " + oAfterFees);
+							log("[Executed] After fees: " + eAfterFees);
+
+							log("[Observed] PnL: " + oAfterFees.multiply(baseAssetQty));
+							log("[Executed] PnL: " + eAfterFees.multiply(baseAssetQty));
+						});
+	}
+
+	private CompletableFuture<List<PartialFill>> errorHandledFillsFetch(
+					BaseExchange ex,
+					String orderId,
+					TradeSide tradeSide,
+					String name,
+					TradeMarket market
+	) {
+		Function3<String, String, TradeSide, CompletableFuture<List<PartialFill>>> fetchFun =
+						market == TradeMarket.FUTURES ?
+										ex.privateHttpClient::getFuturesOrderRecord :
+										ex.privateHttpClient::getSpotOrderRecord;
+
+		return fetchFun.invoke(orderId, coin, tradeSide)
+						.whenComplete((r, t) -> {
+							if (t == null && r != null && !r.isEmpty()) return;
+							fillsFetchSuccess.set(false);
+							if (r == null || r.isEmpty()) warn("Fetched " + name + " fills: " + r);
+							else warn("Failed to fetch " + name + " fills: " + t.getMessage());
+						});
+	}
+
+	private BigDecimal getAvgPrice(List<PartialFill> fills) {
+		BigDecimal totalQty = fills.stream()
+						.map(PartialFill::baseAssetQty)
+						.reduce(BigDecimal.ZERO, BigDecimal::add);
+
+		BigDecimal totalCost = fills.stream()
+						.map(fill -> fill.baseAssetQty().multiply(fill.price()))
+						.reduce(BigDecimal.ZERO, BigDecimal::add);
+
+		return totalCost.divide(totalQty, RoundingMode.HALF_DOWN);
+	}
+
+	private void logTradeStep(BigDecimal o, BigDecimal a, BigDecimal feeRate, boolean isLong, boolean isEnter) {
+		BigDecimal s = o.subtract(a);
+		if ((!isLong && isEnter) || (isLong && !isEnter)) s = s.negate();
+		char ss = getSlippageSign(s);
+
+		String tag1 = isEnter ? "[Enter] " : "[Exit] ";
+		String tag2 = isLong ? "[Long] " : "[Short] ";
+
+		log(tag1 + tag2 + "Observed price: " + o + ", actual avg price: " + a + ". Slippage: " + ss + s);
+		log(tag1 + tag2 + "Fee: [Observed]" + o.multiply(feeRate) + ", [Executed]" + a.multiply(feeRate));
+	}
+
+	private char getSlippageSign(BigDecimal slippage) {
+		return slippage.compareTo(BigDecimal.ZERO) >= 0 ? '+' : ' ';
+	}
+
+	private BigDecimal calculateGainFromPriceMoves(
+					BigDecimal longEnter,
+					BigDecimal shortEnter,
+					BigDecimal longExit,
+					BigDecimal shortExit
+	) {
+		BigDecimal longGain = longExit.subtract(longEnter);
+		BigDecimal shortGain = shortEnter.subtract(shortExit);
+		return longGain.add(shortGain);
 	}
 }

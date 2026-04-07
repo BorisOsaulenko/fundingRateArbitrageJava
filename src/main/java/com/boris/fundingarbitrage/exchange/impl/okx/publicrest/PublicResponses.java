@@ -2,7 +2,7 @@ package com.boris.fundingarbitrage.exchange.impl.okx.publicrest;
 
 import com.boris.fundingarbitrage.exchange.publichttp.FuturesTradingState;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
-import com.boris.fundingarbitrage.model.contract.FundingRate;
+import com.boris.fundingarbitrage.model.contract.Funding;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -76,11 +76,11 @@ class PublicResponses {
 	}
 
 	public record FundingRatesResponse(int code, String msg, List<FundingRateItem> data) {
-		public Map<String, FundingRate> getFundingRates() {
-			Map<String, FundingRate> result = new HashMap<>();
+		public Map<String, Funding> getFundingRates() {
+			Map<String, Funding> result = new HashMap<>();
 			for (FundingRateItem item : data) {
 				result.put(
-								item.instId(), new FundingRate(
+								item.instId(), new Funding(
 												new BigDecimal(item.fundingRate()),
 												Instant.ofEpochMilli(Long.parseLong(item.fundingTime())),
 												Instant.now() // the ts field represents the last cache timestamp, not request processing time

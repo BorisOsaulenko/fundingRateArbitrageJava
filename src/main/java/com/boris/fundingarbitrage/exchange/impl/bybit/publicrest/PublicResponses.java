@@ -1,7 +1,7 @@
 package com.boris.fundingarbitrage.exchange.impl.bybit.publicrest;
 
 import com.boris.fundingarbitrage.model.contract.BookTicker;
-import com.boris.fundingarbitrage.model.contract.FundingRate;
+import com.boris.fundingarbitrage.model.contract.Funding;
 import com.boris.fundingarbitrage.util.https.PaginatedResponse;
 
 import java.math.BigDecimal;
@@ -68,12 +68,12 @@ class PublicResponses {
 			return resultMap;
 		}
 
-		public Map<String, FundingRate> getFundingRates() {
-			Map<String, FundingRate> resultMap = new HashMap<>();
+		public Map<String, Funding> getFundingRates() {
+			Map<String, Funding> resultMap = new HashMap<>();
 			for (Ticker item : result.list()) {
-				FundingRate
+				Funding
 								fr =
-								new FundingRate(
+								new Funding(
 												item.fundingRate(),
 												Instant.ofEpochMilli(item.nextFundingTime()),
 												Instant.ofEpochMilli(time)

@@ -2,7 +2,7 @@ package com.boris.fundingarbitrage.exchange.impl.whitebit.publicrest;
 
 import com.boris.fundingarbitrage.exchange.publichttp.FuturesTradingState;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
-import com.boris.fundingarbitrage.model.contract.FundingRate;
+import com.boris.fundingarbitrage.model.contract.Funding;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
@@ -48,7 +48,8 @@ class PublicResponses {
 		public Map<String, BigDecimal> getSpotLotSizes() {
 			Map<String, BigDecimal> result = new HashMap<>();
 			for (Market market : markets) {
-				if (!"spot".equalsIgnoreCase(market.type()) || !market.tradesEnabled() || !market.name().endsWith("_USDT")) continue;
+				if (!"spot".equalsIgnoreCase(market.type()) || !market.tradesEnabled() || !market.name().endsWith("_USDT"))
+					continue;
 				result.put(market.name(), market.minAmount());
 			}
 			return result;
@@ -80,14 +81,14 @@ class PublicResponses {
 			return resultMap;
 		}
 
-		public Map<String, FundingRate> getFundingRates() {
+		public Map<String, Funding> getFundingRates() {
 			requireSuccess();
-			Map<String, FundingRate> resultMap = new HashMap<>();
+			Map<String, Funding> resultMap = new HashMap<>();
 			Instant now = Instant.now();
 			for (FuturesEntry entry : result) {
 				resultMap.put(
 								entry.ticker_id(),
-								new FundingRate(entry.funding_rate(), parseFundingTimestamp(entry.next_funding_rate_timestamp()), now)
+								new Funding(entry.funding_rate(), parseFundingTimestamp(entry.next_funding_rate_timestamp()), now)
 				);
 			}
 			return resultMap;

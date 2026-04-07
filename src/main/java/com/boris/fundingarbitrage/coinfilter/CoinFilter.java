@@ -7,8 +7,11 @@ import com.boris.fundingarbitrage.exchange.publichttp.FuturesTradingState;
 import com.boris.fundingarbitrage.exchange.publichttp.SpotPublicOnePullData;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.Fees;
-import com.boris.fundingarbitrage.model.contract.MarkPrice;
-import com.boris.fundingarbitrage.model.exchange.*;
+import com.boris.fundingarbitrage.model.contract.Mark;
+import com.boris.fundingarbitrage.model.exchange.constantdata.FuturesConstantData;
+import com.boris.fundingarbitrage.model.exchange.constantdata.SpotConstantData;
+import com.boris.fundingarbitrage.model.exchange.snapshot.FuturesSnapshot;
+import com.boris.fundingarbitrage.model.exchange.snapshot.SpotSnapshot;
 import com.boris.fundingarbitrage.monitor.ExchangeCoinMap;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import com.boris.fundingarbitrage.util.logger.Logger;
@@ -102,7 +105,7 @@ public class CoinFilter {
 												FuturesSnapshot snapshot = new FuturesSnapshot(
 																data.ticker(),
 																data.fundingRate(),
-																new MarkPrice(data.ticker().askPrice(), Instant.now())
+																new Mark(data.ticker().askPrice(), Instant.now())
 												);
 
 												FuturesConstantData constantData = new FuturesConstantData(

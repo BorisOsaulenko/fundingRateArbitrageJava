@@ -1,4 +1,4 @@
-package com.boris.fundingarbitrage.model.exchange;
+package com.boris.fundingarbitrage.model.exchange.constantdata;
 
 import com.boris.fundingarbitrage.model.contract.Fees;
 import lombok.NonNull;
@@ -9,5 +9,5 @@ public record FuturesConstantData(
 				@NonNull BigDecimal lotSize,
 				@NonNull Fees fees,
 				int fundingInterval
-) {
+) implements ConstantData {
 }

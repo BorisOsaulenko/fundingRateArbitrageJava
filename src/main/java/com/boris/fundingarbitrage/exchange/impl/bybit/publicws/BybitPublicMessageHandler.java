@@ -32,7 +32,7 @@ class BybitPublicMessageHandler implements PublicMessageHandler {
 		String symbol = data.path("symbol").asText();
 		if (symbol.isEmpty()) return null;
 
-		String markPriceNode = data.path("markPrice").asText();
+		String markPriceNode = data.path("mark").asText();
 		BigDecimal markPrice = markPriceNode.isEmpty() ? null : new BigDecimal(markPriceNode);
 		if (markPrice == null) return null;
 

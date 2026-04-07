@@ -61,7 +61,7 @@ public abstract class InSingleTradeCoinLogic extends InTradeCoinLogic {
 		if (!shouldRegisterFunding.get()) return;
 
 		shouldRegisterFunding.set(false);
-		ExchangeSnapshot snapshot = monitor.getSnapshot(exchange, coin);
+		ExchangeSnapshot snapshot = monitor.getFuturesSnapshot(exchange, coin);
 		settlementUtc.set(snapshot.fundingSettlement().toEpochMilli());
 		monitor.performOnTimestamp(
 						settlementUtc.get(), exchange, coin, sn -> {

@@ -1,7 +1,7 @@
 package com.boris.fundingarbitrage.exchange.publichttp;
 
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
-import com.boris.fundingarbitrage.model.contract.FundingRate;
+import com.boris.fundingarbitrage.model.contract.Funding;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import com.boris.fundingarbitrage.util.https.PrettyHttpClient;
 
@@ -24,7 +24,7 @@ public abstract class PublicHttpClient {
 
 	protected abstract CompletableFuture<Map<String, SpotPublicOnePullData>> getSpotPublicOnePullDataSymbols();
 
-	protected abstract CompletableFuture<Map<String, FundingRate>> getFundingRateSymbols();
+	protected abstract CompletableFuture<Map<String, Funding>> getFundingRateSymbols();
 
 	private <T> CompletableFuture<CoinVector<T>> withSymbol(
 					Set<String> coins,
@@ -43,7 +43,7 @@ public abstract class PublicHttpClient {
 		});
 	}
 
-	public CompletableFuture<CoinVector<FundingRate>> getFundingRate(Set<String> coins) {
+	public CompletableFuture<CoinVector<Funding>> getFundingRate(Set<String> coins) {
 		return withSymbol(coins, this::getFundingRateSymbols, exchangeContext::getFuturesSymbol);
 	}
 
