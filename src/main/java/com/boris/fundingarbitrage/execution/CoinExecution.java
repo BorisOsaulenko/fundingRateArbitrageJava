@@ -1,17 +1,17 @@
 package com.boris.fundingarbitrage.execution;
 
+import com.boris.fundingarbitrage.model.exchange.ExchangePair;
 import com.boris.fundingarbitrage.strategy.pretradestrategy.TradeDirections;
-import com.boris.fundingarbitrage.tradelogger.TradeLogger;
 import lombok.Getter;
 import lombok.NonNull;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
-public abstract sealed class CoinExecution permits CrossCoinExecution, SingleCoinExecution {
+public abstract class CoinExecution {
 	protected final String coin;
+	protected final ExchangePair exchanges;
 	protected final TradeDirections tradeDirections;
-	protected final TradeLogger tradeLogger;
 	private final boolean failed = false;
 	protected CompletableFuture<Void> enterFuture = null;
 	protected CompletableFuture<Void> exitFuture = null;
@@ -20,11 +20,11 @@ public abstract sealed class CoinExecution permits CrossCoinExecution, SingleCoi
 
 	public CoinExecution(
 					@NonNull String coin,
-					TradeLogger tradeLogger,
+					ExchangePair exchanges,
 					TradeDirections tradeDirections
 	) {
 		this.coin = coin;
-		this.tradeLogger = tradeLogger;
+		this.exchanges = exchanges;
 		this.tradeDirections = tradeDirections;
 	}
 
@@ -42,7 +42,7 @@ public abstract sealed class CoinExecution permits CrossCoinExecution, SingleCoi
 		//			failed = true;
 		//			return null;
 		//		});
-		tradeLogger.log("Would have entered trade for " + coin);
+
 		return CompletableFuture.completedFuture(null);
 	}
 
@@ -61,7 +61,6 @@ public abstract sealed class CoinExecution permits CrossCoinExecution, SingleCoi
 		//			return null;
 		//		});
 
-		tradeLogger.log("Would have exited trade for " + coin);
 		return CompletableFuture.completedFuture(null);
 	}
 

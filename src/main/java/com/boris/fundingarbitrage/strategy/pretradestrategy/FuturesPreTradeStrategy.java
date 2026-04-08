@@ -1,19 +1,21 @@
-package com.boris.fundingarbitrage.strategy.pretradestrategy.cross;
+package com.boris.fundingarbitrage.strategy.pretradestrategy;
 
 import com.boris.fundingarbitrage.model.exchange.constantdata.FuturesConstantData;
+import com.boris.fundingarbitrage.model.exchange.exchangedata.ExchangeData;
+import com.boris.fundingarbitrage.model.exchange.exchangedata.FuturesExchangeData;
 import com.boris.fundingarbitrage.model.exchange.snapshot.FuturesSnapshot;
 import com.boris.fundingarbitrage.strategy.TradeMarket;
-import com.boris.fundingarbitrage.strategy.pretradestrategy.TradeDirections;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.Instant;
 
-public final class FuturesCrossPreTradeStrategy implements CrossPreTradeStrategy {
+public final class FuturesPreTradeStrategy implements PreTradeStrategy {
 	private static final BigDecimal F_SPREAD_FLOOR = new BigDecimal("0.005");
 	private static final BigDecimal O_SPREAD_FLOOR = new BigDecimal("0.005"); // 0.5%
 	private static final Duration beforeFunding = Duration.ofSeconds(10);
+	private static final BigDecimal NEG_INF = new BigDecimal("-1000");
 
 	public static BigDecimal notional(FuturesSnapshot longSn, FuturesSnapshot shortSn) {
 		BigDecimal longAsk = longSn.bookTicker().askPrice();
@@ -55,15 +57,23 @@ public final class FuturesCrossPreTradeStrategy implements CrossPreTradeStrategy
 
 	@Override
 	public BigDecimal expectedGain(ExchangeData longData, ExchangeData shortData) {
-		BigDecimal futuresOSpread = futuresOSpread(longData.futuresSnapshot(), shortData.futuresSnapshot());
-		BigDecimal futuresFSpread = closestFuturesFSpread(longData.futuresSnapshot(), shortData.futuresSnapshot());
-		BigDecimal totalFuturesFees = totalFuturesFees(longData.futuresConstantData(), shortData.futuresConstantData());
-		return futuresOSpread.add(futuresFSpread).subtract(totalFuturesFees);
+		if (notOnlyFutures(longData, shortData)) return NEG_INF;
+		FuturesExchangeData longD = (FuturesExchangeData) longData;
+		FuturesExchangeData shortD = (FuturesExchangeData) shortData;
+
+		BigDecimal oSpread = futuresOSpread(longD.snapshot(), shortD.snapshot());
+		BigDecimal fSpread = closestFuturesFSpread(longD.snapshot(), shortD.snapshot());
+		BigDecimal totalFees = totalFuturesFees(longD.constantData(), shortD.constantData());
+		return oSpread.add(fSpread).subtract(totalFees);
 	}
 
-	private Instant fundingTimestamp(ExchangeData longData, ExchangeData shortData) {
-		Instant longSettlement = longData.futuresSnapshot().fundingRate().settlement();
-		Instant shortSettlement = shortData.futuresSnapshot().fundingRate().settlement();
+	private boolean notOnlyFutures(ExchangeData longData, ExchangeData shortData) {
+		return !(longData instanceof FuturesExchangeData) || !(shortData instanceof FuturesExchangeData);
+	}
+
+	private Instant fundingTimestamp(FuturesExchangeData longData, FuturesExchangeData shortData) {
+		Instant longSettlement = longData.snapshot().funding().settlement();
+		Instant shortSettlement = shortData.snapshot().funding().settlement();
 
 		if (longSettlement.isBefore(shortSettlement))
 			return longSettlement;
@@ -72,13 +82,17 @@ public final class FuturesCrossPreTradeStrategy implements CrossPreTradeStrategy
 
 	@Override
 	public boolean goodToEnter(ExchangeData longData, ExchangeData shortData) {
+		if (notOnlyFutures(longData, shortData)) return false;
+		FuturesExchangeData longD = (FuturesExchangeData) longData;
+		FuturesExchangeData shortD = (FuturesExchangeData) shortData;
+
 		Instant now = Instant.now();
-		Instant fundingTimestamp = fundingTimestamp(longData, shortData);
+		Instant fundingTimestamp = fundingTimestamp(longD, shortD);
 		if (now.isBefore(fundingTimestamp.minus(beforeFunding))) return false;
 
-		BigDecimal futuresFSpread = closestFuturesFSpread(longData.futuresSnapshot(), shortData.futuresSnapshot());
-		BigDecimal futuresOSpread = futuresOSpread(longData.futuresSnapshot(), shortData.futuresSnapshot());
-		BigDecimal totalFuturesFees = totalFuturesFees(longData.futuresConstantData(), shortData.futuresConstantData());
+		BigDecimal futuresFSpread = closestFuturesFSpread(longD.snapshot(), shortD.snapshot());
+		BigDecimal futuresOSpread = futuresOSpread(longD.snapshot(), shortD.snapshot());
+		BigDecimal totalFuturesFees = totalFuturesFees(longD.constantData(), shortD.constantData());
 		return futuresFSpread.subtract(totalFuturesFees).compareTo(F_SPREAD_FLOOR) > 0 &&
 					 futuresOSpread.compareTo(O_SPREAD_FLOOR) > 0;
 	}
@@ -86,15 +100,5 @@ public final class FuturesCrossPreTradeStrategy implements CrossPreTradeStrategy
 	@Override
 	public TradeDirections getDirections(ExchangeData longData, ExchangeData shortData) {
 		return new TradeDirections(TradeMarket.FUTURES, TradeMarket.FUTURES);
-	}
-
-	@Override
-	public boolean requiredSpot() {
-		return false;
-	}
-
-	@Override
-	public boolean requiredFutures() {
-		return true;
 	}
 }

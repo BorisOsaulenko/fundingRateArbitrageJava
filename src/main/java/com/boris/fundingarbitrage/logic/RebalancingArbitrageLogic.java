@@ -4,19 +4,14 @@ import com.boris.fundingarbitrage.coinParser.ICoinSupplier;
 import com.boris.fundingarbitrage.coinfilter.CoinFilterConfig;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.exchange.Instances;
-import com.boris.fundingarbitrage.intradelogic.InTradeCoinLogic;
 import com.boris.fundingarbitrage.intradelogic.crosstrade.FuturesInCrossTradeCoinLogic;
 import com.boris.fundingarbitrage.intradelogic.crosstrade.SpotInCrossTradeCoinLogic;
 import com.boris.fundingarbitrage.intradelogic.singletrade.ClassicInSingleTradeCoinLogic;
-import com.boris.fundingarbitrage.logic.coinopportunities.CoinOpportunity;
-import com.boris.fundingarbitrage.logic.coinopportunities.CrossCoinOpportunity;
-import com.boris.fundingarbitrage.logic.coinopportunities.SingleCoinOpportunity;
 import com.boris.fundingarbitrage.model.assetops.InternalAccount;
 import com.boris.fundingarbitrage.model.assetops.InternalTransfer;
 import com.boris.fundingarbitrage.model.assetops.Leverages;
 import com.boris.fundingarbitrage.model.exchange.ExchangePair;
 import com.boris.fundingarbitrage.strategy.pretradestrategy.PreTradeStrategy;
-import com.boris.fundingarbitrage.strategy.pretradestrategy.TradeDirections;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import com.boris.fundingarbitrage.util.logger.Logger;
 
@@ -59,7 +54,7 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 	@Override
 	protected void afterMonitorInit() {
 		exchangeUsageCounterMap = new ConcurrentHashMap<>();
-		for (BaseExchange ex : availableCoinsByExchange.keySet()) exchangeUsageCounterMap.put(ex, 0);
+		for (BaseExchange ex : filterData.availableCoinsByExchange().keySet()) exchangeUsageCounterMap.put(ex, 0);
 	}
 
 	private void analyzeBalances(Map<BaseExchange, BigDecimal> spotB, Map<BaseExchange, BigDecimal> futuresB) {
@@ -163,43 +158,14 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 
 			String coin = entry.getKey();
 			CoinOpportunity opportunity = entry.getValue();
-			if (!preTradeStrategy.goodToEnter(opportunity)) continue;
-
-			switch (opportunity) {
-				case SingleCoinOpportunity single -> enterSingleCoin(coin, single);
-				case CrossCoinOpportunity cross -> enterCrossCoin(coin, cross);
-			}
+			if (!preTradeStrategy.goodToEnter(opportunity.longData(), opportunity.shortData())) continue;
+			enterCrossCoin(coin, opportunity);
 		}
 	}
 
-	private void enterSingleCoin(String coin, SingleCoinOpportunity opportunity) {
-		BaseExchange exchange = opportunity.exchange();
-		Leverages leverages = new Leverages(1, 1);
-		TradeDirections directions = preTradeStrategy.single().getDirections(opportunity.data());
-		exchangeUsageCounterMap.merge(exchange, 1, Integer::sum);
-		try {
-			ClassicInSingleTradeCoinLogic inTradeLogic = new ClassicInSingleTradeCoinLogic(
-							coin,
-							monitor,
-							exchange,
-							config.legUsdtAmount(),
-							leverages,
-							constantDataMap.get(exchange, coin),
-							directions
-			);
-			inTradeCoins.add(inTradeLogic);
-			currentParallelTrades.incrementAndGet();
-		} catch (Exception e) {
-			Logger.error("Failed to initialize InTradeSingleCoinLogic: " + e.getMessage());
-			exchangeUsageCounterMap.merge(exchange, -1, Integer::sum);
-			forgetCoin(coin);
-		}
-	}
-
-	private void enterCrossCoin(String coin, CrossCoinOpportunity op) {
+	private void enterCrossCoin(String coin, CoinOpportunity op) {
 		ExchangePair exchanges = op.exchanges();
 		Leverages leverages = new Leverages(1, 1);
-		TradeDirections directions = preTradeStrategy.cross().getDirections(op.longData(), op.shortData());
 		exchangeUsageCounterMap.merge(exchanges.longEx(), 1, Integer::sum);
 		exchangeUsageCounterMap.merge(exchanges.shortEx(), 1, Integer::sum);
 		try {
@@ -209,9 +175,7 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 							exchanges,
 							config.legUsdtAmount(),
 							leverages,
-							constantDataMap.get(exchanges.longEx(), coin),
-							constantDataMap.get(exchanges.shortEx(), coin),
-							directions
+
 			);
 			inTradeCoins.add(inTradeLogic);
 			currentParallelTrades.incrementAndGet();

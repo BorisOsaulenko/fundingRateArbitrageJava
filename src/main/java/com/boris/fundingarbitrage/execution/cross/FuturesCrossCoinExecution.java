@@ -1,17 +1,17 @@
 package com.boris.fundingarbitrage.execution.cross;
 
-import com.boris.fundingarbitrage.execution.CrossCoinExecution;
+import com.boris.fundingarbitrage.execution.CoinExecution;
+import com.boris.fundingarbitrage.execution.TradeIds;
 import com.boris.fundingarbitrage.model.assetops.*;
 import com.boris.fundingarbitrage.model.exchange.ExchangePair;
 import com.boris.fundingarbitrage.strategy.TradeMarket;
 import com.boris.fundingarbitrage.strategy.pretradestrategy.TradeDirections;
-import com.boris.fundingarbitrage.tradelogger.TradeLogger;
 import lombok.NonNull;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
-public class FuturesCrossCoinExecution extends CrossCoinExecution {
+public class FuturesCrossCoinExecution extends CoinExecution {
 	private static final MarginMode FUTURES_MARGIN_MODE = MarginMode.CROSS;
 
 	private final TradeParams tradeParams;
@@ -21,10 +21,9 @@ public class FuturesCrossCoinExecution extends CrossCoinExecution {
 					@NonNull String coin,
 					@NonNull ExchangePair exchanges,
 					@NonNull TradeParams tradeParams,
-					@NonNull Leverages leverages,
-					TradeLogger tradeLogger
+					@NonNull Leverages leverages
 	) {
-		super(coin, tradeLogger, new TradeDirections(TradeMarket.FUTURES, TradeMarket.FUTURES), exchanges);
+		super(coin, exchanges, new TradeDirections(TradeMarket.FUTURES, TradeMarket.FUTURES));
 		this.tradeParams = tradeParams;
 		this.leverages = leverages;
 	}
@@ -45,17 +44,13 @@ public class FuturesCrossCoinExecution extends CrossCoinExecution {
 			String longId = longEnter.join();
 			String shortId = shortEnter.join();
 			this.enterIds = new TradeIds(longId, shortId);
-			tradeLogger.log("Entered trades. Long: " + longId + " | short: " + shortId);
 			return new TradeIds(longId, shortId);
 		}).exceptionallyComposeAsync(t -> {
 			if (longEnter.isCompletedExceptionally() && shortEnter.isCompletedExceptionally()) {
-				tradeLogger.log("Failed to enter trade on both legs: " + t.getMessage());
-				throw new RuntimeException(t);
+				throw new RuntimeException("Both long and short enter attempts failed: " + t.getMessage());
 			} else if (longEnter.isCompletedExceptionally()) return oneLegFailedScenario(t, shortEnter, true);
 			else if (shortEnter.isCompletedExceptionally()) return oneLegFailedScenario(t, longEnter, false);
-
-			tradeLogger.error("Error while failsafe exiting: " + t.getMessage());
-			throw new RuntimeException(t);
+			throw new RuntimeException("Error while failsafe exiting: " + t.getMessage());
 		});
 	}
 
@@ -68,23 +63,20 @@ public class FuturesCrossCoinExecution extends CrossCoinExecution {
 		String successName = longFailed ? "short" : "long";
 		Supplier<CompletableFuture<String>> successExit = longFailed ? this::exitShort : this::exitLong;
 
-		tradeLogger.error("Failed to enter trade for %s: %s", failedName, failedThrowable.getMessage());
-		tradeLogger.error("Attempting to exit %s automatically.", successName);
+		String commonError = "%s enter failed: %s, %s ".formatted(
+						failedName,
+						failedThrowable.getMessage(),
+						successName
+		);
+
 		return successEnter.thenCompose(_ ->
 						successExit.get()
 										.exceptionally(t2 -> {
-											tradeLogger.error(
-															"%s enter failed, %s compensation failed. Exit manually.",
-															failedName,
-															successName
-											);
-											throw new RuntimeException(t2);
+											throw new RuntimeException(commonError +
+																								 "compensation failed. Exit manually. %s".formatted(t2.getMessage()));
 										})
 										.thenApply(_ -> {
-											tradeLogger.error("%s enter failed; %s was compensated", failedName, successName);
-											throw new RuntimeException(
-															String.format("%s: %s enter failed, %s was compensated", coin, failedName, successName)
-											);
+											throw new RuntimeException(commonError + "was compensated.");
 										})
 		);
 	}
@@ -97,7 +89,6 @@ public class FuturesCrossCoinExecution extends CrossCoinExecution {
 		return CompletableFuture.allOf(longExit, shortExit).thenApply(_ -> {
 			String longId = longExit.join();
 			String shortId = shortExit.join();
-			tradeLogger.log("Exited trade, long: %s | short: %s", longId, shortId);
 			return new TradeIds(longId, shortId);
 		});
 	}

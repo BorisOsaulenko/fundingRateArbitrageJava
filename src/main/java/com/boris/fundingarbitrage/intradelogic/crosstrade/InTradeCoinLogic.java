@@ -1,17 +1,16 @@
 package com.boris.fundingarbitrage.intradelogic.crosstrade;
 
 import com.boris.fundingarbitrage.exchange.BaseExchange;
-import com.boris.fundingarbitrage.execution.CrossCoinExecution;
-import com.boris.fundingarbitrage.intradelogic.InTradeCoinLogic;
+import com.boris.fundingarbitrage.execution.CoinExecution;
 import com.boris.fundingarbitrage.model.exchange.ExchangePair;
-import com.boris.fundingarbitrage.model.exchange.ExchangeSnapshot;
 import com.boris.fundingarbitrage.model.exchange.constantdata.ConstantData;
+import com.boris.fundingarbitrage.model.exchange.snapshot.FuturesSnapshot;
 import com.boris.fundingarbitrage.model.exchange.snapshot.Snapshot;
 import com.boris.fundingarbitrage.monitor.CoinMonitor;
 import com.boris.fundingarbitrage.strategy.TradeMarket;
-import com.boris.fundingarbitrage.strategy.intradestrategy.InCrossTradeStrategy;
-import com.boris.fundingarbitrage.strategy.intradestrategy.cross.ClassicInCrossTradeStrategy;
+import com.boris.fundingarbitrage.strategy.intradestrategy.InTradeStrategy;
 import com.boris.fundingarbitrage.strategy.pretradestrategy.TradeDirections;
+import com.boris.fundingarbitrage.tradelogger.TradeLogger;
 import lombok.Getter;
 import lombok.NonNull;
 
@@ -25,57 +24,57 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
-public abstract class InCrossTradeCoinLogic extends InTradeCoinLogic {
+public abstract class InTradeCoinLogic {
 	@Getter protected final ExchangePair exchanges;
 	protected final Snapshot longEnterSn;
 	protected final Snapshot shortEnterSn;
 	protected final TradeMarket longMarket;
 	protected final TradeMarket shortMarket;
+	protected final InTradeStrategy strategy;
 	protected final ConstantData longConstantData;
 	protected final ConstantData shortConstantData;
-	protected final InCrossTradeStrategy strategy;
-	protected final AtomicBoolean fillsFetchSuccess = new AtomicBoolean(true);
+	protected final String coin;
 	private final ScheduledExecutorService fundingRegisterExecutor = Executors.newSingleThreadScheduledExecutor();
 	private final AtomicBoolean shouldRegisterShortFunding = new AtomicBoolean();
 	private final AtomicBoolean shouldRegisterLongFunding = new AtomicBoolean();
 	private final AtomicLong longSettlementUtc = new AtomicLong(0);
 	private final AtomicLong shortSettlementUtc = new AtomicLong(0);
-
-	protected CrossCoinExecution execution;
+	private final CoinMonitor monitor;
+	private final BigDecimal legUsdtAmount;
+	private final TradeLogger tradeLogger;
+	protected CoinExecution execution;
 	protected CompletableFuture<Void> enterFuture;
 
-	public InCrossTradeCoinLogic(
+	public InTradeCoinLogic(
 					@NonNull String coin,
 					@NonNull CoinMonitor monitor,
+					@NonNull InTradeStrategy strategy,
 					@NonNull BigDecimal legUsdtAmount,
 					@NonNull ExchangePair exchanges,
 					@NonNull TradeDirections tradeDirections,
-					@NonNull ConstantData longConstantData,
-					@NonNull ConstantData shortConstantData
+					@NonNull ConstantData longCD,
+					@NonNull ConstantData shortCD
 	) {
-		super(coin, monitor, legUsdtAmount);
-
+		this.coin = coin;
+		this.monitor = monitor;
+		this.legUsdtAmount = legUsdtAmount;
+		this.strategy = strategy;
 		this.longEnterSn = monitor.getFuturesSnapshot(exchanges.longEx(), coin);
 		this.shortEnterSn = monitor.getFuturesSnapshot(exchanges.shortEx(), coin);
-
-		this.strategy = new ClassicInCrossTradeStrategy(
-						new ExchangeData(longEnterSn, longConstantData),
-						new ExchangeData(shortEnterSn, shortConstantData),
-						tradeDirections
-		);
 
 		this.exchanges = exchanges;
 		this.longMarket = tradeDirections.longMarket();
 		this.shortMarket = tradeDirections.shortMarket();
-		this.longConstantData = longConstantData;
-		this.shortConstantData = shortConstantData;
+		this.longConstantData = longCD;
+		this.shortConstantData = shortCD;
 
 		this.shouldRegisterLongFunding.set(longMarket == TradeMarket.FUTURES);
 		this.shouldRegisterShortFunding.set(shortMarket == TradeMarket.FUTURES);
-
 		this.fundingRegisterExecutor.scheduleAtFixedRate(this::registerFunding, 0, 30, TimeUnit.MINUTES);
 
-		tradeLogger.log(coin + ". Long: " + exchanges.longEx().name + ", Short: " + exchanges.shortEx().name);
+		BigDecimal baseAssetQty = getBaseAssetQty(longEnterSn, shortEnterSn);
+		this.tradeLogger = new TradeLogger(coin, exchanges, tradeDirections, baseAssetQty, longCD, shortCD);
+		tradeLogger.logEnterSuccess(longEnterSn, shortEnterSn);
 	}
 
 	private static BigDecimal lcm(BigDecimal a, BigDecimal b) {
@@ -90,7 +89,6 @@ public abstract class InCrossTradeCoinLogic extends InTradeCoinLogic {
 		return new BigDecimal(lcm, scale);
 	}
 
-	@Override
 	protected void registerFunding() {
 		if (shouldRegisterLongFunding.get()) registerFunding(exchanges.longEx(), true);
 		if (shouldRegisterShortFunding.get()) registerFunding(exchanges.shortEx(), false);
@@ -101,11 +99,11 @@ public abstract class InCrossTradeCoinLogic extends InTradeCoinLogic {
 		AtomicLong settlementUtc = isLong ? longSettlementUtc : shortSettlementUtc;
 		if (shouldRegister.get()) {
 			shouldRegister.set(false);
-			ExchangeSnapshot snapshot = monitor.getFuturesSnapshot(ex, coin);
-			settlementUtc.set(snapshot.fundingSettlement().toEpochMilli());
+			FuturesSnapshot snapshot = monitor.getFuturesSnapshot(ex, coin);
+			settlementUtc.set(snapshot.funding().settlement().toEpochMilli());
 			monitor.performOnTimestamp(
-							settlementUtc.get(), ex, coin, (sn) -> {
-								tradeLogger.log("Funding on " + ex.name + ": [Rate: " + sn.fundingRate() + "]");
+							settlementUtc.get(), ex, coin, (sn, _) -> {
+								tradeLogger.logFunding(snapshot, isLong);
 								strategy.registerFunding(sn, isLong);
 								shouldRegister.set(true);
 							}
@@ -113,13 +111,13 @@ public abstract class InCrossTradeCoinLogic extends InTradeCoinLogic {
 		}
 	}
 
-	protected BigDecimal getBaseAssetQty(ExchangeSnapshot longEnter, ExchangeSnapshot shortEnter) {
-		BigDecimal longLotSize = longConstantData.lotSize(longMarket); // 2 COIN
-		BigDecimal shortLotSize = shortConstantData.lotSize(shortMarket); // 3 COIN
+	protected BigDecimal getBaseAssetQty(Snapshot longEnter, Snapshot shortEnter) {
+		BigDecimal longLotSize = longConstantData.lotSize(); // 2 COIN
+		BigDecimal shortLotSize = shortConstantData.lotSize(); // 3 COIN
 		BigDecimal effectiveLotSize = lcm(longLotSize, shortLotSize); // 6 COIN
 
-		BigDecimal longAsk = longEnter.bookTicker(longMarket).askPrice(); // 10 usdt/COIN
-		BigDecimal shortBid = shortEnter.bookTicker(shortMarket).bidPrice(); // 15 usdt/COIN
+		BigDecimal longAsk = longEnter.bookTicker().askPrice(); // 10 usdt/COIN
+		BigDecimal shortBid = shortEnter.bookTicker().bidPrice(); // 15 usdt/COIN
 
 		BigDecimal longELSMultiplier = this.legUsdtAmount // 300 usdt
 						.divide(longAsk, RoundingMode.FLOOR)
@@ -133,33 +131,27 @@ public abstract class InCrossTradeCoinLogic extends InTradeCoinLogic {
 		return effectiveELSMultiplier.multiply(effectiveLotSize); // 18 COIN
 	}
 
-	private CompletableFuture<Void> shutdown(ExchangeSnapshot currLong, ExchangeSnapshot currShort) {
+	private CompletableFuture<Void> shutdown(Snapshot currLong, Snapshot currShort) {
 		return new CompletableFuture<>().completeOnTimeout(
 						null,
 						5,
 						TimeUnit.SECONDS
-		).thenCompose(v -> logTradeInfo(currLong, currShort));
+		).thenCompose(v -> {
+			tradeLogger.logExit(currLong, currShort);
+			return tradeLogger.finish(execution.getEnterIds(), execution.getExitIds());
+		});
 	}
 
-	@Override
 	public CompletableFuture<Void> exitTradeIfShould() {
 		if (!enterFuture.isDone()) return null;
 
-		ExchangeSnapshot currLong = monitor.getFuturesSnapshot(exchanges.longEx(), coin);
-		ExchangeSnapshot currShort = monitor.getFuturesSnapshot(exchanges.shortEx(), coin);
+		Snapshot currLong = monitor.getSnapshot(exchanges.longEx(), coin, longMarket);
+		Snapshot currShort = monitor.getSnapshot(exchanges.shortEx(), coin, shortMarket);
 		if (!strategy.shouldExitTrade(currLong, currShort)) return null;
 
 		return execution.exitTrade().thenCompose(v -> shutdown(currLong, currShort));
 	}
 
-	protected Void failEnter(Throwable t) {
-		tradeLogger.error("Failed to enter trade for " + coin + ". Long: "
-											+ exchanges.longEx().name + " and short: " + exchanges.shortEx().name);
-		tradeLogger.error("Message: " + t.getMessage());
-		throw new RuntimeException(t);
-	}
-
-	@Override
 	protected void finish() {
 		fundingRegisterExecutor.shutdownNow();
 		monitor.cancelTimestampExecution(longSettlementUtc.get(), exchanges.longEx(), coin);

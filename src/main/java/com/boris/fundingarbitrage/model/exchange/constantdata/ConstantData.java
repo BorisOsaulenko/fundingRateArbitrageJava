@@ -1,27 +1,30 @@
 package com.boris.fundingarbitrage.model.exchange.constantdata;
 
 import com.boris.fundingarbitrage.model.contract.Fees;
+import lombok.NonNull;
 
 import java.math.BigDecimal;
 
 public sealed interface ConstantData permits FuturesConstantData, SpotConstantData {
+	@NonNull
 	Fees fees();
 
+	@NonNull
 	BigDecimal lotSize();
 
-	default BigDecimal openTaker() {
+	default @NonNull BigDecimal openTaker() {
 		return fees().openTaker();
 	}
 
-	default BigDecimal closeTaker() {
+	default @NonNull BigDecimal closeTaker() {
 		return fees().closeTaker();
 	}
 
-	default BigDecimal openMaker() {
+	default @NonNull BigDecimal openMaker() {
 		return fees().openMaker();
 	}
 
-	default BigDecimal closeMaker() {
+	default @NonNull BigDecimal closeMaker() {
 		return fees().closeMaker();
 	}
 }

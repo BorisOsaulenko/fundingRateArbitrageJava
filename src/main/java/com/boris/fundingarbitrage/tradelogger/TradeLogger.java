@@ -30,36 +30,44 @@ public class TradeLogger {
 	private static final DateTimeFormatter fmt = DateTimeFormatter
 					.ofPattern("yyyy_MM_dd-HH:mm:ss")
 					.withZone(ZoneId.of("UTC"));
-	private final Path logFilePath;
 	private final BufferedWriter writer;
 	private final String coin;
 	private final AtomicBoolean fillsFetchSuccess = new AtomicBoolean(true);
 	private final ExchangePair exchanges;
 	private final TradeDirections tradeDirections;
 	private final BigDecimal baseAssetQty;
-	private ConstantData longCd;
-	private ConstantData shortCd;
+	private final ConstantData longCd;
+	private final ConstantData shortCd;
 	private Snapshot longEnterSn;
 	private Snapshot shortEnterSn;
 	private Snapshot longExitSn;
 	private Snapshot shortExitSn;
 	private BigDecimal totalFundingGain = BigDecimal.ZERO;
 
-	public TradeLogger(String coin, ExchangePair exchanges, TradeDirections tradeDirections, BigDecimal baseAssetQty) {
+	public TradeLogger(
+					String coin,
+					ExchangePair exchanges,
+					TradeDirections tradeDirections,
+					BigDecimal baseAssetQty,
+					ConstantData longCd,
+					ConstantData shortCd
+	) {
 		this.coin = coin;
 		this.exchanges = exchanges;
 		this.tradeDirections = tradeDirections;
 		this.baseAssetQty = baseAssetQty;
+		this.longCd = longCd;
+		this.shortCd = shortCd;
 
 		String path = String.format("logs/%s_%s.log", coin, fmt.format(Instant.now()));
-		this.logFilePath = Path.of(path);
+		Path logFilePath = Path.of(path);
 		OutputStream out;
 		try {
-			Path parent = this.logFilePath.getParent();
+			Path parent = logFilePath.getParent();
 			if (parent != null) {
 				Files.createDirectories(parent);
 			}
-			out = Files.newOutputStream(this.logFilePath);
+			out = Files.newOutputStream(logFilePath);
 		} catch (Exception e) {
 			out = System.out;
 		}
@@ -70,7 +78,7 @@ public class TradeLogger {
 		return "[" + type.toUpperCase() + "] [" + fmt.format(Instant.now()) + "] ";
 	}
 
-	public void log(Object message) {
+	private void log(Object message) {
 		try {
 			writer.write(getPrefix("LOG") + message.toString() + "\n");
 			writer.flush();
@@ -80,7 +88,7 @@ public class TradeLogger {
 		}
 	}
 
-	public void warn(Object message) {
+	private void warn(Object message) {
 		try {
 			writer.write(getPrefix("WARN") + message.toString() + "\n");
 			writer.flush();
@@ -90,7 +98,7 @@ public class TradeLogger {
 		}
 	}
 
-	public void error(Object message) {
+	private void error(Object message) {
 		try {
 			writer.write(getPrefix("ERROR") + message.toString() + "\n");
 			writer.flush();
@@ -100,24 +108,19 @@ public class TradeLogger {
 		}
 	}
 
-	public void log(String message, Object... args) {
+	private void log(String message, Object... args) {
 		log(String.format(message, args));
 	}
 
-	public void warn(String message, Object... args) {
+	private void warn(String message, Object... args) {
 		warn(String.format(message, args));
 	}
 
-	public void error(String message, Object... args) {
+	private void error(String message, Object... args) {
 		error(String.format(message, args));
 	}
 
-	public void setup(ConstantData longCd, ConstantData shortCd) {
-		this.longCd = longCd;
-		this.shortCd = shortCd;
-	}
-
-	public void logEnter(Snapshot longSn, Snapshot shortSn) {
+	public void logEnterSuccess(Snapshot longSn, Snapshot shortSn) {
 		this.longEnterSn = longSn;
 		this.shortEnterSn = shortSn;
 
@@ -127,6 +130,10 @@ public class TradeLogger {
 		BigDecimal shortFee = shortBid.multiply(shortCd.openTaker());
 		log("Entered trades: [Long: %s], [Short: %s]", longAsk, shortBid);
 		log("Fees: [Long: %s], [Short: %s]", longFee, shortFee);
+	}
+
+	public void logEnterFailure(Throwable t) {
+		error("Failed to enter trades: " + t.getMessage());
 	}
 
 	public void logFunding(FuturesSnapshot sn, boolean isLong) {

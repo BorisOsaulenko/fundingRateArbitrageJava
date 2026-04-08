@@ -10,7 +10,7 @@ import lombok.NonNull;
 
 import java.math.BigDecimal;
 
-public class SpotInCrossTradeCoinLogic extends InCrossTradeCoinLogic {
+public class SpotInCrossTradeCoinLogic extends InTradeCoinLogic {
 	private final CoinExecution execution;
 
 	public SpotInCrossTradeCoinLogic(

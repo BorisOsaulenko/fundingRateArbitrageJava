@@ -1,15 +1,17 @@
 package com.boris.fundingarbitrage.monitor;
 
+import com.boris.fundingarbitrage.coinfilter.CoinFilterResult;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.Funding;
 import com.boris.fundingarbitrage.model.contract.Mark;
 import com.boris.fundingarbitrage.model.exchange.snapshot.FuturesSnapshot;
+import com.boris.fundingarbitrage.model.exchange.snapshot.Snapshot;
 import com.boris.fundingarbitrage.model.exchange.snapshot.SpotSnapshot;
 import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
 import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
 import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
-import com.boris.fundingarbitrage.util.coinvector.CoinVector;
+import com.boris.fundingarbitrage.strategy.TradeMarket;
 import com.boris.fundingarbitrage.util.logger.Logger;
 import lombok.Getter;
 
@@ -38,32 +40,23 @@ public class CoinMonitor {
 	private final ScheduledExecutorService completionScheduler = Executors.newSingleThreadScheduledExecutor();
 	private final long completionDelayMs = 500;
 
-	private final CoinVector<Set<BaseExchange>> availableExchangesByCoin;
-	private final Map<BaseExchange, Set<String>> availableCoinsByExchange;
+	private final CoinFilterResult filterData;
+
 	@Getter private final CompletableFuture<Void> initFuture;
 
-	private final ExchangeCoinMap<Boolean> presentOnFutures;
-	private final ExchangeCoinMap<Boolean> presentOnSpot;
-
 	public CoinMonitor(
-					CoinVector<Set<BaseExchange>> availableExchangesByCoin,
-					Map<BaseExchange, Set<String>> availableCoinsByExchange,
-					ExchangeCoinMap<Boolean> presentOnFutures,
-					ExchangeCoinMap<Boolean> presentOnSpot
+					CoinFilterResult filterData
 	) {
-		this.availableExchangesByCoin = availableExchangesByCoin;
-		this.availableCoinsByExchange = availableCoinsByExchange;
-		this.presentOnFutures = presentOnFutures;
-		this.presentOnSpot = presentOnSpot;
+		this.filterData = filterData;
 
-		Logger.log(availableCoinsByExchange.toString());
+		Logger.log(filterData.availableCoinsByExchange().toString());
 
 		this.initFuture = CompletableFuture.runAsync(() -> {
 			openWsConnections().join(); // Has to be awaited
 			Logger.debug("WS connections opened");
 			fillEmptyData();
 			Logger.debug("Empty data filled");
-			subscribeData(presentOnFutures, presentOnSpot);
+			subscribeData(filterData.initialPresentOnFutures(), filterData.initialPresentOnSpot());
 			Logger.debug("Subscribed to data");
 
 			CompletableFuture<Void> timeout = CompletableFuture.runAsync(
@@ -75,7 +68,7 @@ public class CoinMonitor {
 			clearCoinsWithInsufficientExchanges();
 
 			Logger.log("Coin monitor initialized:");
-			Logger.logCoinVector(availableExchangesByCoin.transform((exchanges, _) -> exchanges.stream()
+			Logger.logCoinVector(filterData.availableExchangesByCoin().transform((exchanges, _) -> exchanges.stream()
 							.map(exchange -> exchange.name)
 							.collect(Collectors.toSet())));
 		});
@@ -86,7 +79,7 @@ public class CoinMonitor {
 		List<ExchangeCoinPair> toUnsubscribeSpot = new ArrayList<>();
 		List<ExchangeCoinPair> toUnsubAll = new ArrayList<>();
 
-		for (Map.Entry<BaseExchange, Set<String>> entry : availableCoinsByExchange.entrySet()) {
+		for (Map.Entry<BaseExchange, Set<String>> entry : filterData.availableCoinsByExchange().entrySet()) {
 			BaseExchange ex = entry.getKey();
 			for (String coin : entry.getValue()) {
 				BookTicker ticker = futuresBookTickers.get(ex, coin);
@@ -122,17 +115,17 @@ public class CoinMonitor {
 	}
 
 	private void clearCoinsWithInsufficientExchanges() {
-		for (String coin : availableExchangesByCoin.keySet()) {
-			Set<BaseExchange> exchanges = availableExchangesByCoin.get(coin);
+		for (String coin : filterData.availableExchangesByCoin().keySet()) {
+			Set<BaseExchange> exchanges = filterData.availableExchangesByCoin().get(coin);
 			if (exchanges == null || exchanges.isEmpty()) {
 				Logger.warn("Not enough exchanges support " + coin + ". Removing from monitoring.");
-				availableExchangesByCoin.remove(coin);
+				filterData.availableExchangesByCoin().remove(coin);
 			}
 		}
 	}
 
 	private void fillEmptyData() {
-		availableExchangesByCoin.forEach((coin, exchanges) -> {
+		filterData.availableExchangesByCoin().forEach((coin, exchanges) -> {
 			for (BaseExchange exchange : exchanges) {
 				futuresFundingRates.put(exchange, coin, Funding.empty());
 				futuresBookTickers.put(exchange, coin, BookTicker.empty());
@@ -144,7 +137,7 @@ public class CoinMonitor {
 
 	private CompletableFuture<Void> openWsConnections() {
 		List<CompletableFuture<Void>> futures = new ArrayList<>();
-		for (BaseExchange exchange : availableCoinsByExchange.keySet()) {
+		for (BaseExchange exchange : filterData.availableCoinsByExchange().keySet()) {
 			futures.add(exchange.publicWsClient.connect());
 		}
 
@@ -152,7 +145,7 @@ public class CoinMonitor {
 	}
 
 	private void subscribeData(ExchangeCoinMap<Boolean> presentOnFutures, ExchangeCoinMap<Boolean> presentOnSpot) {
-		for (Map.Entry<BaseExchange, Set<String>> entry : availableCoinsByExchange.entrySet()) {
+		for (Map.Entry<BaseExchange, Set<String>> entry : filterData.availableCoinsByExchange().entrySet()) {
 			BaseExchange exchange = entry.getKey();
 			Set<String> supportedCoins = new HashSet<>(entry.getValue());
 			if (supportedCoins.isEmpty()) continue;
@@ -273,7 +266,7 @@ public class CoinMonitor {
 			futuresFundingCompletions.removeAll(ex, entry.getValue());
 			futuresTickerCompletions.removeAll(ex, entry.getValue());
 			futuresMarkCompletions.removeAll(ex, entry.getValue());
-			presentOnFutures.removeAll(ex, entry.getValue());
+			filterData.initialPresentOnFutures().removeAll(ex, entry.getValue());
 		}
 	}
 
@@ -288,7 +281,7 @@ public class CoinMonitor {
 			ex.publicWsClient.unsubscribeCoinsSpot(entry.getValue());
 			spotBookTickers.removeAll(entry.getKey(), entry.getValue());
 			spotBookTickerCompletions.removeAll(entry.getKey(), entry.getValue());
-			presentOnSpot.removeAll(entry.getKey(), entry.getValue());
+			filterData.initialPresentOnSpot().removeAll(entry.getKey(), entry.getValue());
 		}
 	}
 
@@ -311,8 +304,8 @@ public class CoinMonitor {
 			futuresTickerCompletions.removeAll(ex, coins);
 			futuresMarkCompletions.removeAll(ex, coins);
 			spotBookTickerCompletions.removeAll(ex, coins);
-			presentOnFutures.removeAll(ex, coins);
-			presentOnSpot.removeAll(ex, coins);
+			filterData.initialPresentOnFutures().removeAll(ex, coins);
+			filterData.initialPresentOnSpot().removeAll(ex, coins);
 			clearPendingEntries(ex, coins);
 			removeAvailability(ex, coins);
 		}
@@ -332,23 +325,23 @@ public class CoinMonitor {
 	}
 
 	private void removeAvailability(BaseExchange ex, Set<String> coins) {
-		Set<String> exchangeCoins = availableCoinsByExchange.get(ex);
+		Set<String> exchangeCoins = filterData.availableCoinsByExchange().get(ex);
 		if (exchangeCoins != null) {
 			exchangeCoins.removeAll(coins);
-			if (exchangeCoins.isEmpty()) availableCoinsByExchange.remove(ex);
+			if (exchangeCoins.isEmpty()) filterData.availableCoinsByExchange().remove(ex);
 		}
 
 		for (String coin : coins) {
-			Set<BaseExchange> exchanges = availableExchangesByCoin.get(coin);
+			Set<BaseExchange> exchanges = filterData.availableExchangesByCoin().get(coin);
 			if (exchanges != null) {
 				exchanges.remove(ex);
-				if (exchanges.isEmpty()) availableExchangesByCoin.remove(coin);
+				if (exchanges.isEmpty()) filterData.availableExchangesByCoin().remove(coin);
 			}
 		}
 	}
 
 	public void shutdown() {
-		for (BaseExchange exchange : availableCoinsByExchange.keySet()) exchange.publicWsClient.close();
+		for (BaseExchange exchange : filterData.availableCoinsByExchange().keySet()) exchange.publicWsClient.close();
 		completionScheduler.shutdownNow();
 	}
 
@@ -363,6 +356,11 @@ public class CoinMonitor {
 	public SpotSnapshot getSpotSnapshot(BaseExchange ex, String coin) {
 		BookTicker ticker = spotBookTickers.get(ex, coin);
 		return new SpotSnapshot(ticker);
+	}
+
+	public Snapshot getSnapshot(BaseExchange ex, String coin, TradeMarket market) {
+		if (market == TradeMarket.FUTURES) return getFuturesSnapshot(ex, coin);
+		else return getSpotSnapshot(ex, coin);
 	}
 
 	public void performOnTimestamp(

@@ -1,6 +1,5 @@
 package com.boris.fundingarbitrage.execution.cross;
 
-import com.boris.fundingarbitrage.execution.CrossCoinExecution;
 import com.boris.fundingarbitrage.model.assetops.OrderSide;
 import com.boris.fundingarbitrage.model.assetops.SpotOrder;
 import com.boris.fundingarbitrage.model.assetops.TradeSide;

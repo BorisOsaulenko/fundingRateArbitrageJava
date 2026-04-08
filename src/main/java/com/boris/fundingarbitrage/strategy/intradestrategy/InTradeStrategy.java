@@ -1,21 +1,24 @@
 package com.boris.fundingarbitrage.strategy.intradestrategy;
 
-import com.boris.fundingarbitrage.model.exchange.ExchangeSnapshot;
+import com.boris.fundingarbitrage.model.exchange.snapshot.FuturesSnapshot;
+import com.boris.fundingarbitrage.model.exchange.snapshot.Snapshot;
 import lombok.Getter;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public abstract sealed class InTradeStrategy permits InCrossTradeStrategy, InSingleTradeStrategy {
-	@Getter private final List<ExchangeSnapshot> longFundingSnapshots = new ArrayList<>();
-	@Getter private final List<ExchangeSnapshot> shortFundingSnapshots = new ArrayList<>();
+public abstract class InTradeStrategy {
+	@Getter private final List<FuturesSnapshot> longFundingSnapshots = new ArrayList<>();
+	@Getter private final List<FuturesSnapshot> shortFundingSnapshots = new ArrayList<>();
 
-	public void registerFunding(ExchangeSnapshot sn, boolean isLong) {
+	public void registerFunding(FuturesSnapshot sn, boolean isLong) {
 		if (isLong) longFundingSnapshots.add(sn);
 		else shortFundingSnapshots.add(sn);
 
 		accountForFundingEvent(sn, isLong);
 	}
 
-	protected abstract void accountForFundingEvent(ExchangeSnapshot sn, boolean isLong);
+	protected abstract void accountForFundingEvent(FuturesSnapshot sn, boolean isLong);
+
+	public abstract boolean shouldExitTrade(Snapshot longCurrent, Snapshot shortCurrent);
 }
