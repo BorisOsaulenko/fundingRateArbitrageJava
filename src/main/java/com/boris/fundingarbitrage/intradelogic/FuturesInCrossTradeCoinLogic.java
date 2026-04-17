@@ -1,4 +1,4 @@
-package com.boris.fundingarbitrage.intradelogic.crosstrade;
+package com.boris.fundingarbitrage.intradelogic;
 
 import com.boris.fundingarbitrage.model.assetops.TradeParams;
 import com.boris.fundingarbitrage.model.exchange.ExchangePair;
@@ -26,7 +26,6 @@ public class FuturesInCrossTradeCoinLogic extends InTradeCoinLogic {
 	) {
 		super(coin, monitor, strategy, legUsdtAmount, exchanges, tradeDirections, longCD, shortCD);
 		this.execution = new
-
 	}
 
 	private TradeParams getEnterParams(Snapshot longEnter, Snapshot shortEnter) {

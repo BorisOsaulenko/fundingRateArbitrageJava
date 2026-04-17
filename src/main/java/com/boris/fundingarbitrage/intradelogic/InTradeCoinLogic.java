@@ -1,4 +1,4 @@
-package com.boris.fundingarbitrage.intradelogic.crosstrade;
+package com.boris.fundingarbitrage.intradelogic;
 
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.execution.CoinExecution;

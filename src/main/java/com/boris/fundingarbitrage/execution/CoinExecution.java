@@ -1,5 +1,7 @@
 package com.boris.fundingarbitrage.execution;
 
+import com.boris.fundingarbitrage.model.assetops.Leverages;
+import com.boris.fundingarbitrage.model.assetops.TradeParams;
 import com.boris.fundingarbitrage.model.exchange.ExchangePair;
 import com.boris.fundingarbitrage.strategy.pretradestrategy.TradeDirections;
 import lombok.Getter;
@@ -12,19 +14,25 @@ public abstract class CoinExecution {
 	protected final String coin;
 	protected final ExchangePair exchanges;
 	protected final TradeDirections tradeDirections;
+	protected final TradeParams tradeParams;
+	protected final Leverages leverages;
 	protected CompletableFuture<Void> enterFuture = null;
 	protected CompletableFuture<Void> exitFuture = null;
 	@Getter protected TradeIds enterIds;
 	@Getter protected TradeIds exitIds;
 	private boolean failed = false;
 
-	public CoinExecution(
+	protected CoinExecution(
 					@NonNull String coin,
-					ExchangePair exchanges,
-					TradeDirections tradeDirections
+					@NonNull ExchangePair exchanges,
+					@NonNull TradeParams tradeParams,
+					@NonNull Leverages leverages,
+					@NonNull TradeDirections tradeDirections
 	) {
 		this.coin = coin;
 		this.exchanges = exchanges;
+		this.tradeParams = tradeParams;
+		this.leverages = leverages;
 		this.tradeDirections = tradeDirections;
 	}
 

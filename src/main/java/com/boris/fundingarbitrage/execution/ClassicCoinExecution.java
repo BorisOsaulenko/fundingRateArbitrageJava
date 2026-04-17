@@ -12,8 +12,6 @@ import java.util.function.Supplier;
 public class ClassicCoinExecution extends CoinExecution {
 	private static final MarginMode FUTURES_MARGIN_MODE = MarginMode.CROSS;
 
-	private final TradeParams tradeParams;
-	private final Leverages leverages;
 
 	public ClassicCoinExecution(
 					@NonNull String coin,
@@ -22,9 +20,7 @@ public class ClassicCoinExecution extends CoinExecution {
 					@NonNull Leverages leverages,
 					@NonNull TradeDirections tradeDirections
 	) {
-		super(coin, exchanges, tradeDirections);
-		this.tradeParams = tradeParams;
-		this.leverages = leverages;
+		super(coin, exchanges, tradeParams, leverages, tradeDirections);
 	}
 
 	private CompletableFuture<String> placeFuturesOrder(OrderSide orderSide, TradeSide tradeSide) {
