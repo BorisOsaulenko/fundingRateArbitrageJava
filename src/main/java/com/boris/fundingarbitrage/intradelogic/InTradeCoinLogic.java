@@ -2,6 +2,10 @@ package com.boris.fundingarbitrage.intradelogic;
 
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.execution.CoinExecution;
+import com.boris.fundingarbitrage.execution.factory.CoinExecutionFactory;
+import com.boris.fundingarbitrage.execution.factory.TestCoinExecutionFactory;
+import com.boris.fundingarbitrage.model.assetops.Leverages;
+import com.boris.fundingarbitrage.model.assetops.TradeParams;
 import com.boris.fundingarbitrage.model.exchange.ExchangePair;
 import com.boris.fundingarbitrage.model.exchange.constantdata.ConstantData;
 import com.boris.fundingarbitrage.model.exchange.snapshot.FuturesSnapshot;
@@ -24,7 +28,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
-public abstract class InTradeCoinLogic {
+public class InTradeCoinLogic {
 	@Getter protected final ExchangePair exchanges;
 	protected final Snapshot longEnterSn;
 	protected final Snapshot shortEnterSn;
@@ -33,7 +37,8 @@ public abstract class InTradeCoinLogic {
 	protected final InTradeStrategy strategy;
 	protected final ConstantData longConstantData;
 	protected final ConstantData shortConstantData;
-	protected final String coin;
+	@Getter protected final String coin;
+	protected final CoinExecution execution;
 	private final ScheduledExecutorService fundingRegisterExecutor = Executors.newSingleThreadScheduledExecutor();
 	private final AtomicBoolean shouldRegisterShortFunding = new AtomicBoolean();
 	private final AtomicBoolean shouldRegisterLongFunding = new AtomicBoolean();
@@ -42,7 +47,7 @@ public abstract class InTradeCoinLogic {
 	private final CoinMonitor monitor;
 	private final BigDecimal legUsdtAmount;
 	private final TradeLogger tradeLogger;
-	protected CoinExecution execution;
+	protected CoinExecutionFactory executionFactory = new TestCoinExecutionFactory();
 	protected CompletableFuture<Void> enterFuture;
 
 	public InTradeCoinLogic(
@@ -51,6 +56,7 @@ public abstract class InTradeCoinLogic {
 					@NonNull InTradeStrategy strategy,
 					@NonNull BigDecimal legUsdtAmount,
 					@NonNull ExchangePair exchanges,
+					@NonNull Leverages leverages,
 					@NonNull TradeDirections tradeDirections,
 					@NonNull ConstantData longCD,
 					@NonNull ConstantData shortCD
@@ -68,12 +74,22 @@ public abstract class InTradeCoinLogic {
 		this.longConstantData = longCD;
 		this.shortConstantData = shortCD;
 
+		BigDecimal baseAssetQty = getBaseAssetQty(longEnterSn, shortEnterSn);
+		this.tradeLogger = new TradeLogger(coin, exchanges, tradeDirections, baseAssetQty, longCD, shortCD);
+
+		this.execution = executionFactory.create(
+						coin,
+						exchanges,
+						getEnterParams(longEnterSn, shortEnterSn),
+						leverages,
+						tradeDirections
+		);
+		this.enterFuture = execution.enterTrade().exceptionally(tradeLogger::logEnterFailure);
+
 		this.shouldRegisterLongFunding.set(longMarket == TradeMarket.FUTURES);
 		this.shouldRegisterShortFunding.set(shortMarket == TradeMarket.FUTURES);
 		this.fundingRegisterExecutor.scheduleAtFixedRate(this::registerFunding, 0, 30, TimeUnit.MINUTES);
 
-		BigDecimal baseAssetQty = getBaseAssetQty(longEnterSn, shortEnterSn);
-		this.tradeLogger = new TradeLogger(coin, exchanges, tradeDirections, baseAssetQty, longCD, shortCD);
 		tradeLogger.logEnterSuccess(longEnterSn, shortEnterSn);
 	}
 
@@ -87,6 +103,21 @@ public abstract class InTradeCoinLogic {
 		BigInteger lcm = aInt.divide(gcd).multiply(bInt);
 
 		return new BigDecimal(lcm, scale);
+	}
+
+	private TradeParams getEnterParams(Snapshot longEnter, Snapshot shortEnter) {
+		BigDecimal baseAssetQty = getBaseAssetQty(longEnter, shortEnter);
+
+		if (baseAssetQty.equals(BigDecimal.ZERO))
+			throw new RuntimeException("Not enough margin deposited for coin: " + coin + ". Did not enter trades");
+
+		BigDecimal longLotSize = longConstantData.lotSize();
+		BigDecimal shortLotSize = shortConstantData.lotSize();
+
+		int longContractQty = baseAssetQty.divide(longLotSize, RoundingMode.FLOOR).intValueExact();
+		int shortContractQty = baseAssetQty.divide(shortLotSize, RoundingMode.FLOOR).intValueExact();
+
+		return new TradeParams(baseAssetQty, longContractQty, shortContractQty);
 	}
 
 	protected void registerFunding() {

@@ -1,5 +1,6 @@
 package com.boris.fundingarbitrage.monitor;
 
+import com.boris.fundingarbitrage.coinfilter.CoinExchangeSupport;
 import com.boris.fundingarbitrage.coinfilter.CoinFilterResult;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
@@ -41,6 +42,7 @@ public class CoinMonitor {
 	private final long completionDelayMs = 500;
 
 	private final CoinFilterResult filterData;
+	private final CoinExchangeSupport coinExchangeSupport;
 
 	@Getter private final CompletableFuture<Void> initFuture;
 
@@ -48,8 +50,9 @@ public class CoinMonitor {
 					CoinFilterResult filterData
 	) {
 		this.filterData = filterData;
+		this.coinExchangeSupport = filterData.coinExchangeSupport();
 
-		Logger.log(filterData.availableCoinsByExchange().toString());
+		Logger.log(coinExchangeSupport.coinsByExchange().toString());
 
 		this.initFuture = CompletableFuture.runAsync(() -> {
 			openWsConnections().join(); // Has to be awaited
@@ -68,9 +71,11 @@ public class CoinMonitor {
 			clearCoinsWithInsufficientExchanges();
 
 			Logger.log("Coin monitor initialized:");
-			Logger.logCoinVector(filterData.availableExchangesByCoin().transform((exchanges, _) -> exchanges.stream()
-							.map(exchange -> exchange.name)
-							.collect(Collectors.toSet())));
+			Logger.logCoinVector(coinExchangeSupport
+							.exchangesByCoin()
+							.transform((exchanges, _) -> exchanges.stream()
+											.map(exchange -> exchange.name())
+											.collect(Collectors.toSet())));
 		});
 	}
 
@@ -79,7 +84,7 @@ public class CoinMonitor {
 		List<ExchangeCoinPair> toUnsubscribeSpot = new ArrayList<>();
 		List<ExchangeCoinPair> toUnsubAll = new ArrayList<>();
 
-		for (Map.Entry<BaseExchange, Set<String>> entry : filterData.availableCoinsByExchange().entrySet()) {
+		for (Map.Entry<BaseExchange, Set<String>> entry : coinExchangeSupport.exchangeEntries()) {
 			BaseExchange ex = entry.getKey();
 			for (String coin : entry.getValue()) {
 				BookTicker ticker = futuresBookTickers.get(ex, coin);
@@ -93,13 +98,13 @@ public class CoinMonitor {
 				boolean spotTickerIncomplete = spotTicker == null || BookTicker.isPartiallyEmpty(spotTicker);
 
 				boolean shouldStayFutures = false;
-				if (futuresTickerIncomplete) Logger.warn("Futures ticker incomplete for " + coin + " on " + ex.name);
-				else if (fundingIncomplete) Logger.warn("Futures funding incomplete for " + coin + " on " + ex.name);
-				else if (markIncomplete) Logger.warn("Futures mark incomplete for " + coin + " on " + ex.name);
+				if (futuresTickerIncomplete) Logger.warn("Futures ticker incomplete for " + coin + " on " + ex.name());
+				else if (fundingIncomplete) Logger.warn("Futures funding incomplete for " + coin + " on " + ex.name());
+				else if (markIncomplete) Logger.warn("Futures mark incomplete for " + coin + " on " + ex.name());
 				else shouldStayFutures = true;
 
 				boolean shouldStaySpot = false;
-				if (spotTickerIncomplete) Logger.warn("Spot ticker incomplete for " + coin + " on " + ex.name);
+				if (spotTickerIncomplete) Logger.warn("Spot ticker incomplete for " + coin + " on " + ex.name());
 				else shouldStaySpot = true;
 
 				ExchangeCoinPair pair = new ExchangeCoinPair(ex, coin);
@@ -115,17 +120,17 @@ public class CoinMonitor {
 	}
 
 	private void clearCoinsWithInsufficientExchanges() {
-		for (String coin : filterData.availableExchangesByCoin().keySet()) {
-			Set<BaseExchange> exchanges = filterData.availableExchangesByCoin().get(coin);
+		for (String coin : coinExchangeSupport.getCoins()) {
+			Set<BaseExchange> exchanges = coinExchangeSupport.getExchanges(coin);
 			if (exchanges == null || exchanges.isEmpty()) {
 				Logger.warn("Not enough exchanges support " + coin + ". Removing from monitoring.");
-				filterData.availableExchangesByCoin().remove(coin);
+				coinExchangeSupport.removeByCoin(coin);
 			}
 		}
 	}
 
 	private void fillEmptyData() {
-		filterData.availableExchangesByCoin().forEach((coin, exchanges) -> {
+		coinExchangeSupport.exchangesByCoin().forEach((coin, exchanges) -> {
 			for (BaseExchange exchange : exchanges) {
 				futuresFundingRates.put(exchange, coin, Funding.empty());
 				futuresBookTickers.put(exchange, coin, BookTicker.empty());
@@ -137,15 +142,15 @@ public class CoinMonitor {
 
 	private CompletableFuture<Void> openWsConnections() {
 		List<CompletableFuture<Void>> futures = new ArrayList<>();
-		for (BaseExchange exchange : filterData.availableCoinsByExchange().keySet()) {
-			futures.add(exchange.publicWsClient.connect());
+		for (BaseExchange exchange : coinExchangeSupport.getExchanges()) {
+			futures.add(exchange.publicWsClient().connect());
 		}
 
 		return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
 	}
 
 	private void subscribeData(ExchangeCoinMap<Boolean> presentOnFutures, ExchangeCoinMap<Boolean> presentOnSpot) {
-		for (Map.Entry<BaseExchange, Set<String>> entry : filterData.availableCoinsByExchange().entrySet()) {
+		for (Map.Entry<BaseExchange, Set<String>> entry : coinExchangeSupport.exchangeEntries()) {
 			BaseExchange exchange = entry.getKey();
 			Set<String> supportedCoins = new HashSet<>(entry.getValue());
 			if (supportedCoins.isEmpty()) continue;
@@ -162,15 +167,15 @@ public class CoinMonitor {
 				Consumer<FundingRatePatch> fundingHandler = createFuturesFundingHandler(exchange);
 				Consumer<MarkPricePatch> markHandler = createFuturesMarkHandler(exchange);
 
-				exchange.publicWsClient.subscribeFuturesBookTicker(supportedOnFutures, bookHandler);
-				exchange.publicWsClient.subscribeFuturesFundingRates(supportedOnFutures, fundingHandler);
-				exchange.publicWsClient.subscribeFuturesMarkPrice(supportedOnFutures, markHandler);
+				exchange.publicWsClient().subscribeFuturesBookTicker(supportedOnFutures, bookHandler);
+				exchange.publicWsClient().subscribeFuturesFundingRates(supportedOnFutures, fundingHandler);
+				exchange.publicWsClient().subscribeFuturesMarkPrice(supportedOnFutures, markHandler);
 			}
 
 			if (!supportedOnSpot.isEmpty()) {
 				Consumer<BookTickerPatch> spotBookHandler = createSpotBookHandler(exchange);
 
-				exchange.publicWsClient.subscribeSpotBookTicker(supportedOnSpot, spotBookHandler);
+				exchange.publicWsClient().subscribeSpotBookTicker(supportedOnSpot, spotBookHandler);
 			}
 		}
 	}
@@ -259,7 +264,7 @@ public class CoinMonitor {
 		for (Map.Entry<BaseExchange, Set<String>> entry : unsubByExchange.entrySet()) {
 			BaseExchange ex = entry.getKey();
 
-			ex.publicWsClient.unsubscribeCoinsFutures(entry.getValue());
+			ex.publicWsClient().unsubscribeCoinsFutures(entry.getValue());
 			futuresFundingRates.removeAll(ex, entry.getValue());
 			futuresBookTickers.removeAll(ex, entry.getValue());
 			futuresMarkPrices.removeAll(ex, entry.getValue());
@@ -278,7 +283,7 @@ public class CoinMonitor {
 		for (Map.Entry<BaseExchange, Set<String>> entry : unsubByExchange.entrySet()) {
 			BaseExchange ex = entry.getKey();
 
-			ex.publicWsClient.unsubscribeCoinsSpot(entry.getValue());
+			ex.publicWsClient().unsubscribeCoinsSpot(entry.getValue());
 			spotBookTickers.removeAll(entry.getKey(), entry.getValue());
 			spotBookTickerCompletions.removeAll(entry.getKey(), entry.getValue());
 			filterData.initialPresentOnSpot().removeAll(entry.getKey(), entry.getValue());
@@ -294,8 +299,8 @@ public class CoinMonitor {
 			BaseExchange ex = entry.getKey();
 			Set<String> coins = entry.getValue();
 
-			ex.publicWsClient.unsubscribeCoinsFutures(coins);
-			ex.publicWsClient.unsubscribeCoinsSpot(coins);
+			ex.publicWsClient().unsubscribeCoinsFutures(coins);
+			ex.publicWsClient().unsubscribeCoinsSpot(coins);
 			futuresFundingRates.removeAll(ex, coins);
 			futuresBookTickers.removeAll(ex, coins);
 			futuresMarkPrices.removeAll(ex, coins);
@@ -325,23 +330,23 @@ public class CoinMonitor {
 	}
 
 	private void removeAvailability(BaseExchange ex, Set<String> coins) {
-		Set<String> exchangeCoins = filterData.availableCoinsByExchange().get(ex);
+		Set<String> exchangeCoins = coinExchangeSupport.getCoins(ex);
 		if (exchangeCoins != null) {
 			exchangeCoins.removeAll(coins);
-			if (exchangeCoins.isEmpty()) filterData.availableCoinsByExchange().remove(ex);
+			if (exchangeCoins.isEmpty()) coinExchangeSupport.removeByExchange(ex);
 		}
 
 		for (String coin : coins) {
-			Set<BaseExchange> exchanges = filterData.availableExchangesByCoin().get(coin);
+			Set<BaseExchange> exchanges = coinExchangeSupport.getExchanges(coin);
 			if (exchanges != null) {
 				exchanges.remove(ex);
-				if (exchanges.isEmpty()) filterData.availableExchangesByCoin().remove(coin);
+				if (exchanges.isEmpty()) coinExchangeSupport.removeByCoin(coin);
 			}
 		}
 	}
 
 	public void shutdown() {
-		for (BaseExchange exchange : filterData.availableCoinsByExchange().keySet()) exchange.publicWsClient.close();
+		for (BaseExchange exchange : coinExchangeSupport.getExchanges()) exchange.publicWsClient().close();
 		completionScheduler.shutdownNow();
 	}
 

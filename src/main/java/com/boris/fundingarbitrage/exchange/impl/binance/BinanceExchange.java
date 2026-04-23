@@ -7,16 +7,13 @@ import com.boris.fundingarbitrage.exchange.impl.binance.publicrest.BinancePublic
 import com.boris.fundingarbitrage.exchange.impl.binance.publicws.BinancePublicWsClient;
 import com.boris.fundingarbitrage.model.exchange.ExchangeName;
 
-public class BinanceExchange extends BaseExchange {
-	private static final BinanceContext context = new BinanceContext();
-	private static final ExchangeName name = ExchangeName.BINANCE;
-
-	private static final BinancePrivateWsClient privateWs = new BinancePrivateWsClient(context);
-	private static final BinancePublicHttpClient publicHttp = new BinancePublicHttpClient(context);
-	private static final BinancePublicWsClient publicWs = new BinancePublicWsClient(context, publicHttp);
-	private static final BinancePrivateHttpClient privateHttp = new BinancePrivateHttpClient(context);
-
-	public BinanceExchange() {
-		super(name, publicWs, privateWs, publicHttp, privateHttp);
+public final class BinanceExchange {
+	public static BaseExchange create() {
+		BinanceContext context = new BinanceContext();
+		var privateWs = new BinancePrivateWsClient(context);
+		var publicHttp = new BinancePublicHttpClient(context);
+		var publicWs = new BinancePublicWsClient(context, publicHttp);
+		var privateHttp = new BinancePrivateHttpClient(context);
+		return new BaseExchange(ExchangeName.BINANCE, publicWs, privateWs, publicHttp, privateHttp);
 	}
 }

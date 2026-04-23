@@ -132,8 +132,9 @@ public class TradeLogger {
 		log("Fees: [Long: %s], [Short: %s]", longFee, shortFee);
 	}
 
-	public void logEnterFailure(Throwable t) {
+	public Void logEnterFailure(Throwable t) {
 		error("Failed to enter trades: " + t.getMessage());
+		return null;
 	}
 
 	public void logFunding(FuturesSnapshot sn, boolean isLong) {
@@ -155,6 +156,11 @@ public class TradeLogger {
 		BigDecimal shortFee = shortAsk.multiply(shortCd.closeTaker());
 		log("Exited trades: [Long: %s], [Short: %s]", longBid, shortAsk);
 		log("Fees: [Long: %s], [Short: %s]", longFee, shortFee);
+	}
+
+	public Void logExitFailure(Throwable t, BaseExchange exchange) {
+		error("Failed to exit trade on %s: %s", exchange.name(), t.getMessage());
+		return null;
 	}
 
 	public CompletableFuture<Void> finish(TradeIds enterIds, TradeIds exitIds) {
@@ -262,8 +268,8 @@ public class TradeLogger {
 	) {
 		Function3<String, String, TradeSide, CompletableFuture<List<PartialFill>>> fetchFun =
 						market == TradeMarket.FUTURES ?
-										ex.privateHttpClient::getFuturesOrderRecord :
-										ex.privateHttpClient::getSpotOrderRecord;
+										ex.privateHttpClient()::getFuturesOrderRecord :
+										ex.privateHttpClient()::getSpotOrderRecord;
 
 		return fetchFun.invoke(orderId, coin, tradeSide)
 						.whenComplete((r, t) -> {

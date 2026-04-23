@@ -20,11 +20,11 @@ public class AllExchangesWsStabilityTest {
 	public void testAllExchangesWebsocketStability() throws Exception {
 		ArrayList<BaseExchange> exchanges = Instances.getExchangeArray();
 		for (BaseExchange exchange : exchanges) {
-			exchange.publicWsClient.subscribeFuturesMarkPrice(
+			exchange.publicWsClient().subscribeFuturesMarkPrice(
 							testCoin, (_) -> {
 							}
 			);
-			exchange.privateWsClient.subscribeDeposits((_) -> {
+			exchange.privateWsClient().subscribeDeposits((_) -> {
 			});
 		}
 		Logger.log("Starting websocket stability test for " + exchanges.size() + " exchanges.");
@@ -33,8 +33,8 @@ public class AllExchangesWsStabilityTest {
 			TimeUnit.MILLISECONDS.sleep(WAIT_DURATION.toMillis());
 		} finally {
 			for (BaseExchange exchange : exchanges) {
-				exchange.publicWsClient.close();
-				exchange.privateWsClient.close();
+				exchange.publicWsClient().close();
+				exchange.privateWsClient().close();
 			}
 			Logger.log("Websocket stability test finished. Closed all exchange clients.");
 		}

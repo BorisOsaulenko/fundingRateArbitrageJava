@@ -7,15 +7,15 @@ import com.boris.fundingarbitrage.exchange.impl.bybit.publicrest.BybitPublicHttp
 import com.boris.fundingarbitrage.exchange.impl.bybit.publicws.BybitPublicWsClient;
 import com.boris.fundingarbitrage.model.exchange.ExchangeName;
 
-public class BybitExchange extends BaseExchange {
-	private static final ExchangeName name = ExchangeName.BYBIT;
-	private static final BybitContext context = new BybitContext();
-	private static final BybitPrivateWsClient privateWs = new BybitPrivateWsClient(context);
-	private static final BybitPublicHttpClient publicHttp = new BybitPublicHttpClient(context);
-	private static final BybitPublicWsClient publicWs = new BybitPublicWsClient(context, publicHttp);
-	private static final BybitPrivateHttpClient privateHttp = new BybitPrivateHttpClient(context);
+public class BybitExchange {
+	public static BaseExchange create() {
+		ExchangeName name = ExchangeName.BYBIT;
+		BybitContext context = new BybitContext();
+		BybitPrivateWsClient privateWs = new BybitPrivateWsClient(context);
+		BybitPublicHttpClient publicHttp = new BybitPublicHttpClient(context);
+		BybitPublicWsClient publicWs = new BybitPublicWsClient(context, publicHttp);
+		BybitPrivateHttpClient privateHttp = new BybitPrivateHttpClient(context);
 
-	public BybitExchange() {
-		super(name, publicWs, privateWs, publicHttp, privateHttp);
+		return new BaseExchange(name, publicWs, privateWs, publicHttp, privateHttp);
 	}
 }

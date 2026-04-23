@@ -7,16 +7,16 @@ import com.boris.fundingarbitrage.exchange.impl.okx.publicrest.OkxPublicHttpClie
 import com.boris.fundingarbitrage.exchange.impl.okx.publicws.OkxPublicWsClient;
 import com.boris.fundingarbitrage.model.exchange.ExchangeName;
 
-public class OkxExchange extends BaseExchange {
-	private static final ExchangeName name = ExchangeName.OKX;
-	private static final OkxContext context = new OkxContext();
+public class OkxExchange {
+	public static BaseExchange create() {
+		ExchangeName name = ExchangeName.OKX;
+		OkxContext context = new OkxContext();
 
-	private static final OkxPrivateWsClient privateWs = new OkxPrivateWsClient(context);
-	private static final OkxPublicHttpClient publicHttp = new OkxPublicHttpClient(context);
-	private static final OkxPublicWsClient publicWs = new OkxPublicWsClient(context, publicHttp);
-	private static final OkxPrivateHttpClient privateHttp = new OkxPrivateHttpClient(context);
+		OkxPrivateWsClient privateWs = new OkxPrivateWsClient(context);
+		OkxPublicHttpClient publicHttp = new OkxPublicHttpClient(context);
+		OkxPublicWsClient publicWs = new OkxPublicWsClient(context, publicHttp);
+		OkxPrivateHttpClient privateHttp = new OkxPrivateHttpClient(context);
 
-	public OkxExchange() {
-		super(name, publicWs, privateWs, publicHttp, privateHttp);
+		return new BaseExchange(name, publicWs, privateWs, publicHttp, privateHttp);
 	}
 }

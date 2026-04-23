@@ -10,13 +10,13 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class ClassicInCrossTradeStrategy extends InTradeStrategy {
+public class ClassicInTradeStrategy extends InTradeStrategy {
 	private final AtomicReference<BigDecimal> pnlSoFar = new AtomicReference<>(BigDecimal.ZERO);
 	private final Fees longFees;
 	private final Fees shortFees;
 	private final BigDecimal minPnl;
 
-	public ClassicInCrossTradeStrategy(
+	public ClassicInTradeStrategy(
 					ExchangeData longEnter,
 					ExchangeData shortEnter
 	) {

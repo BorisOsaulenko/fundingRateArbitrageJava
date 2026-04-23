@@ -7,16 +7,16 @@ import com.boris.fundingarbitrage.exchange.impl.bitget.publicrest.BitgetPublicHt
 import com.boris.fundingarbitrage.exchange.impl.bitget.publicws.BitgetPublicWsClient;
 import com.boris.fundingarbitrage.model.exchange.ExchangeName;
 
-public class BitgetExchange extends BaseExchange {
-	private static final ExchangeName name = ExchangeName.BITGET;
-	private static final BitgetContext context = new BitgetContext();
+public final class BitgetExchange {
+	public static BaseExchange create() {
+		ExchangeName name = ExchangeName.BITGET;
+		BitgetContext context = new BitgetContext();
 
-	private static final BitgetPrivateWsClient privateWs = new BitgetPrivateWsClient(context);
-	private static final BitgetPublicHttpClient publicHttp = new BitgetPublicHttpClient(context);
-	private static final BitgetPublicWsClient publicWs = new BitgetPublicWsClient(context, publicHttp);
-	private static final BitgetPrivateHttpClient privateHttp = new BitgetPrivateHttpClient(context);
+		BitgetPrivateWsClient privateWs = new BitgetPrivateWsClient(context);
+		BitgetPublicHttpClient publicHttp = new BitgetPublicHttpClient(context);
+		BitgetPublicWsClient publicWs = new BitgetPublicWsClient(context, publicHttp);
+		BitgetPrivateHttpClient privateHttp = new BitgetPrivateHttpClient(context);
 
-	public BitgetExchange() {
-		super(name, publicWs, privateWs, publicHttp, privateHttp);
+		return new BaseExchange(name, publicWs, privateWs, publicHttp, privateHttp);
 	}
 }

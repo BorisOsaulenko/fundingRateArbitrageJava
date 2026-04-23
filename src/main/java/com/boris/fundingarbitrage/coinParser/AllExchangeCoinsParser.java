@@ -17,9 +17,9 @@ public class AllExchangeCoinsParser implements ICoinSupplier {
 		List<CompletableFuture<Void>> futures = new ArrayList<>();
 
 		for (BaseExchange exchange : Instances.getExchangeArray()) {
-			futures.add(exchange.publicHttpClient.getAvailableCoins()
+			futures.add(exchange.publicHttpClient().getAvailableCoins()
 							.exceptionally(t -> {
-								Logger.error("Failed to fetch coins for " + exchange.name + ": " + t.getMessage());
+								Logger.error("Failed to fetch coins for " + exchange.name() + ": " + t.getMessage());
 								return null;
 							})
 							.thenAccept(allCoins::addAll));

@@ -20,12 +20,12 @@ public class Instances {
 	private static final ArrayList<BaseExchange> exchangeArray = new ArrayList<>();
 
 	static {
-		exchanges.put(ExchangeName.BINANCE, new BinanceExchange());
-		exchanges.put(ExchangeName.BITGET, new BitgetExchange());
-		exchanges.put(ExchangeName.BYBIT, new BybitExchange());
-		exchanges.put(ExchangeName.GATE, new GateExchange());
-		exchanges.put(ExchangeName.KUCOIN, new KucoinExchange());
-		exchanges.put(ExchangeName.OKX, new OkxExchange());
+		exchanges.put(ExchangeName.BINANCE, BinanceExchange.create());
+		exchanges.put(ExchangeName.BITGET, BitgetExchange.create());
+		exchanges.put(ExchangeName.BYBIT, BybitExchange.create());
+		exchanges.put(ExchangeName.GATE, GateExchange.create());
+		exchanges.put(ExchangeName.KUCOIN, KucoinExchange.create());
+		exchanges.put(ExchangeName.OKX, OkxExchange.create());
 		//				exchanges.put(ExchangeName.WHITEBIT, new WhitebitExchange());
 
 		exchangeArray.addAll(exchanges.values());

@@ -8,6 +8,6 @@ public record ExchangePair(@NonNull BaseExchange longEx, @NonNull BaseExchange s
 	@NotNull
 	@Override
 	public String toString() {
-		return "[Long: " + longEx.name + ", Short: " + shortEx.name + "]";
+		return "[Long: " + longEx.name() + ", Short: " + shortEx.name() + "]";
 	}
 }

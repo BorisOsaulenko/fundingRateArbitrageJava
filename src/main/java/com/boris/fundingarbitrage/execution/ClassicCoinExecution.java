@@ -30,7 +30,7 @@ public class ClassicCoinExecution extends CoinExecution {
 						() -> configureFutures(false);
 		FuturesOrder order = buildFuturesOrder(orderSide, tradeSide);
 		return configureFutures.get()
-						.thenCompose(_ -> ex.privateHttpClient.placeFuturesOrder(coin, order))
+						.thenCompose(_ -> ex.privateHttpClient().placeFuturesOrder(coin, order))
 						.exceptionally((t) -> {
 							throw new RuntimeException("Failed to enter long leg: " + t.getMessage());
 						});
@@ -39,7 +39,7 @@ public class ClassicCoinExecution extends CoinExecution {
 	private CompletableFuture<String> placeSpotOrder(OrderSide orderSide, TradeSide tradeSide) {
 		BaseExchange ex = orderSide == OrderSide.LONG ? exchanges.longEx() : exchanges.shortEx();
 		SpotOrder order = buildSpotOrder(orderSide, tradeSide);
-		return ex.privateHttpClient.placeSpotOrder(coin, order)
+		return ex.privateHttpClient().placeSpotOrder(coin, order)
 						.exceptionally((t) -> {
 							throw new RuntimeException("Failed to place spot order: " + t.getMessage());
 						});
@@ -162,11 +162,11 @@ public class ClassicCoinExecution extends CoinExecution {
 		String name = isLong ? "long" : "short";
 		BaseExchange ex = isLong ? exchanges.longEx() : exchanges.shortEx();
 		int leverage = isLong ? leverages.longLeverage() : leverages.shortLeverage();
-		CompletableFuture<Void> marginModeFuture = ex.privateHttpClient.setMarginMode(coin, FUTURES_MARGIN_MODE)
+		CompletableFuture<Void> marginModeFuture = ex.privateHttpClient().setMarginMode(coin, FUTURES_MARGIN_MODE)
 						.exceptionally((t) -> {
 							throw new RuntimeException("Failed to set " + name + " futures margin mode: " + t.getMessage());
 						});
-		CompletableFuture<Void> leverageFuture = ex.privateHttpClient.changeLeverage(coin, leverage)
+		CompletableFuture<Void> leverageFuture = ex.privateHttpClient().changeLeverage(coin, leverage)
 						.exceptionally((t) -> {
 							throw new RuntimeException("Failed to set " + name + " futures leverage: " + t.getMessage());
 						});

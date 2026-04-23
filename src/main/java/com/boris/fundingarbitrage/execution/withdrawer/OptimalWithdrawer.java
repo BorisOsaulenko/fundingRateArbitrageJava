@@ -96,7 +96,7 @@ public class OptimalWithdrawer {
 			if (optimalLong == null && optimalShort == null) continue;
 
 			var item = new OptimalWithdrawerLogic.InputItem(
-							exchange.name,
+							exchange.name(),
 							balance,
 							optimalLong == null ? null : optimalLong.withdrawFee(),
 							optimalShort == null ? null : optimalShort.withdrawFee(),

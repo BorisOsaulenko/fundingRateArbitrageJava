@@ -3,12 +3,14 @@ package com.boris.fundingarbitrage;
 import com.boris.fundingarbitrage.coinParser.AllExchangeCoinsParser;
 import com.boris.fundingarbitrage.coinParser.ICoinSupplier;
 import com.boris.fundingarbitrage.coinfilter.CoinFilterConfig;
+import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.exchange.impl.bybit.BybitExchange;
 import com.boris.fundingarbitrage.logic.ArbitrageBotConfig;
 import com.boris.fundingarbitrage.logic.ArbitrageLogic;
 import com.boris.fundingarbitrage.logic.RebalancingArbitrageLogic;
+import com.boris.fundingarbitrage.strategy.intradestrategy.factory.ClassicInTradeFactory;
 import com.boris.fundingarbitrage.strategy.pretradestrategy.FuturesPreTradeStrategy;
-import com.boris.fundingarbitrage.strategy.pretradestrategy.single.ClassicSinglePreTradeStrategy;
+import com.boris.fundingarbitrage.strategy.pretradestrategy.PreTradeStrategy;
 import com.boris.fundingarbitrage.util.logger.Logger;
 import lombok.extern.slf4j.Slf4j;
 
@@ -22,10 +24,7 @@ public class App {
 		Logger.init(Path.of("app.log"));
 
 		ICoinSupplier coinSupplier = new AllExchangeCoinsParser();
-		PreTradeStrategy preTradeStrategy = new PreTradeStrategy(
-						new FuturesPreTradeStrategy(),
-						new ClassicSinglePreTradeStrategy()
-		);
+		PreTradeStrategy preTradeStrategy = new FuturesPreTradeStrategy();
 
 		ArbitrageBotConfig botConfig = new ArbitrageBotConfig(
 						new BigDecimal("20"), // leg usdt amount
@@ -44,6 +43,7 @@ public class App {
 			ArbitrageLogic logic = new RebalancingArbitrageLogic(
 							coinSupplier,
 							preTradeStrategy,
+							new ClassicInTradeFactory(),
 							filterConfig,
 							botConfig
 			);
@@ -55,9 +55,9 @@ public class App {
 	}
 
 	static void main() throws Exception {
-		BybitExchange ex = new BybitExchange();
+		BaseExchange ex = BybitExchange.create();
 		Logger.logImmediatelly();
-		ex.publicWsClient.connect().get();
-		ex.publicWsClient.subscribeSpotBookTicker(Set.of("PUMPBTC"), Logger::log);
+		ex.publicWsClient().connect().get();
+		ex.publicWsClient().subscribeSpotBookTicker(Set.of("PUMPBTC"), Logger::log);
 	}
 }
