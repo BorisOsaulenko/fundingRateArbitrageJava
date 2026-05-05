@@ -132,7 +132,7 @@ public class InTradeCoinLogic {
 			shouldRegister.set(false);
 			FuturesSnapshot snapshot = monitor.getFuturesSnapshot(ex, coin);
 			settlementUtc.set(snapshot.funding().settlement().toEpochMilli());
-			monitor.performOnTimestamp(
+			monitor.completionAgent.performOnTimestamp(
 							settlementUtc.get(), ex, coin, (sn, _) -> {
 								tradeLogger.logFunding(snapshot, isLong);
 								strategy.registerFunding(sn, isLong);
@@ -185,7 +185,7 @@ public class InTradeCoinLogic {
 
 	protected void finish() {
 		fundingRegisterExecutor.shutdownNow();
-		monitor.cancelTimestampExecution(longSettlementUtc.get(), exchanges.longEx(), coin);
-		monitor.cancelTimestampExecution(shortSettlementUtc.get(), exchanges.shortEx(), coin);
+		monitor.completionAgent.cancelTimestampExecution(exchanges.longEx(), coin, longSettlementUtc.get());
+		monitor.completionAgent.cancelTimestampExecution(exchanges.shortEx(), coin, shortSettlementUtc.get());
 	}
 }

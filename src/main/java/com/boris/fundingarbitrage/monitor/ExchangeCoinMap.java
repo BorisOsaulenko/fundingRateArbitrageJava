@@ -6,6 +6,7 @@ import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import java.util.Collection;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -56,6 +57,11 @@ public class ExchangeCoinMap<T> {
 		CoinVector<T> coinVector = exchangeCoinMap.get(exchange);
 		if (coinVector == null) return null;
 		return coinVector.computeIfPresent(coin, remappingFunction);
+	}
+
+	public void consumeIfPresent(BaseExchange ex, String coin, BiConsumer<String, T> consumer) {
+		T value = get(ex, coin);
+		if (value != null) consumer.accept(coin, value);
 	}
 
 	public Collection<T> values() {

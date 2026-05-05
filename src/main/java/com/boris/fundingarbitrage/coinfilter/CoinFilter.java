@@ -57,7 +57,7 @@ public class CoinFilter {
 		});
 	}
 
-	private CompletableFuture<Void> fetchData(BaseExchange exchange) {
+	public CompletableFuture<Void> fetchData(BaseExchange exchange) {
 		CompletableFuture<CoinVector<FuturesPublicOnePullData>> futuresOnePullDataFuture =
 						withTimeOut(
 										exchange.publicHttpClient().getFuturesOnePullData(coins),
@@ -121,6 +121,7 @@ public class CoinFilter {
 							}
 						});
 	}
+
 
 	private CompletableFuture<Void> fetchData() {
 		for (String coin : coins) availableSupport.addCoin(coin);

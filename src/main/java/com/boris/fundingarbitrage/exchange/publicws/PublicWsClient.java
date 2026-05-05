@@ -36,17 +36,6 @@ public abstract class PublicWsClient {
 	protected final CoinVector<Set<Consumer<BookTickerPatch>>> spotBookTickerHandlers = new CoinVector<>();
 	private final CompletableFuture<PrettyWsClient> prettyWsClientFuture; // protected for custom tweaks in subclasses
 
-	protected PublicWsClient(
-					ExchangeContext context,
-					PublicMessageHandler messageHandler,
-					PublicHttpClient publicHttpClient
-	) {
-		this.context = context;
-		this.messageHandler = messageHandler;
-		this.publicHttpClient = publicHttpClient;
-		this.prettyWsClientFuture = CompletableFuture.completedFuture(null);
-	}
-
 	public PublicWsClient(
 					ExchangeContext context,
 					URI endpoint,

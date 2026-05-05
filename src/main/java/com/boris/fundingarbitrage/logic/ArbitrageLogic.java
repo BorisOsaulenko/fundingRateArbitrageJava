@@ -15,6 +15,8 @@ import com.boris.fundingarbitrage.model.exchange.exchangedata.SpotExchangeData;
 import com.boris.fundingarbitrage.model.exchange.snapshot.FuturesSnapshot;
 import com.boris.fundingarbitrage.model.exchange.snapshot.SpotSnapshot;
 import com.boris.fundingarbitrage.monitor.CoinMonitor;
+import com.boris.fundingarbitrage.monitor.IDataStream;
+import com.boris.fundingarbitrage.monitor.ProdDataStream;
 import com.boris.fundingarbitrage.strategy.intradestrategy.factory.InTradeStrategyFactory;
 import com.boris.fundingarbitrage.strategy.pretradestrategy.PreTradeStrategy;
 import com.boris.fundingarbitrage.strategy.pretradestrategy.TradeDirections;
@@ -77,7 +79,8 @@ public abstract class ArbitrageLogic {
 		this.filterData = filterResult;
 		capToMaxCoinAmount().join();
 
-		this.monitor = new CoinMonitor(filterData);
+		IDataStream dataStream = new ProdDataStream(filterData.coinExchangeSupport());
+		this.monitor = new CoinMonitor(filterData, dataStream);
 		this.futuresSnapshotExtractor = monitor::getFuturesSnapshot;
 		initFuture = CompletableFuture.allOf(prettyMonitorInitFuture(), balancesFuture);
 	}
