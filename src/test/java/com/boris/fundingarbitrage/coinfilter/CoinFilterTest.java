@@ -1,5 +1,6 @@
 package com.boris.fundingarbitrage.coinfilter;
 
+import com.boris.fundingarbitrage.coinparser.ICoinSupplier;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.exchange.privatehttp.PrivateHttpClient;
 import com.boris.fundingarbitrage.exchange.privatews.PrivateWsClient;
@@ -20,9 +21,7 @@ import java.time.Instant;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -32,6 +31,7 @@ class CoinFilterTest {
 		String keptCoin = "BTC";
 		String removedCoin = "DOGE";
 		Set<String> coins = Set.of(keptCoin, removedCoin);
+		ICoinSupplier coinSupplier = () -> CompletableFuture.completedFuture(coins);
 
 		PublicHttpClient publicHttpClient = mock(PublicHttpClient.class);
 		PrivateHttpClient privateHttpClient = mock(PrivateHttpClient.class);
@@ -44,58 +44,66 @@ class CoinFilterTest {
 		);
 
 		CoinVector<FuturesPublicOnePullData> futuresData = new CoinVector<>();
-		futuresData.put(keptCoin, new FuturesPublicOnePullData(
-						new BigDecimal("0.001"),
-						new BigDecimal("5000000"),
-						8,
-						new BookTicker(
-										new BigDecimal("99990"),
-										new BigDecimal("2"),
-										new BigDecimal("100000"),
-										new BigDecimal("2"),
-										Instant.now()
-						),
-						new Funding(new BigDecimal("0.0001"), Instant.now().plusSeconds(3600), Instant.now()),
-						FuturesTradingState.TRADING
-		));
-		futuresData.put(removedCoin, new FuturesPublicOnePullData(
-						new BigDecimal("1"),
-						new BigDecimal("10"),
-						8,
-						new BookTicker(
-										new BigDecimal("0.1"),
-										new BigDecimal("100"),
-										new BigDecimal("0.11"),
-										new BigDecimal("100"),
-										Instant.now()
-						),
-						new Funding(new BigDecimal("0.0001"), Instant.now().plusSeconds(3600), Instant.now()),
-						FuturesTradingState.TRADING
-		));
+		futuresData.put(
+						keptCoin, new FuturesPublicOnePullData(
+										new BigDecimal("0.001"),
+										new BigDecimal("5000000"),
+										8,
+										new BookTicker(
+														new BigDecimal("99990"),
+														new BigDecimal("2"),
+														new BigDecimal("100000"),
+														new BigDecimal("2"),
+														Instant.now()
+										),
+										new Funding(new BigDecimal("0.0001"), Instant.now().plusSeconds(3600), Instant.now()),
+										FuturesTradingState.TRADING
+						)
+		);
+		futuresData.put(
+						removedCoin, new FuturesPublicOnePullData(
+										new BigDecimal("1"),
+										new BigDecimal("10"),
+										8,
+										new BookTicker(
+														new BigDecimal("0.1"),
+														new BigDecimal("100"),
+														new BigDecimal("0.11"),
+														new BigDecimal("100"),
+														Instant.now()
+										),
+										new Funding(new BigDecimal("0.0001"), Instant.now().plusSeconds(3600), Instant.now()),
+										FuturesTradingState.TRADING
+						)
+		);
 
 		CoinVector<SpotPublicOnePullData> spotData = new CoinVector<>();
-		spotData.put(keptCoin, new SpotPublicOnePullData(
-						new BigDecimal("0.001"),
-						new BigDecimal("4000000"),
-						new BookTicker(
-										new BigDecimal("99980"),
-										new BigDecimal("3"),
-										new BigDecimal("99990"),
-										new BigDecimal("3"),
-										Instant.now()
+		spotData.put(
+						keptCoin, new SpotPublicOnePullData(
+										new BigDecimal("0.001"),
+										new BigDecimal("4000000"),
+										new BookTicker(
+														new BigDecimal("99980"),
+														new BigDecimal("3"),
+														new BigDecimal("99990"),
+														new BigDecimal("3"),
+														Instant.now()
+										)
 						)
-		));
-		spotData.put(removedCoin, new SpotPublicOnePullData(
-						new BigDecimal("1"),
-						new BigDecimal("10"),
-						new BookTicker(
-										new BigDecimal("0.1"),
-										new BigDecimal("100"),
-										new BigDecimal("0.11"),
-										new BigDecimal("100"),
-										Instant.now()
+		);
+		spotData.put(
+						removedCoin, new SpotPublicOnePullData(
+										new BigDecimal("1"),
+										new BigDecimal("10"),
+										new BookTicker(
+														new BigDecimal("0.1"),
+														new BigDecimal("100"),
+														new BigDecimal("0.11"),
+														new BigDecimal("100"),
+														Instant.now()
+										)
 						)
-		));
+		);
 
 		CoinVector<Fees> futuresFees = new CoinVector<>();
 		futuresFees.put(keptCoin, Fees.allZero());
@@ -110,7 +118,7 @@ class CoinFilterTest {
 		when(privateHttpClient.getSpotTradingFees(coins)).thenReturn(CompletableFuture.completedFuture(spotFees));
 
 		CoinFilter filter = new CoinFilter(
-						coins,
+						coinSupplier,
 						new CoinFilterConfig(new BigDecimal("1000"), new BigDecimal("1000")),
 						Set.of(exchange)
 		);
@@ -127,7 +135,7 @@ class CoinFilterTest {
 		assertNotNull(result.spotConstantData().get(exchange, keptCoin));
 		assertEquals(Boolean.FALSE, result.initialPresentOnFutures().get(exchange, removedCoin));
 		assertEquals(Boolean.FALSE, result.initialPresentOnSpot().get(exchange, removedCoin));
-		assertEquals(null, result.coinExchangeSupport().getExchanges(removedCoin));
+		assertNull(result.coinExchangeSupport().getExchanges(removedCoin));
 		assertTrue(result.coinExchangeSupport().getExchanges().contains(exchange));
 	}
 }

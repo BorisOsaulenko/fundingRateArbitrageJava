@@ -2,6 +2,7 @@ package com.boris.fundingarbitrage.tradelogger;
 
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.execution.TradeIds;
+import com.boris.fundingarbitrage.logic.CoinOpportunity;
 import com.boris.fundingarbitrage.model.assetops.TradeSide;
 import com.boris.fundingarbitrage.model.contract.PartialFill;
 import com.boris.fundingarbitrage.model.exchange.ExchangePair;
@@ -46,18 +47,15 @@ public class TradeLogger {
 
 	public TradeLogger(
 					String coin,
-					ExchangePair exchanges,
-					TradeDirections tradeDirections,
-					BigDecimal baseAssetQty,
-					ConstantData longCd,
-					ConstantData shortCd
+					CoinOpportunity op,
+					BigDecimal baseAssetQty
 	) {
 		this.coin = coin;
-		this.exchanges = exchanges;
-		this.tradeDirections = tradeDirections;
+		this.exchanges = op.exchanges();
+		this.tradeDirections = op.directions();
 		this.baseAssetQty = baseAssetQty;
-		this.longCd = longCd;
-		this.shortCd = shortCd;
+		this.longCd = op.longData().constantData();
+		this.shortCd = op.shortData().constantData();
 
 		String path = String.format("logs/%s_%s.log", coin, fmt.format(Instant.now()));
 		Path logFilePath = Path.of(path);
@@ -197,66 +195,107 @@ public class TradeLogger {
 
 		return CompletableFuture.allOf(LEnterFuture, SEnterFuture, LExitFuture, SExitFuture)
 						.whenComplete((v, t) -> {
-							if (!fillsFetchSuccess.get()) return;
-
-							List<PartialFill> longEnterFills = LEnterFuture.join();
-							List<PartialFill> shortEnterFills = SEnterFuture.join();
-							List<PartialFill> longExitFills = LExitFuture.join();
-							List<PartialFill> shortExitFills = SExitFuture.join();
-
-							BigDecimal oLongEnterPrice = longEnterSn.bookTicker().askPrice();
-							BigDecimal oShortEnterPrice = shortEnterSn.bookTicker().bidPrice();
-							BigDecimal oLongExitPrice = longExitSn.bookTicker().bidPrice();
-							BigDecimal oShortExitPrice = shortExitSn.bookTicker().askPrice();
-
-							BigDecimal avgLongEnterPrice = getAvgPrice(longEnterFills);
-							BigDecimal avgShortEnterPrice = getAvgPrice(shortEnterFills);
-							BigDecimal avgLongExitPrice = getAvgPrice(longExitFills);
-							BigDecimal avgShortExitPrice = getAvgPrice(shortExitFills);
-
-							BigDecimal oLongEnterFee = longCd.openTaker().multiply(oLongEnterPrice);
-							BigDecimal oShortEnterFee = shortCd.openTaker().multiply(oShortEnterPrice);
-							BigDecimal oLongExitFee = longCd.closeTaker().multiply(oLongExitPrice);
-							BigDecimal oShortExitFee = shortCd.closeTaker().multiply(oShortExitPrice);
-							BigDecimal oTotalFees = oLongEnterFee.add(oShortEnterFee).add(oLongExitFee).add(oShortExitFee);
-
-							BigDecimal eLongEnterFee = longCd.fees().openTaker().multiply(avgLongEnterPrice);
-							BigDecimal eShortEnterFee = shortCd.fees().openTaker().multiply(avgShortEnterPrice);
-							BigDecimal eLongExitFee = longCd.fees().closeTaker().multiply(avgLongExitPrice);
-							BigDecimal eShortExitFee = shortCd.fees().closeTaker().multiply(avgShortExitPrice);
-							BigDecimal eTotalFees = eLongEnterFee.add(eShortEnterFee).add(eLongExitFee).add(eShortExitFee);
-
-							log("Trade info for " + coin + ": ");
-							logTradeStep(oLongEnterPrice, avgLongEnterPrice, longCd.openTaker(), true, true);
-							logTradeStep(oShortEnterPrice, avgShortEnterPrice, shortCd.openTaker(), false, true);
-							logTradeStep(oLongExitPrice, avgLongExitPrice, longCd.closeTaker(), true, false);
-							logTradeStep(oShortExitPrice, avgShortExitPrice, shortCd.closeTaker(), false, false);
-
-							log("Observed vs executed total gain (for one coin): ");
-							log("[Same] Funding gain: " + totalFundingGain);
-							var o = calculateGainFromPriceMoves(oLongEnterPrice, oShortEnterPrice, oLongExitPrice, oShortExitPrice);
-							var e = calculateGainFromPriceMoves(
-											avgLongEnterPrice,
-											avgShortEnterPrice,
-											avgLongExitPrice,
-											avgShortExitPrice
+							if (fillsFetchSuccess.get()) logOnFetchSuccess(
+											LEnterFuture.join(),
+											SEnterFuture.join(),
+											LExitFuture.join(),
+											SExitFuture.join()
 							);
-							log("[Observed] Price moves: " + o);
-							log("[Executed] Price moves: " + e);
-
-							BigDecimal oTotalGain = o.add(totalFundingGain);
-							BigDecimal eTotalGain = e.add(totalFundingGain);
-							log("[Observed] Total gain: " + oTotalGain);
-							log("[Executed] Total gain: " + eTotalGain);
-
-							BigDecimal oAfterFees = oTotalGain.subtract(oTotalFees);
-							BigDecimal eAfterFees = eTotalGain.subtract(eTotalFees);
-							log("[Observed] After fees: " + oAfterFees);
-							log("[Executed] After fees: " + eAfterFees);
-
-							log("[Observed] PnL: " + oAfterFees.multiply(baseAssetQty));
-							log("[Executed] PnL: " + eAfterFees.multiply(baseAssetQty));
+							else {
+								warn("One or more fills fetches failed, only observed logs shown");
+								logOnFetchFailure();
+							}
 						});
+	}
+
+	private void logOnFetchSuccess(
+					List<PartialFill> longEnterFills,
+					List<PartialFill> shortEnterFills,
+					List<PartialFill> longExitFills,
+					List<PartialFill> shortExitFills
+	) {
+		BigDecimal oLongEnterPrice = longEnterSn.bookTicker().askPrice();
+		BigDecimal oShortEnterPrice = shortEnterSn.bookTicker().bidPrice();
+		BigDecimal oLongExitPrice = longExitSn.bookTicker().bidPrice();
+		BigDecimal oShortExitPrice = shortExitSn.bookTicker().askPrice();
+
+		BigDecimal avgLongEnterPrice = getAvgPrice(longEnterFills);
+		BigDecimal avgShortEnterPrice = getAvgPrice(shortEnterFills);
+		BigDecimal avgLongExitPrice = getAvgPrice(longExitFills);
+		BigDecimal avgShortExitPrice = getAvgPrice(shortExitFills);
+
+		BigDecimal oLongEnterFee = longCd.openTaker().multiply(oLongEnterPrice);
+		BigDecimal oShortEnterFee = shortCd.openTaker().multiply(oShortEnterPrice);
+		BigDecimal oLongExitFee = longCd.closeTaker().multiply(oLongExitPrice);
+		BigDecimal oShortExitFee = shortCd.closeTaker().multiply(oShortExitPrice);
+		BigDecimal oTotalFees = oLongEnterFee.add(oShortEnterFee).add(oLongExitFee).add(oShortExitFee);
+
+		BigDecimal eLongEnterFee = longCd.fees().openTaker().multiply(avgLongEnterPrice);
+		BigDecimal eShortEnterFee = shortCd.fees().openTaker().multiply(avgShortEnterPrice);
+		BigDecimal eLongExitFee = longCd.fees().closeTaker().multiply(avgLongExitPrice);
+		BigDecimal eShortExitFee = shortCd.fees().closeTaker().multiply(avgShortExitPrice);
+		BigDecimal eTotalFees = eLongEnterFee.add(eShortEnterFee).add(eLongExitFee).add(eShortExitFee);
+
+		log("Trade info for " + coin + ": ");
+		logFullTradeStep(oLongEnterPrice, avgLongEnterPrice, longCd.openTaker(), true, true);
+		logFullTradeStep(oShortEnterPrice, avgShortEnterPrice, shortCd.openTaker(), false, true);
+		logFullTradeStep(oLongExitPrice, avgLongExitPrice, longCd.closeTaker(), true, false);
+		logFullTradeStep(oShortExitPrice, avgShortExitPrice, shortCd.closeTaker(), false, false);
+
+		log("Observed vs executed total gain (for one coin): ");
+		log("[Same] Funding gain: " + totalFundingGain);
+		var o = calculateGainFromPriceMoves(oLongEnterPrice, oShortEnterPrice, oLongExitPrice, oShortExitPrice);
+		var e = calculateGainFromPriceMoves(
+						avgLongEnterPrice,
+						avgShortEnterPrice,
+						avgLongExitPrice,
+						avgShortExitPrice
+		);
+		log("[Observed] Price moves: " + o);
+		log("[Executed] Price moves: " + e);
+
+		BigDecimal oTotalGain = o.add(totalFundingGain);
+		BigDecimal eTotalGain = e.add(totalFundingGain);
+		log("[Observed] Total gain: " + oTotalGain);
+		log("[Executed] Total gain: " + eTotalGain);
+
+		BigDecimal oAfterFees = oTotalGain.subtract(oTotalFees);
+		BigDecimal eAfterFees = eTotalGain.subtract(eTotalFees);
+		log("[Observed] After fees: " + oAfterFees);
+		log("[Executed] After fees: " + eAfterFees);
+
+		log("[Observed] PnL: " + oAfterFees.multiply(baseAssetQty));
+		log("[Executed] PnL: " + eAfterFees.multiply(baseAssetQty));
+	}
+
+	private void logOnFetchFailure() {
+		BigDecimal oLongEnterPrice = longEnterSn.bookTicker().askPrice();
+		BigDecimal oShortEnterPrice = shortEnterSn.bookTicker().bidPrice();
+		BigDecimal oLongExitPrice = longExitSn.bookTicker().bidPrice();
+		BigDecimal oShortExitPrice = shortExitSn.bookTicker().askPrice();
+
+		BigDecimal oLongEnterFee = longCd.openTaker().multiply(oLongEnterPrice);
+		BigDecimal oShortEnterFee = shortCd.openTaker().multiply(oShortEnterPrice);
+		BigDecimal oLongExitFee = longCd.closeTaker().multiply(oLongExitPrice);
+		BigDecimal oShortExitFee = shortCd.closeTaker().multiply(oShortExitPrice);
+		BigDecimal oTotalFees = oLongEnterFee.add(oShortEnterFee).add(oLongExitFee).add(oShortExitFee);
+
+		log("Trade info for %s: (observed only)", coin);
+		logObservedTradeStep(oLongEnterPrice, longCd.openTaker(), true, true);
+		logObservedTradeStep(oShortEnterPrice, shortCd.openTaker(), false, true);
+		logObservedTradeStep(oLongExitPrice, longCd.closeTaker(), true, false);
+		logObservedTradeStep(oShortExitPrice, shortCd.closeTaker(), false, false);
+
+		log("Funding gain: " + totalFundingGain);
+		var o = calculateGainFromPriceMoves(oLongEnterPrice, oShortEnterPrice, oLongExitPrice, oShortExitPrice);
+		log("Price moves: " + o);
+
+		BigDecimal oTotalGain = o.add(totalFundingGain);
+		log("Total gain: " + oTotalGain);
+
+		BigDecimal oAfterFees = oTotalGain.subtract(oTotalFees);
+		log("After fees: " + oAfterFees);
+		log("PnL: " + oAfterFees.multiply(baseAssetQty));
 	}
 
 	private CompletableFuture<List<PartialFill>> errorHandledFillsFetch(
@@ -292,7 +331,7 @@ public class TradeLogger {
 		return totalCost.divide(totalQty, RoundingMode.HALF_DOWN);
 	}
 
-	private void logTradeStep(BigDecimal o, BigDecimal a, BigDecimal feeRate, boolean isLong, boolean isEnter) {
+	private void logFullTradeStep(BigDecimal o, BigDecimal a, BigDecimal feeRate, boolean isLong, boolean isEnter) {
 		BigDecimal s = o.subtract(a);
 		if ((!isLong && isEnter) || (isLong && !isEnter)) s = s.negate();
 		char ss = getSlippageSign(s);
@@ -302,6 +341,13 @@ public class TradeLogger {
 
 		log(tag1 + tag2 + "Observed price: " + o + ", actual avg price: " + a + ". Slippage: " + ss + s);
 		log(tag1 + tag2 + "Fee: [Observed]" + o.multiply(feeRate) + ", [Executed]" + a.multiply(feeRate));
+	}
+
+	private void logObservedTradeStep(BigDecimal o, BigDecimal feeRate, boolean isLong, boolean isEnter) {
+		String tag1 = isEnter ? "[Enter] " : "[Exit] ";
+		String tag2 = isLong ? "[Long] " : "[Short] ";
+
+		log(tag1 + tag2 + "Observed price: " + o + ". Fee: [Observed]" + o.multiply(feeRate));
 	}
 
 	private char getSlippageSign(BigDecimal slippage) {

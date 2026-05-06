@@ -1,9 +1,7 @@
 package com.boris.fundingarbitrage.execution;
 
-import com.boris.fundingarbitrage.model.assetops.Leverages;
-import com.boris.fundingarbitrage.model.assetops.TradeParams;
-import com.boris.fundingarbitrage.model.exchange.ExchangePair;
-import com.boris.fundingarbitrage.strategy.pretradestrategy.TradeDirections;
+import com.boris.fundingarbitrage.logic.ArbitrageBotConfig;
+import com.boris.fundingarbitrage.logic.CoinOpportunity;
 import lombok.NonNull;
 
 import java.util.concurrent.CompletableFuture;
@@ -11,12 +9,10 @@ import java.util.concurrent.CompletableFuture;
 public class TestCoinExecution extends CoinExecution {
 	public TestCoinExecution(
 					@NonNull String coin,
-					ExchangePair exchanges,
-					TradeParams tradeParams,
-					Leverages leverages,
-					TradeDirections tradeDirections
+					@NonNull CoinOpportunity op,
+					@NonNull ArbitrageBotConfig config
 	) {
-		super(coin, exchanges, tradeParams, leverages, tradeDirections);
+		super(coin, op, config);
 	}
 
 	@Override

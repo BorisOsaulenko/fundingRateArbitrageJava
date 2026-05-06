@@ -1,13 +1,10 @@
 package com.boris.fundingarbitrage.logic;
 
-import com.boris.fundingarbitrage.coinParser.ICoinSupplier;
-import com.boris.fundingarbitrage.coinfilter.CoinFilterConfig;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
-import com.boris.fundingarbitrage.exchange.Instances;
-import com.boris.fundingarbitrage.intradelogic.InTradeCoinLogic;
+import com.boris.fundingarbitrage.execution.factory.CoinExecutionFactory;
 import com.boris.fundingarbitrage.model.assetops.InternalAccount;
 import com.boris.fundingarbitrage.model.assetops.InternalTransfer;
-import com.boris.fundingarbitrage.model.assetops.Leverages;
+import com.boris.fundingarbitrage.model.exchange.ExchangeBalance;
 import com.boris.fundingarbitrage.model.exchange.ExchangePair;
 import com.boris.fundingarbitrage.strategy.TradeMarket;
 import com.boris.fundingarbitrage.strategy.intradestrategy.factory.InTradeStrategyFactory;
@@ -18,10 +15,7 @@ import com.boris.fundingarbitrage.util.logger.Logger;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.*;
 
 public class RebalancingArbitrageLogic extends ArbitrageLogic {
@@ -32,32 +26,34 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 	private final int maxSpotUsedTimes = 1;
 	private final int maxFuturesUsedTimes = this.config.leverage();
 	private final List<InTradeCoinLogic> inTradeLogicList = new ArrayList<>();
+	private final CoinExecutionFactory executionFactory;
 	private CompletableFuture<Void> exitFuture;
 	private CompletableFuture<Void> internalTransfersFuture;
 
 	public RebalancingArbitrageLogic(
-					ICoinSupplier coinSupplier,
+					Set<BaseExchange> exchanges,
 					PreTradeStrategy preTradeStrategy,
 					InTradeStrategyFactory inTradeStrategyFactory,
-					CoinFilterConfig filterConfig,
-					ArbitrageBotConfig arbConfig
+					ArbitrageBotConfig arbConfig,
+					CoinExecutionFactory executionFactory
 	) {
-		super(coinSupplier, preTradeStrategy, inTradeStrategyFactory, filterConfig, arbConfig);
+		super(exchanges, preTradeStrategy, inTradeStrategyFactory, arbConfig);
+		this.executionFactory = executionFactory;
 		int checkExitFreqMs = 10;
 		exitExecutor.scheduleAtFixedRate(this::processExits, 0, checkExitFreqMs, TimeUnit.MILLISECONDS);
 	}
 
 	@Override
-	protected void afterBalanceInit(Map<BaseExchange, BigDecimal> spotB, Map<BaseExchange, BigDecimal> futuresB) {
-		analyzeBalances(spotB, futuresB);
-		internalTransfersFuture = doInternalTransfers(spotB, futuresB);
+	protected void afterBalanceInit(Map<BaseExchange, ExchangeBalance> balanceMap) {
+		analyzeBalances(balanceMap);
+		internalTransfersFuture = doInternalTransfers(balanceMap);
 	}
 
 	@Override
 	protected void afterMonitorInit() {
 	}
 
-	private void analyzeBalances(Map<BaseExchange, BigDecimal> spotB, Map<BaseExchange, BigDecimal> futuresB) {
+	private void analyzeBalances(Map<BaseExchange, ExchangeBalance> balanceMap) {
 		BigDecimal balancesSum = BigDecimal.ZERO;
 		BigDecimal maxBalance = BigDecimal.ZERO;
 		BigDecimal minBalance = new BigDecimal(Long.MAX_VALUE);
@@ -66,9 +62,9 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 						.add(config.safetyMargin())
 						.multiply(BigDecimal.TWO); // need same amount on futures and spot
 
-		for (BaseExchange ex : Instances.getExchangeArray()) {
-			BigDecimal spotBalance = spotB.get(ex);
-			BigDecimal futuresBalance = futuresB.get(ex);
+		for (BaseExchange ex : exchanges) {
+			BigDecimal spotBalance = balanceMap.get(ex).spotFreeUsdt();
+			BigDecimal futuresBalance = balanceMap.get(ex).futuresFreeUsdt();
 			BigDecimal totalBalance = spotBalance.add(futuresBalance);
 
 			balancesSum = balancesSum.add(totalBalance);
@@ -82,7 +78,7 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 			}
 		}
 
-		BigDecimal avgBalance = balancesSum.divide(Instances.getExchangeCountBigDecimal(), RoundingMode.HALF_UP);
+		BigDecimal avgBalance = balancesSum.divide(new BigDecimal(exchanges.size()), RoundingMode.HALF_UP);
 		BigDecimal maxDiff = maxBalance.subtract(minBalance);
 		BigDecimal maxDiffRelative = maxDiff.divide(avgBalance, RoundingMode.HALF_UP);
 		if (maxDiffRelative.compareTo(rebalanceThreshold) > 0) {
@@ -90,16 +86,13 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 		}
 	}
 
-	private CompletableFuture<Void> doInternalTransfers(
-					Map<BaseExchange, BigDecimal> spotB,
-					Map<BaseExchange, BigDecimal> futuresB
-	) {
+	private CompletableFuture<Void> doInternalTransfers(Map<BaseExchange, ExchangeBalance> balanceMap) {
 		BigDecimal required = config.legUsdtAmount().add(config.safetyMargin());
 		List<CompletableFuture<Void>> futures = new ArrayList<>();
 
-		for (BaseExchange ex : Instances.getExchangeArray()) {
-			BigDecimal futuresBalance = futuresB.get(ex);
-			BigDecimal spotBalance = spotB.get(ex);
+		for (BaseExchange ex : exchanges) {
+			BigDecimal futuresBalance = balanceMap.get(ex).futuresFreeUsdt();
+			BigDecimal spotBalance = balanceMap.get(ex).spotFreeUsdt();
 			if (futuresBalance.compareTo(required) >= 0 && spotBalance.compareTo(required) >= 0) continue;
 
 			BigDecimal toTransfer = required.subtract(futuresBalance.min(spotBalance));
@@ -108,12 +101,7 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 
 			futures.add(ex.privateHttpClient().internalTransfer(new InternalTransfer(from, to, toTransfer))
 							.exceptionally(t -> {
-								Logger.error("Failed to transfer " +
-														 toTransfer +
-														 " to futures on " +
-														 ex.name() +
-														 ": " +
-														 t.getMessage());
+								Logger.error("Failed to transfer %s to futures on %s: %s", toTransfer, ex.name(), t.getMessage());
 								throw new RuntimeException(t);
 							}));
 		}
@@ -165,47 +153,32 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 		}
 	}
 
-	private void registerTrade(TradeDirections directions, ExchangePair exchanges) {
+	private void mergeUsageMap(TradeDirections directions, ExchangePair exchanges, int value) {
 		BaseExchange longEx = exchanges.longEx();
 		BaseExchange shortEx = exchanges.shortEx();
 
 		var longUsageMap = directions.longMarket() == TradeMarket.SPOT ? spotUsedTimes : futuresUsedTimes;
 		var shortUsageMap = directions.shortMarket() == TradeMarket.SPOT ? spotUsedTimes : futuresUsedTimes;
 
-		longUsageMap.merge(longEx, 1, Integer::sum);
-		shortUsageMap.merge(shortEx, 1, Integer::sum);
-	}
-
-	private void unregisterTrade(TradeDirections directions, ExchangePair exchanges) {
-		BaseExchange longEx = exchanges.longEx();
-		BaseExchange shortEx = exchanges.shortEx();
-
-		var longUsageMap = directions.longMarket() == TradeMarket.SPOT ? spotUsedTimes : futuresUsedTimes;
-		var shortUsageMap = directions.shortMarket() == TradeMarket.SPOT ? spotUsedTimes : futuresUsedTimes;
-
-		longUsageMap.merge(longEx, -1, Integer::sum);
-		shortUsageMap.merge(shortEx, -1, Integer::sum);
+		longUsageMap.merge(longEx, value, Integer::sum);
+		shortUsageMap.merge(shortEx, value, Integer::sum);
 	}
 
 	private void enterCrossCoin(String coin, CoinOpportunity op) {
-		ExchangePair exchanges = op.exchanges();
+		mergeUsageMap(op.directions(), op.exchanges(), 1);
 		try {
 			InTradeCoinLogic logic = new InTradeCoinLogic(
 							coin,
+							op,
+							config,
 							monitor,
 							inTradeStrategyFactory.create(op.longData(), op.shortData()),
-							config.legUsdtAmount(),
-							exchanges,
-							new Leverages(config.leverage(), config.leverage()),
-							op.directions(),
-							op.longData().constantData(),
-							op.shortData().constantData()
+							executionFactory.create(coin, op, config)
 			);
 			inTradeLogicList.add(logic);
-			registerTrade(op.directions(), exchanges);
 		} catch (Exception e) {
 			Logger.error("Failed to initialize InTradeSingleCoinLogic: " + e.getMessage());
-			unregisterTrade(op.directions(), op.exchanges());
+			mergeUsageMap(op.directions(), op.exchanges(), -1);
 			forgetCoin(coin);
 		}
 	}

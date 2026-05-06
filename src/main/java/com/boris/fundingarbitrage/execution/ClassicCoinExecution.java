@@ -1,9 +1,9 @@
 package com.boris.fundingarbitrage.execution;
 
 import com.boris.fundingarbitrage.exchange.BaseExchange;
+import com.boris.fundingarbitrage.logic.ArbitrageBotConfig;
+import com.boris.fundingarbitrage.logic.CoinOpportunity;
 import com.boris.fundingarbitrage.model.assetops.*;
-import com.boris.fundingarbitrage.model.exchange.ExchangePair;
-import com.boris.fundingarbitrage.strategy.pretradestrategy.TradeDirections;
 import lombok.NonNull;
 
 import java.util.concurrent.CompletableFuture;
@@ -12,19 +12,16 @@ import java.util.function.Supplier;
 public class ClassicCoinExecution extends CoinExecution {
 	private static final MarginMode FUTURES_MARGIN_MODE = MarginMode.CROSS;
 
-
 	public ClassicCoinExecution(
 					@NonNull String coin,
-					@NonNull ExchangePair exchanges,
-					@NonNull TradeParams tradeParams,
-					@NonNull Leverages leverages,
-					@NonNull TradeDirections tradeDirections
+					@NonNull CoinOpportunity op,
+					@NonNull ArbitrageBotConfig config
 	) {
-		super(coin, exchanges, tradeParams, leverages, tradeDirections);
+		super(coin, op, config);
 	}
 
 	private CompletableFuture<String> placeFuturesOrder(OrderSide orderSide, TradeSide tradeSide) {
-		BaseExchange ex = orderSide == OrderSide.LONG ? exchanges.longEx() : exchanges.shortEx();
+		BaseExchange ex = orderSide == OrderSide.LONG ? op.exchanges().longEx() : op.exchanges().shortEx();
 		Supplier<CompletableFuture<Void>> configureFutures = orderSide == OrderSide.LONG ?
 						() -> configureFutures(true) :
 						() -> configureFutures(false);
@@ -37,7 +34,7 @@ public class ClassicCoinExecution extends CoinExecution {
 	}
 
 	private CompletableFuture<String> placeSpotOrder(OrderSide orderSide, TradeSide tradeSide) {
-		BaseExchange ex = orderSide == OrderSide.LONG ? exchanges.longEx() : exchanges.shortEx();
+		BaseExchange ex = orderSide == OrderSide.LONG ? op.exchanges().longEx() : op.exchanges().shortEx();
 		SpotOrder order = buildSpotOrder(orderSide, tradeSide);
 		return ex.privateHttpClient().placeSpotOrder(coin, order)
 						.exceptionally((t) -> {
@@ -46,28 +43,28 @@ public class ClassicCoinExecution extends CoinExecution {
 	}
 
 	private CompletableFuture<String> enterLong() {
-		return switch (tradeDirections.longMarket()) {
+		return switch (op.directions().longMarket()) {
 			case FUTURES -> placeFuturesOrder(OrderSide.LONG, TradeSide.OPEN);
 			case SPOT -> placeSpotOrder(OrderSide.LONG, TradeSide.OPEN);
 		};
 	}
 
 	private CompletableFuture<String> enterShort() {
-		return switch (tradeDirections.shortMarket()) {
+		return switch (op.directions().shortMarket()) {
 			case FUTURES -> placeFuturesOrder(OrderSide.SHORT, TradeSide.OPEN);
 			case SPOT -> placeSpotOrder(OrderSide.SHORT, TradeSide.OPEN);
 		};
 	}
 
 	private CompletableFuture<String> exitLong() {
-		return switch (tradeDirections.longMarket()) {
+		return switch (op.directions().longMarket()) {
 			case FUTURES -> placeFuturesOrder(OrderSide.LONG, TradeSide.CLOSE);
 			case SPOT -> placeSpotOrder(OrderSide.LONG, TradeSide.CLOSE);
 		};
 	}
 
 	private CompletableFuture<String> exitShort() {
-		return switch (tradeDirections.shortMarket()) {
+		return switch (op.directions().shortMarket()) {
 			case FUTURES -> placeFuturesOrder(OrderSide.SHORT, TradeSide.CLOSE);
 			case SPOT -> placeSpotOrder(OrderSide.SHORT, TradeSide.CLOSE);
 		};
@@ -160,7 +157,7 @@ public class ClassicCoinExecution extends CoinExecution {
 
 	private CompletableFuture<Void> configureFutures(boolean isLong) {
 		String name = isLong ? "long" : "short";
-		BaseExchange ex = isLong ? exchanges.longEx() : exchanges.shortEx();
+		BaseExchange ex = isLong ? op.exchanges().longEx() : op.exchanges().shortEx();
 		int leverage = isLong ? leverages.longLeverage() : leverages.shortLeverage();
 		CompletableFuture<Void> marginModeFuture = ex.privateHttpClient().setMarginMode(coin, FUTURES_MARGIN_MODE)
 						.exceptionally((t) -> {

@@ -25,7 +25,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public abstract class PublicWsClient {
+public abstract class PublicWsClient implements PublicMarketDataStream {
 	private static final ObjectMapper JSON_MAPPER = ObjectMapperSingleton.getInstance();
 	protected final ExchangeContext context;
 	protected final PublicMessageHandler messageHandler;
@@ -121,12 +121,13 @@ public abstract class PublicWsClient {
 					Set<String> coins,
 					Map<String, Set<Consumer<T>>> handlersMap,
 					Consumer<T> handler,
+					Function<String, String> symbolGetter,
 					Function<Set<String>, String> subscribeMessage,
 					Consumer<String> messageSender
 	) {
 		Set<String> newSymbols = new HashSet<>();
 		for (String coin : coins) {
-			String symbol = context.getFuturesSymbol(coin);
+			String symbol = symbolGetter.apply(coin);
 			handlersMap.computeIfAbsent(
 							coin, key -> {
 								newSymbols.add(symbol);
@@ -140,12 +141,13 @@ public abstract class PublicWsClient {
 	protected <T> void unsubscribe(
 					Set<String> coins,
 					Map<String, Set<Consumer<T>>> handlersMap,
+					Function<String, String> symbolGetter,
 					Function<Set<String>, String> unsubscribeMessage,
 					Consumer<String> messageSender
 	) {
 		Set<String> removedSymbols = new HashSet<>();
 		for (String coin : coins) {
-			String symbol = context.getFuturesSymbol(coin);
+			String symbol = symbolGetter.apply(coin);
 			if (handlersMap.containsKey(coin)) {
 				handlersMap.remove(coin);
 				removedSymbols.add(symbol);
@@ -176,63 +178,87 @@ public abstract class PublicWsClient {
 	}
 
 	public void subscribeFuturesFundingRates(Set<String> coins, Consumer<@NonNull FundingRatePatch> handler) {
-		subscribe(coins, futuresFundingRateHandlers, handler, this::getSubscribeFuturesFundingRateFrame, this::sendMessage);
-	}
-
-	public void subscribeFuturesFundingRates(String coin, Consumer<@NonNull FundingRatePatch> handler) {
-		subscribeFuturesFundingRates(Set.of(coin), handler);
+		subscribe(
+						coins,
+						futuresFundingRateHandlers,
+						handler,
+						context::getFuturesSymbol,
+						this::getSubscribeFuturesFundingRateFrame,
+						this::sendMessage
+		);
 	}
 
 	public void unsubscribeFuturesFundingRates(Set<String> coins) {
-		unsubscribe(coins, futuresFundingRateHandlers, this::getUnsubscribeFuturesFundingRateFrame, this::sendMessage);
-	}
-
-	public void unsubscribeFuturesFundingRates(String coin) {
-		unsubscribeFuturesFundingRates(Set.of(coin));
+		unsubscribe(
+						coins,
+						futuresFundingRateHandlers,
+						context::getFuturesSymbol,
+						this::getUnsubscribeFuturesFundingRateFrame,
+						this::sendMessage
+		);
 	}
 
 	public void subscribeFuturesBookTicker(Set<String> coins, Consumer<@NonNull BookTickerPatch> handler) {
-		subscribe(coins, futuresBookTickerHandlers, handler, this::getSubscribeFuturesBookTickerFrame, this::sendMessage);
-	}
-
-	public void subscribeFuturesBookTicker(String coin, Consumer<@NonNull BookTickerPatch> handler) {
-		subscribeFuturesBookTicker(Set.of(coin), handler);
+		subscribe(
+						coins,
+						futuresBookTickerHandlers,
+						handler,
+						context::getFuturesSymbol,
+						this::getSubscribeFuturesBookTickerFrame,
+						this::sendMessage
+		);
 	}
 
 	public void unsubscribeFuturesBookTicker(Set<String> coins) {
-		unsubscribe(coins, futuresBookTickerHandlers, this::getUnsubscribeFuturesBookTickerFrame, this::sendMessage);
-	}
-
-	public void unsubscribeFuturesBookTicker(String coin) {
-		unsubscribeFuturesBookTicker(Set.of(coin));
+		unsubscribe(
+						coins,
+						futuresBookTickerHandlers,
+						context::getFuturesSymbol,
+						this::getUnsubscribeFuturesBookTickerFrame,
+						this::sendMessage
+		);
 	}
 
 	public void subscribeFuturesMarkPrice(Set<String> coins, Consumer<@NonNull MarkPricePatch> handler) {
-		subscribe(coins, futuresMarkPriceHandlers, handler, this::getSubscribeFuturesMarkPriceFrame, this::sendMessage);
-	}
-
-	public void subscribeFuturesMarkPrice(String coin, Consumer<@NonNull MarkPricePatch> handler) {
-		subscribeFuturesMarkPrice(Set.of(coin), handler);
+		subscribe(
+						coins,
+						futuresMarkPriceHandlers,
+						handler,
+						context::getFuturesSymbol,
+						this::getSubscribeFuturesMarkPriceFrame,
+						this::sendMessage
+		);
 	}
 
 	public void unsubscribeFuturesMarkPrice(Set<String> coins) {
-		unsubscribe(coins, futuresMarkPriceHandlers, this::getUnsubscribeFuturesMarkPriceFrame, this::sendMessage);
-	}
-
-	public void unsubscribeFuturesMarkPrice(String coin) {
-		unsubscribeFuturesMarkPrice(Set.of(coin));
+		unsubscribe(
+						coins,
+						futuresMarkPriceHandlers,
+						context::getFuturesSymbol,
+						this::getUnsubscribeFuturesMarkPriceFrame,
+						this::sendMessage
+		);
 	}
 
 	public void subscribeSpotBookTicker(Set<String> coins, Consumer<@NonNull BookTickerPatch> handler) {
-		subscribe(coins, spotBookTickerHandlers, handler, this::getSubscribeSpotBookTickerFrame, this::sendMessage);
-	}
-
-	public void subscribeSpotBookTicker(String coin, Consumer<@NonNull BookTickerPatch> handler) {
-		subscribeSpotBookTicker(Set.of(coin), handler);
+		subscribe(
+						coins,
+						spotBookTickerHandlers,
+						handler,
+						context::getSpotSymbol,
+						this::getSubscribeSpotBookTickerFrame,
+						this::sendMessage
+		);
 	}
 
 	public void unsubscribeSpotBookTicker(Set<String> coins) {
-		unsubscribe(coins, spotBookTickerHandlers, this::getUnsubscribeSpotBookTickerFrame, this::sendMessage);
+		unsubscribe(
+						coins,
+						spotBookTickerHandlers,
+						context::getSpotSymbol,
+						this::getUnsubscribeSpotBookTickerFrame,
+						this::sendMessage
+		);
 	}
 
 	protected <R extends GenericPublicWsPatch> void dispatchPatchToHandlers(
@@ -307,23 +333,33 @@ public abstract class PublicWsClient {
 	}
 
 	public void onConnect(Session session) {
-		Set<String> frSymbols = futuresFundingRateHandlers.keySet()
+		Set<String> futuresFundingRateSymbols = futuresFundingRateHandlers.keySet()
 						.stream()
 						.map(context::getFuturesSymbol)
 						.collect(Collectors.toSet());
-		if (!frSymbols.isEmpty()) this.sendMessage(getSubscribeFuturesFundingRateFrame(frSymbols));
+		if (!futuresFundingRateSymbols.isEmpty())
+			this.sendMessage(getSubscribeFuturesFundingRateFrame(futuresFundingRateSymbols));
 
-		Set<String> btSymbols = futuresBookTickerHandlers.keySet()
+		Set<String> futuresBookTickerSymbols = futuresBookTickerHandlers.keySet()
 						.stream()
 						.map(context::getFuturesSymbol)
 						.collect(Collectors.toSet());
-		if (!btSymbols.isEmpty()) this.sendMessage(getSubscribeFuturesBookTickerFrame(btSymbols));
+		if (!futuresBookTickerSymbols.isEmpty())
+			this.sendMessage(getSubscribeFuturesBookTickerFrame(futuresBookTickerSymbols));
 
-		Set<String> mpSymbols = futuresMarkPriceHandlers.keySet()
+		Set<String> futuresMarkPriceSymbols = futuresMarkPriceHandlers.keySet()
 						.stream()
 						.map(context::getFuturesSymbol)
 						.collect(Collectors.toSet());
-		if (!mpSymbols.isEmpty()) this.sendMessage(getSubscribeFuturesMarkPriceFrame(mpSymbols));
+		if (!futuresMarkPriceSymbols.isEmpty())
+			this.sendMessage(getSubscribeFuturesMarkPriceFrame(futuresMarkPriceSymbols));
+
+		Set<String> spotBookTickerSymbols = spotBookTickerHandlers.keySet()
+						.stream()
+						.map(context::getSpotSymbol)
+						.collect(Collectors.toSet());
+		if (!spotBookTickerSymbols.isEmpty())
+			this.sendMessage(getSubscribeSpotBookTickerFrame(spotBookTickerSymbols));
 	}
 
 	public boolean connected() {
@@ -336,12 +372,6 @@ public abstract class PublicWsClient {
 		return this.prettyWsClientFuture.thenAccept(client -> {
 			if (client != null) client.connect();
 		});
-	}
-
-	public void unsubscribeCoin(String coin) {
-		unsubscribeFuturesBookTicker(coin);
-		unsubscribeFuturesFundingRates(coin);
-		unsubscribeFuturesMarkPrice(coin);
 	}
 
 	public void unsubscribeCoinsFutures(Set<String> coins) {

@@ -1,13 +1,16 @@
 package com.boris.fundingarbitrage;
 
-import com.boris.fundingarbitrage.coinParser.AllExchangeCoinsParser;
-import com.boris.fundingarbitrage.coinParser.ICoinSupplier;
+import com.boris.fundingarbitrage.coinfilter.CoinFilter;
 import com.boris.fundingarbitrage.coinfilter.CoinFilterConfig;
+import com.boris.fundingarbitrage.coinparser.AllExchangeCoinsParser;
+import com.boris.fundingarbitrage.coinparser.ICoinSupplier;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
+import com.boris.fundingarbitrage.exchange.Instances;
 import com.boris.fundingarbitrage.exchange.impl.bybit.BybitExchange;
-import com.boris.fundingarbitrage.logic.ArbitrageBotConfig;
-import com.boris.fundingarbitrage.logic.ArbitrageLogic;
-import com.boris.fundingarbitrage.logic.RebalancingArbitrageLogic;
+import com.boris.fundingarbitrage.execution.factory.TestCoinExecutionFactory;
+import com.boris.fundingarbitrage.logic.*;
+import com.boris.fundingarbitrage.monitor.IDataStream;
+import com.boris.fundingarbitrage.monitor.ProdDataStream;
 import com.boris.fundingarbitrage.strategy.intradestrategy.factory.ClassicInTradeFactory;
 import com.boris.fundingarbitrage.strategy.pretradestrategy.FuturesPreTradeStrategy;
 import com.boris.fundingarbitrage.strategy.pretradestrategy.PreTradeStrategy;
@@ -22,6 +25,8 @@ import java.util.Set;
 public class App {
 	static void main(String[] args) {
 		Logger.init(Path.of("app.log"));
+
+		Set<BaseExchange> exchanges = Instances.getExchangesSet();
 
 		ICoinSupplier coinSupplier = new AllExchangeCoinsParser();
 		PreTradeStrategy preTradeStrategy = new FuturesPreTradeStrategy();
@@ -41,13 +46,24 @@ public class App {
 
 		try {
 			ArbitrageLogic logic = new RebalancingArbitrageLogic(
-							coinSupplier,
+							exchanges,
 							preTradeStrategy,
 							new ClassicInTradeFactory(),
-							filterConfig,
-							botConfig
+							botConfig,
+							new TestCoinExecutionFactory()
 			);
-			logic.waitForInitSync();
+
+			CoinFilter coinFilter = new CoinFilter(
+							coinSupplier,
+							filterConfig,
+							exchanges
+			);
+
+			IDataStream dataStream = new ProdDataStream();
+			BalanceProvider balanceProvider = new ProdBalanceProvider();
+
+			logic.init(coinFilter, dataStream, balanceProvider);
+			logic.start();
 		} catch (Exception e) {
 			e.printStackTrace();
 			System.exit(1);

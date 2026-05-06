@@ -1,5 +1,6 @@
 package com.boris.fundingarbitrage.coinfilter;
 
+import com.boris.fundingarbitrage.coinparser.ICoinSupplier;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.exchange.publichttp.FuturesPublicOnePullData;
 import com.boris.fundingarbitrage.exchange.publichttp.FuturesTradingState;
@@ -26,9 +27,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 public class CoinFilter {
-	private final Set<String> coins;
 	private final CoinFilterConfig config;
 	private final Set<BaseExchange> exchanges;
+	private final ICoinSupplier coinSupplier;
 
 	private final CoinExchangeSupport availableSupport = new CoinExchangeSupport();
 	private final ExchangeCoinMap<Boolean> presentOnFutures = new ExchangeCoinMap<>();
@@ -42,10 +43,8 @@ public class CoinFilter {
 	private final ExchangeCoinMap<SpotConstantData> spotConstantDataMap = new ExchangeCoinMap<>();
 	private final ExchangeCoinMap<FuturesConstantData> futuresConstantDataMap = new ExchangeCoinMap<>();
 
-	public CoinFilter(Set<String> coins, CoinFilterConfig config, Set<BaseExchange> exchanges) {
-		if (coins.isEmpty()) throw new IllegalArgumentException("No coins provided");
-
-		this.coins = coins;
+	public CoinFilter(ICoinSupplier coinSupplier, CoinFilterConfig config, Set<BaseExchange> exchanges) {
+		this.coinSupplier = coinSupplier;
 		this.config = config;
 		this.exchanges = exchanges;
 	}
@@ -57,7 +56,7 @@ public class CoinFilter {
 		});
 	}
 
-	public CompletableFuture<Void> fetchData(BaseExchange exchange) {
+	private CompletableFuture<Void> fetchData(BaseExchange exchange, Set<String> coins) {
 		CompletableFuture<CoinVector<FuturesPublicOnePullData>> futuresOnePullDataFuture =
 						withTimeOut(
 										exchange.publicHttpClient().getFuturesOnePullData(coins),
@@ -123,7 +122,7 @@ public class CoinFilter {
 	}
 
 
-	private CompletableFuture<Void> fetchData() {
+	private CompletableFuture<Void> fetchData(Set<String> coins) {
 		for (String coin : coins) availableSupport.addCoin(coin);
 		for (BaseExchange ex : exchanges) {
 			availableSupport.addExchange(ex);
@@ -131,7 +130,7 @@ public class CoinFilter {
 		}
 
 		List<CompletableFuture<Void>> futures = new ArrayList<>();
-		for (BaseExchange exchange : exchanges) futures.add(fetchData(exchange));
+		for (BaseExchange exchange : exchanges) futures.add(fetchData(exchange, coins));
 
 		return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
 	}
@@ -165,7 +164,8 @@ public class CoinFilter {
 	}
 
 	public CompletableFuture<CoinFilterResult> filterAsync() {
-		return fetchData()
+		return coinSupplier.getCoinsAsync()
+						.thenCompose(this::fetchData)
 						.thenRun(this::filterCoins)
 						.thenApply(_ -> new CoinFilterResult(
 										availableSupport,

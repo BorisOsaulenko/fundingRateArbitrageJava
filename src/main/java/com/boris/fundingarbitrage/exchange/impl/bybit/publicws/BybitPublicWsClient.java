@@ -3,8 +3,6 @@ package com.boris.fundingarbitrage.exchange.impl.bybit.publicws;
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.impl.bybit.publicrest.BybitPublicHttpClient;
 import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
-import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
-import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
 import com.boris.fundingarbitrage.util.wss.prettyclient.PrettyWsClient;
 import com.boris.fundingarbitrage.util.wss.publicws.FullFundingViaRest;
 import lombok.NonNull;
@@ -101,69 +99,6 @@ public class BybitPublicWsClient extends FullFundingViaRest {
 		return getUnsubscribeBookTickerFrame(symbols);
 	}
 
-	@Override
-	public void subscribeFuturesFundingRates(Set<String> coins, Consumer<@NonNull FundingRatePatch> handler) {
-		super.subscribe(
-						coins,
-						futuresFundingRateHandlers,
-						handler,
-						this::getSubscribeFuturesFundingRateFrame,
-						futuresClient::sendMessage
-		);
-	}
-
-	@Override
-	public void unsubscribeFuturesFundingRates(Set<String> coins) {
-		super.unsubscribe(
-						coins,
-						futuresFundingRateHandlers,
-						this::getUnsubscribeFuturesFundingRateFrame,
-						futuresClient::sendMessage
-		);
-	}
-
-	@Override
-	public void subscribeFuturesBookTicker(Set<String> coins, Consumer<@NonNull BookTickerPatch> handler) {
-		super.subscribe(
-						coins,
-						futuresBookTickerHandlers,
-						handler,
-						this::getSubscribeFuturesBookTickerFrame,
-						futuresClient::sendMessage
-		);
-	}
-
-	@Override
-	public void unsubscribeFuturesBookTicker(Set<String> coins) {
-		super.unsubscribe(
-						coins,
-						futuresBookTickerHandlers,
-						this::getUnsubscribeFuturesBookTickerFrame,
-						futuresClient::sendMessage
-		);
-	}
-
-	@Override
-	public void subscribeFuturesMarkPrice(Set<String> coins, Consumer<@NonNull MarkPricePatch> handler) {
-		super.subscribe(
-						coins,
-						futuresMarkPriceHandlers,
-						handler,
-						this::getSubscribeFuturesMarkPriceFrame,
-						futuresClient::sendMessage
-		);
-	}
-
-	@Override
-	public void unsubscribeFuturesMarkPrice(Set<String> coins) {
-		super.unsubscribe(
-						coins,
-						futuresMarkPriceHandlers,
-						this::getUnsubscribeFuturesMarkPriceFrame,
-						futuresClient::sendMessage
-		);
-	}
-
 	private List<Set<String>> splitCoins(Set<String> coins) {
 		List<Set<String>> result = new ArrayList<>();
 
@@ -195,6 +130,7 @@ public class BybitPublicWsClient extends FullFundingViaRest {
 							coinSet,
 							spotBookTickerHandlers,
 							handler,
+							context::getSpotSymbol,
 							this::getSubscribeSpotBookTickerFrame,
 							spotClients.get(idx++ % spotClientsAmount)::sendMessage
 			);
@@ -208,6 +144,7 @@ public class BybitPublicWsClient extends FullFundingViaRest {
 			super.unsubscribe(
 							coinSet,
 							spotBookTickerHandlers,
+							context::getSpotSymbol,
 							this::getUnsubscribeSpotBookTickerFrame,
 							spotClients.get(idx++ % spotClientsAmount)::sendMessage
 			);

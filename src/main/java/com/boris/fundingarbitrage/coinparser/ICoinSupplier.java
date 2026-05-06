@@ -1,4 +1,4 @@
-package com.boris.fundingarbitrage.coinParser;
+package com.boris.fundingarbitrage.coinparser;
 
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;

@@ -64,12 +64,13 @@ public class KucoinPublicWsClient extends FullFundingViaRest {
 					Set<String> coins,
 					Map<String, Set<Consumer<T>>> handlersMap,
 					Consumer<T> handler,
+					Function<String, String> symbolGetter,
 					Function<Set<String>, String> subscribeMessage,
 					Consumer<String> messageSender
 	) {
 		List<Set<String>> adjustedToLimits = split(coins);
 		for (Set<String> chunk : adjustedToLimits) {
-			super.subscribe(chunk, handlersMap, handler, subscribeMessage, messageSender);
+			super.subscribe(chunk, handlersMap, handler, symbolGetter, subscribeMessage, messageSender);
 		}
 	}
 
@@ -77,12 +78,13 @@ public class KucoinPublicWsClient extends FullFundingViaRest {
 	protected <T> void unsubscribe(
 					Set<String> coins,
 					Map<String, Set<Consumer<T>>> handlersMap,
+					Function<String, String> symbolGetter,
 					Function<Set<String>, String> unsubscribeMessage,
 					Consumer<String> messageSender
 	) {
 		List<Set<String>> adjustedToLimits = split(coins);
 		for (Set<String> chunk : adjustedToLimits) {
-			super.unsubscribe(chunk, handlersMap, unsubscribeMessage, messageSender);
+			super.unsubscribe(chunk, handlersMap, symbolGetter, unsubscribeMessage, messageSender);
 		}
 	}
 

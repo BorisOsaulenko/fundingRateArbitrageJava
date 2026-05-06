@@ -10,7 +10,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 public class ModifiableFrequencyTask implements Runnable {
-	private static final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+	private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 	private final Runnable work;
 	private volatile ScheduledFuture<?> runningTask;
 	@Getter private volatile long currentFrequencyMs; // Can be updated mid-fly

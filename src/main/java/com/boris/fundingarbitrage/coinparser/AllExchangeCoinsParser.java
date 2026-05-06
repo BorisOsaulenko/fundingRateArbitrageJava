@@ -1,4 +1,4 @@
-package com.boris.fundingarbitrage.coinParser;
+package com.boris.fundingarbitrage.coinparser;
 
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.exchange.Instances;

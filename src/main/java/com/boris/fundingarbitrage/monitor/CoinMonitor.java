@@ -44,31 +44,35 @@ public class CoinMonitor {
 		this.filterData = filterData;
 		this.coinExchangeSupport = filterData.coinExchangeSupport();
 		this.dataStream = dataStream;
+	}
 
+	public void start() {
 		Logger.log(coinExchangeSupport.coinsByExchange().toString());
 
-		dataStream.openWsConnections().thenRun(() -> Logger.debug("WS connections opened"));
+		dataStream.openWsConnections(coinExchangeSupport.getExchanges())
+						.thenRun(() -> Logger.debug("WS connections opened"));
+		
 		fillEmptyData();
 		subscribeData(filterData.initialPresentOnFutures(), filterData.initialPresentOnSpot());
 
 		dataStream.onSteadyData(() -> {
 			checkDataCompleteness();
 			clearCoinsWithInsufficientExchanges();
-		});
 
-		Logger.log("Coin monitor initialized:");
-		Logger.logCoinVector(coinExchangeSupport
-						.exchangesByCoin()
-						.transform((exchanges, _) -> exchanges.stream()
-										.map(BaseExchange::name)
-										.collect(Collectors.toSet())));
+			Logger.log("Coin monitor initialized:");
+			Logger.logCoinVector(coinExchangeSupport
+							.exchangesByCoin()
+							.transform((exchanges, _) -> exchanges.stream()
+											.map(BaseExchange::name)
+											.collect(Collectors.toSet())));
+		});
 	}
 
 	public CompletableFuture<Void> getInitFuture() {
 		return dataStream.initFuture();
 	}
 
-	private void checkDataCompleteness() {
+	void checkDataCompleteness() {
 		List<ExchangeCoinPair> toUnsubscribeFutures = new ArrayList<>();
 		List<ExchangeCoinPair> toUnsubscribeSpot = new ArrayList<>();
 		List<ExchangeCoinPair> toUnsubAll = new ArrayList<>();
@@ -108,7 +112,7 @@ public class CoinMonitor {
 		if (!toUnsubscribeSpot.isEmpty()) unsubscribeSpotEntries(toUnsubscribeSpot);
 	}
 
-	private void clearCoinsWithInsufficientExchanges() {
+	void clearCoinsWithInsufficientExchanges() {
 		for (String coin : coinExchangeSupport.getCoins()) {
 			Set<BaseExchange> exchanges = coinExchangeSupport.getExchanges(coin);
 			if (exchanges == null || exchanges.isEmpty()) {
@@ -118,7 +122,7 @@ public class CoinMonitor {
 		}
 	}
 
-	private void fillEmptyData() {
+	void fillEmptyData() {
 		coinExchangeSupport.exchangesByCoin().forEach((coin, exchanges) -> {
 			for (BaseExchange exchange : exchanges) {
 				futuresFundingRates.put(exchange, coin, Funding.empty());
@@ -131,7 +135,7 @@ public class CoinMonitor {
 		Logger.debug("Empty data filled");
 	}
 
-	private void subscribeData(ExchangeCoinMap<Boolean> presentOnFutures, ExchangeCoinMap<Boolean> presentOnSpot) {
+	void subscribeData(ExchangeCoinMap<Boolean> presentOnFutures, ExchangeCoinMap<Boolean> presentOnSpot) {
 		for (Map.Entry<BaseExchange, Set<String>> entry : coinExchangeSupport.exchangeEntries()) {
 			BaseExchange exchange = entry.getKey();
 			Set<String> supportedCoins = new HashSet<>(entry.getValue());
@@ -149,21 +153,21 @@ public class CoinMonitor {
 				Consumer<FundingRatePatch> fundingHandler = createFuturesFundingHandler(exchange);
 				Consumer<MarkPricePatch> markHandler = createFuturesMarkHandler(exchange);
 
-				exchange.publicWsClient().subscribeFuturesBookTicker(supportedOnFutures, bookHandler);
-				exchange.publicWsClient().subscribeFuturesFundingRates(supportedOnFutures, fundingHandler);
-				exchange.publicWsClient().subscribeFuturesMarkPrice(supportedOnFutures, markHandler);
+				dataStream.subscribeFuturesBookTicker(exchange, supportedOnFutures, bookHandler);
+				dataStream.subscribeFuturesFundingRates(exchange, supportedOnFutures, fundingHandler);
+				dataStream.subscribeFuturesMarkPrice(exchange, supportedOnFutures, markHandler);
 			}
 
 			if (!supportedOnSpot.isEmpty()) {
 				Consumer<BookTickerPatch> spotBookHandler = createSpotBookHandler(exchange);
-				exchange.publicWsClient().subscribeSpotBookTicker(supportedOnSpot, spotBookHandler);
+				dataStream.subscribeSpotBookTicker(exchange, supportedOnSpot, spotBookHandler);
 			}
 		}
 
 		Logger.debug("Subscribed to data");
 	}
 
-	private Consumer<BookTickerPatch> createSpotBookHandler(BaseExchange ex) {
+	Consumer<BookTickerPatch> createSpotBookHandler(BaseExchange ex) {
 		return tickerPatch -> spotBookTickers.compute(
 						ex, tickerPatch.coin(), (coin, v) -> {
 							if (v == null) return null;
@@ -180,7 +184,7 @@ public class CoinMonitor {
 		);
 	}
 
-	private Consumer<BookTickerPatch> createFuturesTickerHandler(BaseExchange ex) {
+	Consumer<BookTickerPatch> createFuturesTickerHandler(BaseExchange ex) {
 		return tickerPatch -> futuresBookTickers.compute(
 						ex, tickerPatch.coin(), (k, v) -> {
 							if (v == null) return null;
@@ -197,7 +201,7 @@ public class CoinMonitor {
 		);
 	}
 
-	private Consumer<FundingRatePatch> createFuturesFundingHandler(BaseExchange ex) {
+	Consumer<FundingRatePatch> createFuturesFundingHandler(BaseExchange ex) {
 		return ratePatch -> futuresFundingRates.compute(
 						ex, ratePatch.coin(), (k, v) -> {
 							if (v == null) return null;
@@ -212,7 +216,7 @@ public class CoinMonitor {
 		);
 	}
 
-	private Consumer<MarkPricePatch> createFuturesMarkHandler(BaseExchange ex) {
+	Consumer<MarkPricePatch> createFuturesMarkHandler(BaseExchange ex) {
 		return markPricePatch -> futuresMarkPrices.compute(
 						ex, markPricePatch.coin(), (k, v) -> {
 							if (v == null) return null;
@@ -223,7 +227,7 @@ public class CoinMonitor {
 		);
 	}
 
-	private void unsubscribeFuturesEntries(List<ExchangeCoinPair> toUnsubscribe) {
+	void unsubscribeFuturesEntries(List<ExchangeCoinPair> toUnsubscribe) {
 		Map<BaseExchange, Set<String>> unsubByExchange = new HashMap<>();
 		for (var entry : toUnsubscribe)
 			unsubByExchange.computeIfAbsent(entry.ex(), k -> new HashSet<>()).add(entry.coin());
@@ -238,7 +242,7 @@ public class CoinMonitor {
 		}
 	}
 
-	private void unsubscribeSpotEntries(List<ExchangeCoinPair> toUnsubscribe) {
+	void unsubscribeSpotEntries(List<ExchangeCoinPair> toUnsubscribe) {
 		Map<BaseExchange, Set<String>> unsubByExchange = new HashMap<>();
 		for (var entry : toUnsubscribe)
 			unsubByExchange.computeIfAbsent(entry.ex(), k -> new HashSet<>()).add(entry.coin());
@@ -253,7 +257,7 @@ public class CoinMonitor {
 		}
 	}
 
-	private void unsubscribeAllEntries(List<ExchangeCoinPair> toUnsubscribe) {
+	void unsubscribeAllEntries(List<ExchangeCoinPair> toUnsubscribe) {
 		Map<BaseExchange, Set<String>> unsubByExchange = new HashMap<>();
 		for (var entry : toUnsubscribe)
 			unsubByExchange.computeIfAbsent(entry.ex(), k -> new HashSet<>()).add(entry.coin());
@@ -270,7 +274,7 @@ public class CoinMonitor {
 		}
 	}
 
-	private void removeAvailability(BaseExchange ex, Set<String> coins) {
+	void removeAvailability(BaseExchange ex, Set<String> coins) {
 		Set<String> exchangeCoins = coinExchangeSupport.getCoins(ex);
 		if (exchangeCoins != null) {
 			exchangeCoins.removeAll(coins);
@@ -286,14 +290,14 @@ public class CoinMonitor {
 		}
 	}
 
-	private void removeFuturesFromState(BaseExchange ex, Set<String> coins) {
+	void removeFuturesFromState(BaseExchange ex, Set<String> coins) {
 		futuresFundingRates.removeAll(ex, coins);
 		futuresBookTickers.removeAll(ex, coins);
 		futuresMarkPrices.removeAll(ex, coins);
 		filterData.initialPresentOnFutures().removeAll(ex, coins);
 	}
 
-	private void removeSpotFromState(BaseExchange ex, Set<String> coins) {
+	void removeSpotFromState(BaseExchange ex, Set<String> coins) {
 		spotBookTickers.removeAll(ex, coins);
 		filterData.initialPresentOnSpot().removeAll(ex, coins);
 	}
@@ -321,6 +325,6 @@ public class CoinMonitor {
 		else return getSpotSnapshot(ex, coin);
 	}
 
-	private record ExchangeCoinPair(BaseExchange ex, String coin) {
+	record ExchangeCoinPair(BaseExchange ex, String coin) {
 	}
 }
