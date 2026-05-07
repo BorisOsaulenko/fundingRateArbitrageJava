@@ -2,16 +2,25 @@ package com.boris.fundingarbitrage;
 
 import com.boris.fundingarbitrage.coinfilter.CoinFilter;
 import com.boris.fundingarbitrage.coinfilter.CoinFilterConfig;
+import com.boris.fundingarbitrage.coinfilter.CoinFilterResult;
 import com.boris.fundingarbitrage.coinparser.AllExchangeCoinsParser;
 import com.boris.fundingarbitrage.coinparser.ICoinSupplier;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.exchange.Instances;
 import com.boris.fundingarbitrage.exchange.impl.bybit.BybitExchange;
 import com.boris.fundingarbitrage.execution.factory.TestCoinExecutionFactory;
-import com.boris.fundingarbitrage.logic.*;
+import com.boris.fundingarbitrage.logic.ArbitrageBotConfig;
+import com.boris.fundingarbitrage.logic.ArbitrageLogic;
+import com.boris.fundingarbitrage.logic.RebalancingArbitrageLogic;
+import com.boris.fundingarbitrage.logic.balanceprovider.IBalanceProvider;
+import com.boris.fundingarbitrage.logic.balanceprovider.ProdBalanceProvider;
+import com.boris.fundingarbitrage.logic.coincapper.CoinCapper;
+import com.boris.fundingarbitrage.logic.opportunityanalyzer.IOpportunityAnalyzer;
+import com.boris.fundingarbitrage.logic.opportunityanalyzer.ParallelOpportunityAnalyzer;
+import com.boris.fundingarbitrage.monitor.CoinMonitor;
 import com.boris.fundingarbitrage.monitor.IDataStream;
 import com.boris.fundingarbitrage.monitor.ProdDataStream;
-import com.boris.fundingarbitrage.strategy.intradestrategy.factory.ClassicInTradeFactory;
+import com.boris.fundingarbitrage.strategy.intradestrategy.factory.ProductionInTradeStrategyFactory;
 import com.boris.fundingarbitrage.strategy.pretradestrategy.FuturesPreTradeStrategy;
 import com.boris.fundingarbitrage.strategy.pretradestrategy.PreTradeStrategy;
 import com.boris.fundingarbitrage.util.logger.Logger;
@@ -34,7 +43,6 @@ public class App {
 		ArbitrageBotConfig botConfig = new ArbitrageBotConfig(
 						new BigDecimal("20"), // leg usdt amount
 						new BigDecimal("2"), // safety margin
-						100, // max coin amount
 						3, // max leverage
 						60, // log interval
 						3 // log amount
@@ -45,24 +53,37 @@ public class App {
 		);
 
 		try {
+			CoinFilter coinFilter = new CoinFilter(coinSupplier, filterConfig, exchanges);
+			CoinFilterResult filterResult = coinFilter.filterAsync().get();
+
+			IOpportunityAnalyzer opportunityAnalyzer = new ParallelOpportunityAnalyzer(
+							filterResult.coinAvailability(),
+							preTradeStrategy
+			);
+
+			int maxCoinAmount = 100;
+			CoinCapper coinCapper = new CoinCapper(opportunityAnalyzer, filterResult, maxCoinAmount);
+			coinCapper.capCoins().get();
+
+			IDataStream dataStream = new ProdDataStream();
+			IBalanceProvider balanceProvider = new ProdBalanceProvider();
+
+			CoinMonitor monitor = new CoinMonitor(filterResult, dataStream);
+			monitor.start();
+
 			ArbitrageLogic logic = new RebalancingArbitrageLogic(
 							exchanges,
+							monitor,
+							opportunityAnalyzer,
 							preTradeStrategy,
-							new ClassicInTradeFactory(),
+							new ProductionInTradeStrategyFactory(),
+							filterResult.coinAvailability(),
+							filterResult.constantDataRecord(),
 							botConfig,
 							new TestCoinExecutionFactory()
 			);
 
-			CoinFilter coinFilter = new CoinFilter(
-							coinSupplier,
-							filterConfig,
-							exchanges
-			);
-
-			IDataStream dataStream = new ProdDataStream();
-			BalanceProvider balanceProvider = new ProdBalanceProvider();
-
-			logic.init(coinFilter, dataStream, balanceProvider);
+			logic.init(balanceProvider);
 			logic.start();
 		} catch (Exception e) {
 			e.printStackTrace();

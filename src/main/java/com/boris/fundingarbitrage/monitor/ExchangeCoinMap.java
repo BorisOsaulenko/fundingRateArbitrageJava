@@ -4,6 +4,7 @@ import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 
 import java.util.Collection;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
@@ -77,15 +78,27 @@ public class ExchangeCoinMap<T> {
 	}
 
 	public void remove(BaseExchange exchange, String coin) {
-		exchangeCoinMap.computeIfPresent(
-						exchange, (e, cv) -> {
-							cv.remove(coin);
-							return cv.isEmpty() ? null : cv;
-						}
-		);
+		CoinVector<T> coinVector = exchangeCoinMap.get(exchange);
+		if (coinVector != null) {
+			coinVector.remove(coin);
+			if (coinVector.isEmpty()) exchangeCoinMap.remove(exchange);
+		}
 	}
 
 	public void removeAll(BaseExchange ex, Collection<String> coins) {
-		coins.forEach(coin -> remove(ex, coin));
+		CoinVector<T> coinVector = exchangeCoinMap.get(ex);
+		if (coinVector == null) return;
+
+		coinVector.removeAll(coins);
+		if (coinVector.isEmpty()) exchangeCoinMap.remove(ex);
+	}
+
+	public void removeCoin(String coin) {
+		for (Map.Entry<BaseExchange, CoinVector<T>> entry : exchangeCoinMap.entrySet()) {
+			BaseExchange exchange = entry.getKey();
+			CoinVector<T> coinVector = entry.getValue();
+			coinVector.remove(coin);
+			if (coinVector.isEmpty()) exchangeCoinMap.remove(exchange);
+		}
 	}
 }

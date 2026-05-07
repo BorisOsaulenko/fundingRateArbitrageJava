@@ -1,4 +1,4 @@
-package com.boris.fundingarbitrage.logic;
+package com.boris.fundingarbitrage.logic.balanceprovider;
 
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.model.exchange.ExchangeBalance;
@@ -8,7 +8,7 @@ import java.math.BigDecimal;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
-public class ProdBalanceProvider implements BalanceProvider {
+public class ProdBalanceProvider implements IBalanceProvider {
 	@Override
 	public CompletableFuture<Map<BaseExchange, ExchangeBalance>> load(Set<BaseExchange> exchanges) {
 		Map<BaseExchange, ExchangeBalance> balances = new HashMap<>();

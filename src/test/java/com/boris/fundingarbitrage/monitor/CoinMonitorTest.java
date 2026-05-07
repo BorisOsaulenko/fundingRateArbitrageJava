@@ -1,6 +1,6 @@
 package com.boris.fundingarbitrage.monitor;
 
-import com.boris.fundingarbitrage.coinfilter.CoinExchangeSupport;
+import com.boris.fundingarbitrage.coinfilter.CoinAvailabilityRecord;
 import com.boris.fundingarbitrage.coinfilter.CoinFilterResult;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.exchange.privatehttp.PrivateHttpClient;
@@ -31,7 +31,7 @@ class CoinMonitorTest {
 	private static final String COIN = "BTC";
 
 	private static CoinFilterResult filterData(Set<BaseExchange> exchanges) {
-		CoinExchangeSupport support = new CoinExchangeSupport();
+		CoinAvailabilityRecord support = new CoinAvailabilityRecord();
 		ExchangeCoinMap<Boolean> presentOnFutures = new ExchangeCoinMap<>();
 		ExchangeCoinMap<Boolean> presentOnSpot = new ExchangeCoinMap<>();
 

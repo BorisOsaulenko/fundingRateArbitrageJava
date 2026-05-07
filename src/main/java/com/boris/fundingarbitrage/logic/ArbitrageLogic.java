@@ -1,6 +1,10 @@
 package com.boris.fundingarbitrage.logic;
 
+import com.boris.fundingarbitrage.coinfilter.CoinAvailabilityRecord;
+import com.boris.fundingarbitrage.coinfilter.ConstantDataRecord;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
+import com.boris.fundingarbitrage.logic.balanceprovider.IBalanceProvider;
+import com.boris.fundingarbitrage.logic.opportunityanalyzer.IOpportunityAnalyzer;
 import com.boris.fundingarbitrage.model.exchange.ExchangeBalance;
 import com.boris.fundingarbitrage.model.exchange.constantdata.FuturesConstantData;
 import com.boris.fundingarbitrage.model.exchange.constantdata.SpotConstantData;
@@ -16,84 +20,52 @@ import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import com.boris.fundingarbitrage.util.logger.Logger;
 
 import java.util.Comparator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BiFunction;
 
 public abstract class ArbitrageLogic {
 	protected final Set<BaseExchange> exchanges;
 	protected final PreTradeStrategy preTradeStrategy;
 	protected final InTradeStrategyFactory inTradeStrategyFactory;
+	protected final CoinAvailabilityRecord coinAvailability;
+	protected final ConstantDataRecord constantDataRecord;
 	protected final ArbitrageBotConfig config;
 	protected final ScheduledExecutorService logScheduler = Executors.newSingleThreadScheduledExecutor();
+	protected final CoinMonitor monitor;
+	protected final IOpportunityAnalyzer opportunityAnalyzer;
 	protected CompletableFuture<Void> initFuture;
-	protected CoinMonitor monitor;
-	protected OpportunityAnalyzer opportunityAnalyzer;
 	private ModifiableFrequencyTask opportunitiesProcessingTask;
 	private volatile boolean shuttingDown = false;
 	private volatile boolean processingActive = true;
 	private volatile boolean logOnThisCycle = false;
-	private BiFunction<BaseExchange, String, FuturesSnapshot> futuresSnapshotExtractor;
-	private BiFunction<BaseExchange, String, SpotSnapshot> spotSnapshotExtractor;
 
 	public ArbitrageLogic(
 					Set<BaseExchange> exchanges,
+					CoinMonitor monitor,
+					IOpportunityAnalyzer opportunityAnalyzer,
 					PreTradeStrategy preTradeStrategy,
 					InTradeStrategyFactory inTradeStrategyFactory,
-					ArbitrageBotConfig arbConfig,
-					OpportunityAnalyzer opportunityAnalyzer
+					CoinAvailabilityRecord coinAvailability,
+					ConstantDataRecord constantDataRecord,
+					ArbitrageBotConfig arbConfig
 	) {
 		this.exchanges = exchanges;
-		this.preTradeStrategy = preTradeStrategy;
-		this.inTradeStrategyFactory = inTradeStrategyFactory;
-		this.config = arbConfig;
-		this.opportunityAnalyzer = opportunityAnalyzer;
-	}
-
-	public ArbitrageLogic(
-					Set<BaseExchange> exchanges,
-					PreTradeStrategy preTradeStrategy,
-					InTradeStrategyFactory inTradeStrategyFactory,
-					ArbitrageBotConfig config
-	) {
-		this.exchanges = exchanges;
-		this.preTradeStrategy = preTradeStrategy;
-		this.inTradeStrategyFactory = inTradeStrategyFactory;
-		this.config = config;
-	}
-
-	public CompletableFuture<Void> init(CoinMonitor monitor, BalanceProvider balanceProvider) {
-		CompletableFuture<Void> balancesFuture = balanceProvider.load(exchanges).thenAccept(this::afterBalanceInit);
-
-		capToMaxCoinAmount().join();
-
 		this.monitor = monitor;
-		monitor.start();
-
-		this.futuresSnapshotExtractor = monitor::getFuturesSnapshot;
-		this.spotSnapshotExtractor = monitor::getSpotSnapshot;
-		return initFuture = CompletableFuture.allOf(prettyMonitorInitFuture(), balancesFuture);
+		this.opportunityAnalyzer = opportunityAnalyzer;
+		this.preTradeStrategy = preTradeStrategy;
+		this.inTradeStrategyFactory = inTradeStrategyFactory;
+		this.coinAvailability = coinAvailability;
+		this.constantDataRecord = constantDataRecord;
+		this.config = arbConfig;
 	}
 
-	CompletableFuture<Void> capToMaxCoinAmount() {
-		if (filterData.coinExchangeSupport().coinCount() <= config.maxCoinAmount())
-			return CompletableFuture.completedFuture(null);
-
-		return processCoins().thenAccept(bestOps -> {
-			List<Map.Entry<String, CoinOpportunity>> bestOpsSorted = bestOps.sortDesc(Comparator.comparing(CoinOpportunity::expectedGain));
-			List<String> coinsToRemove = bestOpsSorted.subList(config.maxCoinAmount(), bestOpsSorted.size())
-							.stream()
-							.map(Map.Entry::getKey)
-							.toList();
-
-			coinsToRemove.forEach(this::forgetCoin);
-			Logger.log("Capped coins to " + config.maxCoinAmount());
-		});
+	public CompletableFuture<Void> init(IBalanceProvider balanceProvider) {
+		CompletableFuture<Void> balancesFuture = balanceProvider.load(exchanges).thenAccept(this::afterBalanceInit);
+		return initFuture = CompletableFuture.allOf(prettyMonitorInitFuture(), balancesFuture);
 	}
 
 	public void start() {
@@ -115,7 +87,7 @@ public abstract class ArbitrageLogic {
 	}
 
 	void attachWsDisconnectHandlers() {
-		for (BaseExchange ex : filterData.coinExchangeSupport().getExchanges()) {
+		for (BaseExchange ex : coinAvailability.getExchanges()) {
 			ex.publicWsClient().onUnhandledDisconnect(() -> {
 				Logger.error("Public ws client of " + ex.name() + " disconnected. Shutting down...");
 				shutdown();
@@ -135,7 +107,8 @@ public abstract class ArbitrageLogic {
 
 	void doTick() {
 		CoinVector<CoinOpportunity> bestOpportunities = null;
-		if (processingActive) bestOpportunities = processCoins().join();
+		if (processingActive) bestOpportunities =
+						opportunityAnalyzer.processCoins(this::getFuturesExchangeData, this::getSpotExchangeData).join();
 
 		try {
 			processTick(bestOpportunities);
@@ -152,7 +125,7 @@ public abstract class ArbitrageLogic {
 	}
 
 	protected void adjustFrequencyToRecommended() {
-		int newFrequencyMs = (int) (filterData.coinExchangeSupport().coinCount() * 1.1);
+		int newFrequencyMs = (int) (coinAvailability.coinCount() * 1.1);
 		opportunitiesProcessingTask.setFrequency(newFrequencyMs);
 
 		Logger.log("Adjusted frequency to recommended (" + newFrequencyMs + "ms)");
@@ -167,9 +140,9 @@ public abstract class ArbitrageLogic {
 					BaseExchange ex,
 					String coin
 	) {
-		if (!Boolean.TRUE.equals(filterData.initialPresentOnFutures().get(ex, coin))) return null;
-		FuturesSnapshot snapshot = futuresSnapshotExtractor.apply(ex, coin);
-		FuturesConstantData constantData = filterData.futuresConstantData().get(ex, coin);
+		if (!coinAvailability.isFutures(ex, coin)) return null;
+		FuturesSnapshot snapshot = monitor.getFuturesSnapshot(ex, coin);
+		FuturesConstantData constantData = constantDataRecord.getFuturesConstantData(ex, coin);
 		return new FuturesExchangeData(constantData, snapshot);
 	}
 
@@ -177,9 +150,9 @@ public abstract class ArbitrageLogic {
 					BaseExchange ex,
 					String coin
 	) {
-		if (!Boolean.TRUE.equals(filterData.initialPresentOnSpot().get(ex, coin))) return null;
-		SpotSnapshot snapshot = spotSnapshotExtractor.apply(ex, coin);
-		SpotConstantData constantData = filterData.spotConstantData().get(ex, coin);
+		if (!coinAvailability.isSpot(ex, coin)) return null;
+		SpotSnapshot snapshot = monitor.getSpotSnapshot(ex, coin);
+		SpotConstantData constantData = constantDataRecord.getSpotConstantData(ex, coin);
 		return new SpotExchangeData(constantData, snapshot);
 	}
 
@@ -212,15 +185,8 @@ public abstract class ArbitrageLogic {
 	}
 
 	protected void forgetCoin(String coin) {
-		filterData.coinExchangeSupport().coinsByExchange().forEach((ex, coins) -> {
-			coins.remove(coin);
-			filterData.futuresConstantData().remove(ex, coin);
-			filterData.spotConstantData().remove(ex, coin);
-			filterData.initialFuturesSnapshots().remove(ex, coin);
-			filterData.initialSpotSnapshots().remove(ex, coin);
-			filterData.initialPresentOnSpot().remove(ex, coin);
-			filterData.initialPresentOnFutures().remove(ex, coin);
-		});
+		coinAvailability.removeByCoin(coin);
+		constantDataRecord.removeByCoin(coin);
 	}
 
 	protected void stopCalculatingBestOptionsForAllCoins() {

@@ -1,7 +1,8 @@
-package com.boris.fundingarbitrage.logic;
+package com.boris.fundingarbitrage.logic.opportunityanalyzer;
 
-import com.boris.fundingarbitrage.coinfilter.CoinExchangeSupport;
+import com.boris.fundingarbitrage.coinfilter.CoinAvailabilityRecord;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
+import com.boris.fundingarbitrage.logic.CoinOpportunity;
 import com.boris.fundingarbitrage.model.exchange.ExchangePair;
 import com.boris.fundingarbitrage.model.exchange.exchangedata.ExchangeData;
 import com.boris.fundingarbitrage.model.exchange.exchangedata.FuturesExchangeData;
@@ -19,13 +20,13 @@ import java.util.concurrent.Executors;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 
-public class OpportunityAnalyzer {
+public class ParallelOpportunityAnalyzer implements IOpportunityAnalyzer {
 	private final ExecutorService cpuPool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-	private final CoinExchangeSupport coinExchangeSupport;
+	private final CoinAvailabilityRecord coinAvailability;
 	private final PreTradeStrategy preTradeStrategy;
 
-	public OpportunityAnalyzer(CoinExchangeSupport coinExchangeSupport, PreTradeStrategy preTradeStrategy) {
-		this.coinExchangeSupport = coinExchangeSupport;
+	public ParallelOpportunityAnalyzer(CoinAvailabilityRecord coinAvailability, PreTradeStrategy preTradeStrategy) {
+		this.coinAvailability = coinAvailability;
 		this.preTradeStrategy = preTradeStrategy;
 	}
 
@@ -85,7 +86,7 @@ public class OpportunityAnalyzer {
 					BiFunction<BaseExchange, String, FuturesExchangeData> futuresExchangeDataExtractor,
 					BiFunction<BaseExchange, String, SpotExchangeData> spotExchangeDataExtractor
 	) {
-		Set<BaseExchange> availableExchanges = coinExchangeSupport.getExchanges(coin);
+		Set<BaseExchange> availableExchanges = coinAvailability.getExchanges(coin);
 		if (availableExchanges == null) throw new IllegalStateException("Available exchanges for " + coin + " not found");
 
 		CoinOpportunity bestOp = null;
@@ -107,12 +108,12 @@ public class OpportunityAnalyzer {
 		return bestOp;
 	}
 
-	CompletableFuture<CoinVector<CoinOpportunity>> processCoins(
+	public CompletableFuture<CoinVector<CoinOpportunity>> processCoins(
 					BiFunction<BaseExchange, String, FuturesExchangeData> futuresExchangeDataExtractor,
 					BiFunction<BaseExchange, String, SpotExchangeData> spotExchangeDataExtractor
 	) {
 		CoinVector<CoinOpportunity> result = new CoinVector<>();
-		List<CompletableFuture<Void>> futures = coinExchangeSupport.getCoins().stream().map(coin ->
+		List<CompletableFuture<Void>> futures = coinAvailability.getCoins().stream().map(coin ->
 										CompletableFuture.runAsync(
 														() -> {
 															CoinOpportunity bestOp = computeBestCoinOpportunity(
@@ -130,7 +131,7 @@ public class OpportunityAnalyzer {
 		return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).thenApply(v -> result);
 	}
 
-	void shutdown() {
+	public void shutdown() {
 		cpuPool.shutdownNow();
 	}
 }

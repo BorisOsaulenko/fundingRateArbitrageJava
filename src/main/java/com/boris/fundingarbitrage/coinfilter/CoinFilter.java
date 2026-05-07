@@ -19,10 +19,7 @@ import com.boris.fundingarbitrage.util.logger.Logger;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -31,17 +28,14 @@ public class CoinFilter {
 	private final Set<BaseExchange> exchanges;
 	private final ICoinSupplier coinSupplier;
 
-	private final CoinExchangeSupport availableSupport = new CoinExchangeSupport();
-	private final ExchangeCoinMap<Boolean> presentOnFutures = new ExchangeCoinMap<>();
-	private final ExchangeCoinMap<Boolean> presentOnSpot = new ExchangeCoinMap<>();
+	private final CoinAvailabilityRecord availabilityRecord = new CoinAvailabilityRecord();
+	private final ConstantDataRecord cdRecord = new ConstantDataRecord();
 	private final ExchangeCoinMap<BigDecimal> futuresTradingVolumeMap = new ExchangeCoinMap<>();
 	private final ExchangeCoinMap<FuturesTradingState> futuresTradingStatesMap = new ExchangeCoinMap<>();
 	private final ExchangeCoinMap<BigDecimal> spotTradingVolumeMap = new ExchangeCoinMap<>();
 
 	private final ExchangeCoinMap<SpotSnapshot> spotSnapshotsMap = new ExchangeCoinMap<>();
 	private final ExchangeCoinMap<FuturesSnapshot> futuresSnapshotsMap = new ExchangeCoinMap<>();
-	private final ExchangeCoinMap<SpotConstantData> spotConstantDataMap = new ExchangeCoinMap<>();
-	private final ExchangeCoinMap<FuturesConstantData> futuresConstantDataMap = new ExchangeCoinMap<>();
 
 	public CoinFilter(ICoinSupplier coinSupplier, CoinFilterConfig config, Set<BaseExchange> exchanges) {
 		this.coinSupplier = coinSupplier;
@@ -84,8 +78,7 @@ public class CoinFilter {
 								FuturesPublicOnePullData data = entry.getValue();
 								Fees fees = ffVector.get(coin);
 								if (fees == null) continue;
-								presentOnFutures.put(exchange, coin, true);
-								availableSupport.addSupport(coin, exchange);
+								availabilityRecord.addSupportFutures(coin, exchange);
 
 								FuturesSnapshot snapshot = new FuturesSnapshot(
 												data.ticker(),
@@ -98,7 +91,7 @@ public class CoinFilter {
 												data.fundingInterval()
 								);
 								futuresSnapshotsMap.put(exchange, coin, snapshot);
-								futuresConstantDataMap.put(exchange, coin, constantData);
+								cdRecord.addFutures(exchange, coin, constantData);
 								futuresTradingVolumeMap.put(exchange, coin, data.volume24h());
 								futuresTradingStatesMap.put(exchange, coin, data.tradingState());
 							}
@@ -108,14 +101,13 @@ public class CoinFilter {
 								SpotPublicOnePullData data = entry.getValue();
 								Fees fees = sfVector.get(coin);
 								if (fees == null) continue;
-								presentOnSpot.put(exchange, coin, true);
-								availableSupport.addSupport(coin, exchange);
+								availabilityRecord.addSupportSpot(coin, exchange);
 
 								SpotSnapshot snapshot = new SpotSnapshot(data.ticker());
 								SpotConstantData constantData = new SpotConstantData(data.lotSize(), fees);
 
 								spotSnapshotsMap.put(exchange, coin, snapshot);
-								spotConstantDataMap.put(exchange, coin, constantData);
+								cdRecord.addSpot(exchange, coin, constantData);
 								spotTradingVolumeMap.put(exchange, coin, data.volume24h());
 							}
 						});
@@ -123,11 +115,8 @@ public class CoinFilter {
 
 
 	private CompletableFuture<Void> fetchData(Set<String> coins) {
-		for (String coin : coins) availableSupport.addCoin(coin);
-		for (BaseExchange ex : exchanges) {
-			availableSupport.addExchange(ex);
-			for (String coin : coins) availableSupport.addSupport(coin, ex);
-		}
+		for (String coin : coins) availabilityRecord.addCoin(coin);
+		for (BaseExchange ex : exchanges) availabilityRecord.addExchange(ex);
 
 		List<CompletableFuture<Void>> futures = new ArrayList<>();
 		for (BaseExchange exchange : exchanges) futures.add(fetchData(exchange, coins));
@@ -136,28 +125,21 @@ public class CoinFilter {
 	}
 
 	private void filterCoins() {
-		for (Map.Entry<String, Set<BaseExchange>> entry : availableSupport.coinEntries()) {
-			String coin = entry.getKey();
-			Set<BaseExchange> exchanges = entry.getValue();
-
+		for (String coin : new HashSet<>(availabilityRecord.getCoins())) {
 			for (BaseExchange ex : exchanges) {
-				if (Boolean.TRUE.equals(presentOnFutures.get(ex, coin))) {
+				if (availabilityRecord.isFutures(ex, coin)) {
 					String excludeFuturesMsg = getExcludeFuturesMessage(ex, coin);
 					if (excludeFuturesMsg != null) forgetFuturesCoinExchange(coin, ex);
 				}
 
-				if (Boolean.TRUE.equals(presentOnSpot.get(ex, coin))) {
+				if (availabilityRecord.isSpot(ex, coin)) {
 					String excludedSpotMsg = getExcludeSpotMessage(ex, coin);
 					if (excludedSpotMsg != null) forgetSpotCoinExchange(coin, ex);
 				}
-
-				if (!Boolean.TRUE.equals(presentOnFutures.get(ex, coin)) && !Boolean.TRUE.equals(presentOnSpot.get(ex, coin))) {
-					forgetCoinExchange(coin, ex);
-					exchanges.remove(ex);
-				}
 			}
 
-			if (exchanges.isEmpty()) {
+			Set<BaseExchange> supportedExchanges = availabilityRecord.getExchanges(coin);
+			if (supportedExchanges == null || supportedExchanges.isEmpty()) {
 				Logger.warn("No exchanges left supporting " + coin);
 			}
 		}
@@ -168,37 +150,37 @@ public class CoinFilter {
 						.thenCompose(this::fetchData)
 						.thenRun(this::filterCoins)
 						.thenApply(_ -> new CoinFilterResult(
-										availableSupport,
-										futuresConstantDataMap,
-										spotConstantDataMap,
+										availabilityRecord,
+										cdRecord,
 										futuresSnapshotsMap,
-										spotSnapshotsMap,
-										presentOnFutures,
-										presentOnSpot
+										spotSnapshotsMap
 						));
 	}
 
 	private void forgetCoinExchange(String coin, BaseExchange exchange) {
-		availableSupport.removeSupport(coin, exchange);
-		futuresConstantDataMap.remove(exchange, coin);
-		spotConstantDataMap.remove(exchange, coin);
+		availabilityRecord.removeSupportSpot(coin, exchange);
+		availabilityRecord.removeSupportFutures(coin, exchange);
+		cdRecord.removeFutures(exchange, coin);
+		cdRecord.removeSpot(exchange, coin);
+		futuresSnapshotsMap.remove(exchange, coin);
 		spotSnapshotsMap.remove(exchange, coin);
-		spotConstantDataMap.remove(exchange, coin);
 	}
 
 	private void forgetFuturesCoinExchange(String coin, BaseExchange exchange) {
 		futuresTradingVolumeMap.remove(exchange, coin);
 		futuresTradingStatesMap.remove(exchange, coin);
-		futuresConstantDataMap.remove(exchange, coin);
+		cdRecord.removeFutures(exchange, coin);
 		futuresSnapshotsMap.remove(exchange, coin);
-		presentOnFutures.put(exchange, coin, false);
+		availabilityRecord.removeSupportFutures(coin, exchange);
+		if (!availabilityRecord.isSpot(exchange, coin)) forgetCoinExchange(coin, exchange);
 	}
 
 	private void forgetSpotCoinExchange(String coin, BaseExchange exchange) {
 		spotTradingVolumeMap.remove(exchange, coin);
 		spotSnapshotsMap.remove(exchange, coin);
-		futuresConstantDataMap.remove(exchange, coin);
-		presentOnSpot.put(exchange, coin, false);
+		cdRecord.removeFutures(exchange, coin);
+		availabilityRecord.removeSupportSpot(coin, exchange);
+		if (!availabilityRecord.isFutures(exchange, coin)) forgetCoinExchange(coin, exchange);
 	}
 
 	private String getExcludeMessage(
@@ -206,13 +188,13 @@ public class CoinFilter {
 					String coin,
 					ExchangeCoinMap<BigDecimal> volumeMap,
 					ExchangeCoinMap<? extends Snapshot> snapshotMap,
-					ExchangeCoinMap<? extends ConstantData> cdMap
+					ConstantData cd
 	) {
 		BigDecimal volume = volumeMap.get(ex, coin);
 		if (volume.compareTo(config.min24hVolumeUsdt()) < 0) return "Volume not enough: " + volume;
 
 		BigDecimal ask = snapshotMap.get(ex, coin).askPrice();
-		BigDecimal minPriceStep = cdMap.get(ex, coin).lotSize().multiply(ask);
+		BigDecimal minPriceStep = cd.lotSize().multiply(ask);
 		if (minPriceStep.compareTo(config.maxAffordablePrice()) > 0)
 			return "Price too high; min price step: " + minPriceStep;
 
@@ -228,7 +210,7 @@ public class CoinFilter {
 						coin,
 						futuresTradingVolumeMap,
 						futuresSnapshotsMap,
-						futuresConstantDataMap
+						cdRecord.getFuturesConstantData(ex, coin)
 		);
 	}
 
@@ -238,7 +220,7 @@ public class CoinFilter {
 						coin,
 						spotTradingVolumeMap,
 						spotSnapshotsMap,
-						spotConstantDataMap
+						cdRecord.getFuturesConstantData(ex, coin)
 		);
 	}
 }

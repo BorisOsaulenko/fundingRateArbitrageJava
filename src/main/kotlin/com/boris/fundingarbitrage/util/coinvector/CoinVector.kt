@@ -140,4 +140,10 @@ class CoinVector<T> : MutableMap<String, T> by ConcurrentHashMap() {
 
     fun getMinEntry(comparator: Comparator<T>): Map.Entry<String, T> =
         this.entries.minWith { a, b -> comparator.compare(a.value, b.value) }
+
+    fun removeAll(coins: Iterable<String>) {
+        for (coin in coins) {
+            this.remove(coin)
+        }
+    }
 }

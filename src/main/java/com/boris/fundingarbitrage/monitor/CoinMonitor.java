@@ -1,6 +1,6 @@
 package com.boris.fundingarbitrage.monitor;
 
-import com.boris.fundingarbitrage.coinfilter.CoinExchangeSupport;
+import com.boris.fundingarbitrage.coinfilter.CoinAvailabilityRecord;
 import com.boris.fundingarbitrage.coinfilter.CoinFilterResult;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
@@ -34,7 +34,7 @@ public class CoinMonitor {
 	);
 
 	private final CoinFilterResult filterData;
-	private final CoinExchangeSupport coinExchangeSupport;
+	private final CoinAvailabilityRecord coinExchangeSupport;
 	private final IDataStream dataStream;
 
 	public CoinMonitor(
@@ -42,7 +42,7 @@ public class CoinMonitor {
 					IDataStream dataStream
 	) {
 		this.filterData = filterData;
-		this.coinExchangeSupport = filterData.coinExchangeSupport();
+		this.coinExchangeSupport = filterData.coinAvailability();
 		this.dataStream = dataStream;
 	}
 
@@ -51,7 +51,7 @@ public class CoinMonitor {
 
 		dataStream.openWsConnections(coinExchangeSupport.getExchanges())
 						.thenRun(() -> Logger.debug("WS connections opened"));
-		
+
 		fillEmptyData();
 		subscribeData(filterData.initialPresentOnFutures(), filterData.initialPresentOnSpot());
 

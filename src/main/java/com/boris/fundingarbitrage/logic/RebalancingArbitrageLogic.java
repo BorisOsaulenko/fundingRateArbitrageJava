@@ -1,11 +1,15 @@
 package com.boris.fundingarbitrage.logic;
 
+import com.boris.fundingarbitrage.coinfilter.CoinAvailabilityRecord;
+import com.boris.fundingarbitrage.coinfilter.ConstantDataRecord;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.execution.factory.CoinExecutionFactory;
+import com.boris.fundingarbitrage.logic.opportunityanalyzer.IOpportunityAnalyzer;
 import com.boris.fundingarbitrage.model.assetops.InternalAccount;
 import com.boris.fundingarbitrage.model.assetops.InternalTransfer;
 import com.boris.fundingarbitrage.model.exchange.ExchangeBalance;
 import com.boris.fundingarbitrage.model.exchange.ExchangePair;
+import com.boris.fundingarbitrage.monitor.CoinMonitor;
 import com.boris.fundingarbitrage.strategy.TradeMarket;
 import com.boris.fundingarbitrage.strategy.intradestrategy.factory.InTradeStrategyFactory;
 import com.boris.fundingarbitrage.strategy.pretradestrategy.PreTradeStrategy;
@@ -32,12 +36,25 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 
 	public RebalancingArbitrageLogic(
 					Set<BaseExchange> exchanges,
+					CoinMonitor monitor,
+					IOpportunityAnalyzer opportunityAnalyzer,
 					PreTradeStrategy preTradeStrategy,
 					InTradeStrategyFactory inTradeStrategyFactory,
+					CoinAvailabilityRecord coinAvailability,
+					ConstantDataRecord constantDataRecord,
 					ArbitrageBotConfig arbConfig,
 					CoinExecutionFactory executionFactory
 	) {
-		super(exchanges, preTradeStrategy, inTradeStrategyFactory, arbConfig);
+		super(
+						exchanges,
+						monitor,
+						opportunityAnalyzer,
+						preTradeStrategy,
+						inTradeStrategyFactory,
+						coinAvailability,
+						constantDataRecord,
+						arbConfig
+		);
 		this.executionFactory = executionFactory;
 		int checkExitFreqMs = 10;
 		exitExecutor.scheduleAtFixedRate(this::processExits, 0, checkExitFreqMs, TimeUnit.MILLISECONDS);
