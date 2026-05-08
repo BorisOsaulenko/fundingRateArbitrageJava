@@ -160,8 +160,8 @@ public class CoinFilter {
 	}
 
 	private void forgetCoinExchange(String coin, BaseExchange exchange) {
-		availabilityRecord.removeSupportSpot(coin, exchange);
-		availabilityRecord.removeSupportFutures(coin, exchange);
+		availabilityRecord.removeSupportSpot(exchange, coin);
+		availabilityRecord.removeSupportFutures(exchange, coin);
 		cdRecord.removeFutures(exchange, coin);
 		cdRecord.removeSpot(exchange, coin);
 		futuresSnapshotsMap.remove(exchange, coin);
@@ -173,7 +173,7 @@ public class CoinFilter {
 		futuresTradingStatesMap.remove(exchange, coin);
 		cdRecord.removeFutures(exchange, coin);
 		futuresSnapshotsMap.remove(exchange, coin);
-		availabilityRecord.removeSupportFutures(coin, exchange);
+		availabilityRecord.removeSupportFutures(exchange, coin);
 		if (!availabilityRecord.isSpot(exchange, coin)) forgetCoinExchange(coin, exchange);
 	}
 
@@ -181,7 +181,7 @@ public class CoinFilter {
 		spotTradingVolumeMap.remove(exchange, coin);
 		spotSnapshotsMap.remove(exchange, coin);
 		cdRecord.removeFutures(exchange, coin);
-		availabilityRecord.removeSupportSpot(coin, exchange);
+		availabilityRecord.removeSupportSpot(exchange, coin);
 		if (!availabilityRecord.isFutures(exchange, coin)) forgetCoinExchange(coin, exchange);
 	}
 

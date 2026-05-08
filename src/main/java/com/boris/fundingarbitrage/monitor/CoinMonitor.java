@@ -37,7 +37,7 @@ public class CoinMonitor {
 	);
 
 	private final CoinFilterResult filterData;
-	private final CoinAvailabilityRecord coinExchangeSupport;
+	private final CoinAvailabilityRecord coinAvailability;
 	private final IDataStream dataStream;
 
 	public CoinMonitor(
@@ -45,18 +45,18 @@ public class CoinMonitor {
 					IDataStream dataStream
 	) {
 		this.filterData = filterData;
-		this.coinExchangeSupport = filterData.coinAvailability();
+		this.coinAvailability = filterData.coinAvailability();
 		this.dataStream = dataStream;
 	}
 
 	public void start() {
-		log.info(coinExchangeSupport.coinsByExchange().toString());
+		log.info(coinAvailability.coinsByExchange().toString());
 
-		dataStream.openWsConnections(coinExchangeSupport.getExchanges())
+		dataStream.openWsConnections(coinAvailability.getExchanges())
 						.thenRun(() -> log.debug("WS connections opened"));
 
 		fillEmptyData();
-		subscribeData(filterData.initialPresentOnFutures(), filterData.initialPresentOnSpot());
+		subscribeData();
 
 		dataStream.onSteadyData(() -> {
 			checkDataCompleteness();
@@ -64,7 +64,7 @@ public class CoinMonitor {
 
 			log.info("Coin monitor initialized:");
 			CoinVectorLogger.logCoinVector(
-							log, coinExchangeSupport
+							log, coinAvailability
 											.exchangesByCoin()
 											.transform((exchanges, _) -> exchanges.stream()
 															.map(BaseExchange::name)
@@ -82,7 +82,7 @@ public class CoinMonitor {
 		List<ExchangeCoinPair> toUnsubscribeSpot = new ArrayList<>();
 		List<ExchangeCoinPair> toUnsubAll = new ArrayList<>();
 
-		for (Map.Entry<BaseExchange, Set<String>> entry : coinExchangeSupport.exchangeEntries()) {
+		for (Map.Entry<BaseExchange, Set<String>> entry : coinAvailability.exchangeEntries()) {
 			BaseExchange ex = entry.getKey();
 			for (String coin : entry.getValue()) {
 				BookTicker ticker = futuresBookTickers.get(ex, coin);
@@ -118,17 +118,17 @@ public class CoinMonitor {
 	}
 
 	void clearCoinsWithInsufficientExchanges() {
-		for (String coin : coinExchangeSupport.getCoins()) {
-			Set<BaseExchange> exchanges = coinExchangeSupport.getExchanges(coin);
+		for (String coin : coinAvailability.getCoins()) {
+			Set<BaseExchange> exchanges = coinAvailability.getExchanges(coin);
 			if (exchanges == null || exchanges.isEmpty()) {
 				log.warn("Not enough exchanges support " + coin + ". Removing from monitoring.");
-				coinExchangeSupport.removeByCoin(coin);
+				coinAvailability.removeByCoin(coin);
 			}
 		}
 	}
 
 	void fillEmptyData() {
-		coinExchangeSupport.exchangesByCoin().forEach((coin, exchanges) -> {
+		coinAvailability.exchangesByCoin().forEach((coin, exchanges) -> {
 			for (BaseExchange exchange : exchanges) {
 				futuresFundingRates.put(exchange, coin, Funding.empty());
 				futuresBookTickers.put(exchange, coin, BookTicker.empty());
@@ -140,32 +140,32 @@ public class CoinMonitor {
 		log.debug("Empty data filled");
 	}
 
-	void subscribeData(ExchangeCoinMap<Boolean> presentOnFutures, ExchangeCoinMap<Boolean> presentOnSpot) {
-		for (Map.Entry<BaseExchange, Set<String>> entry : coinExchangeSupport.exchangeEntries()) {
-			BaseExchange exchange = entry.getKey();
+	void subscribeData() {
+		for (Map.Entry<BaseExchange, Set<String>> entry : coinAvailability.exchangeEntries()) {
+			BaseExchange ex = entry.getKey();
 			Set<String> supportedCoins = new HashSet<>(entry.getValue());
 			if (supportedCoins.isEmpty()) continue;
 
 			Set<String> supportedOnFutures = supportedCoins.stream()
-							.filter(coin -> Boolean.TRUE.equals(presentOnFutures.get(exchange, coin)))
+							.filter(coin -> coinAvailability.isFutures(ex, coin))
 							.collect(Collectors.toSet());
 			Set<String> supportedOnSpot = supportedCoins.stream()
-							.filter(coin -> Boolean.TRUE.equals(presentOnSpot.get(exchange, coin)))
+							.filter(coin -> coinAvailability.isSpot(ex, coin))
 							.collect(Collectors.toSet());
 
 			if (!supportedOnFutures.isEmpty()) {
-				Consumer<BookTickerPatch> bookHandler = createFuturesTickerHandler(exchange);
-				Consumer<FundingRatePatch> fundingHandler = createFuturesFundingHandler(exchange);
-				Consumer<MarkPricePatch> markHandler = createFuturesMarkHandler(exchange);
+				Consumer<BookTickerPatch> bookHandler = createFuturesTickerHandler(ex);
+				Consumer<FundingRatePatch> fundingHandler = createFuturesFundingHandler(ex);
+				Consumer<MarkPricePatch> markHandler = createFuturesMarkHandler(ex);
 
-				dataStream.subscribeFuturesBookTicker(exchange, supportedOnFutures, bookHandler);
-				dataStream.subscribeFuturesFundingRates(exchange, supportedOnFutures, fundingHandler);
-				dataStream.subscribeFuturesMarkPrice(exchange, supportedOnFutures, markHandler);
+				dataStream.subscribeFuturesBookTicker(ex, supportedOnFutures, bookHandler);
+				dataStream.subscribeFuturesFundingRates(ex, supportedOnFutures, fundingHandler);
+				dataStream.subscribeFuturesMarkPrice(ex, supportedOnFutures, markHandler);
 			}
 
 			if (!supportedOnSpot.isEmpty()) {
-				Consumer<BookTickerPatch> spotBookHandler = createSpotBookHandler(exchange);
-				dataStream.subscribeSpotBookTicker(exchange, supportedOnSpot, spotBookHandler);
+				Consumer<BookTickerPatch> spotBookHandler = createSpotBookHandler(ex);
+				dataStream.subscribeSpotBookTicker(ex, supportedOnSpot, spotBookHandler);
 			}
 		}
 
@@ -280,17 +280,17 @@ public class CoinMonitor {
 	}
 
 	void removeAvailability(BaseExchange ex, Set<String> coins) {
-		Set<String> exchangeCoins = coinExchangeSupport.getCoins(ex);
+		Set<String> exchangeCoins = coinAvailability.getCoins(ex);
 		if (exchangeCoins != null) {
 			exchangeCoins.removeAll(coins);
-			if (exchangeCoins.isEmpty()) coinExchangeSupport.removeByExchange(ex);
+			if (exchangeCoins.isEmpty()) coinAvailability.removeByExchange(ex);
 		}
 
 		for (String coin : coins) {
-			Set<BaseExchange> exchanges = coinExchangeSupport.getExchanges(coin);
+			Set<BaseExchange> exchanges = coinAvailability.getExchanges(coin);
 			if (exchanges != null) {
 				exchanges.remove(ex);
-				if (exchanges.isEmpty()) coinExchangeSupport.removeByCoin(coin);
+				if (exchanges.isEmpty()) coinAvailability.removeByCoin(coin);
 			}
 		}
 	}
@@ -299,16 +299,16 @@ public class CoinMonitor {
 		futuresFundingRates.removeAll(ex, coins);
 		futuresBookTickers.removeAll(ex, coins);
 		futuresMarkPrices.removeAll(ex, coins);
-		filterData.initialPresentOnFutures().removeAll(ex, coins);
+		coinAvailability.removeSupportFutures(ex, coins);
 	}
 
 	void removeSpotFromState(BaseExchange ex, Set<String> coins) {
 		spotBookTickers.removeAll(ex, coins);
-		filterData.initialPresentOnSpot().removeAll(ex, coins);
+		coinAvailability.removeSupportSpot(ex, coins);
 	}
 
 	public void shutdown() {
-		for (BaseExchange exchange : coinExchangeSupport.getExchanges()) exchange.publicWsClient().close();
+		for (BaseExchange exchange : coinAvailability.getExchanges()) exchange.publicWsClient().close();
 		completionAgent.shutdown();
 	}
 

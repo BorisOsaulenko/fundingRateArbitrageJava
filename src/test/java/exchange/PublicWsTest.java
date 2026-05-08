@@ -5,10 +5,12 @@ import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
 import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
 import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
-import com.boris.fundingarbitrage.util.logger.Logger;
+import com.boris.fundingarbitrage.util.logger.CoinVectorLogger;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.util.Set;
@@ -17,6 +19,7 @@ import java.util.concurrent.TimeUnit;
 
 @Tag("integration")
 public abstract class PublicWsTest {
+	private static final Logger log = LoggerFactory.getLogger(PublicWsTest.class);
 	private static final Set<String> COINS = Set.of(
 					"BR",
 					"PARTI",
@@ -140,7 +143,6 @@ public abstract class PublicWsTest {
 	@Test
 	@Tag("websocket")
 	public void testPublicWsClientSubscriptions() throws Exception {
-		Logger.logImmediatelly();
 		publicWsClient().connect().join();
 		initializeMessageCounts();
 		subscribeToStreams();
@@ -192,29 +194,29 @@ public abstract class PublicWsTest {
 		}
 
 		if (!allStreamsReceived) {
-			Logger.error("Did not receive minimum messages for all streams within timeout. Counts: ");
+			log.error("Did not receive minimum messages for all streams within timeout. Counts: ");
 		} else if (!allFieldsPresent) {
-			Logger.error("Did not receive complete patch fields for all streams within timeout.");
+			log.error("Did not receive complete patch fields for all streams within timeout.");
 		} else {
 			publicWsClient().close();
 			return;
 		}
 
-		Logger.log("Book Ticker: ");
-		Logger.logCoinVector(bookTickerMessageCounts);
-		Logger.logCoinVector(latestBookTickerPatches);
+		log.info("Book Ticker: ");
+		CoinVectorLogger.logCoinVector(log, bookTickerMessageCounts);
+		CoinVectorLogger.logCoinVector(log, latestBookTickerPatches);
 
-		Logger.log("Spot Book Ticker: ");
-		Logger.logCoinVector(spotBookTickerMessageCounts);
-		Logger.logCoinVector(latestSpotBookTickerPatches);
+		log.info("Spot Book Ticker: ");
+		CoinVectorLogger.logCoinVector(log, spotBookTickerMessageCounts);
+		CoinVectorLogger.logCoinVector(log, latestSpotBookTickerPatches);
 
-		Logger.log("Funding Rate: ");
-		Logger.logCoinVector(fundingRateMessageCounts);
-		Logger.logCoinVector(latestFundingRatePatches);
+		log.info("Funding Rate: ");
+		CoinVectorLogger.logCoinVector(log, fundingRateMessageCounts);
+		CoinVectorLogger.logCoinVector(log, latestFundingRatePatches);
 
-		Logger.log("Mark Price: ");
-		Logger.logCoinVector(markPriceMessageCounts);
-		Logger.logCoinVector(latestMarkPricePatches);
+		log.info("Mark Price: ");
+		CoinVectorLogger.logCoinVector(log, markPriceMessageCounts);
+		CoinVectorLogger.logCoinVector(log, latestMarkPricePatches);
 		throw new Exception("Test failed due to insufficient messages or incomplete patch data. See logs for details.");
 	}
 }

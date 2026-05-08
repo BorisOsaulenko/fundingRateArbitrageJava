@@ -2,6 +2,7 @@ package com.boris.fundingarbitrage.monitor;
 
 import com.boris.fundingarbitrage.coinfilter.CoinAvailabilityRecord;
 import com.boris.fundingarbitrage.coinfilter.CoinFilterResult;
+import com.boris.fundingarbitrage.coinfilter.ConstantDataRecord;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.exchange.privatehttp.PrivateHttpClient;
 import com.boris.fundingarbitrage.exchange.privatews.PrivateWsClient;
@@ -44,12 +45,9 @@ class CoinMonitorTest {
 
 		return new CoinFilterResult(
 						support,
+						new ConstantDataRecord(),
 						new ExchangeCoinMap<>(),
-						new ExchangeCoinMap<>(),
-						new ExchangeCoinMap<>(),
-						new ExchangeCoinMap<>(),
-						presentOnFutures,
-						presentOnSpot
+						new ExchangeCoinMap<>()
 		);
 	}
 

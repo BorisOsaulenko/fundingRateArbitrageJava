@@ -131,8 +131,8 @@ class CoinFilterTest {
 		assertTrue(result.coinAvailability().isSpot(exchange, keptCoin));
 		assertNotNull(result.initialFuturesSnapshots().get(exchange, keptCoin));
 		assertNotNull(result.initialSpotSnapshots().get(exchange, keptCoin));
-		assertNotNull(result.futuresConstantData().get(exchange, keptCoin));
-		assertNotNull(result.spotConstantData().get(exchange, keptCoin));
+		assertNotNull(result.constantDataRecord().getFuturesConstantData(exchange, keptCoin));
+		assertNotNull(result.constantDataRecord().getSpotConstantData(exchange, keptCoin));
 		assertFalse(result.coinAvailability().isFutures(exchange, removedCoin));
 		assertFalse(result.coinAvailability().isSpot(exchange, removedCoin));
 		assertNull(result.coinAvailability().getExchanges(removedCoin));

@@ -3,6 +3,7 @@ package com.boris.fundingarbitrage.coinfilter;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -56,7 +57,7 @@ public final class CoinAvailabilityRecord {
 		}
 	}
 
-	public void removeSupportSpot(String coin, BaseExchange exchange) {
+	public void removeSupportSpot(BaseExchange exchange, String coin) {
 		Set<String> spotCoins = spotCoinsByExchange.get(exchange);
 		if (spotCoins != null) {
 			spotCoins.remove(coin);
@@ -64,12 +65,26 @@ public final class CoinAvailabilityRecord {
 		removeUnionSupportIfAbsentEverywhere(coin, exchange);
 	}
 
-	public void removeSupportFutures(String coin, BaseExchange exchange) {
+	public void removeSupportSpot(BaseExchange ex, Collection<String> coins) {
+		Set<String> spotCoins = spotCoinsByExchange.get(ex);
+		if (spotCoins != null) spotCoins.removeAll(coins);
+
+		coins.iterator().forEachRemaining(coin -> removeUnionSupportIfAbsentEverywhere(coin, ex));
+	}
+
+	public void removeSupportFutures(BaseExchange exchange, String coin) {
 		Set<String> futuresCoins = futuresCoinsByExchange.get(exchange);
 		if (futuresCoins != null) {
 			futuresCoins.remove(coin);
 		}
 		removeUnionSupportIfAbsentEverywhere(coin, exchange);
+	}
+
+	public void removeSupportFutures(BaseExchange ex, Collection<String> coins) {
+		Set<String> futuresCoins = futuresCoinsByExchange.get(ex);
+		if (futuresCoins != null) futuresCoins.removeAll(coins);
+
+		coins.iterator().forEachRemaining(coin -> removeUnionSupportIfAbsentEverywhere(coin, ex));
 	}
 
 	public void removeByCoin(String coin) {

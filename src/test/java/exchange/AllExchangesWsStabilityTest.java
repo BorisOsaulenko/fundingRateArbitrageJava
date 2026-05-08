@@ -2,15 +2,17 @@ package exchange;
 
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.exchange.Instances;
-import com.boris.fundingarbitrage.util.logger.Logger;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 
 public class AllExchangesWsStabilityTest {
+	private static final Logger log = LoggerFactory.getLogger(AllExchangesWsStabilityTest.class);
 	private static final Duration WAIT_DURATION = Duration.ofMinutes(5);
 	private static final String testCoin = "SOL";
 
@@ -27,7 +29,7 @@ public class AllExchangesWsStabilityTest {
 			exchange.privateWsClient().subscribeDeposits((_) -> {
 			});
 		}
-		Logger.log("Starting websocket stability test for " + exchanges.size() + " exchanges.");
+		log.info("Starting websocket stability test for {} exchanges.", exchanges.size());
 
 		try {
 			TimeUnit.MILLISECONDS.sleep(WAIT_DURATION.toMillis());
@@ -36,7 +38,7 @@ public class AllExchangesWsStabilityTest {
 				exchange.publicWsClient().close();
 				exchange.privateWsClient().close();
 			}
-			Logger.log("Websocket stability test finished. Closed all exchange clients.");
+			log.info("Websocket stability test finished. Closed all exchange clients.");
 		}
 	}
 }

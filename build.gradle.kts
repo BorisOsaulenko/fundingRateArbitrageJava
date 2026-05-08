@@ -43,6 +43,7 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+    systemProperty("logback.configurationFile", file("src/test/resources/logback-test.xml").absolutePath)
 }
 kotlin {
     jvmToolchain(25)

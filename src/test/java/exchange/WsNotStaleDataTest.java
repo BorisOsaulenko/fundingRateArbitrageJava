@@ -8,9 +8,10 @@ import com.boris.fundingarbitrage.model.contract.Mark;
 import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
 import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
 import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
-import com.boris.fundingarbitrage.util.logger.Logger;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.time.Duration;
@@ -25,6 +26,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class WsNotStaleDataTest {
+	private static final Logger log = LoggerFactory.getLogger(WsNotStaleDataTest.class);
 	private static final Duration WAIT_DURATION = Duration.ofMinutes(2);
 	private static final String COIN = "SOL";
 	private static final int MIN_CHANGES = 3;
@@ -67,9 +69,9 @@ public class WsNotStaleDataTest {
 		}
 
 		if (!failures.isEmpty()) {
-			Logger.error("WsCorrectDataCheck failures:");
+			log.error("WsCorrectDataCheck failures:");
 			for (String failure : failures) {
-				Logger.error(failure);
+				log.error(failure);
 			}
 			throw new Exception("WsCorrectDataCheck failed with " + failures.size() + " failing fields.");
 		}
