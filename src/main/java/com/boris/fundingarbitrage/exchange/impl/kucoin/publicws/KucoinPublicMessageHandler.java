@@ -5,7 +5,6 @@ import com.boris.fundingarbitrage.exchange.publicws.PublicMessageHandler;
 import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
 import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
 import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
-import com.boris.fundingarbitrage.util.logger.Logger;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import java.math.BigDecimal;
@@ -27,7 +26,7 @@ class KucoinPublicMessageHandler implements PublicMessageHandler {
 		return topic.substring(idx + 1);
 	}
 
-	private BookTickerPatch parseBookTickerInternal(JsonNode root) {
+	private BookTickerPatch parseBookTickerInternal(JsonNode root, Function<String, String> symbolInverse) {
 		String topic = root.path("topic").asText();
 		if (topic == null || !topic.startsWith(TICKER_TOPIC)) return null;
 		JsonNode data = root.get("data");
@@ -50,12 +49,13 @@ class KucoinPublicMessageHandler implements PublicMessageHandler {
 		if (ts == 0L) return null;
 
 		Instant timestamp = Instant.ofEpochMilli(ts / 1000_000);
-		String coin = context.getFuturesSymbolInverse(symbol);
+		String coin = symbolInverse.apply(symbol);
 
 		return new BookTickerPatch(coin, bidPrice, bidSize, askPrice, askSize, timestamp);
 	}
 
-	private MarkPricePatch parseMarkPriceInternal(JsonNode root) {
+	@Override
+	public MarkPricePatch parseMarkPriceMessageSymbol(JsonNode root) {
 		String topic = root.path("topic").asText();
 		if (topic == null || !topic.startsWith(INSTRUMENT_TOPIC)) return null;
 		String subject = root.path("subject").asText();
@@ -77,7 +77,8 @@ class KucoinPublicMessageHandler implements PublicMessageHandler {
 		return new MarkPricePatch(context.getFuturesSymbolInverse(symbol), markPrice, timestamp);
 	}
 
-	private FundingRatePatch parseFundingRateInternal(JsonNode root) {
+	@Override
+	public FundingRatePatch parseFundingRateMessageSymbol(JsonNode root) {
 		String topic = root.path("topic").asText();
 		if (topic == null || !topic.startsWith(INSTRUMENT_TOPIC)) return null;
 		String subject = root.path("subject").asText();
@@ -99,35 +100,14 @@ class KucoinPublicMessageHandler implements PublicMessageHandler {
 		return new FundingRatePatch(context.getFuturesSymbolInverse(symbol), rate, null, timestamp);
 	}
 
-	private <T> T parseErrorHandled(Function<JsonNode, T> parser, JsonNode root) {
-		try {
-			return parser.apply(root);
-		} catch (IllegalArgumentException ex) {
-			Logger.log(ex.getMessage());
-			return null;
-		} catch (Exception ex) {
-			return null;
-		}
-	}
-
 	@Override
 	public BookTickerPatch parseFuturesBookTickerMessageSymbol(JsonNode root) {
-		return parseErrorHandled(this::parseBookTickerInternal, root);
-	}
-
-	@Override
-	public MarkPricePatch parseMarkPriceMessageSymbol(JsonNode root) {
-		return parseErrorHandled(this::parseMarkPriceInternal, root);
-	}
-
-	@Override
-	public FundingRatePatch parseFundingRateMessageSymbol(JsonNode root) {
-		return parseErrorHandled(this::parseFundingRateInternal, root);
+		return this.parseBookTickerInternal(root, context::getFuturesSymbolInverse);
 	}
 
 	@Override
 	public BookTickerPatch parseSpotBookTickerMessageSymbol(JsonNode root) {
-		return parseErrorHandled(this::parseBookTickerInternal, root);
+		return this.parseBookTickerInternal(root, context::getSpotSymbolInverse);
 	}
 
 	@Override

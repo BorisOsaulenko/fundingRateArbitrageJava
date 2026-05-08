@@ -17,7 +17,8 @@ import com.boris.fundingarbitrage.strategy.intradestrategy.factory.InTradeStrate
 import com.boris.fundingarbitrage.strategy.pretradestrategy.PreTradeStrategy;
 import com.boris.fundingarbitrage.util.ModifiableFrequencyTask;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
-import com.boris.fundingarbitrage.util.logger.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Comparator;
 import java.util.Map;
@@ -28,6 +29,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public abstract class ArbitrageLogic {
+	private static final Logger log = LoggerFactory.getLogger(ArbitrageLogic.class);
 	protected final Set<BaseExchange> exchanges;
 	protected final PreTradeStrategy preTradeStrategy;
 	protected final InTradeStrategyFactory inTradeStrategyFactory;
@@ -69,18 +71,19 @@ public abstract class ArbitrageLogic {
 	}
 
 	public void start() {
+		if (initFuture == null) throw new IllegalStateException("Call ArbitrageLogic.init() before calling start().");
 		initFuture.thenRun(this::startProcessingOpportunities);
 	}
 
 	CompletableFuture<Void> prettyMonitorInitFuture() {
 		return monitor.getInitFuture()
 						.thenRun(() -> {
-							Logger.log("Monitor initialized");
+							log.info("Monitor initialized");
 							attachWsDisconnectHandlers();
 							afterMonitorInit();
 						})
 						.exceptionally(t -> {
-							Logger.error("Failed to initialize monitor. " + t.getMessage());
+							log.error("Failed to initialize monitor. {}", t.getMessage());
 							shutdown();
 							throw new RuntimeException(t);
 						});
@@ -89,14 +92,14 @@ public abstract class ArbitrageLogic {
 	void attachWsDisconnectHandlers() {
 		for (BaseExchange ex : coinAvailability.getExchanges()) {
 			ex.publicWsClient().onUnhandledDisconnect(() -> {
-				Logger.error("Public ws client of " + ex.name() + " disconnected. Shutting down...");
+				log.error("Public ws client of {} disconnected. Shutting down...", ex.name());
 				shutdown();
 			});
 		}
 	}
 
 	protected final void startProcessingOpportunities() {
-		Logger.log("Starting arbitrage logic...");
+		log.info("Starting arbitrage logic...");
 
 		int logInterval = config.loggingIntervalSeconds();
 		if (logInterval > 0)
@@ -113,7 +116,7 @@ public abstract class ArbitrageLogic {
 		try {
 			processTick(bestOpportunities);
 		} catch (Exception e) {
-			Logger.error("Exception while processing tick: " + e.getMessage());
+			log.error("Exception while processing tick: {}", e.getMessage());
 			shutdown();
 			throw new RuntimeException(e);
 		}
@@ -128,12 +131,12 @@ public abstract class ArbitrageLogic {
 		int newFrequencyMs = (int) (coinAvailability.coinCount() * 1.1);
 		opportunitiesProcessingTask.setFrequency(newFrequencyMs);
 
-		Logger.log("Adjusted frequency to recommended (" + newFrequencyMs + "ms)");
+		log.info("Adjusted frequency to recommended ({}ms)", newFrequencyMs);
 	}
 
 	protected void adjustFrequency(int newFrequencyMs) {
 		opportunitiesProcessingTask.setFrequency(newFrequencyMs);
-		Logger.log("Adjusted frequency to " + newFrequencyMs + "ms");
+		log.info("Adjusted frequency to {}ms", newFrequencyMs);
 	}
 
 	FuturesExchangeData getFuturesExchangeData(
@@ -160,7 +163,7 @@ public abstract class ArbitrageLogic {
 		try {
 			logData(bestOpportunities);
 		} catch (Exception e) {
-			Logger.error("Exception while logging best arb options: " + e.getMessage());
+			log.error("Exception while logging best arb options: {}", e.getMessage());
 			shutdown();
 			throw new RuntimeException(e);
 		}
@@ -171,15 +174,19 @@ public abstract class ArbitrageLogic {
 			throw new IllegalStateException("Best opportunities should not be null while processing");
 		if (bestOpportunities == null) return;
 
-		Logger.log("The best arbitrage opportunities:");
+		log.info("The best arbitrage opportunities:");
 		bestOpportunities.sortDesc(Comparator.comparing(CoinOpportunity::expectedGain))
 						.subList(0, Math.min(config.logBestArbSnapshotsAmount(), bestOpportunities.size()))
 						.forEach(entry -> {
 
 							CoinOpportunity op = entry.getValue();
-							Logger.log(entry.getKey() + ": " + op.exchanges() + " - " +
-												 (preTradeStrategy.goodToEnter(op.longData(), op.shortData()) ? "GOOD" : "BAD") +
-												 "[Expected Gain: " + op.expectedGain() + "]");
+							log.info(
+											"{}: {} - {} [Expected Gain: {}]",
+											entry.getKey(),
+											op.exchanges(),
+											preTradeStrategy.goodToEnter(op.longData(), op.shortData()) ? "GOOD" : "BAD",
+											op.expectedGain()
+							);
 
 						});
 	}
@@ -209,7 +216,6 @@ public abstract class ArbitrageLogic {
 		logScheduler.shutdownNow();
 		opportunityAnalyzer.shutdown();
 		if (opportunitiesProcessingTask != null) opportunitiesProcessingTask.cancelNow();
-		Logger.log("Arbitrage logic stopped.");
-		Logger.closeLogFile();
+		log.info("Arbitrage logic stopped.");
 	}
 }

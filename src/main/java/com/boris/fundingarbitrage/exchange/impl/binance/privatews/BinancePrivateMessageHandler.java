@@ -5,10 +5,7 @@ import com.boris.fundingarbitrage.exchange.privatews.PrivateMessageHandler;
 import com.boris.fundingarbitrage.model.contract.PartialFill;
 import com.boris.fundingarbitrage.model.websocket.patch.DepositPatch;
 import com.boris.fundingarbitrage.util.JsonParsingFunction;
-import com.boris.fundingarbitrage.util.logger.Logger;
-import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -56,9 +53,6 @@ class BinancePrivateMessageHandler implements PrivateMessageHandler {
 	private <T> T parseErrorHandled(JsonParsingFunction<T> parser, String message) {
 		try {
 			return parser.apply(message);
-		} catch (JsonParseException | JsonMappingException ex) {
-			Logger.log(ex.getMessage());
-			return null; // Not a BookTicker message
 		} catch (Exception ex) {
 			return null;
 		}

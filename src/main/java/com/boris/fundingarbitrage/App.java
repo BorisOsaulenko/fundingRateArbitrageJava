@@ -23,18 +23,16 @@ import com.boris.fundingarbitrage.monitor.ProdDataStream;
 import com.boris.fundingarbitrage.strategy.intradestrategy.factory.ProductionInTradeStrategyFactory;
 import com.boris.fundingarbitrage.strategy.pretradestrategy.FuturesPreTradeStrategy;
 import com.boris.fundingarbitrage.strategy.pretradestrategy.PreTradeStrategy;
-import com.boris.fundingarbitrage.util.logger.Logger;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
-import java.nio.file.Path;
 import java.util.Set;
 
 @Slf4j
 public class App {
 	static void main(String[] args) {
-		Logger.init(Path.of("app.log"));
-
 		Set<BaseExchange> exchanges = Instances.getExchangesSet();
 
 		ICoinSupplier coinSupplier = new AllExchangeCoinsParser();
@@ -92,9 +90,9 @@ public class App {
 	}
 
 	static void main() throws Exception {
+		Logger log = LoggerFactory.getLogger(App.class);
 		BaseExchange ex = BybitExchange.create();
-		Logger.logImmediatelly();
 		ex.publicWsClient().connect().get();
-		ex.publicWsClient().subscribeSpotBookTicker(Set.of("PUMPBTC"), Logger::log);
+		ex.publicWsClient().subscribeSpotBookTicker(Set.of("PUMPBTC"), (tickerPatch) -> log.info("{}", tickerPatch));
 	}
 }

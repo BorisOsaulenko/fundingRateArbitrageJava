@@ -5,11 +5,11 @@ import com.boris.fundingarbitrage.exchange.publicws.PublicMessageHandler;
 import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
 import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
 import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
-import com.boris.fundingarbitrage.util.logger.Logger;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.function.Function;
 
 class GatePublicMessageHandler implements PublicMessageHandler {
 	private final ExchangeContext context;
@@ -18,7 +18,8 @@ class GatePublicMessageHandler implements PublicMessageHandler {
 		this.context = context;
 	}
 
-	private FundingRatePatch parseFundingRateInternal(JsonNode root) {
+	@Override
+	public FundingRatePatch parseFundingRateMessageSymbol(JsonNode root) {
 		String channel = root.path("channel").asText();
 		String event = root.path("event").asText();
 		long time = root.path("time").asLong();
@@ -43,7 +44,8 @@ class GatePublicMessageHandler implements PublicMessageHandler {
 		return new FundingRatePatch(coin, rate, null, Instant.ofEpochSecond(time));
 	}
 
-	private MarkPricePatch parseMarkPriceInternal(JsonNode root) {
+	@Override
+	public MarkPricePatch parseMarkPriceMessageSymbol(JsonNode root) {
 		String channel = root.path("channel").asText();
 		String event = root.path("event").asText();
 		long time = root.path("time").asLong();
@@ -65,7 +67,7 @@ class GatePublicMessageHandler implements PublicMessageHandler {
 		return new MarkPricePatch(coin, mark, Instant.ofEpochSecond(time));
 	}
 
-	private BookTickerPatch parseBookTickerInternal(JsonNode root) {
+	public BookTickerPatch parseBookTickerInternal(JsonNode root, Function<String, String> symbolInverse) {
 		String channel = root.path("channel").asText();
 		String event = root.path("event").asText();
 		if (!"futures.book_ticker".equalsIgnoreCase(channel) || !"update".equalsIgnoreCase(event)) return null;
@@ -75,7 +77,7 @@ class GatePublicMessageHandler implements PublicMessageHandler {
 
 		String symbol = result.path("s").asText();
 		if (symbol == null || symbol.isEmpty()) return null;
-		String coin = context.getFuturesSymbolInverse(symbol);
+		String coin = symbolInverse.apply(symbol);
 
 		String bidPriceNode = result.path("b").asText();
 		String bidSizeNode = result.path("B").asText();
@@ -93,35 +95,14 @@ class GatePublicMessageHandler implements PublicMessageHandler {
 		return new BookTickerPatch(coin, bidPrice, bidSize, askPrice, askSize, ts);
 	}
 
-	private <T> T parseErrorHandled(java.util.function.Function<JsonNode, T> parser, JsonNode root) {
-		try {
-			return parser.apply(root);
-		} catch (IllegalArgumentException ex) {
-			Logger.log(ex.getMessage());
-			return null;
-		} catch (Exception ex) {
-			return null;
-		}
-	}
-
-	@Override
-	public FundingRatePatch parseFundingRateMessageSymbol(JsonNode root) {
-		return parseErrorHandled(this::parseFundingRateInternal, root);
-	}
-
 	@Override
 	public BookTickerPatch parseFuturesBookTickerMessageSymbol(JsonNode root) {
-		return parseErrorHandled(this::parseBookTickerInternal, root);
-	}
-
-	@Override
-	public MarkPricePatch parseMarkPriceMessageSymbol(JsonNode root) {
-		return parseErrorHandled(this::parseMarkPriceInternal, root);
+		return parseBookTickerInternal(root, context::getFuturesSymbolInverse);
 	}
 
 	@Override
 	public BookTickerPatch parseSpotBookTickerMessageSymbol(JsonNode root) {
-		return parseErrorHandled(this::parseBookTickerInternal, root);
+		return parseBookTickerInternal(root, context::getSpotSymbolInverse);
 	}
 
 	@Override

@@ -9,7 +9,6 @@ import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.Funding;
 import com.boris.fundingarbitrage.util.https.PrettyHttpClient;
 import com.boris.fundingarbitrage.util.https.RequestProcessingClientWrapper;
-import com.boris.fundingarbitrage.util.logger.Logger;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
@@ -91,17 +90,7 @@ public class BinancePublicHttpClient extends PublicHttpClient {
 													)
 									);
 								} catch (Exception e) {
-									Logger.error(e.getMessage());
-									Logger.log("Failed to parse symbol: " +
-														 symbol +
-														 ". Data: BookTicker:" +
-														 bookTickersFuture.join().get(symbol) +
-														 ", Volume24h: " +
-														 volumes24hFuture.join().get(symbol) +
-														 ", LotSize: " +
-														 lotSizes.get(symbol) +
-														 ", FundingGranularity: " +
-														 fundingGranularityFuture.join().get(symbol));
+									throw new RuntimeException("Error processing symbol " + symbol + ": " + e.getMessage(), e);
 								}
 							}
 

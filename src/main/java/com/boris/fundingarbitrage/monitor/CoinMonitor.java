@@ -13,7 +13,9 @@ import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
 import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
 import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
 import com.boris.fundingarbitrage.strategy.TradeMarket;
-import com.boris.fundingarbitrage.util.logger.Logger;
+import com.boris.fundingarbitrage.util.logger.CoinVectorLogger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -21,6 +23,7 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class CoinMonitor {
+	private final static Logger log = LoggerFactory.getLogger(CoinMonitor.class);
 	private final ExchangeCoinMap<Funding> futuresFundingRates = new ExchangeCoinMap<>();
 	private final ExchangeCoinMap<BookTicker> futuresBookTickers = new ExchangeCoinMap<>();
 	private final ExchangeCoinMap<Mark> futuresMarkPrices = new ExchangeCoinMap<>();
@@ -47,10 +50,10 @@ public class CoinMonitor {
 	}
 
 	public void start() {
-		Logger.log(coinExchangeSupport.coinsByExchange().toString());
+		log.info(coinExchangeSupport.coinsByExchange().toString());
 
 		dataStream.openWsConnections(coinExchangeSupport.getExchanges())
-						.thenRun(() -> Logger.debug("WS connections opened"));
+						.thenRun(() -> log.debug("WS connections opened"));
 
 		fillEmptyData();
 		subscribeData(filterData.initialPresentOnFutures(), filterData.initialPresentOnSpot());
@@ -59,12 +62,14 @@ public class CoinMonitor {
 			checkDataCompleteness();
 			clearCoinsWithInsufficientExchanges();
 
-			Logger.log("Coin monitor initialized:");
-			Logger.logCoinVector(coinExchangeSupport
-							.exchangesByCoin()
-							.transform((exchanges, _) -> exchanges.stream()
-											.map(BaseExchange::name)
-											.collect(Collectors.toSet())));
+			log.info("Coin monitor initialized:");
+			CoinVectorLogger.logCoinVector(
+							log, coinExchangeSupport
+											.exchangesByCoin()
+											.transform((exchanges, _) -> exchanges.stream()
+															.map(BaseExchange::name)
+															.collect(Collectors.toSet()))
+			);
 		});
 	}
 
@@ -91,13 +96,13 @@ public class CoinMonitor {
 				boolean spotTickerIncomplete = spotTicker == null || BookTicker.isPartiallyEmpty(spotTicker);
 
 				boolean shouldStayFutures = false;
-				if (futuresTickerIncomplete) Logger.warn("Futures ticker incomplete for " + coin + " on " + ex.name());
-				else if (fundingIncomplete) Logger.warn("Futures funding incomplete for " + coin + " on " + ex.name());
-				else if (markIncomplete) Logger.warn("Futures mark incomplete for " + coin + " on " + ex.name());
+				if (futuresTickerIncomplete) log.warn("Futures ticker incomplete for {} on {}", coin, ex.name());
+				else if (fundingIncomplete) log.warn("Futures funding incomplete for {} on {}", coin, ex.name());
+				else if (markIncomplete) log.warn("Futures mark incomplete for {} on {}", coin, ex.name());
 				else shouldStayFutures = true;
 
 				boolean shouldStaySpot = false;
-				if (spotTickerIncomplete) Logger.warn("Spot ticker incomplete for " + coin + " on " + ex.name());
+				if (spotTickerIncomplete) log.warn("Spot ticker incomplete for {} on {}", coin, ex.name());
 				else shouldStaySpot = true;
 
 				ExchangeCoinPair pair = new ExchangeCoinPair(ex, coin);
@@ -116,7 +121,7 @@ public class CoinMonitor {
 		for (String coin : coinExchangeSupport.getCoins()) {
 			Set<BaseExchange> exchanges = coinExchangeSupport.getExchanges(coin);
 			if (exchanges == null || exchanges.isEmpty()) {
-				Logger.warn("Not enough exchanges support " + coin + ". Removing from monitoring.");
+				log.warn("Not enough exchanges support " + coin + ". Removing from monitoring.");
 				coinExchangeSupport.removeByCoin(coin);
 			}
 		}
@@ -132,7 +137,7 @@ public class CoinMonitor {
 			}
 		});
 
-		Logger.debug("Empty data filled");
+		log.debug("Empty data filled");
 	}
 
 	void subscribeData(ExchangeCoinMap<Boolean> presentOnFutures, ExchangeCoinMap<Boolean> presentOnSpot) {
@@ -164,7 +169,7 @@ public class CoinMonitor {
 			}
 		}
 
-		Logger.debug("Subscribed to data");
+		log.debug("Subscribed to data");
 	}
 
 	Consumer<BookTickerPatch> createSpotBookHandler(BaseExchange ex) {

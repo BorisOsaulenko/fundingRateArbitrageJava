@@ -15,7 +15,8 @@ import com.boris.fundingarbitrage.strategy.intradestrategy.factory.InTradeStrate
 import com.boris.fundingarbitrage.strategy.pretradestrategy.PreTradeStrategy;
 import com.boris.fundingarbitrage.strategy.pretradestrategy.TradeDirections;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
-import com.boris.fundingarbitrage.util.logger.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -23,6 +24,7 @@ import java.util.*;
 import java.util.concurrent.*;
 
 public class RebalancingArbitrageLogic extends ArbitrageLogic {
+	private final static Logger log = LoggerFactory.getLogger(RebalancingArbitrageLogic.class);
 	private final static BigDecimal rebalanceThreshold = new BigDecimal("0.3"); // 30%
 	private final ScheduledExecutorService exitExecutor = Executors.newSingleThreadScheduledExecutor();
 	private final Map<BaseExchange, Integer> spotUsedTimes = new ConcurrentHashMap<>();
@@ -89,7 +91,7 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 			minBalance = totalBalance.min(minBalance);
 
 			if (totalBalance.compareTo(requiredTotal) < 0) {
-				Logger.log("Not enough balance to start arbitrage on " + ex.name());
+				log.info("Not enough balance to start arbitrage on {}", ex.name());
 				this.shutdown();
 				throw new RuntimeException("Not enough balance to start arbitrage on " + ex.name());
 			}
@@ -99,7 +101,7 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 		BigDecimal maxDiff = maxBalance.subtract(minBalance);
 		BigDecimal maxDiffRelative = maxDiff.divide(avgBalance, RoundingMode.HALF_UP);
 		if (maxDiffRelative.compareTo(rebalanceThreshold) > 0) {
-			Logger.log("Rebalance is suggested. Max balance diff is " + maxDiffRelative + " compared to average balance");
+			log.info("Rebalance is suggested. Max balance diff is {} compared to average balance", maxDiffRelative);
 		}
 	}
 
@@ -118,13 +120,13 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 
 			futures.add(ex.privateHttpClient().internalTransfer(new InternalTransfer(from, to, toTransfer))
 							.exceptionally(t -> {
-								Logger.error("Failed to transfer %s to futures on %s: %s", toTransfer, ex.name(), t.getMessage());
+								log.error("Failed to transfer {} to futures on {}: {}", toTransfer, ex.name(), t.getMessage());
 								throw new RuntimeException(t);
 							}));
 		}
 
 		return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
-						.thenRun(() -> Logger.log("Internal transfers completed"))
+						.thenRun(() -> log.info("Internal transfers completed"))
 						.exceptionally((t) -> {
 							this.shutdown();
 							throw new RuntimeException(t);
@@ -164,7 +166,7 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 			if (exiting == null) return;
 
 			exitFuture = exiting.exceptionally(t -> {
-				Logger.error("Exiting trade for " + logic.getCoin() + " failed. Exit manually. " + t.getMessage());
+				log.error("Exiting trade for {} failed. Exit manually. {}", logic.getCoin(), t.getMessage());
 				return null;
 			});
 		}
@@ -194,7 +196,7 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 			);
 			inTradeLogicList.add(logic);
 		} catch (Exception e) {
-			Logger.error("Failed to initialize InTradeSingleCoinLogic: " + e.getMessage());
+			log.error("Failed to initialize InTradeSingleCoinLogic: {}", e.getMessage());
 			mergeUsageMap(op.directions(), op.exchanges(), -1);
 			forgetCoin(coin);
 		}

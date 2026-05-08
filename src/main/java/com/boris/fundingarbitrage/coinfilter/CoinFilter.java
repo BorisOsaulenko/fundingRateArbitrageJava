@@ -15,7 +15,8 @@ import com.boris.fundingarbitrage.model.exchange.snapshot.Snapshot;
 import com.boris.fundingarbitrage.model.exchange.snapshot.SpotSnapshot;
 import com.boris.fundingarbitrage.monitor.ExchangeCoinMap;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
-import com.boris.fundingarbitrage.util.logger.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -24,6 +25,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 public class CoinFilter {
+	private final static Logger log = LoggerFactory.getLogger(CoinFilter.class);
 	private final CoinFilterConfig config;
 	private final Set<BaseExchange> exchanges;
 	private final ICoinSupplier coinSupplier;
@@ -45,7 +47,7 @@ public class CoinFilter {
 
 	private <T> CompletableFuture<T> withTimeOut(CompletableFuture<T> future, String name) {
 		return future.orTimeout(10, TimeUnit.SECONDS).exceptionally(t -> {
-			Logger.error("Failed to get " + name + ": " + t.getMessage());
+			log.error("Failed to get {}: {}", name, t.getMessage());
 			throw new RuntimeException(t);
 		});
 	}
@@ -140,7 +142,7 @@ public class CoinFilter {
 
 			Set<BaseExchange> supportedExchanges = availabilityRecord.getExchanges(coin);
 			if (supportedExchanges == null || supportedExchanges.isEmpty()) {
-				Logger.warn("No exchanges left supporting " + coin);
+				log.warn("No exchanges left supporting {}", coin);
 			}
 		}
 	}

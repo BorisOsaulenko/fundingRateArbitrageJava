@@ -307,9 +307,13 @@ public abstract class PublicWsClient implements PublicMarketDataStream {
 					Function<JsonNode, T> parser,
 					Consumer<T> handler
 	) {
-		T patch = parser.apply(root);
-		if (patch == null) return false;
-		handler.accept(patch);
+		try {
+			T patch = parser.apply(root);
+			if (patch != null) handler.accept(patch);
+		} catch (Exception ex) {
+			return false;
+		}
+
 		return true;
 	}
 

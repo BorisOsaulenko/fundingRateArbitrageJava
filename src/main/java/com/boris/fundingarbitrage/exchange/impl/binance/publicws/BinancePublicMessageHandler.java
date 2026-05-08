@@ -5,7 +5,6 @@ import com.boris.fundingarbitrage.exchange.publicws.PublicMessageHandler;
 import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
 import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
 import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
-import com.boris.fundingarbitrage.util.logger.Logger;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import java.math.BigDecimal;
@@ -19,7 +18,8 @@ class BinancePublicMessageHandler implements PublicMessageHandler {
 		this.context = exchangeContext;
 	}
 
-	private FundingRatePatch parseFundingRateInternal(JsonNode root) {
+	@Override
+	public FundingRatePatch parseFundingRateMessageSymbol(JsonNode root) {
 		String symbol = root.path("s").asText();
 		if (symbol.isEmpty()) return null;
 
@@ -38,7 +38,8 @@ class BinancePublicMessageHandler implements PublicMessageHandler {
 		return new FundingRatePatch(coin, rate, Instant.ofEpochMilli(settlementTime), Instant.ofEpochMilli(eventTime));
 	}
 
-	private MarkPricePatch parseMarkPriceInternal(JsonNode root) {
+	@Override
+	public MarkPricePatch parseMarkPriceMessageSymbol(JsonNode root) {
 		String symbol = root.path("s").asText();
 		if (symbol.isEmpty()) return null;
 
@@ -53,7 +54,7 @@ class BinancePublicMessageHandler implements PublicMessageHandler {
 		return new MarkPricePatch(coin, markPrice, Instant.ofEpochMilli(eventTime));
 	}
 
-	private BookTickerPatch parseBookTickerInternal(JsonNode root) {
+	public BookTickerPatch parseBookTickerInternal(JsonNode root, Function<String, String> symbolInverse) {
 		String bNode = root.path("b").asText();
 		String BNode = root.path("B").asText();
 		String aNode = root.path("a").asText();
@@ -69,39 +70,18 @@ class BinancePublicMessageHandler implements PublicMessageHandler {
 		if (eventTime == 0) eventTime = Instant.now().toEpochMilli();
 		if (bbPrice == null && bbQty == null && baPrice == null && baQty == null) return null;
 
-		String coin = context.getFuturesSymbolInverse(symbol);
+		String coin = symbolInverse.apply(symbol);
 		return new BookTickerPatch(coin, bbPrice, bbQty, baPrice, baQty, Instant.ofEpochMilli(eventTime));
 	}
 
 	@Override
-	public FundingRatePatch parseFundingRateMessageSymbol(JsonNode root) {
-		return parseErrorHandled(this::parseFundingRateInternal, root);
-	}
-
-	@Override
 	public BookTickerPatch parseFuturesBookTickerMessageSymbol(JsonNode root) {
-		return parseErrorHandled(this::parseBookTickerInternal, root);
-	}
-
-	@Override
-	public MarkPricePatch parseMarkPriceMessageSymbol(JsonNode root) {
-		return parseErrorHandled(this::parseMarkPriceInternal, root);
+		return parseBookTickerInternal(root, context::getFuturesSymbolInverse);
 	}
 
 	@Override
 	public BookTickerPatch parseSpotBookTickerMessageSymbol(JsonNode root) {
-		return parseErrorHandled(this::parseBookTickerInternal, root);
-	}
-
-	private <T> T parseErrorHandled(Function<JsonNode, T> parser, JsonNode root) {
-		try {
-			return parser.apply(root);
-		} catch (IllegalArgumentException ex) {
-			Logger.log(ex.toString());
-			return null;
-		} catch (Exception ex) {
-			return null;
-		}
+		return parseBookTickerInternal(root, context::getSpotSymbolInverse);
 	}
 
 	@Override

@@ -5,7 +5,6 @@ import com.boris.fundingarbitrage.exchange.publicws.PublicMessageHandler;
 import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
 import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
 import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
-import com.boris.fundingarbitrage.util.logger.Logger;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import java.math.BigDecimal;
@@ -25,7 +24,8 @@ class BybitPublicMessageHandler implements PublicMessageHandler {
 		return Instant.ofEpochMilli(ts);
 	}
 
-	private MarkPricePatch parseMarkPriceInternal(JsonNode root) {
+	@Override
+	public MarkPricePatch parseMarkPriceMessageSymbol(JsonNode root) {
 		JsonNode data = root.get("data");
 		if (data == null) return null;
 
@@ -40,18 +40,6 @@ class BybitPublicMessageHandler implements PublicMessageHandler {
 		return new MarkPricePatch(coin, markPrice, parseTimestamp(root));
 	}
 
-	//{
-	// "topic":"orderbook.1.PUMPBTCUSDT",
-	// "ts":1775295657176,
-	// "type":"snapshot",
-	// "data":{
-	// 		"s":"PUMPBTCUSDT",
-	// 		"b":[["0.0165","6430.7"]],
-	// 		"a":[["0.01657","27308.5"]],
-	// 		"u":2274751,"seq":153292640338
-	// 		},
-	// 	"cts":1775295657172
-	// 	}
 	private BookTickerPatch parseBookTickerInternal(JsonNode root, Function<String, String> symbolInverse) {
 		JsonNode data = root.get("data");
 		if (data == null) return null;
@@ -86,35 +74,19 @@ class BybitPublicMessageHandler implements PublicMessageHandler {
 		);
 	}
 
-	private <T> T parseErrorHandled(Function<JsonNode, T> parser, JsonNode root) {
-		try {
-			return parser.apply(root);
-		} catch (IllegalArgumentException ex) {
-			Logger.log(ex.getMessage());
-			return null;
-		} catch (Exception ex) {
-			return null;
-		}
-	}
-
 	@Override
 	public FundingRatePatch parseFundingRateMessageSymbol(JsonNode root) {
 		return null;
-	}
+	} // Full funding via rest api
 
 	@Override
 	public BookTickerPatch parseFuturesBookTickerMessageSymbol(JsonNode root) {
-		return parseErrorHandled((json -> parseBookTickerInternal(json, context::getFuturesSymbolInverse)), root);
-	}
-
-	@Override
-	public MarkPricePatch parseMarkPriceMessageSymbol(JsonNode root) {
-		return parseErrorHandled(this::parseMarkPriceInternal, root);
+		return parseBookTickerInternal(root, context::getFuturesSymbolInverse);
 	}
 
 	@Override
 	public BookTickerPatch parseSpotBookTickerMessageSymbol(JsonNode root) {
-		return parseErrorHandled((json -> parseBookTickerInternal(json, context::getSpotSymbolInverse)), root);
+		return parseBookTickerInternal(root, context::getSpotSymbolInverse);
 	}
 
 	@Override

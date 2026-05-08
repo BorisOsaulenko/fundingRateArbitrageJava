@@ -5,7 +5,6 @@ import com.boris.fundingarbitrage.exchange.publicws.PublicMessageHandler;
 import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
 import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
 import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
-import com.boris.fundingarbitrage.util.logger.Logger;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import java.math.BigDecimal;
@@ -19,7 +18,8 @@ class OkxPublicMessageHandler implements PublicMessageHandler {
 		this.context = context;
 	}
 
-	private MarkPricePatch parseMarkPriceInternal(JsonNode root) {
+	@Override
+	public MarkPricePatch parseMarkPriceMessageSymbol(JsonNode root) {
 		String channel = root.path("arg").path("channel").asText();
 		if (!"mark-price".equalsIgnoreCase(channel)) return null;
 		String symbol = root.path("arg").path("instId").asText();
@@ -38,7 +38,7 @@ class OkxPublicMessageHandler implements PublicMessageHandler {
 		return new MarkPricePatch(coin, markPx, ts);
 	}
 
-	private BookTickerPatch parseBookTickerInternal(JsonNode root) {
+	private BookTickerPatch parseBookTickerInternal(JsonNode root, Function<String, String> symbolInverse) {
 		String channel = root.path("arg").path("channel").asText();
 		if (!"tickers".equalsIgnoreCase(channel)) return null;
 		String symbol = root.path("arg").path("instId").asText();
@@ -46,7 +46,7 @@ class OkxPublicMessageHandler implements PublicMessageHandler {
 		if (dataArray == null || !dataArray.isArray() || dataArray.isEmpty()) return null;
 		JsonNode data = dataArray.get(0);
 
-		String coin = context.getFuturesSymbolInverse(symbol);
+		String coin = symbolInverse.apply(symbol);
 		String bidPxNode = data.path("bidPx").asText();
 		String bidSzNode = data.path("bidSz").asText();
 		String askPxNode = data.path("askPx").asText();
@@ -65,17 +65,6 @@ class OkxPublicMessageHandler implements PublicMessageHandler {
 		return new BookTickerPatch(coin, bidPx, bidSz, askPx, askSz, ts);
 	}
 
-	private <T> T parseErrorHandled(Function<JsonNode, T> parser, JsonNode root) {
-		try {
-			return parser.apply(root);
-		} catch (IllegalArgumentException ex) {
-			Logger.log(ex.getMessage());
-			return null;
-		} catch (Exception ex) {
-			return null;
-		}
-	}
-
 	@Override
 	public FundingRatePatch parseFundingRateMessageSymbol(JsonNode root) {
 		return null;
@@ -83,17 +72,12 @@ class OkxPublicMessageHandler implements PublicMessageHandler {
 
 	@Override
 	public BookTickerPatch parseFuturesBookTickerMessageSymbol(JsonNode root) {
-		return parseErrorHandled(this::parseBookTickerInternal, root);
-	}
-
-	@Override
-	public MarkPricePatch parseMarkPriceMessageSymbol(JsonNode root) {
-		return parseErrorHandled(this::parseMarkPriceInternal, root);
+		return this.parseBookTickerInternal(root, context::getFuturesSymbolInverse);
 	}
 
 	@Override
 	public BookTickerPatch parseSpotBookTickerMessageSymbol(JsonNode root) {
-		return parseErrorHandled(this::parseBookTickerInternal, root);
+		return this.parseBookTickerInternal(root, context::getSpotSymbolInverse);
 	}
 
 	@Override

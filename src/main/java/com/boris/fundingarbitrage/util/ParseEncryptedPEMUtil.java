@@ -1,7 +1,8 @@
 package com.boris.fundingarbitrage.util;
 
-import com.boris.fundingarbitrage.util.logger.Logger;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.crypto.Cipher;
 import javax.crypto.EncryptedPrivateKeyInfo;
@@ -16,13 +17,15 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Base64;
 
 public class ParseEncryptedPEMUtil {
+	private final static Logger log = LoggerFactory.getLogger(ParseEncryptedPEMUtil.class);
+
 	public static PrivateKey parse(String pemContent, String passphrase) {
 		Security.addProvider(new BouncyCastleProvider());
 
 		try {
 			return loadEncryptedPkcs8PrivateKey(pemContent, passphrase.toCharArray());
 		} catch (Exception e) {
-			Logger.error(e.getMessage());
+			log.error("Failed to parse encrypted PEM: {}", e.getMessage());
 			throw new RuntimeException("Failed to parse encrypted PEM private key", e);
 		}
 	}

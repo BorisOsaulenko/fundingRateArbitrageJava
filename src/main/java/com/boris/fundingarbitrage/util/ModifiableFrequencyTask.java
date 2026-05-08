@@ -1,7 +1,8 @@
 package com.boris.fundingarbitrage.util;
 
-import com.boris.fundingarbitrage.util.logger.Logger;
 import lombok.Getter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 import java.util.concurrent.Executors;
@@ -10,6 +11,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 public class ModifiableFrequencyTask implements Runnable {
+	private final static Logger log = LoggerFactory.getLogger(ModifiableFrequencyTask.class);
 	private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 	private final Runnable work;
 	private volatile ScheduledFuture<?> runningTask;
@@ -38,8 +40,8 @@ public class ModifiableFrequencyTask implements Runnable {
 		try {
 			work.run();
 		} catch (Exception e) {
-			Logger.error("Exception during processing internal tick: " + e.getMessage());
-			Logger.error(Arrays.toString(e.getStackTrace()));
+			log.error("Exception during processing internal tick: {}", e.getMessage());
+			log.error(Arrays.toString(e.getStackTrace()));
 			throw new RuntimeException(e);
 		} finally {
 			// Self-reschedule for the next iteration using the updated delay
