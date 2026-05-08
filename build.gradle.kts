@@ -33,7 +33,7 @@ dependencies {
     implementation("org.apache.httpcomponents.client5:httpclient5:5.3")
     implementation("org.glassfish.tyrus.bundles:tyrus-standalone-client:2.2.1")
     implementation("org.slf4j:slf4j-api:2.0.17")
-    implementation("org.slf4j:slf4j-simple:2.0.17")
+    implementation("ch.qos.logback:logback-classic:1.5.18")
     implementation(kotlin("stdlib-jdk8"))
     implementation("com.fasterxml.jackson.core:jackson-core:2.21.0")
     implementation("com.fasterxml.jackson.core:jackson-databind:2.21.0")
