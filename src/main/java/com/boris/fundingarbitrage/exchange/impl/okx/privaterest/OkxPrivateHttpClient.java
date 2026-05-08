@@ -11,7 +11,6 @@ import com.boris.fundingarbitrage.model.exchange.WalletAddress;
 import com.boris.fundingarbitrage.util.cryptography.Signers;
 import com.boris.fundingarbitrage.util.https.PrettyHttpClient;
 import com.boris.fundingarbitrage.util.https.RequestProcessingClientWrapper;
-import com.boris.fundingarbitrage.util.logger.Logger;
 import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
 
 import java.math.BigDecimal;
@@ -58,7 +57,6 @@ public class OkxPrivateHttpClient extends PrivateHttpClient {
 			request.setHeader("Content-Type", "application/json");
 			return request;
 		} catch (Exception e) {
-			Logger.error("Error signing uri for OKX private rest.");
 			throw new RuntimeException(e);
 		}
 	}

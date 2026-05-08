@@ -1,15 +1,17 @@
 package com.boris.fundingarbitrage.util.https;
 
 import com.boris.fundingarbitrage.ObjectMapperSingleton;
-import com.boris.fundingarbitrage.util.logger.Logger;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
 public class RequestProcessingClientWrapper {
+	private final static Logger log = LoggerFactory.getLogger(RequestProcessingClientWrapper.class);
 	private final ObjectMapper mapper = ObjectMapperSingleton.getInstance();
 	private final PrettyHttpClient client;
 
@@ -22,7 +24,7 @@ public class RequestProcessingClientWrapper {
 			try {
 				return mapper.readValue(response.getBodyBytes(), responseClass);
 			} catch (Exception e) {
-				Logger.error(String.format("Error parsing public rest response: %s", e.getMessage()));
+				log.error("Error parsing public rest response: {}", e.getMessage());
 				throw new RuntimeException("Failed to process request", e);
 			}
 		});
@@ -33,7 +35,7 @@ public class RequestProcessingClientWrapper {
 			try {
 				return mapper.readValue(response.getBodyBytes(), responseClass);
 			} catch (Exception e) {
-				Logger.error(String.format("Error parsing public rest response: %s", e.getMessage()));
+				log.error("Error parsing public rest response: {}", e.getMessage());
 				throw new RuntimeException("Failed to process request", e);
 			}
 		});

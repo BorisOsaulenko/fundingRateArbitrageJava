@@ -12,7 +12,6 @@ import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import com.boris.fundingarbitrage.util.cryptography.Signers;
 import com.boris.fundingarbitrage.util.https.PrettyHttpClient;
 import com.boris.fundingarbitrage.util.https.RequestProcessingClientWrapper;
-import com.boris.fundingarbitrage.util.logger.Logger;
 import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
 
 import java.math.BigDecimal;
@@ -59,7 +58,6 @@ public class BitgetPrivateHttpClient extends PrivateHttpClient {
 			return request;
 
 		} catch (Exception e) {
-			Logger.error("Error signing uri for bitget private rest.");
 			throw new RuntimeException(e);
 		}
 	}

@@ -13,7 +13,6 @@ import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import com.boris.fundingarbitrage.util.cryptography.Signers;
 import com.boris.fundingarbitrage.util.https.PrettyHttpClient;
 import com.boris.fundingarbitrage.util.https.RequestProcessingClientWrapper;
-import com.boris.fundingarbitrage.util.logger.Logger;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
@@ -72,7 +71,6 @@ public class KucoinPrivateHttpClient extends PrivateHttpClient {
 
 			return request;
 		} catch (Exception e) {
-			Logger.error("Failed to sign KuCoin request: " + e.getMessage());
 			throw new RuntimeException("Failed to sign KuCoin request", e);
 		}
 	}
@@ -277,7 +275,6 @@ public class KucoinPrivateHttpClient extends PrivateHttpClient {
 				String connectId = UUID.randomUUID().toString();
 				return URI.create(endpoint + "?token=" + token + "&connectId=" + connectId);
 			} catch (Exception ex) {
-				Logger.error("Failed to get KuCoin WS token: " + ex.getMessage());
 				throw new RuntimeException("Failed to get KuCoin WS token", ex);
 			}
 		});

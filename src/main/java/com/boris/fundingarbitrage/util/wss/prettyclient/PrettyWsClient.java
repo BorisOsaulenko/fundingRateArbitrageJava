@@ -1,10 +1,11 @@
 package com.boris.fundingarbitrage.util.wss.prettyclient;
 
 import com.boris.fundingarbitrage.ObjectMapperSingleton;
-import com.boris.fundingarbitrage.util.logger.Logger;
 import jakarta.websocket.Session;
 import lombok.NonNull;
 import org.glassfish.tyrus.client.ClientManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URI;
@@ -13,13 +14,13 @@ import java.util.concurrent.*;
 import java.util.function.Consumer;
 
 public class PrettyWsClient {
+	private final static Logger log = LoggerFactory.getLogger(PrettyWsClient.class);
 	private final URI endpointUri;
 	private final String endpointName;
 	private final Queue<String> messageQueue = new ConcurrentLinkedQueue<>();
 	private final PrettyWsEndpoint endpoint;
 	private final ClientManager client;
 	private final ScheduledExecutorService reconnectScheduler;
-	private final int maxReconnectAttempts = 5;
 	private ScheduledFuture<?> reconnectFuture = null;
 	private int reconnectAttempts = 0;
 	private boolean closeRequested = false;
@@ -62,7 +63,7 @@ public class PrettyWsClient {
 		try {
 			client.connectToServer(this.endpoint, endpointUri);
 		} catch (Exception e) {
-			Logger.error("Error while connecting to WebSocket: %s", e.getMessage());
+			log.error("Error while connecting to WebSocket: {}", e.getMessage());
 			throw new RuntimeException(e);
 		}
 	}
@@ -78,7 +79,7 @@ public class PrettyWsClient {
 													endpointName,
 													result.getException().toString()
 									);
-									Logger.error(msg);
+									log.error(msg);
 								}
 							}
 			);
@@ -93,7 +94,7 @@ public class PrettyWsClient {
 			String json = ObjectMapperSingleton.getInstance().writeValueAsString(obj);
 			sendMessage(json);
 		} catch (IOException e) {
-			Logger.error(String.format("[%s] Failed to send object as JSON: %s", endpointName, e.getMessage()));
+			log.error("[{}] Failed to send object as JSON: {}", endpointName, e.getMessage());
 		}
 	}
 
@@ -105,7 +106,7 @@ public class PrettyWsClient {
 			try {
 				lastSession.close();
 			} catch (IOException e) {
-				Logger.error(String.format("[%s] Error closing WebSocket session: %s", endpointName, e.getMessage()));
+				log.error("[{}] Error closing WebSocket session: {}", endpointName, e.getMessage());
 			}
 		}
 
@@ -128,7 +129,7 @@ public class PrettyWsClient {
 				}
 			}
 
-			Logger.log("WebSocket connection established: " + endpointName);
+			log.info("WebSocket connection established: {}", endpointName);
 		};
 	}
 
@@ -137,7 +138,7 @@ public class PrettyWsClient {
 			if (customOnCloseHook != null) customOnCloseHook.accept(session);
 
 			if (closeRequested) {
-				Logger.log("WebSocket closed normally as requested: " + endpointName);
+				log.info("WebSocket closed normally as requested: {}", endpointName);
 				lastSession = null;
 				connecting.completeExceptionally(new IllegalStateException("Client closed"));
 				return;
@@ -145,7 +146,7 @@ public class PrettyWsClient {
 
 			lastSession = null;
 			connecting = new CompletableFuture<>();
-			Logger.warn("Websocket closed unexpectedly: " + endpointName + ".");
+			log.warn("Websocket closed unexpectedly: {}.", endpointName);
 			scheduleReconnect("unexpected close");
 		};
 	}
@@ -160,8 +161,9 @@ public class PrettyWsClient {
 	}
 
 	private synchronized void scheduleReconnect(String reason) {
+		int maxReconnectAttempts = 5;
 		if (reconnectAttempts + 1 >= maxReconnectAttempts) {
-			Logger.error("Max reconnection attempts reached. Stopping reconnection.");
+			log.error("Max reconnection attempts reached. Stopping reconnection.");
 			if (customOnUnhandledDisconnectHook != null) customOnUnhandledDisconnectHook.run();
 			return;
 		}
@@ -169,13 +171,13 @@ public class PrettyWsClient {
 
 		reconnectAttempts++;
 		long delayMs = 1000 + (long) Math.pow(5, reconnectAttempts);
-		Logger.warn(String.format(
-						"Scheduling reconnect for %s in %d ms (attempt %d/%d)",
+		log.warn(
+						"Scheduling reconnect for {} in {} ms (attempt {}/{})",
 						reason,
 						delayMs,
 						reconnectAttempts,
 						maxReconnectAttempts
-		));
+		);
 		reconnectFuture = reconnectScheduler.schedule(this::connect, delayMs, TimeUnit.MILLISECONDS);
 	}
 

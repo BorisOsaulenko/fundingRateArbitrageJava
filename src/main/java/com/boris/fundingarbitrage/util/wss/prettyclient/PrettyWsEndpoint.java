@@ -1,9 +1,7 @@
 package com.boris.fundingarbitrage.util.wss.prettyclient;
 
-import com.boris.fundingarbitrage.util.logger.Logger;
 import jakarta.websocket.*;
 
-import java.util.Arrays;
 import java.util.function.Consumer;
 
 @ClientEndpoint
@@ -42,11 +40,6 @@ public class PrettyWsEndpoint {
 
 	@OnError
 	public void onError(Throwable throwable) {
-		Logger.error(String.format(
-						"WebSocket error: %s\n%s",
-						throwable.getMessage(),
-						Arrays.toString(throwable.getStackTrace())
-		));
 		if (onErrorHook != null) onErrorHook.accept(throwable);
 	}
 }

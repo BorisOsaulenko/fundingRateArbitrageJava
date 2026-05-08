@@ -1,12 +1,13 @@
 package com.boris.fundingarbitrage.util.https;
 
-import com.boris.fundingarbitrage.util.logger.Logger;
 import lombok.Getter;
 import lombok.NonNull;
 import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.hc.client5.http.impl.async.CloseableHttpAsyncClient;
 import org.apache.hc.core5.concurrent.FutureCallback;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.URISyntaxException;
 import java.time.Duration;
@@ -14,6 +15,7 @@ import java.util.Arrays;
 import java.util.concurrent.CompletableFuture;
 
 public class PrettyHttpClient {
+	private static final Logger log = LoggerFactory.getLogger(PrettyHttpClient.class);
 	@Getter
 	private static final PrettyHttpClient INSTANCE = new ClientFactory().withRetries(5)
 					.withRetryInterval(Duration.ofMillis(500))
@@ -53,16 +55,14 @@ public class PrettyHttpClient {
 		String respHeaders = Arrays.toString(response.getHeaders());
 		String body = safeBody(response, 0);
 
-		String msg = String.format(
-						"HTTP error. %s %s%nStatus: %d%nResponse headers: %s%nBody:%n%s",
+		log.warn(
+						"HTTP error. {} {}\nStatus: {}\nResponse headers: {}\nBody:\n{}",
 						method,
 						url,
 						status,
 						respHeaders,
 						body
 		);
-
-		Logger.warn(msg);
 	}
 
 	private FutureCallback<SimpleHttpResponse> getCallback(
@@ -70,16 +70,17 @@ public class PrettyHttpClient {
 					CompletableFuture<SimpleHttpResponse> cf,
 					boolean checkCodes
 	) {
-		return new FutureCallback<SimpleHttpResponse>() {
+		return new FutureCallback<>() {
 			@Override
 			public void completed(SimpleHttpResponse res) {
 				if (checkCodes && isHttpError(res)) {
 					logHttpError(req, res);
-					cf.completeExceptionally(new RuntimeException(req.getMethod() +
-																												" " +
-																												safeUri(req) +
-																												" failed: HTTP " +
-																												res.getCode()));
+					cf.completeExceptionally(
+									new RuntimeException(req.getMethod() +
+																			 " " +
+																			 safeUri(req) +
+																			 " failed: HTTP " +
+																			 res.getCode()));
 				} else {
 					cf.complete(res);
 				}
@@ -88,13 +89,13 @@ public class PrettyHttpClient {
 			@Override
 			public void failed(Exception ex) {
 				// Transport failure: no status/body exists here.
-				Logger.warn("Request failed (transport). " + req.getMethod() + " " + safeUri(req) + " | " + ex);
+				log.warn("Request failed (transport). {} {}. Message: {}", req.getMethod(), safeUri(req), ex.getMessage());
 				cf.completeExceptionally(ex);
 			}
 
 			@Override
 			public void cancelled() {
-				Logger.warn("Request cancelled. " + req.getMethod() + " " + safeUri(req));
+				log.warn("Request cancelled. {} {}", req.getMethod(), safeUri(req));
 				cf.cancel(true);
 			}
 		};
@@ -118,7 +119,7 @@ public class PrettyHttpClient {
 		try {
 			client.close();
 		} catch (Exception e) {
-			Logger.error("Failed to close HTTP client: " + e.getMessage());
+			log.error("Failed to close HTTP client: {}", e.getMessage());
 		}
 	}
 }
