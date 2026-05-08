@@ -1,23 +1,14 @@
 package com.boris.fundingarbitrage.exchange.impl.okx.privatews;
 
-import com.boris.fundingarbitrage.ObjectMapperSingleton;
 import com.boris.fundingarbitrage.exchange.privatews.PrivateMessageHandler;
 import com.boris.fundingarbitrage.model.contract.PartialFill;
 import com.boris.fundingarbitrage.model.websocket.patch.DepositPatch;
-import com.boris.fundingarbitrage.util.JsonParsingFunction;
-import com.boris.fundingarbitrage.util.logger.Logger;
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 
 class OkxPrivateMessageHandler implements PrivateMessageHandler {
-	private final ObjectMapper mapper = ObjectMapperSingleton.getInstance();
-
 	private static BigDecimal parseBigDecimal(JsonNode node, String field) {
 		JsonNode val = node.get(field);
 		if (val == null || val.isNull()) return null;
@@ -36,8 +27,8 @@ class OkxPrivateMessageHandler implements PrivateMessageHandler {
 		return Instant.ofEpochMilli(Long.parseLong(text));
 	}
 
-	private DepositPatch parseDepositInternal(String message) throws JsonProcessingException {
-		JsonNode root = mapper.readTree(message);
+	@Override
+	public DepositPatch parseDepositMessageSymbol(JsonNode root) {
 		String channel = root.path("arg").path("channel").asText();
 		if (!"deposit-info".equalsIgnoreCase(channel)) return null;
 		JsonNode data = root.get("data");
@@ -50,8 +41,8 @@ class OkxPrivateMessageHandler implements PrivateMessageHandler {
 		return new DepositPatch(amt, ts);
 	}
 
-	private PartialFill parsePartialFillInternal(String message) throws JsonProcessingException {
-		JsonNode root = mapper.readTree(message);
+	@Override
+	public PartialFill parsePartialFillMessageSymbol(JsonNode root) {
 		String channel = root.path("arg").path("channel").asText();
 		if (!"orders".equalsIgnoreCase(channel)) return null;
 		JsonNode data = root.get("data");
@@ -70,27 +61,6 @@ class OkxPrivateMessageHandler implements PrivateMessageHandler {
 		if (ts == null) ts = parseInstant(entry, "uTime");
 		if (symbol == null || symbol.isEmpty() || qty == null || price == null || ts == null) return null;
 		return new PartialFill(orderId, symbol, qty, price, fee, ts);
-	}
-
-	private <T> T parseErrorHandled(JsonParsingFunction<T> parser, String message) {
-		try {
-			return parser.apply(message);
-		} catch (JsonParseException | JsonMappingException ex) {
-			Logger.log(ex.getMessage());
-			return null;
-		} catch (Exception ex) {
-			return null;
-		}
-	}
-
-	@Override
-	public DepositPatch parseDepositMessageSymbol(String message) {
-		return parseErrorHandled(this::parseDepositInternal, message);
-	}
-
-	@Override
-	public PartialFill parsePartialFillMessageSymbol(String message) {
-		return parseErrorHandled(this::parsePartialFillInternal, message);
 	}
 
 	@Override

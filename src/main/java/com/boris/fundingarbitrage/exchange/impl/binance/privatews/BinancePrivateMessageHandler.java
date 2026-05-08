@@ -4,8 +4,6 @@ import com.boris.fundingarbitrage.ObjectMapperSingleton;
 import com.boris.fundingarbitrage.exchange.privatews.PrivateMessageHandler;
 import com.boris.fundingarbitrage.model.contract.PartialFill;
 import com.boris.fundingarbitrage.model.websocket.patch.DepositPatch;
-import com.boris.fundingarbitrage.util.JsonParsingFunction;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -15,8 +13,8 @@ import java.time.Instant;
 class BinancePrivateMessageHandler implements PrivateMessageHandler {
 	private final ObjectMapper mapper = ObjectMapperSingleton.getInstance();
 
-	private DepositPatch parseDepositInternal(String message) throws JsonProcessingException {
-		JsonNode root = mapper.readTree(message);
+	@Override
+	public DepositPatch parseDepositMessageSymbol(JsonNode root) {
 		JsonNode eventNode = root.has("event") ? root.get("event") : root;
 		String eventType = eventNode.path("e").asText();
 		if (!"outboundAccountPosition".equals(eventType)) return null;
@@ -33,8 +31,8 @@ class BinancePrivateMessageHandler implements PrivateMessageHandler {
 		return null;
 	}
 
-	private PartialFill parsePartialFillInternal(String message) throws JsonProcessingException {
-		JsonNode root = mapper.readTree(message);
+	@Override
+	public PartialFill parsePartialFillMessageSymbol(JsonNode root) {
 		JsonNode eventNode = root.has("event") ? root.get("event") : root;
 		String eventType = eventNode.path("e").asText();
 		if (!"executionReport".equals(eventType)) return null;
@@ -48,24 +46,6 @@ class BinancePrivateMessageHandler implements PrivateMessageHandler {
 						eventNode.path("n").decimalValue(),
 						Instant.ofEpochMilli(eventNode.path("E").asLong())
 		);
-	}
-
-	private <T> T parseErrorHandled(JsonParsingFunction<T> parser, String message) {
-		try {
-			return parser.apply(message);
-		} catch (Exception ex) {
-			return null;
-		}
-	}
-
-	@Override
-	public DepositPatch parseDepositMessageSymbol(String message) {
-		return parseErrorHandled(this::parseDepositInternal, message);
-	}
-
-	@Override
-	public PartialFill parsePartialFillMessageSymbol(String message) {
-		return parseErrorHandled(this::parsePartialFillInternal, message);
 	}
 
 	@Override

@@ -1,23 +1,14 @@
 package com.boris.fundingarbitrage.exchange.impl.bybit.privatews;
 
-import com.boris.fundingarbitrage.ObjectMapperSingleton;
 import com.boris.fundingarbitrage.exchange.privatews.PrivateMessageHandler;
 import com.boris.fundingarbitrage.model.contract.PartialFill;
 import com.boris.fundingarbitrage.model.websocket.patch.DepositPatch;
-import com.boris.fundingarbitrage.util.JsonParsingFunction;
-import com.boris.fundingarbitrage.util.logger.Logger;
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 
 class BybitPrivateMessageHandler implements PrivateMessageHandler {
-	private final ObjectMapper mapper = ObjectMapperSingleton.getInstance();
-
 	private static BigDecimal parseBigDecimal(JsonNode node, String... fields) {
 		for (String field : fields) {
 			JsonNode val = node.get(field);
@@ -50,8 +41,8 @@ class BybitPrivateMessageHandler implements PrivateMessageHandler {
 		return Instant.now();
 	}
 
-	private DepositPatch parseDepositInternal(String message) throws JsonProcessingException {
-		JsonNode root = mapper.readTree(message);
+	@Override
+	public DepositPatch parseDepositMessageSymbol(JsonNode root) {
 		String topic = root.path("topic").asText();
 		if (!"wallet".equalsIgnoreCase(topic)) return null;
 		JsonNode data = root.get("data");
@@ -69,8 +60,8 @@ class BybitPrivateMessageHandler implements PrivateMessageHandler {
 		return null;
 	}
 
-	private PartialFill parsePartialFillInternal(String message) throws JsonProcessingException {
-		JsonNode root = mapper.readTree(message);
+	@Override
+	public PartialFill parsePartialFillMessageSymbol(JsonNode root) {
 		String topic = root.path("topic").asText();
 		if (!"execution".equalsIgnoreCase(topic)) return null;
 		JsonNode data = root.get("data");
@@ -86,27 +77,6 @@ class BybitPrivateMessageHandler implements PrivateMessageHandler {
 		BigDecimal feeValue = "USDT".equalsIgnoreCase(feeCoin) ? fee : null;
 		Instant ts = parseInstant(entry, "execTime", "tradeTime", "ts");
 		return new PartialFill(orderId, symbol, qty, price, feeValue, ts);
-	}
-
-	private <T> T parseErrorHandled(JsonParsingFunction<T> parser, String message) {
-		try {
-			return parser.apply(message);
-		} catch (JsonParseException | JsonMappingException ex) {
-			Logger.log(ex.getMessage());
-			return null;
-		} catch (Exception ex) {
-			return null;
-		}
-	}
-
-	@Override
-	public DepositPatch parseDepositMessageSymbol(String message) {
-		return parseErrorHandled(this::parseDepositInternal, message);
-	}
-
-	@Override
-	public PartialFill parsePartialFillMessageSymbol(String message) {
-		return parseErrorHandled(this::parsePartialFillInternal, message);
 	}
 
 	@Override

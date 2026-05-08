@@ -1,115 +1,56 @@
 package com.boris.fundingarbitrage.exchange.impl.gate.privatews;
 
-import com.boris.fundingarbitrage.ObjectMapperSingleton;
 import com.boris.fundingarbitrage.exchange.privatews.PrivateMessageHandler;
 import com.boris.fundingarbitrage.model.contract.PartialFill;
 import com.boris.fundingarbitrage.model.websocket.patch.DepositPatch;
-import com.boris.fundingarbitrage.util.JsonParsingFunction;
-import com.boris.fundingarbitrage.util.logger.Logger;
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 
 class GatePrivateMessageHandler implements PrivateMessageHandler {
-	private final ObjectMapper mapper = ObjectMapperSingleton.getInstance();
-
-	private static BigDecimal parseBigDecimal(JsonNode node, String... fields) {
-		for (String field : fields) {
-			JsonNode val = node.get(field);
-			if (val != null && !val.isNull()) {
-				String text = val.asText();
-				if (text != null && !text.isEmpty()) {
-					try {
-						return new BigDecimal(text);
-					} catch (NumberFormatException ignored) {
-					}
-				}
-			}
-		}
-		return BigDecimal.ZERO;
-	}
-
-	private static Instant parseInstant(JsonNode node, String... fields) {
-		for (String field : fields) {
-			JsonNode val = node.get(field);
-			if (val != null && !val.isNull()) {
-				String text = val.asText();
-				if (text != null && !text.isEmpty()) {
-					try {
-						long ts = Long.parseLong(text);
-						if (ts > 10_000_000_000L) return Instant.ofEpochMilli(ts);
-						return Instant.ofEpochSecond(ts);
-					} catch (NumberFormatException ignored) {
-					}
-				}
-			}
-		}
-		return Instant.now();
-	}
-
-	private DepositPatch parseDepositInternal(String message) throws JsonProcessingException {
-		JsonNode root = mapper.readTree(message);
+	@Override
+	public DepositPatch parseDepositMessageSymbol(JsonNode root) {
 		String channel = root.path("channel").asText();
 		String event = root.path("event").asText();
-		if (!"futures.balances".equalsIgnoreCase(channel) || !"update".equalsIgnoreCase(event)) {
-			return null;
-		}
+		if (!"futures.balances".equalsIgnoreCase(channel) || !"update".equalsIgnoreCase(event)) return null;
+
 		JsonNode result = root.get("result");
 		if (result == null || !result.isArray() || result.isEmpty()) return null;
 		JsonNode entry = result.get(0);
 		String currency = entry.path("currency").asText();
 		if (!"USDT".equalsIgnoreCase(currency)) return null;
-		BigDecimal balance = parseBigDecimal(entry, "available", "balance", "total");
-		if (balance.compareTo(BigDecimal.ZERO) <= 0) return null;
-		Instant ts = parseInstant(root, "time");
-		return new DepositPatch(balance, ts);
+		String balance = entry.path("balance").asText();
+		long timestamp = entry.path("time_ms").asLong();
+		if (balance.isBlank() || timestamp == 0) return null;
+		return new DepositPatch(new BigDecimal(balance), Instant.ofEpochMilli(timestamp));
 	}
 
-	private PartialFill parsePartialFillInternal(String message) throws JsonProcessingException {
-		JsonNode root = mapper.readTree(message);
+	@Override
+	public PartialFill parsePartialFillMessageSymbol(JsonNode root) {
 		String channel = root.path("channel").asText();
 		String event = root.path("event").asText();
-		if (!"futures.usertrades".equalsIgnoreCase(channel) || !"update".equalsIgnoreCase(event)) {
-			return null;
-		}
+		if (!"futures.usertrades".equalsIgnoreCase(channel) || !"update".equalsIgnoreCase(event)) return null;
+
 		JsonNode result = root.get("result");
 		if (result == null || !result.isArray() || result.isEmpty()) return null;
 		JsonNode entry = result.get(0);
 		String orderId = entry.path("order_id").asText();
 		if (orderId == null || orderId.isEmpty()) return null;
 		String symbol = entry.path("contract").asText();
-		BigDecimal size = parseBigDecimal(entry, "size");
-		BigDecimal price = parseBigDecimal(entry, "price");
-		BigDecimal fee = parseBigDecimal(entry, "fee");
-		Instant ts = parseInstant(entry, "create_time_ms", "create_time");
-		BigDecimal feeValue = fee.compareTo(BigDecimal.ZERO) > 0 ? fee : null;
-		return new PartialFill(orderId, symbol, size.abs(), price, feeValue, ts);
-	}
-
-	private <T> T parseErrorHandled(JsonParsingFunction<T> parser, String message) {
-		try {
-			return parser.apply(message);
-		} catch (JsonParseException | JsonMappingException ex) {
-			Logger.log(ex.getMessage());
-			return null;
-		} catch (Exception ex) {
-			return null;
-		}
-	}
-
-	@Override
-	public DepositPatch parseDepositMessageSymbol(String message) {
-		return parseErrorHandled(this::parseDepositInternal, message);
-	}
-
-	@Override
-	public PartialFill parsePartialFillMessageSymbol(String message) {
-		return parseErrorHandled(this::parsePartialFillInternal, message);
+		String size = entry.get("size").asText();
+		String price = entry.get("price").asText();
+		String fee = entry.get("fee").asText();
+		long timestamp = entry.get("create_time_ms").asLong();
+		if (symbol.isBlank() || size.isBlank() || price.isBlank() || fee.isBlank() || timestamp == 0) return null;
+		return new PartialFill(
+						orderId,
+						symbol,
+						new BigDecimal(size),
+						new BigDecimal(price),
+						new BigDecimal(fee),
+						Instant.ofEpochMilli(timestamp)
+		);
 	}
 
 	@Override

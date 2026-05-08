@@ -1,22 +1,16 @@
 package com.boris.fundingarbitrage.exchange.impl.whitebit.privatews;
 
-import com.boris.fundingarbitrage.ObjectMapperSingleton;
 import com.boris.fundingarbitrage.exchange.privatews.PrivateMessageHandler;
 import com.boris.fundingarbitrage.model.contract.PartialFill;
 import com.boris.fundingarbitrage.model.websocket.patch.DepositPatch;
-import com.boris.fundingarbitrage.util.logger.Logger;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 
 class WhitebitPrivateMessageHandler implements PrivateMessageHandler {
-	private final ObjectMapper mapper = ObjectMapperSingleton.getInstance();
-
-	private DepositPatch parseDepositInternal(String message) throws JsonProcessingException {
-		JsonNode root = mapper.readTree(message);
+	@Override
+	public DepositPatch parseDepositMessageSymbol(JsonNode root) {
 		String method = root.path("method").asText();
 		if (!"balanceSpot_update".equalsIgnoreCase(method)) return null;
 		JsonNode params = root.get("params");
@@ -32,8 +26,8 @@ class WhitebitPrivateMessageHandler implements PrivateMessageHandler {
 		return new DepositPatch(free, Instant.now());
 	}
 
-	private PartialFill parsePartialFillInternal(String message) throws JsonProcessingException {
-		JsonNode root = mapper.readTree(message);
+	@Override
+	public PartialFill parsePartialFillMessageSymbol(JsonNode root) {
 		String method = root.path("method").asText();
 		if (!"deals_update".equalsIgnoreCase(method)) return null;
 		JsonNode params = root.get("params");
@@ -55,41 +49,6 @@ class WhitebitPrivateMessageHandler implements PrivateMessageHandler {
 		Instant ts = Instant.ofEpochMilli(timeMillis);
 
 		return new PartialFill(orderId, market, amount, price, feeValue, ts);
-	}
-
-	private <T> T parseErrorHandled(java.util.function.Function<String, T> parser, String message) {
-		try {
-			return parser.apply(message);
-		} catch (Exception ex) {
-			Logger.log(ex.getMessage());
-			return null;
-		}
-	}
-
-	@Override
-	public DepositPatch parseDepositMessageSymbol(String message) {
-		return parseErrorHandled(
-						(msg) -> {
-							try {
-								return parseDepositInternal(msg);
-							} catch (JsonProcessingException e) {
-								return null;
-							}
-						}, message
-		);
-	}
-
-	@Override
-	public PartialFill parsePartialFillMessageSymbol(String message) {
-		return parseErrorHandled(
-						(msg) -> {
-							try {
-								return parsePartialFillInternal(msg);
-							} catch (JsonProcessingException e) {
-								return null;
-							}
-						}, message
-		);
 	}
 
 	@Override

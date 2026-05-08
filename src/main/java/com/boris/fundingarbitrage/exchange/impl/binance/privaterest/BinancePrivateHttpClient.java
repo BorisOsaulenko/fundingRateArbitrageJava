@@ -13,7 +13,6 @@ import com.boris.fundingarbitrage.util.cryptography.Signers;
 import com.boris.fundingarbitrage.util.https.Helpers;
 import com.boris.fundingarbitrage.util.https.PrettyHttpClient;
 import com.boris.fundingarbitrage.util.https.RequestProcessingClientWrapper;
-import com.boris.fundingarbitrage.util.logger.Logger;
 import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
 import org.apache.hc.core5.net.URIBuilder;
 
@@ -49,7 +48,6 @@ public class BinancePrivateHttpClient extends PrivateHttpClient {
 			signedRequest.setHeader("X-MBX-APIKEY", credentials.apiKey());
 			return signedRequest;
 		} catch (URISyntaxException ex) {
-			Logger.error("Error parsing URI for signing: " + ex.getMessage());
 			throw new RuntimeException("Failed to sign request", ex);
 		}
 	}

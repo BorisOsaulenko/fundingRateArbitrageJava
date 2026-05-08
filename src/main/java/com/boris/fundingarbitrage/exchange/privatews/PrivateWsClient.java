@@ -1,9 +1,13 @@
 package com.boris.fundingarbitrage.exchange.privatews;
 
+import com.boris.fundingarbitrage.ObjectMapperSingleton;
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.model.contract.PartialFill;
 import com.boris.fundingarbitrage.model.websocket.patch.DepositPatch;
 import com.boris.fundingarbitrage.util.wss.prettyclient.PrettyWsClient;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.websocket.Session;
 
 import java.net.URI;
@@ -15,6 +19,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 public abstract class PrivateWsClient {
+	private static final ObjectMapper JSON_MAPPER = ObjectMapperSingleton.getInstance();
 	protected final ExchangeContext exchangeContext;
 	private final CompletableFuture<PrettyWsClient> prettyWsClientFuture;
 	private final Set<Consumer<DepositPatch>> depositHandlers = new HashSet<>();
@@ -99,26 +104,30 @@ public abstract class PrivateWsClient {
 	}
 
 	private void handleMessage(String message) {
-		DepositPatch depositPatch = messageHandler.parseDepositMessageSymbol(message);
-		if (depositPatch != null) {
-			for (Consumer<DepositPatch> handler : depositHandlers) {
-				handler.accept(depositPatch);
+		if (message != null && !message.isEmpty()) {
+			try {
+				JsonNode root = JSON_MAPPER.readTree(message);
+
+				DepositPatch depositPatch = messageHandler.parseDepositMessageSymbol(root);
+				if (depositPatch != null) {
+					for (Consumer<DepositPatch> handler : depositHandlers) handler.accept(depositPatch);
+					return;
+				}
+
+				PartialFill partialFill = messageHandler.parsePartialFillMessageSymbol(root);
+				if (partialFill != null) {
+					Consumer<PartialFill> handler = partialFillHandlers.get(partialFill.orderId());
+					if (handler != null) handler.accept(partialFill);
+				}
+			} catch (JsonProcessingException ignored) {
 			}
-			return;
 		}
 
-		PartialFill partialFill = messageHandler.parsePartialFillMessageSymbol(message);
-		if (partialFill != null) {
-			Consumer<PartialFill> handler = partialFillHandlers.get(partialFill.orderId());
-			if (handler != null) {
-				handler.accept(partialFill);
-			}
-			return;
+		try {
+			String pingResponse = messageHandler.getResponseToPingMessage(message);
+			if (pingResponse != null) prettyWsClientFuture.thenAccept(client -> client.sendMessage(pingResponse));
+		} catch (Exception ignored) {
 		}
 
-		String pingResponse = messageHandler.getResponseToPingMessage(message);
-		if (pingResponse != null) {
-			prettyWsClientFuture.thenAccept(client -> client.sendMessage(pingResponse));
-		}
 	}
 }
