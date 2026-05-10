@@ -2,25 +2,21 @@ package com.boris.fundingarbitrage.exchange.impl.bitget.publicws;
 
 import com.boris.fundingarbitrage.exchange.impl.bitget.BitgetContext;
 import com.boris.fundingarbitrage.exchange.impl.bitget.publicrest.BitgetPublicHttpClient;
+import com.boris.fundingarbitrage.scheduler.ProdModifiableSchedulerBuilder;
 import com.boris.fundingarbitrage.util.wss.publicws.FullFundingViaRest;
 
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Set;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 public class BitgetPublicWsClient extends FullFundingViaRest {
 	private static final URI endpoint = URI.create("wss://ws.bitget.com/v2/ws/public");
 	private static final String instType = "USDT-FUTURES";
 	private static final String tickerChannel = "ticker";
-	private final ScheduledExecutorService pingExecutor = new ScheduledThreadPoolExecutor(1);
 
 	public BitgetPublicWsClient(BitgetContext context, BitgetPublicHttpClient publicHttp) {
 		BitgetPublicMessageHandler messageHandler = new BitgetPublicMessageHandler(context);
-		super(context, endpoint, messageHandler, publicHttp);
-		pingExecutor.scheduleAtFixedRate(this::sendPing, 5, 30, TimeUnit.SECONDS);
+		super(context, endpoint, messageHandler, publicHttp, new ProdModifiableSchedulerBuilder());
 	}
 
 	private String getSubscribeFrame(Set<String> symbols) {
@@ -79,13 +75,8 @@ public class BitgetPublicWsClient extends FullFundingViaRest {
 		return getUnsubscribeFrame(symbols);
 	}
 
-	private void sendPing() {
-		sendMessage("ping");
-	}
-
 	@Override
-	public void close() {
-		super.close();
-		pingExecutor.close();
+	protected String getPingFrame() {
+		return "ping";
 	}
 }

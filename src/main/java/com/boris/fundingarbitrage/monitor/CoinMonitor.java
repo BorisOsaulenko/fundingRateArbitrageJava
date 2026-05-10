@@ -74,7 +74,12 @@ public class CoinMonitor {
 	}
 
 	public CompletableFuture<Void> getInitFuture() {
-		return dataStream.initFuture();
+		return dataStream.initFuture()
+						.thenRun(() -> log.info("Monitor initialization complete"))
+						.exceptionally(e -> {
+							log.error("Error during monitor initialization: {}", e.getMessage());
+							throw new RuntimeException("Monitor initialization failed", e);
+						});
 	}
 
 	void checkDataCompleteness() {

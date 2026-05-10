@@ -10,29 +10,33 @@ import com.boris.fundingarbitrage.model.assetops.InternalTransfer;
 import com.boris.fundingarbitrage.model.exchange.ExchangeBalance;
 import com.boris.fundingarbitrage.model.exchange.ExchangePair;
 import com.boris.fundingarbitrage.monitor.CoinMonitor;
+import com.boris.fundingarbitrage.scheduler.ModifiableScheduler;
+import com.boris.fundingarbitrage.scheduler.ModifiableSchedulerBuilder;
 import com.boris.fundingarbitrage.strategy.TradeMarket;
 import com.boris.fundingarbitrage.strategy.intradestrategy.factory.InTradeStrategyFactory;
 import com.boris.fundingarbitrage.strategy.pretradestrategy.PreTradeStrategy;
 import com.boris.fundingarbitrage.strategy.pretradestrategy.TradeDirections;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class RebalancingArbitrageLogic extends ArbitrageLogic {
 	private final static Logger log = LoggerFactory.getLogger(RebalancingArbitrageLogic.class);
 	private final static BigDecimal rebalanceThreshold = new BigDecimal("0.3"); // 30%
-	private final ScheduledExecutorService exitExecutor = Executors.newSingleThreadScheduledExecutor();
 	private final Map<BaseExchange, Integer> spotUsedTimes = new ConcurrentHashMap<>();
 	private final Map<BaseExchange, Integer> futuresUsedTimes = new ConcurrentHashMap<>();
 	private final int maxSpotUsedTimes = 1;
 	private final int maxFuturesUsedTimes = this.config.leverage();
 	private final List<InTradeCoinLogic> inTradeLogicList = new ArrayList<>();
 	private final CoinExecutionFactory executionFactory;
+	private final ModifiableScheduler exitScheduler;
 	private CompletableFuture<Void> exitFuture;
 	private CompletableFuture<Void> internalTransfersFuture;
 
@@ -45,7 +49,8 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 					CoinAvailabilityRecord coinAvailability,
 					ConstantDataRecord constantDataRecord,
 					ArbitrageBotConfig arbConfig,
-					CoinExecutionFactory executionFactory
+					CoinExecutionFactory executionFactory,
+					ModifiableSchedulerBuilder schedulerBuilder
 	) {
 		super(
 						exchanges,
@@ -59,17 +64,13 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 		);
 		this.executionFactory = executionFactory;
 		int checkExitFreqMs = 10;
-		exitExecutor.scheduleAtFixedRate(this::processExits, 0, checkExitFreqMs, TimeUnit.MILLISECONDS);
+		this.exitScheduler = schedulerBuilder.create(this::processExits, checkExitFreqMs);
 	}
 
 	@Override
 	protected void afterBalanceInit(Map<BaseExchange, ExchangeBalance> balanceMap) {
 		analyzeBalances(balanceMap);
 		internalTransfersFuture = doInternalTransfers(balanceMap);
-	}
-
-	@Override
-	protected void afterMonitorInit() {
 	}
 
 	private void analyzeBalances(Map<BaseExchange, ExchangeBalance> balanceMap) {
@@ -145,7 +146,7 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 	}
 
 	@Override
-	protected void processTick(CoinVector<CoinOpportunity> bestOpportunities) {
+	protected void processTick(@NotNull CoinVector<CoinOpportunity> bestOpportunities) {
 		if (!internalTransfersFuture.isDone()) return;
 		List<Map.Entry<String, CoinOpportunity>> tickBestOps = bestOpportunities.sortDesc(Comparator.comparing(
 						CoinOpportunity::expectedGain));
@@ -205,7 +206,7 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 	@Override
 	public void shutdown() {
 		super.shutdown();
-		exitExecutor.shutdownNow();
+		exitScheduler.cancelNow();
 		exitFuture.join();
 	}
 }

@@ -2,6 +2,7 @@ package com.boris.fundingarbitrage.exchange.impl.okx.publicws;
 
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.impl.okx.publicrest.OkxPublicHttpClient;
+import com.boris.fundingarbitrage.scheduler.ProdModifiableSchedulerBuilder;
 import com.boris.fundingarbitrage.util.wss.publicws.FullFundingViaRest;
 
 import java.net.URI;
@@ -13,7 +14,7 @@ public class OkxPublicWsClient extends FullFundingViaRest {
 
 	public OkxPublicWsClient(ExchangeContext context, OkxPublicHttpClient publicHttp) {
 		OkxPublicMessageHandler messageHandler = new OkxPublicMessageHandler(context);
-		super(context, endpoint, messageHandler, publicHttp);
+		super(context, endpoint, messageHandler, publicHttp, new ProdModifiableSchedulerBuilder());
 	}
 
 	private String subscribe(String channel, Set<String> symbols) {
@@ -70,5 +71,10 @@ public class OkxPublicWsClient extends FullFundingViaRest {
 	@Override
 	protected String getUnsubscribeSpotBookTickerFrame(Set<String> symbols) {
 		return unsubscribe("tickers", symbols);
+	}
+
+	@Override
+	protected String getPingFrame() {
+		return null;
 	}
 }

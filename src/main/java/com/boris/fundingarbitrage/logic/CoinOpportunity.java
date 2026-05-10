@@ -11,6 +11,7 @@ public record CoinOpportunity(
 				BigDecimal expectedGain,
 				ExchangeData longData,
 				ExchangeData shortData,
+				boolean goodEnough,
 				TradeDirections directions
 ) {
 }

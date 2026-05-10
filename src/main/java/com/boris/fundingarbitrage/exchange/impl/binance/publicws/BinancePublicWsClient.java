@@ -8,6 +8,7 @@ import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
 import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
 import com.boris.fundingarbitrage.model.websocket.patch.GenericPublicWsPatch;
 import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
+import com.boris.fundingarbitrage.scheduler.ProdModifiableSchedulerBuilder;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import com.boris.fundingarbitrage.util.wss.prettyclient.PrettyWsClient;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -37,7 +38,7 @@ public class BinancePublicWsClient extends PublicWsClient {
 
 	public BinancePublicWsClient(ExchangeContext context, PublicHttpClient publicHttp) {
 		BinancePublicMessageHandler messageHandler = new BinancePublicMessageHandler(context);
-		super(context, endpoint, messageHandler, publicHttp);
+		super(context, endpoint, messageHandler, publicHttp, new ProdModifiableSchedulerBuilder());
 		this.fundingAndMarkClient = new PrettyWsClient(
 						endpoint,
 						"Binance Public Funding Mark",
@@ -323,5 +324,10 @@ public class BinancePublicWsClient extends PublicWsClient {
 		this.fundingAndMarkClient.close();
 		this.bookTickerClient.close();
 		this.spotBookTickerClient.close();
+	}
+
+	@Override
+	protected String getPingFrame() {
+		return null;
 	}
 }

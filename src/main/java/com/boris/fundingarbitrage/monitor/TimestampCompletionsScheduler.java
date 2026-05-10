@@ -15,11 +15,11 @@ import java.util.concurrent.*;
 import java.util.function.BiConsumer;
 
 public class TimestampCompletionsScheduler {
+	private static final long COMPLETION_DELAY_MS = 500;
 	private final ExchangeCoinMap<Funding> futuresFundingRates;
 	private final ExchangeCoinMap<BookTicker> futuresBookTickers;
 	private final ExchangeCoinMap<Mark> futuresMarkPrices;
 	private final ExchangeCoinMap<BookTicker> spotBookTickers;
-
 	private final ExchangeCoinMap<SortedSet<Long>> timestampsToProcess = new ExchangeCoinMap<>();
 	private final ExchangeCoinMap<BookTicker> futuresTickerCompletions = new ExchangeCoinMap<>();
 	private final ExchangeCoinMap<Funding> futuresFundingCompletions = new ExchangeCoinMap<>();
@@ -27,7 +27,6 @@ public class TimestampCompletionsScheduler {
 	private final ExchangeCoinMap<BookTicker> spotBookTickerCompletions = new ExchangeCoinMap<>();
 	private final ExchangeCoinMap<Map<Long, Set<BiConsumer<FuturesSnapshot, SpotSnapshot>>>> timestampHandlers = new ExchangeCoinMap<>();
 	private final ScheduledExecutorService completionScheduler = Executors.newSingleThreadScheduledExecutor();
-	private final long completionDelayMs = 500;
 
 	TimestampCompletionsScheduler(
 					ExchangeCoinMap<Funding> futuresFundingRates,
@@ -57,7 +56,7 @@ public class TimestampCompletionsScheduler {
 
 		completionScheduler.schedule(
 						() -> fireCallbacksOnTimestamp(timestamp, exchange, coin),
-						duration + completionDelayMs,
+						duration + COMPLETION_DELAY_MS,
 						TimeUnit.MILLISECONDS
 		);
 	}

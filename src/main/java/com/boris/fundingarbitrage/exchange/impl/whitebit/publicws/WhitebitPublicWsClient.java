@@ -3,6 +3,7 @@ package com.boris.fundingarbitrage.exchange.impl.whitebit.publicws;
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.impl.whitebit.publicrest.WhitebitPublicHttpClient;
 import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
+import com.boris.fundingarbitrage.scheduler.ProdModifiableSchedulerBuilder;
 import com.boris.fundingarbitrage.util.wss.publicws.FullFundingViaRest;
 import lombok.NonNull;
 
@@ -11,29 +12,15 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 public class WhitebitPublicWsClient extends FullFundingViaRest {
 	private static final URI endpoint = URI.create("wss://api.whitebit.com/ws");
 	private static final long PING_INTERVAL_SECONDS = 50;
-	private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 
 	public WhitebitPublicWsClient(ExchangeContext context, WhitebitPublicHttpClient publicHttp) {
 		WhitebitPublicMessageHandler messageHandler = new WhitebitPublicMessageHandler(context);
-		super(context, endpoint, messageHandler, publicHttp);
-		startPingLoop();
-	}
-
-	private void startPingLoop() {
-		scheduler.scheduleAtFixedRate(
-						() -> {
-							WsRequest ping = new WsRequest(System.currentTimeMillis(), "ping", new ArrayList<>());
-							sendObject(ping);
-						}, PING_INTERVAL_SECONDS, PING_INTERVAL_SECONDS, TimeUnit.SECONDS
-		);
+		super(context, endpoint, messageHandler, publicHttp, new ProdModifiableSchedulerBuilder());
 	}
 
 	private String subscribe(String method, Set<String> symbols) {
@@ -109,8 +96,8 @@ public class WhitebitPublicWsClient extends FullFundingViaRest {
 	}
 
 	@Override
-	public void close() {
-		super.close();
-		scheduler.shutdownNow();
+	protected String getPingFrame() {
+		WsRequest ping = new WsRequest(System.currentTimeMillis(), "ping", new ArrayList<>());
+		return ping.toJson();
 	}
 }

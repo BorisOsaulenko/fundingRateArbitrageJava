@@ -3,6 +3,9 @@ package com.boris.fundingarbitrage.exchange.impl.bybit.publicws;
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.impl.bybit.publicrest.BybitPublicHttpClient;
 import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
+import com.boris.fundingarbitrage.scheduler.ModifiableScheduler;
+import com.boris.fundingarbitrage.scheduler.ModifiableSchedulerBuilder;
+import com.boris.fundingarbitrage.scheduler.ProdModifiableSchedulerBuilder;
 import com.boris.fundingarbitrage.util.wss.prettyclient.PrettyWsClient;
 import com.boris.fundingarbitrage.util.wss.publicws.FullFundingViaRest;
 import lombok.NonNull;
@@ -13,9 +16,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 public class BybitPublicWsClient extends FullFundingViaRest {
@@ -23,20 +23,21 @@ public class BybitPublicWsClient extends FullFundingViaRest {
 	private static final URI spotEndpoint = URI.create("wss://stream.bybit.com/v5/public/spot");
 	private static final int spotClientsAmount = 10;
 	private static final int maxSpotMessageCoinSize = 10;
-	private final ScheduledExecutorService pingExecutor = Executors.newSingleThreadScheduledExecutor();
+	private final ModifiableScheduler pingScheduler;
 
 	private final PrettyWsClient futuresClient;
 	private final List<PrettyWsClient> spotClients;
 
 	public BybitPublicWsClient(ExchangeContext context, BybitPublicHttpClient publicHttp) {
 		BybitPublicMessageHandler messageHandler = new BybitPublicMessageHandler(context);
-		super(context, futuresEndpoint, messageHandler, publicHttp);
+		ModifiableSchedulerBuilder schedulerBuilder = new ProdModifiableSchedulerBuilder();
+		super(context, futuresEndpoint, messageHandler, publicHttp, schedulerBuilder);
 		this.futuresClient = new PrettyWsClient(futuresEndpoint, "Bybit Public Futures", this::handleMessage);
 		this.spotClients = new ArrayList<>();
 		for (int i = 0; i < spotClientsAmount; i++) {
 			spotClients.add(new PrettyWsClient(spotEndpoint, "Bybit Public Spot " + i, this::handleMessage));
 		}
-		pingExecutor.scheduleAtFixedRate(this::sendPings, 0, 20, TimeUnit.SECONDS);
+		pingScheduler = schedulerBuilder.create(this::sendPings, 20_000);
 	}
 
 	private String getSubscribeBookTickerFrame(Set<String> symbols) {
@@ -162,11 +163,17 @@ public class BybitPublicWsClient extends FullFundingViaRest {
 	public void close() {
 		futuresClient.close();
 		spotClients.forEach(PrettyWsClient::close);
+		pingScheduler.cancelNow();
 	}
 
 	private void sendPings() {
 		String pingMsg = "{\"op\": \"ping\"}";
 		futuresClient.sendMessage(pingMsg);
 		spotClients.forEach(client -> client.sendMessage(pingMsg));
+	}
+
+	@Override
+	protected String getPingFrame() {
+		return null;
 	}
 }

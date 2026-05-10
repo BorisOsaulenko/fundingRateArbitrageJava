@@ -5,6 +5,7 @@ import com.boris.fundingarbitrage.exchange.publichttp.PublicHttpClient;
 import com.boris.fundingarbitrage.exchange.publicws.PublicMessageHandler;
 import com.boris.fundingarbitrage.exchange.publicws.PublicWsClient;
 import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
+import com.boris.fundingarbitrage.scheduler.ModifiableSchedulerBuilder;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import lombok.NonNull;
 
@@ -22,9 +23,10 @@ public abstract class PublicWsFundingSettlementViaRest extends PublicWsClient {
 					ExchangeContext context,
 					URI endpoint,
 					PublicMessageHandler messageHandler,
-					PublicHttpClient publicHttp
+					PublicHttpClient publicHttp,
+					ModifiableSchedulerBuilder schedulerBuilder
 	) {
-		super(context, endpoint, messageHandler, publicHttp);
+		super(context, endpoint, messageHandler, publicHttp, schedulerBuilder);
 	}
 
 	private void updateFundingSettlementForCoins() {

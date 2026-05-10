@@ -2,6 +2,7 @@ package com.boris.fundingarbitrage.exchange.impl.gate.publicws;
 
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.impl.gate.publicrest.GatePublicHttpClient;
+import com.boris.fundingarbitrage.scheduler.ProdModifiableSchedulerBuilder;
 import com.boris.fundingarbitrage.util.wss.publicws.PublicWsFundingSettlementViaRest;
 
 import java.net.URI;
@@ -12,7 +13,7 @@ public class GatePublicWsClient extends PublicWsFundingSettlementViaRest {
 
 	public GatePublicWsClient(ExchangeContext context, GatePublicHttpClient publicHttp) {
 		GatePublicMessageHandler messageHandler = new GatePublicMessageHandler(context);
-		super(context, endpoint, messageHandler, publicHttp);
+		super(context, endpoint, messageHandler, publicHttp, new ProdModifiableSchedulerBuilder());
 	}
 
 	private String getSubscribeFrame(String channel, Set<String> symbols) {
@@ -61,5 +62,10 @@ public class GatePublicWsClient extends PublicWsFundingSettlementViaRest {
 	@Override
 	protected String getUnsubscribeSpotBookTickerFrame(Set<String> symbols) {
 		return getUnsubscribeFrame("futures.book_ticker", symbols);
+	}
+
+	@Override
+	protected String getPingFrame() {
+		return null;
 	}
 }

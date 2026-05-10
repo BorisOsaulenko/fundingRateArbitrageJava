@@ -5,36 +5,37 @@ import com.boris.fundingarbitrage.exchange.publichttp.PublicHttpClient;
 import com.boris.fundingarbitrage.exchange.publicws.PublicMessageHandler;
 import com.boris.fundingarbitrage.exchange.publicws.PublicWsClient;
 import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
+import com.boris.fundingarbitrage.scheduler.ModifiableScheduler;
+import com.boris.fundingarbitrage.scheduler.ModifiableSchedulerBuilder;
 import org.jetbrains.annotations.NotNull;
 
 import java.net.URI;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 public abstract class FullFundingViaRest extends PublicWsClient {
-	private static final long POLL_INTERVAL_SECONDS = 10;
-	private final ScheduledExecutorService fundingRateExecutor = Executors.newSingleThreadScheduledExecutor();
+	private static final long POLL_INTERVAL_MS = 10_000;
+	private final ModifiableScheduler fundingRateScheduler;
 
 	public FullFundingViaRest(
 					ExchangeContext context,
 					URI endpoint,
 					PublicMessageHandler messageHandler,
-					PublicHttpClient publicHttp
+					PublicHttpClient publicHttp,
+					ModifiableSchedulerBuilder schedulerBuilder
 	) {
-		super(context, endpoint, messageHandler, publicHttp);
-		fundingRateExecutor.scheduleAtFixedRate(this::pollFundingRates, 0, POLL_INTERVAL_SECONDS, TimeUnit.SECONDS);
+		super(context, endpoint, messageHandler, publicHttp, schedulerBuilder);
+		fundingRateScheduler = schedulerBuilder.create(this::pollFundingRates, POLL_INTERVAL_MS);
 	}
 
 	public FullFundingViaRest(
 					ExchangeContext context,
 					CompletableFuture<URI> endpointFuture,
 					PublicMessageHandler messageHandler,
-					PublicHttpClient publicHttp
+					PublicHttpClient publicHttp,
+					ModifiableSchedulerBuilder schedulerBuilder
 	) {
-		super(context, endpointFuture, messageHandler, publicHttp);
-		fundingRateExecutor.scheduleAtFixedRate(this::pollFundingRates, 0, POLL_INTERVAL_SECONDS, TimeUnit.SECONDS);
+		super(context, endpointFuture, messageHandler, publicHttp, schedulerBuilder);
+		fundingRateScheduler = schedulerBuilder.create(this::pollFundingRates, POLL_INTERVAL_MS * 1000L);
 	}
 
 	private void pollFundingRates() {
@@ -59,6 +60,6 @@ public abstract class FullFundingViaRest extends PublicWsClient {
 	@Override
 	public void close() {
 		super.close();
-		fundingRateExecutor.shutdownNow();
+		fundingRateScheduler.cancelNow();
 	}
 }

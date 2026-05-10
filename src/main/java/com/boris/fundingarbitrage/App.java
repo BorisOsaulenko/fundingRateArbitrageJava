@@ -20,6 +20,8 @@ import com.boris.fundingarbitrage.logic.opportunityanalyzer.ParallelOpportunityA
 import com.boris.fundingarbitrage.monitor.CoinMonitor;
 import com.boris.fundingarbitrage.monitor.IDataStream;
 import com.boris.fundingarbitrage.monitor.ProdDataStream;
+import com.boris.fundingarbitrage.scheduler.ModifiableSchedulerBuilder;
+import com.boris.fundingarbitrage.scheduler.ProdModifiableSchedulerBuilder;
 import com.boris.fundingarbitrage.strategy.intradestrategy.factory.ProductionInTradeStrategyFactory;
 import com.boris.fundingarbitrage.strategy.pretradestrategy.FuturesPreTradeStrategy;
 import com.boris.fundingarbitrage.strategy.pretradestrategy.PreTradeStrategy;
@@ -50,6 +52,8 @@ public class App {
 						new BigDecimal("20")
 		);
 
+		ModifiableSchedulerBuilder schedulerBuilder = new ProdModifiableSchedulerBuilder();
+
 		try {
 			CoinFilter coinFilter = new CoinFilter(coinSupplier, filterConfig, exchanges);
 			CoinFilterResult filterResult = coinFilter.filterAsync().get();
@@ -78,10 +82,11 @@ public class App {
 							filterResult.coinAvailability(),
 							filterResult.constantDataRecord(),
 							botConfig,
-							new TestCoinExecutionFactory()
+							new TestCoinExecutionFactory(),
+							schedulerBuilder
 			);
 
-			logic.init(balanceProvider);
+			logic.init(balanceProvider).join();
 			logic.start();
 		} catch (Exception e) {
 			e.printStackTrace();

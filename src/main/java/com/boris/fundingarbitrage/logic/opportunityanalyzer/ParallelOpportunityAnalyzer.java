@@ -77,6 +77,7 @@ public class ParallelOpportunityAnalyzer implements IOpportunityAnalyzer {
 						best.gain,
 						best.longData,
 						best.shortData,
+						preTradeStrategy.goodToEnter(best.longData, best.shortData),
 						best.tradeDirections
 		);
 	}

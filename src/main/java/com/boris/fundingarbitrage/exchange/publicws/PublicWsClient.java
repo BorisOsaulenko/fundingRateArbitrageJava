@@ -7,6 +7,8 @@ import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
 import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
 import com.boris.fundingarbitrage.model.websocket.patch.GenericPublicWsPatch;
 import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
+import com.boris.fundingarbitrage.scheduler.ModifiableScheduler;
+import com.boris.fundingarbitrage.scheduler.ModifiableSchedulerBuilder;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import com.boris.fundingarbitrage.util.wss.prettyclient.PrettyWsClient;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -34,37 +36,36 @@ public abstract class PublicWsClient implements PublicMarketDataStream {
 	protected final CoinVector<Set<Consumer<BookTickerPatch>>> futuresBookTickerHandlers = new CoinVector<>();
 	protected final CoinVector<Set<Consumer<MarkPricePatch>>> futuresMarkPriceHandlers = new CoinVector<>();
 	protected final CoinVector<Set<Consumer<BookTickerPatch>>> spotBookTickerHandlers = new CoinVector<>();
+	protected final ModifiableScheduler pingScheduler;
 	private final CompletableFuture<PrettyWsClient> prettyWsClientFuture; // protected for custom tweaks in subclasses
+	private final long pingFrequency = 20 * 1000L;
 
 	public PublicWsClient(
 					ExchangeContext context,
 					URI endpoint,
 					PublicMessageHandler messageHandler,
-					PublicHttpClient publicHttp
+					PublicHttpClient publicHttp,
+					ModifiableSchedulerBuilder schedulerBuilder
 	) {
 		this.context = context;
 		this.messageHandler = messageHandler;
 		this.publicHttpClient = publicHttp;
 		this.prettyWsClientFuture = CompletableFuture.completedFuture(getClient(endpoint));
+		this.pingScheduler = schedulerBuilder.create(() -> sendMessage(getPingFrame()), pingFrequency);
 	}
 
 	public PublicWsClient(
 					ExchangeContext context,
 					CompletableFuture<URI> endpointFuture,
 					PublicMessageHandler messageHandler,
-					PublicHttpClient publicHttpClient
+					PublicHttpClient publicHttpClient,
+					ModifiableSchedulerBuilder schedulerBuilder
 	) {
 		this.context = context;
 		this.messageHandler = messageHandler;
 		this.publicHttpClient = publicHttpClient;
 		this.prettyWsClientFuture = endpointFuture.thenApply(this::getClient);
-	}
-
-	public PublicWsClient(PublicWsClient client) {
-		this.context = client.context;
-		this.messageHandler = client.messageHandler;
-		this.prettyWsClientFuture = client.prettyWsClientFuture;
-		this.publicHttpClient = client.publicHttpClient;
+		this.pingScheduler = schedulerBuilder.create(() -> sendMessage(getPingFrame()), pingFrequency);
 	}
 
 	public void onUnhandledDisconnect(Runnable hook) {
@@ -100,6 +101,8 @@ public abstract class PublicWsClient implements PublicMarketDataStream {
 			if (client != null) client.close();
 		});
 	}
+
+	protected abstract String getPingFrame();
 
 	protected abstract String getSubscribeFuturesFundingRateFrame(Set<String> symbols);
 

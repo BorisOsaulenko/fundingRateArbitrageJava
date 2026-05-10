@@ -4,28 +4,27 @@ import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.impl.kucoin.publicrest.KucoinPublicHttpClient;
 import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
 import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
+import com.boris.fundingarbitrage.scheduler.ProdModifiableSchedulerBuilder;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import com.boris.fundingarbitrage.util.wss.publicws.FullFundingViaRest;
 
-import java.time.Instant;
+import java.net.URI;
 import java.util.*;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class KucoinPublicWsClient extends FullFundingViaRest {
-	private final ScheduledExecutorService pingExecutor = Executors.newSingleThreadScheduledExecutor();
 	private final String instrumentTopic = "/contract/instrument:";
 	private final String tickerTopic = "/contractMarket/tickerV2:";
 	private final Set<String> fundingAndMarkPriceSubscribedCoins = new HashSet<>();
 
 	public KucoinPublicWsClient(ExchangeContext context, KucoinPublicHttpClient publicHttp) {
 		KucoinPublicMessageHandler messageHandler = new KucoinPublicMessageHandler(context);
-		super(context, publicHttp.fetchPublicWsEndpoint(), messageHandler, publicHttp);
-		pingExecutor.scheduleAtFixedRate(this::sendPingFrame, 10, 9, TimeUnit.SECONDS);
+		CompletableFuture<URI> endpointFuture = publicHttp.fetchPublicWsEndpoint();
+		super(context, endpointFuture, messageHandler, publicHttp, new ProdModifiableSchedulerBuilder()
+		);
 	}
 
 	private String getSubscribeFrame(String topic) {
@@ -194,19 +193,7 @@ public class KucoinPublicWsClient extends FullFundingViaRest {
 		unsubscribeFundingAndMark(coins, futuresMarkPriceHandlers);
 	}
 
-	private void sendPingFrame() {
-		if (connected()) this.sendObject(new PingFrame());
-	}
-
-	@Override
-	public void close() {
-		super.close();
-		pingExecutor.shutdownNow();
-	}
-
-	private record PingFrame(String id, String type) {
-		public PingFrame() {
-			this(String.valueOf(Instant.now().toEpochMilli()), "ping");
-		}
+	protected String getPingFrame() {
+		return new PingFrame().toJson();
 	}
 }

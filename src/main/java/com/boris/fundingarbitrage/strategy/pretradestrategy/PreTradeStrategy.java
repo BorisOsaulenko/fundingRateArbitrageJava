@@ -7,7 +7,7 @@ import java.math.BigDecimal;
 public interface PreTradeStrategy {
 	boolean goodToEnter(ExchangeData longData, ExchangeData shortData);
 
-	TradeDirections getDirections(ExchangeData longData, ExchangeData shortData);
-
 	BigDecimal expectedGain(ExchangeData longData, ExchangeData shortData);
+
+	String getDescription(ExchangeData longData, ExchangeData shortData);
 }

@@ -4,7 +4,6 @@ import com.boris.fundingarbitrage.model.exchange.constantdata.FuturesConstantDat
 import com.boris.fundingarbitrage.model.exchange.exchangedata.ExchangeData;
 import com.boris.fundingarbitrage.model.exchange.exchangedata.FuturesExchangeData;
 import com.boris.fundingarbitrage.model.exchange.snapshot.FuturesSnapshot;
-import com.boris.fundingarbitrage.strategy.TradeMarket;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -80,12 +79,7 @@ public final class FuturesPreTradeStrategy implements PreTradeStrategy {
 		return shortSettlement;
 	}
 
-	@Override
-	public boolean goodToEnter(ExchangeData longData, ExchangeData shortData) {
-		if (notOnlyFutures(longData, shortData)) return false;
-		FuturesExchangeData longD = (FuturesExchangeData) longData;
-		FuturesExchangeData shortD = (FuturesExchangeData) shortData;
-
+	private boolean goodToEnter(FuturesExchangeData longD, FuturesExchangeData shortD) {
 		Instant now = Instant.now();
 		Instant fundingTimestamp = fundingTimestamp(longD, shortD);
 		if (now.isBefore(fundingTimestamp.minus(beforeFunding))) return false;
@@ -98,7 +92,28 @@ public final class FuturesPreTradeStrategy implements PreTradeStrategy {
 	}
 
 	@Override
-	public TradeDirections getDirections(ExchangeData longData, ExchangeData shortData) {
-		return new TradeDirections(TradeMarket.FUTURES, TradeMarket.FUTURES);
+	public boolean goodToEnter(ExchangeData longData, ExchangeData shortData) {
+		if (notOnlyFutures(longData, shortData)) return false;
+		FuturesExchangeData longD = (FuturesExchangeData) longData;
+		FuturesExchangeData shortD = (FuturesExchangeData) shortData;
+
+		return goodToEnter(longD, shortD);
+	}
+
+	@Override
+	public String getDescription(ExchangeData longData, ExchangeData shortData) {
+		if (notOnlyFutures(longData, shortData)) return "Non-futures assets are not permitted by this strategy.";
+		FuturesExchangeData longD = (FuturesExchangeData) longData;
+		FuturesExchangeData shortD = (FuturesExchangeData) shortData;
+		BigDecimal oSpread = futuresOSpread(longD.snapshot(), shortD.snapshot());
+		BigDecimal fSpread = closestFuturesFSpread(longD.snapshot(), shortD.snapshot());
+		BigDecimal expectedGain = expectedGain(longD, shortD);
+		boolean goodToEnter = goodToEnter(longData, shortData);
+		return "[OSpread: %s] [FSpread: %s] [ExpGain: %s] [GoodToEnter: %b]".formatted(
+						oSpread,
+						fSpread,
+						expectedGain,
+						goodToEnter
+		);
 	}
 }
