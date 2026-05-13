@@ -15,11 +15,27 @@ public final class CoinAvailabilityRecord {
 	private final Map<BaseExchange, Set<String>> spotCoinsByExchange = new ConcurrentHashMap<>();
 	private final Map<BaseExchange, Set<String>> futuresCoinsByExchange = new ConcurrentHashMap<>();
 
-	void addCoin(String coin) {
+	public CoinAvailabilityRecord() {
+	}
+
+	CoinAvailabilityRecord(
+					CoinVector<Set<BaseExchange>> exchangesByCoin,
+					Map<BaseExchange, Set<String>> coinsByExchange,
+					Map<BaseExchange, Set<String>> spotCoinsByExchange,
+					Map<BaseExchange, Set<String>> futuresCoinsByExchange
+	) {
+		this.exchangesByCoin.putAll(exchangesByCoin);
+		this.coinsByExchange.putAll(coinsByExchange);
+		this.spotCoinsByExchange.putAll(spotCoinsByExchange);
+		this.futuresCoinsByExchange.putAll(futuresCoinsByExchange);
+	}
+
+
+	private void addCoin(String coin) {
 		exchangesByCoin.computeIfAbsent(coin, _ -> ConcurrentHashMap.newKeySet());
 	}
 
-	void addExchange(BaseExchange exchange) {
+	private void addExchange(BaseExchange exchange) {
 		coinsByExchange.computeIfAbsent(exchange, _ -> ConcurrentHashMap.newKeySet());
 		spotCoinsByExchange.computeIfAbsent(exchange, _ -> ConcurrentHashMap.newKeySet());
 		futuresCoinsByExchange.computeIfAbsent(exchange, _ -> ConcurrentHashMap.newKeySet());

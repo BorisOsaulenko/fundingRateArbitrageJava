@@ -20,7 +20,11 @@ public class ModifiableScheduler implements Runnable {
 	public ModifiableScheduler(Runnable work, long initialFrequencyMs) {
 		this.work = work;
 		this.currentFrequencyMs = initialFrequencyMs;
-		run();
+	}
+
+	public ModifiableScheduler(Runnable work, long frequency, TimeUnit unit) {
+		this.work = work;
+		this.currentFrequencyMs = TimeUnit.MILLISECONDS.convert(frequency, unit);
 	}
 
 	public void setFrequency(long newFrequencyMs) {

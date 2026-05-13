@@ -4,6 +4,7 @@ import com.boris.fundingarbitrage.coinfilter.CoinAvailabilityRecord;
 import com.boris.fundingarbitrage.coinfilter.ConstantDataRecord;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.logic.balanceprovider.IBalanceProvider;
+import com.boris.fundingarbitrage.logic.balancespolicy.IBalancesPolicy;
 import com.boris.fundingarbitrage.logic.opportunityanalyzer.IOpportunityAnalyzer;
 import com.boris.fundingarbitrage.model.exchange.ExchangeBalance;
 import com.boris.fundingarbitrage.model.exchange.constantdata.FuturesConstantData;
@@ -25,13 +26,11 @@ import org.slf4j.LoggerFactory;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 public abstract class ArbitrageLogic {
 	private static final Logger log = LoggerFactory.getLogger(ArbitrageLogic.class);
 	protected final ModifiableSchedulerBuilder schedulerBuilder;
-	protected final Set<BaseExchange> exchanges;
 	protected final PreTradeStrategy preTradeStrategy;
 	protected final InTradeStrategyFactory inTradeStrategyFactory;
 	protected final CoinAvailabilityRecord coinAvailability;
@@ -39,6 +38,7 @@ public abstract class ArbitrageLogic {
 	protected final ArbitrageBotConfig config;
 	protected final CoinMonitor monitor;
 	protected final IOpportunityAnalyzer opportunityAnalyzer;
+	private final IBalancesPolicy balancesPolicy;
 	protected CompletableFuture<Void> initFuture;
 	private ModifiableScheduler logScheduler;
 	private ModifiableScheduler opportunitiesProcessingTask;
@@ -46,7 +46,6 @@ public abstract class ArbitrageLogic {
 	private volatile boolean logOnThisCycle = false;
 
 	public ArbitrageLogic(
-					Set<BaseExchange> exchanges,
 					CoinMonitor monitor,
 					IOpportunityAnalyzer opportunityAnalyzer,
 					PreTradeStrategy preTradeStrategy,
@@ -54,9 +53,9 @@ public abstract class ArbitrageLogic {
 					CoinAvailabilityRecord coinAvailability,
 					ConstantDataRecord constantDataRecord,
 					ArbitrageBotConfig arbConfig,
+					IBalancesPolicy balancesPolicy,
 					ModifiableSchedulerBuilder schedulerBuilder
 	) {
-		this.exchanges = exchanges;
 		this.monitor = monitor;
 		this.opportunityAnalyzer = opportunityAnalyzer;
 		this.preTradeStrategy = preTradeStrategy;
@@ -64,11 +63,16 @@ public abstract class ArbitrageLogic {
 		this.coinAvailability = coinAvailability;
 		this.constantDataRecord = constantDataRecord;
 		this.config = arbConfig;
+		this.balancesPolicy = balancesPolicy;
 		this.schedulerBuilder = schedulerBuilder;
 	}
 
 	public CompletableFuture<Void> init(IBalanceProvider balanceProvider) {
-		CompletableFuture<Void> balancesFuture = balanceProvider.load(exchanges).thenAccept(this::afterBalanceInit);
+		CompletableFuture<Void> balancesFuture = balanceProvider.loadBalances()
+						.thenAccept((balances) -> {
+							balancesPolicy.validateBalancesMap(balances);
+							afterBalancesLoaded(balances);
+						});
 		return initFuture = CompletableFuture.allOf(monitor.getInitFuture(), balancesFuture);
 	}
 
@@ -77,12 +81,11 @@ public abstract class ArbitrageLogic {
 		initFuture.thenRun(this::startProcessingOpportunities);
 	}
 
-	protected final void startProcessingOpportunities() {
+	void startProcessingOpportunities() {
 		log.info("Starting arbitrage logic...");
 
 		int logInterval = config.loggingIntervalMs();
-		if (logInterval > 0)
-			logScheduler = schedulerBuilder.create(() -> this.logOnThisCycle = true, logInterval);
+		if (logInterval > 0) logScheduler = schedulerBuilder.create(() -> this.logOnThisCycle = true, logInterval);
 		opportunitiesProcessingTask = schedulerBuilder.create(this::doTick, 50);
 	}
 
@@ -129,7 +132,7 @@ public abstract class ArbitrageLogic {
 		return new SpotExchangeData(constantData, snapshot);
 	}
 
-	protected void logData(@NonNull CoinVector<CoinOpportunity> bestOpportunities) {
+	void logData(@NonNull CoinVector<CoinOpportunity> bestOpportunities) {
 		List<Map.Entry<String, CoinOpportunity>> bestOps = bestOpportunities.sortDesc(Comparator.comparing(CoinOpportunity::expectedGain))
 						.subList(0, Math.min(config.logBestArbSnapshotsAmount(), bestOpportunities.size()));
 
@@ -151,7 +154,7 @@ public abstract class ArbitrageLogic {
 
 	protected abstract void processTick(@NonNull CoinVector<CoinOpportunity> bestOpportunities);
 
-	protected abstract void afterBalanceInit(Map<BaseExchange, ExchangeBalance> balanceMap);
+	protected abstract void afterBalancesLoaded(@NonNull Map<BaseExchange, ExchangeBalance> balanceMap);
 
 	public void shutdown() {
 		if (shuttingDown) return;

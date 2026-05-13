@@ -47,11 +47,7 @@ public abstract class PublicWsClient implements PublicMarketDataStream {
 					PublicHttpClient publicHttp,
 					ModifiableSchedulerBuilder schedulerBuilder
 	) {
-		this.context = context;
-		this.messageHandler = messageHandler;
-		this.publicHttpClient = publicHttp;
-		this.prettyWsClientFuture = CompletableFuture.completedFuture(getClient(endpoint));
-		this.pingScheduler = schedulerBuilder.create(() -> sendMessage(getPingFrame()), pingFrequency);
+		this(context, CompletableFuture.completedFuture(endpoint), messageHandler, publicHttp, schedulerBuilder);
 	}
 
 	public PublicWsClient(

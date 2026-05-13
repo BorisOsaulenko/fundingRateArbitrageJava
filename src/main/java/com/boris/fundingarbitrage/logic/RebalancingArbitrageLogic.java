@@ -4,6 +4,7 @@ import com.boris.fundingarbitrage.coinfilter.CoinAvailabilityRecord;
 import com.boris.fundingarbitrage.coinfilter.ConstantDataRecord;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.execution.factory.CoinExecutionFactory;
+import com.boris.fundingarbitrage.logic.balancespolicy.IBalancesPolicy;
 import com.boris.fundingarbitrage.logic.opportunityanalyzer.IOpportunityAnalyzer;
 import com.boris.fundingarbitrage.model.assetops.InternalAccount;
 import com.boris.fundingarbitrage.model.assetops.InternalTransfer;
@@ -22,26 +23,27 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class RebalancingArbitrageLogic extends ArbitrageLogic {
 	private final static Logger log = LoggerFactory.getLogger(RebalancingArbitrageLogic.class);
-	private final static BigDecimal rebalanceThreshold = new BigDecimal("0.3"); // 30%
 	private final Map<BaseExchange, Integer> spotUsedTimes = new ConcurrentHashMap<>();
 	private final Map<BaseExchange, Integer> futuresUsedTimes = new ConcurrentHashMap<>();
 	private final int maxSpotUsedTimes = 1;
 	private final int maxFuturesUsedTimes = this.config.leverage();
 	private final List<InTradeCoinLogic> inTradeLogicList = new ArrayList<>();
 	private final CoinExecutionFactory executionFactory;
+	private final ModifiableSchedulerBuilder schedulerBuilder;
 	private final ModifiableScheduler exitScheduler;
 	private CompletableFuture<Void> exitFuture;
 	private CompletableFuture<Void> internalTransfersFuture;
 
 	public RebalancingArbitrageLogic(
-					Set<BaseExchange> exchanges,
 					CoinMonitor monitor,
 					IOpportunityAnalyzer opportunityAnalyzer,
 					PreTradeStrategy preTradeStrategy,
@@ -49,70 +51,36 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 					CoinAvailabilityRecord coinAvailability,
 					ConstantDataRecord constantDataRecord,
 					ArbitrageBotConfig arbConfig,
+					IBalancesPolicy balancesPolicy,
 					CoinExecutionFactory executionFactory,
 					ModifiableSchedulerBuilder schedulerBuilder
 	) {
 		super(
-						exchanges,
 						monitor,
 						opportunityAnalyzer,
 						preTradeStrategy,
 						inTradeStrategyFactory,
 						coinAvailability,
 						constantDataRecord,
-						arbConfig
+						arbConfig,
+						balancesPolicy,
+						schedulerBuilder
 		);
+		this.schedulerBuilder = schedulerBuilder;
 		this.executionFactory = executionFactory;
 		int checkExitFreqMs = 10;
 		this.exitScheduler = schedulerBuilder.create(this::processExits, checkExitFreqMs);
 	}
 
 	@Override
-	protected void afterBalanceInit(Map<BaseExchange, ExchangeBalance> balanceMap) {
-		analyzeBalances(balanceMap);
-		internalTransfersFuture = doInternalTransfers(balanceMap);
-	}
-
-	private void analyzeBalances(Map<BaseExchange, ExchangeBalance> balanceMap) {
-		BigDecimal balancesSum = BigDecimal.ZERO;
-		BigDecimal maxBalance = BigDecimal.ZERO;
-		BigDecimal minBalance = new BigDecimal(Long.MAX_VALUE);
-
-		BigDecimal requiredTotal = config.legUsdtAmount()
-						.add(config.safetyMargin())
-						.multiply(BigDecimal.TWO); // need same amount on futures and spot
-
-		for (BaseExchange ex : exchanges) {
-			BigDecimal spotBalance = balanceMap.get(ex).spotFreeUsdt();
-			BigDecimal futuresBalance = balanceMap.get(ex).futuresFreeUsdt();
-			BigDecimal totalBalance = spotBalance.add(futuresBalance);
-
-			balancesSum = balancesSum.add(totalBalance);
-			maxBalance = totalBalance.max(maxBalance);
-			minBalance = totalBalance.min(minBalance);
-
-			if (totalBalance.compareTo(requiredTotal) < 0) {
-				log.info("Not enough balance to start arbitrage on {}", ex.name());
-				this.shutdown();
-				throw new RuntimeException("Not enough balance to start arbitrage on " + ex.name());
-			}
-		}
-
-		BigDecimal avgBalance = balancesSum.divide(new BigDecimal(exchanges.size()), RoundingMode.HALF_UP);
-		BigDecimal maxDiff = maxBalance.subtract(minBalance);
-		BigDecimal maxDiffRelative = maxDiff.divide(avgBalance, RoundingMode.HALF_UP);
-		if (maxDiffRelative.compareTo(rebalanceThreshold) > 0) {
-			log.info("Rebalance is suggested. Max balance diff is {} compared to average balance", maxDiffRelative);
-		}
-	}
-
-	private CompletableFuture<Void> doInternalTransfers(Map<BaseExchange, ExchangeBalance> balanceMap) {
+	public void afterBalancesLoaded(@NotNull Map<BaseExchange, ExchangeBalance> balanceMap) {
 		BigDecimal required = config.legUsdtAmount().add(config.safetyMargin());
 		List<CompletableFuture<Void>> futures = new ArrayList<>();
 
-		for (BaseExchange ex : exchanges) {
-			BigDecimal futuresBalance = balanceMap.get(ex).futuresFreeUsdt();
-			BigDecimal spotBalance = balanceMap.get(ex).spotFreeUsdt();
+		for (Map.Entry<BaseExchange, ExchangeBalance> entry : balanceMap.entrySet()) {
+			BaseExchange ex = entry.getKey();
+			BigDecimal futuresBalance = entry.getValue().futuresFreeUsdt();
+			BigDecimal spotBalance = entry.getValue().spotFreeUsdt();
 			if (futuresBalance.compareTo(required) >= 0 && spotBalance.compareTo(required) >= 0) continue;
 
 			BigDecimal toTransfer = required.subtract(futuresBalance.min(spotBalance));
@@ -126,7 +94,7 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 							}));
 		}
 
-		return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+		internalTransfersFuture = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
 						.thenRun(() -> log.info("Internal transfers completed"))
 						.exceptionally((t) -> {
 							this.shutdown();
@@ -193,7 +161,8 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 							config,
 							monitor,
 							inTradeStrategyFactory.create(op.longData(), op.shortData()),
-							executionFactory.create(coin, op, config)
+							executionFactory.create(coin, op, config),
+							schedulerBuilder
 			);
 			inTradeLogicList.add(logic);
 		} catch (Exception e) {

@@ -1,6 +1,7 @@
 package com.boris.fundingarbitrage.util.wss.prettyclient;
 
 import com.boris.fundingarbitrage.ObjectMapperSingleton;
+import com.boris.fundingarbitrage.scheduler.OneTimeScheduler;
 import jakarta.websocket.Session;
 import lombok.NonNull;
 import org.glassfish.tyrus.client.ClientManager;
@@ -10,7 +11,8 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Queue;
-import java.util.concurrent.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Consumer;
 
 public class PrettyWsClient {
@@ -20,8 +22,8 @@ public class PrettyWsClient {
 	private final Queue<String> messageQueue = new ConcurrentLinkedQueue<>();
 	private final PrettyWsEndpoint endpoint;
 	private final ClientManager client;
-	private final ScheduledExecutorService reconnectScheduler;
-	private ScheduledFuture<?> reconnectFuture = null;
+	private final OneTimeScheduler reconnectScheduler;
+	private volatile boolean reconnecting = false;
 	private int reconnectAttempts = 0;
 	private boolean closeRequested = false;
 	private CompletableFuture<Session> connecting = new CompletableFuture<>();
@@ -33,17 +35,21 @@ public class PrettyWsClient {
 	public PrettyWsClient(
 					@NonNull URI uri,
 					@NonNull String endpointName,
-					@NonNull Consumer<String> processMessage
+					@NonNull Consumer<String> processMessage,
+					@NonNull OneTimeScheduler scheduler
 	) {
 		this.endpointUri = uri;
 		this.endpointName = endpointName;
 		this.client = ClientManager.createClient();
-		this.reconnectScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-			Thread thread = new Thread(r, "pretty-ws-reconnect-" + endpointName);
-			thread.setDaemon(true);
-			return thread;
-		});
+		this.reconnectScheduler = scheduler;
+		this.endpoint = new PrettyWsEndpoint(processMessage, getOnOpenHook(), getOnCloseHook(), getOnErrorHook());
+	}
 
+	public PrettyWsClient(URI endpointUri, String endpointName, Consumer<String> processMessage) {
+		this.endpointUri = endpointUri;
+		this.endpointName = endpointName;
+		this.client = ClientManager.createClient();
+		this.reconnectScheduler = new OneTimeScheduler();
 		this.endpoint = new PrettyWsEndpoint(processMessage, getOnOpenHook(), getOnCloseHook(), getOnErrorHook());
 	}
 
@@ -100,7 +106,7 @@ public class PrettyWsClient {
 
 	public void close() {
 		closeRequested = true;
-		cancelReconnect();
+		resetReconnectState();
 
 		if (lastSession != null && lastSession.isOpen()) {
 			try {
@@ -109,8 +115,6 @@ public class PrettyWsClient {
 				log.error("[{}] Error closing WebSocket session: {}", endpointName, e.getMessage());
 			}
 		}
-
-		connecting.completeExceptionally(new IllegalStateException("Client closed"));
 	}
 
 	private Consumer<Session> getOnOpenHook() {
@@ -162,12 +166,12 @@ public class PrettyWsClient {
 
 	private synchronized void scheduleReconnect(String reason) {
 		int maxReconnectAttempts = 5;
-		if (reconnectAttempts + 1 >= maxReconnectAttempts) {
+		if (reconnectAttempts > maxReconnectAttempts) {
 			log.error("Max reconnection attempts reached. Stopping reconnection.");
 			if (customOnUnhandledDisconnectHook != null) customOnUnhandledDisconnectHook.run();
 			return;
 		}
-		if (reconnectFuture != null && !reconnectFuture.isDone()) return;
+		if (reconnecting) return;
 
 		reconnectAttempts++;
 		long delayMs = 1000 + (long) Math.pow(5, reconnectAttempts);
@@ -178,20 +182,15 @@ public class PrettyWsClient {
 						reconnectAttempts,
 						maxReconnectAttempts
 		);
-		reconnectFuture = reconnectScheduler.schedule(this::connect, delayMs, TimeUnit.MILLISECONDS);
+		reconnectScheduler.schedule(this::connect, delayMs);
 	}
 
 	private synchronized void resetReconnectState() {
 		reconnectAttempts = 0;
-		cancelReconnect();
+		reconnectScheduler.shutdown();
+		reconnecting = false;
 	}
 
-	private synchronized void cancelReconnect() {
-		if (reconnectFuture != null) {
-			reconnectFuture.cancel(false);
-			reconnectFuture = null;
-		}
-	}
 
 	public boolean isConnected() {
 		return lastSession != null && lastSession.isOpen();

@@ -11,9 +11,14 @@ import java.util.concurrent.CompletableFuture;
 
 public class ProdBalanceProvider implements IBalanceProvider {
 	private final static Logger log = LoggerFactory.getLogger(ProdBalanceProvider.class);
+	private final Set<BaseExchange> exchanges;
+
+	public ProdBalanceProvider(Set<BaseExchange> exchanges) {
+		this.exchanges = exchanges;
+	}
 
 	@Override
-	public CompletableFuture<Map<BaseExchange, ExchangeBalance>> load(Set<BaseExchange> exchanges) {
+	public CompletableFuture<Map<BaseExchange, ExchangeBalance>> loadBalances() {
 		Map<BaseExchange, ExchangeBalance> balances = new HashMap<>();
 		List<CompletableFuture<Void>> futures = new ArrayList<>();
 

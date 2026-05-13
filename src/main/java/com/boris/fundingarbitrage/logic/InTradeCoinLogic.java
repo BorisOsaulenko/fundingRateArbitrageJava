@@ -5,14 +5,14 @@ import com.boris.fundingarbitrage.execution.CoinExecution;
 import com.boris.fundingarbitrage.model.exchange.snapshot.FuturesSnapshot;
 import com.boris.fundingarbitrage.model.exchange.snapshot.Snapshot;
 import com.boris.fundingarbitrage.monitor.CoinMonitor;
+import com.boris.fundingarbitrage.scheduler.ModifiableScheduler;
+import com.boris.fundingarbitrage.scheduler.ModifiableSchedulerBuilder;
 import com.boris.fundingarbitrage.strategy.TradeMarket;
 import com.boris.fundingarbitrage.strategy.intradestrategy.InTradeStrategy;
 import com.boris.fundingarbitrage.tradelogger.TradeLogger;
 import lombok.Getter;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -26,7 +26,7 @@ public class InTradeCoinLogic {
 	private final CompletableFuture<Void> enterFuture;
 	private final TradeLogger tradeLogger;
 
-	private final ScheduledExecutorService fundingRegisterExecutor = Executors.newSingleThreadScheduledExecutor();
+	private final ModifiableScheduler fundingRegisterScheduler;
 	private final AtomicBoolean shouldRegisterShortFunding;
 	private final AtomicBoolean shouldRegisterLongFunding;
 
@@ -36,7 +36,8 @@ public class InTradeCoinLogic {
 					ArbitrageBotConfig config,
 					CoinMonitor monitor,
 					InTradeStrategy strategy,
-					CoinExecution execution
+					CoinExecution execution,
+					ModifiableSchedulerBuilder schedulerBuilder
 	) {
 		this.coin = coin;
 		this.op = op;
@@ -52,7 +53,8 @@ public class InTradeCoinLogic {
 
 		this.shouldRegisterLongFunding = new AtomicBoolean(op.longData().market() == TradeMarket.FUTURES);
 		this.shouldRegisterShortFunding = new AtomicBoolean(op.shortData().market() == TradeMarket.FUTURES);
-		this.fundingRegisterExecutor.scheduleAtFixedRate(this::registerFunding, 0, 30, TimeUnit.MINUTES);
+		this.fundingRegisterScheduler = schedulerBuilder.create(this::registerFunding, 30, TimeUnit.MINUTES);
+		this.fundingRegisterScheduler.run();
 	}
 
 	private void logEnterSuccess() {
@@ -93,7 +95,7 @@ public class InTradeCoinLogic {
 						TimeUnit.SECONDS
 		).thenCompose(v -> {
 			tradeLogger.logExit(currLong, currShort);
-			fundingRegisterExecutor.shutdownNow();
+			fundingRegisterScheduler.cancelNow();
 			return tradeLogger.finish(execution.getEnterIds(), execution.getExitIds());
 		});
 	}

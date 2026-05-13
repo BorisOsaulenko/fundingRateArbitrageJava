@@ -6,12 +6,14 @@ import com.boris.fundingarbitrage.model.contract.Funding;
 import com.boris.fundingarbitrage.model.contract.Mark;
 import com.boris.fundingarbitrage.model.exchange.snapshot.FuturesSnapshot;
 import com.boris.fundingarbitrage.model.exchange.snapshot.SpotSnapshot;
+import com.boris.fundingarbitrage.scheduler.OneTimeScheduler;
 
 import java.time.Instant;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
-import java.util.concurrent.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.function.BiConsumer;
 
 public class TimestampCompletionsScheduler {
@@ -26,18 +28,29 @@ public class TimestampCompletionsScheduler {
 	private final ExchangeCoinMap<Mark> futuresMarkCompletions = new ExchangeCoinMap<>();
 	private final ExchangeCoinMap<BookTicker> spotBookTickerCompletions = new ExchangeCoinMap<>();
 	private final ExchangeCoinMap<Map<Long, Set<BiConsumer<FuturesSnapshot, SpotSnapshot>>>> timestampHandlers = new ExchangeCoinMap<>();
-	private final ScheduledExecutorService completionScheduler = Executors.newSingleThreadScheduledExecutor();
+	private final OneTimeScheduler completionScheduler;
 
 	TimestampCompletionsScheduler(
 					ExchangeCoinMap<Funding> futuresFundingRates,
 					ExchangeCoinMap<BookTicker> futuresBookTickers,
 					ExchangeCoinMap<Mark> futuresMarkPrices,
-					ExchangeCoinMap<BookTicker> spotBookTickers
+					ExchangeCoinMap<BookTicker> spotBookTickers,
+					OneTimeScheduler scheduler
 	) {
 		this.futuresFundingRates = futuresFundingRates;
 		this.futuresBookTickers = futuresBookTickers;
 		this.futuresMarkPrices = futuresMarkPrices;
 		this.spotBookTickers = spotBookTickers;
+		this.completionScheduler = scheduler;
+	}
+
+	public TimestampCompletionsScheduler(
+					ExchangeCoinMap<Funding> futuresFundingRates,
+					ExchangeCoinMap<BookTicker> futuresBookTickers,
+					ExchangeCoinMap<Mark> futuresMarkPrices,
+					ExchangeCoinMap<BookTicker> spotBookTickers
+	) {
+		this(futuresFundingRates, futuresBookTickers, futuresMarkPrices, spotBookTickers, new OneTimeScheduler());
 	}
 
 	public void performOnTimestamp(
@@ -56,8 +69,7 @@ public class TimestampCompletionsScheduler {
 
 		completionScheduler.schedule(
 						() -> fireCallbacksOnTimestamp(timestamp, exchange, coin),
-						duration + COMPLETION_DELAY_MS,
-						TimeUnit.MILLISECONDS
+						duration + COMPLETION_DELAY_MS
 		);
 	}
 
@@ -176,6 +188,6 @@ public class TimestampCompletionsScheduler {
 	}
 
 	void shutdown() {
-		completionScheduler.shutdownNow();
+		completionScheduler.shutdown();
 	}
 }

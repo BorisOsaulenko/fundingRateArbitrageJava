@@ -4,9 +4,8 @@ import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.model.exchange.ExchangeBalance;
 
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 public interface IBalanceProvider {
-	CompletableFuture<Map<BaseExchange, ExchangeBalance>> load(Set<BaseExchange> exchanges);
+	CompletableFuture<Map<BaseExchange, ExchangeBalance>> loadBalances();
 }

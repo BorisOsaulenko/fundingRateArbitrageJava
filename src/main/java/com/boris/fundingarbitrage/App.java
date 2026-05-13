@@ -14,6 +14,8 @@ import com.boris.fundingarbitrage.logic.ArbitrageLogic;
 import com.boris.fundingarbitrage.logic.RebalancingArbitrageLogic;
 import com.boris.fundingarbitrage.logic.balanceprovider.IBalanceProvider;
 import com.boris.fundingarbitrage.logic.balanceprovider.ProdBalanceProvider;
+import com.boris.fundingarbitrage.logic.balancespolicy.IBalancesPolicy;
+import com.boris.fundingarbitrage.logic.balancespolicy.RebalancingBalancesPolicy;
 import com.boris.fundingarbitrage.logic.coincapper.CoinCapper;
 import com.boris.fundingarbitrage.logic.opportunityanalyzer.IOpportunityAnalyzer;
 import com.boris.fundingarbitrage.logic.opportunityanalyzer.ParallelOpportunityAnalyzer;
@@ -68,13 +70,16 @@ public class App {
 			coinCapper.capCoins().get();
 
 			IDataStream dataStream = new ProdDataStream();
-			IBalanceProvider balanceProvider = new ProdBalanceProvider();
+			IBalanceProvider balanceProvider = new ProdBalanceProvider(exchanges);
+			IBalancesPolicy balancesPolicy = new RebalancingBalancesPolicy(
+							botConfig.legUsdtAmount(),
+							botConfig.safetyMargin()
+			);
 
 			CoinMonitor monitor = new CoinMonitor(filterResult, dataStream);
 			monitor.start();
 
 			ArbitrageLogic logic = new RebalancingArbitrageLogic(
-							exchanges,
 							monitor,
 							opportunityAnalyzer,
 							preTradeStrategy,
@@ -82,6 +87,7 @@ public class App {
 							filterResult.coinAvailability(),
 							filterResult.constantDataRecord(),
 							botConfig,
+							balancesPolicy,
 							new TestCoinExecutionFactory(),
 							schedulerBuilder
 			);

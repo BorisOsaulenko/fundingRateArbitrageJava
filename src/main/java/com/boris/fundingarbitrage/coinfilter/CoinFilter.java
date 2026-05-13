@@ -117,9 +117,6 @@ public class CoinFilter {
 
 
 	private CompletableFuture<Void> fetchData(Set<String> coins) {
-		for (String coin : coins) availabilityRecord.addCoin(coin);
-		for (BaseExchange ex : exchanges) availabilityRecord.addExchange(ex);
-
 		List<CompletableFuture<Void>> futures = new ArrayList<>();
 		for (BaseExchange exchange : exchanges) futures.add(fetchData(exchange, coins));
 
