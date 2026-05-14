@@ -6,33 +6,19 @@ import org.mockito.Mockito;
 import java.util.Set;
 
 public final class FakeExchanges {
-	private static BaseExchange fakeExchange1;
-	private static BaseExchange fakeExchange2;
-	private static BaseExchange fakeExchange3;
-	private FakeExchanges() {
-	}
-
-	public static BaseExchange exchange1() {
-		return fakeExchange1;
-	}
-
-	public static BaseExchange exchange2() {
-		return fakeExchange2;
-	}
-
-	public static BaseExchange exchange3() {
-		return fakeExchange3;
-	}
+	public static BaseExchange exchange1 = mockExchange();
+	public static BaseExchange exchange2 = mockExchange();
+	public static BaseExchange exchange3 = mockExchange();
 
 	public static Set<BaseExchange> threeExchanges() {
-		return Set.of(fakeExchange1, fakeExchange2, fakeExchange3);
+		return Set.of(exchange1, exchange2, exchange3);
 	}
 
 	public static Set<BaseExchange> twoExchanges() {
-		return Set.of(fakeExchange1, fakeExchange2);
+		return Set.of(exchange1, exchange2);
 	}
 
-	private BaseExchange mockExchange() {
+	private static BaseExchange mockExchange() {
 		return Mockito.mock(BaseExchange.class);
 	}
 }

@@ -5,8 +5,8 @@ import com.boris.fundingarbitrage.execution.CoinExecution;
 import com.boris.fundingarbitrage.model.exchange.snapshot.FuturesSnapshot;
 import com.boris.fundingarbitrage.model.exchange.snapshot.Snapshot;
 import com.boris.fundingarbitrage.monitor.CoinMonitor;
-import com.boris.fundingarbitrage.scheduler.ModifiableScheduler;
-import com.boris.fundingarbitrage.scheduler.ModifiableSchedulerBuilder;
+import com.boris.fundingarbitrage.scheduler.IModifiableScheduler;
+import com.boris.fundingarbitrage.scheduler.IModifiableSchedulerBuilder;
 import com.boris.fundingarbitrage.strategy.TradeMarket;
 import com.boris.fundingarbitrage.strategy.intradestrategy.InTradeStrategy;
 import com.boris.fundingarbitrage.tradelogger.TradeLogger;
@@ -26,7 +26,7 @@ public class InTradeCoinLogic {
 	private final CompletableFuture<Void> enterFuture;
 	private final TradeLogger tradeLogger;
 
-	private final ModifiableScheduler fundingRegisterScheduler;
+	private final IModifiableScheduler fundingRegisterScheduler;
 	private final AtomicBoolean shouldRegisterShortFunding;
 	private final AtomicBoolean shouldRegisterLongFunding;
 
@@ -37,7 +37,7 @@ public class InTradeCoinLogic {
 					CoinMonitor monitor,
 					InTradeStrategy strategy,
 					CoinExecution execution,
-					ModifiableSchedulerBuilder schedulerBuilder
+					IModifiableSchedulerBuilder schedulerBuilder
 	) {
 		this.coin = coin;
 		this.op = op;
@@ -54,7 +54,7 @@ public class InTradeCoinLogic {
 		this.shouldRegisterLongFunding = new AtomicBoolean(op.longData().market() == TradeMarket.FUTURES);
 		this.shouldRegisterShortFunding = new AtomicBoolean(op.shortData().market() == TradeMarket.FUTURES);
 		this.fundingRegisterScheduler = schedulerBuilder.create(this::registerFunding, 30, TimeUnit.MINUTES);
-		this.fundingRegisterScheduler.run();
+		this.fundingRegisterScheduler.start();
 	}
 
 	private void logEnterSuccess() {

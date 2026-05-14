@@ -11,18 +11,18 @@ import com.boris.fundingarbitrage.exchange.impl.bybit.BybitExchange;
 import com.boris.fundingarbitrage.execution.factory.TestCoinExecutionFactory;
 import com.boris.fundingarbitrage.logic.ArbitrageBotConfig;
 import com.boris.fundingarbitrage.logic.ArbitrageLogic;
-import com.boris.fundingarbitrage.logic.RebalancingArbitrageLogic;
 import com.boris.fundingarbitrage.logic.balanceprovider.IBalanceProvider;
 import com.boris.fundingarbitrage.logic.balanceprovider.ProdBalanceProvider;
 import com.boris.fundingarbitrage.logic.balancespolicy.IBalancesPolicy;
 import com.boris.fundingarbitrage.logic.balancespolicy.RebalancingBalancesPolicy;
 import com.boris.fundingarbitrage.logic.coincapper.CoinCapper;
+import com.boris.fundingarbitrage.logic.implementations.RebalancingArbitrageLogic;
 import com.boris.fundingarbitrage.logic.opportunityanalyzer.IOpportunityAnalyzer;
 import com.boris.fundingarbitrage.logic.opportunityanalyzer.ParallelOpportunityAnalyzer;
 import com.boris.fundingarbitrage.monitor.CoinMonitor;
 import com.boris.fundingarbitrage.monitor.IDataStream;
 import com.boris.fundingarbitrage.monitor.ProdDataStream;
-import com.boris.fundingarbitrage.scheduler.ModifiableSchedulerBuilder;
+import com.boris.fundingarbitrage.scheduler.IModifiableSchedulerBuilder;
 import com.boris.fundingarbitrage.scheduler.ProdModifiableSchedulerBuilder;
 import com.boris.fundingarbitrage.strategy.intradestrategy.factory.ProductionInTradeStrategyFactory;
 import com.boris.fundingarbitrage.strategy.pretradestrategy.FuturesPreTradeStrategy;
@@ -54,7 +54,7 @@ public class App {
 						new BigDecimal("20")
 		);
 
-		ModifiableSchedulerBuilder schedulerBuilder = new ProdModifiableSchedulerBuilder();
+		IModifiableSchedulerBuilder schedulerBuilder = new ProdModifiableSchedulerBuilder();
 
 		try {
 			CoinFilter coinFilter = new CoinFilter(coinSupplier, filterConfig, exchanges);
@@ -62,6 +62,7 @@ public class App {
 
 			IOpportunityAnalyzer opportunityAnalyzer = new ParallelOpportunityAnalyzer(
 							filterResult.coinAvailability(),
+							filterResult.constantDataRecord(),
 							preTradeStrategy
 			);
 
@@ -85,7 +86,6 @@ public class App {
 							preTradeStrategy,
 							new ProductionInTradeStrategyFactory(),
 							filterResult.coinAvailability(),
-							filterResult.constantDataRecord(),
 							botConfig,
 							balancesPolicy,
 							new TestCoinExecutionFactory(),

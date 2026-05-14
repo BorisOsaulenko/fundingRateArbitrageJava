@@ -4,14 +4,17 @@ import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
 import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
 import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
+import lombok.NonNull;
 
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 public interface IDataStream {
+	@NonNull
 	CompletableFuture<Void> initFuture();
 
+	@NonNull
 	CompletableFuture<Void> openWsConnections(Set<BaseExchange> exchanges);
 
 	void onSteadyData(Runnable onSteadyData);

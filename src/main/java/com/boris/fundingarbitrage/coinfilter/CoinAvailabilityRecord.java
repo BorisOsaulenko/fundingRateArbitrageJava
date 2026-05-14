@@ -73,6 +73,13 @@ public final class CoinAvailabilityRecord {
 		}
 	}
 
+	public void clearAll() {
+		exchangesByCoin.clear();
+		spotCoinsByExchange.clear();
+		futuresCoinsByExchange.clear();
+		spotCoinsByExchange.clear();
+	}
+
 	public void removeSupportSpot(BaseExchange exchange, String coin) {
 		Set<String> spotCoins = spotCoinsByExchange.get(exchange);
 		if (spotCoins != null) {

@@ -1,15 +1,18 @@
 package com.boris.fundingarbitrage.logic.opportunityanalyzer;
 
 import com.boris.fundingarbitrage.coinfilter.CoinAvailabilityRecord;
+import com.boris.fundingarbitrage.coinfilter.ConstantDataRecord;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.logic.CoinOpportunity;
 import com.boris.fundingarbitrage.model.exchange.ExchangePair;
+import com.boris.fundingarbitrage.model.exchange.constantdata.ConstantData;
 import com.boris.fundingarbitrage.model.exchange.exchangedata.ExchangeData;
-import com.boris.fundingarbitrage.model.exchange.exchangedata.FuturesExchangeData;
-import com.boris.fundingarbitrage.model.exchange.exchangedata.SpotExchangeData;
+import com.boris.fundingarbitrage.model.exchange.snapshot.Snapshot;
+import com.boris.fundingarbitrage.strategy.TradeMarket;
 import com.boris.fundingarbitrage.strategy.pretradestrategy.PreTradeStrategy;
 import com.boris.fundingarbitrage.strategy.pretradestrategy.TradeDirections;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
+import org.apache.commons.lang3.function.TriFunction;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -18,28 +21,37 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
 
 public class ParallelOpportunityAnalyzer implements IOpportunityAnalyzer {
 	private final ExecutorService cpuPool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 	private final CoinAvailabilityRecord coinAvailability;
 	private final PreTradeStrategy preTradeStrategy;
+	private final ConstantDataRecord constantDataRecord;
 
-	public ParallelOpportunityAnalyzer(CoinAvailabilityRecord coinAvailability, PreTradeStrategy preTradeStrategy) {
+	public ParallelOpportunityAnalyzer(
+					CoinAvailabilityRecord coinAvailability,
+					ConstantDataRecord constantDataRecord,
+					PreTradeStrategy preTradeStrategy
+	) {
 		this.coinAvailability = coinAvailability;
+		this.constantDataRecord = constantDataRecord;
 		this.preTradeStrategy = preTradeStrategy;
+	}
+
+	private ExchangeData getExchangeData(BaseExchange ex, String coin, Snapshot snapshot) {
+		ConstantData cd = constantDataRecord.getConstantData(ex, coin, snapshot.market());
+		return ExchangeData.of(cd, snapshot);
 	}
 
 	CoinOpportunity computeBestCoinOpportunity(
 					ExchangePair exchanges,
 					String coin,
-					BiFunction<BaseExchange, String, FuturesExchangeData> futuresExchangeDataExtractor,
-					BiFunction<BaseExchange, String, SpotExchangeData> spotExchangeDataExtractor
+					TriFunction<BaseExchange, String, TradeMarket, Snapshot> snapshotExtractor
 	) {
-		FuturesExchangeData longFuturesData = futuresExchangeDataExtractor.apply(exchanges.longEx(), coin);
-		SpotExchangeData longSpotData = spotExchangeDataExtractor.apply(exchanges.longEx(), coin);
-		FuturesExchangeData shortFuturesData = futuresExchangeDataExtractor.apply(exchanges.shortEx(), coin);
-		SpotExchangeData shortSpotData = spotExchangeDataExtractor.apply(exchanges.shortEx(), coin);
+		Snapshot longFuturesData = snapshotExtractor.apply(exchanges.longEx(), coin, TradeMarket.FUTURES);
+		Snapshot longSpotData = snapshotExtractor.apply(exchanges.longEx(), coin, TradeMarket.SPOT);
+		Snapshot shortFuturesData = snapshotExtractor.apply(exchanges.shortEx(), coin, TradeMarket.FUTURES);
+		Snapshot shortSpotData = snapshotExtractor.apply(exchanges.shortEx(), coin, TradeMarket.SPOT);
 
 		class Best {
 			BigDecimal gain = null;
@@ -48,14 +60,16 @@ public class ParallelOpportunityAnalyzer implements IOpportunityAnalyzer {
 		}
 		Best best = new Best();
 
-		BiConsumer<ExchangeData, ExchangeData> update = (ld, sd) -> {
-			if (ld == null || sd == null) return;
-			BigDecimal g = preTradeStrategy.expectedGain(ld, sd);
+		BiConsumer<Snapshot, Snapshot> update = (longSnapshot, shortSnapshot) -> {
+			if (longSnapshot == null || shortSnapshot == null) return;
+			ExchangeData longExchangeData = getExchangeData(exchanges.longEx(), coin, longSnapshot);
+			ExchangeData shortExchangeData = getExchangeData(exchanges.shortEx(), coin, shortSnapshot);
+			BigDecimal g = preTradeStrategy.expectedGain(longExchangeData, shortExchangeData);
 			if (best.gain == null || g.compareTo(best.gain) >= 0) {
 				best.gain = g;
-				best.longData = ld;
-				best.shortData = sd;
-				best.tradeDirections = new TradeDirections(ld.market(), sd.market());
+				best.longData = longExchangeData;
+				best.shortData = shortExchangeData;
+				best.tradeDirections = new TradeDirections(longSnapshot.market(), shortSnapshot.market());
 			}
 		};
 
@@ -84,8 +98,7 @@ public class ParallelOpportunityAnalyzer implements IOpportunityAnalyzer {
 
 	CoinOpportunity computeBestCoinOpportunity(
 					String coin,
-					BiFunction<BaseExchange, String, FuturesExchangeData> futuresExchangeDataExtractor,
-					BiFunction<BaseExchange, String, SpotExchangeData> spotExchangeDataExtractor
+					TriFunction<BaseExchange, String, TradeMarket, Snapshot> snapshotExtractor
 	) {
 		Set<BaseExchange> availableExchanges = coinAvailability.getExchanges(coin);
 		if (availableExchanges == null) throw new IllegalStateException("Available exchanges for " + coin + " not found");
@@ -97,8 +110,7 @@ public class ParallelOpportunityAnalyzer implements IOpportunityAnalyzer {
 				CoinOpportunity bestForExchanges = computeBestCoinOpportunity(
 								new ExchangePair(longEx, shortEx),
 								coin,
-								futuresExchangeDataExtractor,
-								spotExchangeDataExtractor
+								snapshotExtractor
 				);
 				if (bestForExchanges == null) continue;
 				if (bestOp == null || bestOp.expectedGain().compareTo(bestForExchanges.expectedGain()) < 0)
@@ -110,18 +122,13 @@ public class ParallelOpportunityAnalyzer implements IOpportunityAnalyzer {
 	}
 
 	public CompletableFuture<CoinVector<CoinOpportunity>> processCoins(
-					BiFunction<BaseExchange, String, FuturesExchangeData> futuresExchangeDataExtractor,
-					BiFunction<BaseExchange, String, SpotExchangeData> spotExchangeDataExtractor
+					TriFunction<BaseExchange, String, TradeMarket, Snapshot> snapshotExtractor
 	) {
 		CoinVector<CoinOpportunity> result = new CoinVector<>();
 		List<CompletableFuture<Void>> futures = coinAvailability.getCoins().stream().map(coin ->
 										CompletableFuture.runAsync(
 														() -> {
-															CoinOpportunity bestOp = computeBestCoinOpportunity(
-																			coin,
-																			futuresExchangeDataExtractor,
-																			spotExchangeDataExtractor
-															);
+															CoinOpportunity bestOp = computeBestCoinOpportunity(coin, snapshotExtractor);
 															if (bestOp != null) result.put(coin, bestOp);
 														},
 														cpuPool

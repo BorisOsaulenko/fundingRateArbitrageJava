@@ -1,0 +1,31 @@
+[versions]
+junit = "6.1.0-M1"
+mockito = "5.18.0"
+hamcrest = "3.0"
+commonsNumbersCore = "1.1"
+commonsLang3 = "3.20.0"
+httpclient5 = "5.3"
+tyrus = "2.2.1"
+slf4j = "2.0.17"
+logback = "1.5.18"
+jackson = "2.21.0"
+bouncycastle = "1.83"
+jsoup = "1.22.1"
+
+[libraries]
+junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "junit" }
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junit" }
+junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine", version.ref = "junit" }
+mockito-junit-jupiter = { module = "org.mockito:mockito-junit-jupiter", version.ref = "mockito" }
+mockito-core = { module = "org.mockito:mockito-core", version.ref = "mockito" }
+hamcrest = { module = "org.hamcrest:hamcrest", version.ref = "hamcrest" }
+commons-numbers-core = { module = "org.apache.commons:commons-numbers-core", version.ref = "commonsNumbersCore" }
+commons-lang3 = { module = "org.apache.commons:commons-lang3", version.ref = "commonsLang3" }
+httpclient5 = { module = "org.apache.httpcomponents.client5:httpclient5", version.ref = "httpclient5" }
+tyrus-standalone-client = { module = "org.glassfish.tyrus.bundles:tyrus-standalone-client", version.ref = "tyrus" }
+slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
+logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
+jackson-core = { module = "com.fasterxml.jackson.core:jackson-core", version.ref = "jackson" }
+jackson-databind = { module = "com.fasterxml.jackson.core:jackson-databind", version.ref = "jackson" }
+bcpkix-jdk18on = { module = "org.bouncycastle:bcpkix-jdk18on", version.ref = "bouncycastle" }
+jsoup = { module = "org.jsoup:jsoup", version.ref = "jsoup" }

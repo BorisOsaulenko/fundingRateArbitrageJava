@@ -3,8 +3,8 @@ package com.boris.fundingarbitrage.exchange.impl.bybit.publicws;
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.impl.bybit.publicrest.BybitPublicHttpClient;
 import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
-import com.boris.fundingarbitrage.scheduler.ModifiableScheduler;
-import com.boris.fundingarbitrage.scheduler.ModifiableSchedulerBuilder;
+import com.boris.fundingarbitrage.scheduler.IModifiableScheduler;
+import com.boris.fundingarbitrage.scheduler.IModifiableSchedulerBuilder;
 import com.boris.fundingarbitrage.scheduler.ProdModifiableSchedulerBuilder;
 import com.boris.fundingarbitrage.util.wss.prettyclient.PrettyWsClient;
 import com.boris.fundingarbitrage.util.wss.publicws.FullFundingViaRest;
@@ -23,14 +23,14 @@ public class BybitPublicWsClient extends FullFundingViaRest {
 	private static final URI spotEndpoint = URI.create("wss://stream.bybit.com/v5/public/spot");
 	private static final int spotClientsAmount = 10;
 	private static final int maxSpotMessageCoinSize = 10;
-	private final ModifiableScheduler pingScheduler;
+	private final IModifiableScheduler pingScheduler;
 
 	private final PrettyWsClient futuresClient;
 	private final List<PrettyWsClient> spotClients;
 
 	public BybitPublicWsClient(ExchangeContext context, BybitPublicHttpClient publicHttp) {
 		BybitPublicMessageHandler messageHandler = new BybitPublicMessageHandler(context);
-		ModifiableSchedulerBuilder schedulerBuilder = new ProdModifiableSchedulerBuilder();
+		IModifiableSchedulerBuilder schedulerBuilder = new ProdModifiableSchedulerBuilder();
 		super(context, futuresEndpoint, messageHandler, publicHttp, schedulerBuilder);
 		this.futuresClient = new PrettyWsClient(futuresEndpoint, "Bybit Public Futures", this::handleMessage);
 		this.spotClients = new ArrayList<>();

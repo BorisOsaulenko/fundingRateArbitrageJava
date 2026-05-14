@@ -9,7 +9,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
-public class ModifiableScheduler implements Runnable {
+class ModifiableScheduler implements IModifiableScheduler {
 	private static final Logger log = LoggerFactory.getLogger(ModifiableScheduler.class);
 	private static final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 	private final Runnable work;
@@ -27,10 +27,17 @@ public class ModifiableScheduler implements Runnable {
 		this.currentFrequencyMs = TimeUnit.MILLISECONDS.convert(frequency, unit);
 	}
 
+	@Override
 	public void setFrequency(long newFrequencyMs) {
 		this.currentFrequencyMs = newFrequencyMs;
 	}
 
+	@Override
+	public void setFrequency(long freq, TimeUnit unit) {
+		this.currentFrequencyMs = TimeUnit.MILLISECONDS.convert(freq, unit);
+	}
+
+	@Override
 	public void cancelNow() {
 		shutdown = true;
 		if (runningTask != null) runningTask.cancel(true);
@@ -38,7 +45,7 @@ public class ModifiableScheduler implements Runnable {
 	}
 
 	@Override
-	public void run() {
+	public void start() {
 		if (shutdown) return;
 
 		try {
@@ -47,7 +54,7 @@ public class ModifiableScheduler implements Runnable {
 			log.error("Exception during processing internal tick: {}", e.getMessage());
 			throw new RuntimeException(e);
 		} finally {
-			runningTask = scheduler.schedule(this, currentFrequencyMs, TimeUnit.MILLISECONDS);
+			runningTask = scheduler.schedule(this::start, currentFrequencyMs, TimeUnit.MILLISECONDS);
 		}
 	}
 }

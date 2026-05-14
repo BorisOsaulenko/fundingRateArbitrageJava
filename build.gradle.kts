@@ -21,29 +21,33 @@ repositories {
     mavenCentral()
 }
 
+val mockitoAgent = configurations.create("mockitoAgent")
+
 dependencies {
-    testImplementation("org.junit.jupiter:junit-jupiter-api:6.1.0-M1")
-    testImplementation("org.junit.platform:junit-platform-launcher:6.1.0-M1")
-    testImplementation("org.junit.jupiter:junit-jupiter-engine:6.1.0-M1")
-    testImplementation("org.mockito:mockito-junit-jupiter:5.18.0")
-    testImplementation("org.mockito:mockito-inline:5.2.0")
-    testImplementation("org.hamcrest:hamcrest:3.0")
-    implementation("org.apache.commons:commons-numbers-core:1.1")
-    implementation("org.apache.commons:commons-lang3:3.20.0")
-    implementation("org.apache.httpcomponents.client5:httpclient5:5.3")
-    implementation("org.glassfish.tyrus.bundles:tyrus-standalone-client:2.2.1")
-    implementation("org.slf4j:slf4j-api:2.0.17")
-    implementation("ch.qos.logback:logback-classic:1.5.18")
+    testImplementation(libs.junit.jupiter.api)
+    testImplementation(libs.junit.platform.launcher)
+    testImplementation(libs.junit.jupiter.engine)
+    testImplementation(libs.mockito.junit.jupiter)
+    testImplementation(libs.hamcrest)
+    testImplementation(libs.mockito.core)
+    mockitoAgent(libs.mockito.core) { isTransitive = false }
+    implementation(libs.commons.numbers.core)
+    implementation(libs.commons.lang3)
+    implementation(libs.httpclient5)
+    implementation(libs.tyrus.standalone.client)
+    implementation(libs.slf4j.api)
+    implementation(libs.logback.classic)
     implementation(kotlin("stdlib-jdk8"))
-    implementation("com.fasterxml.jackson.core:jackson-core:2.21.0")
-    implementation("com.fasterxml.jackson.core:jackson-databind:2.21.0")
-    implementation("org.bouncycastle:bcpkix-jdk18on:1.83")
-    implementation("org.jsoup:jsoup:1.22.1")
+    implementation(libs.jackson.core)
+    implementation(libs.jackson.databind)
+    implementation(libs.bcpkix.jdk18on)
+    implementation(libs.jsoup)
 }
 
 tasks.test {
     useJUnitPlatform()
     systemProperty("logback.configurationFile", file("src/test/resources/logback-test.xml").absolutePath)
+    jvmArgs.add("-javaagent:${mockitoAgent.asPath}")
 }
 kotlin {
     jvmToolchain(25)
@@ -52,14 +56,6 @@ kotlin {
 tasks.test {
     useJUnitPlatform {
         excludeTags("manual")
-    }
-}
-
-tasks.withType<Test>().configureEach {
-    doFirst {
-        val mockitoCoreJar = classpath.files.firstOrNull { it.name.startsWith("mockito-core-") }
-            ?: error("mockito-core jar not found on test classpath")
-        jvmArgs("-javaagent:${mockitoCoreJar.absolutePath}")
     }
 }
 

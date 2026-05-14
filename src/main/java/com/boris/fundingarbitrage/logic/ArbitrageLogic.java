@@ -1,21 +1,14 @@
 package com.boris.fundingarbitrage.logic;
 
 import com.boris.fundingarbitrage.coinfilter.CoinAvailabilityRecord;
-import com.boris.fundingarbitrage.coinfilter.ConstantDataRecord;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.logic.balanceprovider.IBalanceProvider;
 import com.boris.fundingarbitrage.logic.balancespolicy.IBalancesPolicy;
 import com.boris.fundingarbitrage.logic.opportunityanalyzer.IOpportunityAnalyzer;
 import com.boris.fundingarbitrage.model.exchange.ExchangeBalance;
-import com.boris.fundingarbitrage.model.exchange.constantdata.FuturesConstantData;
-import com.boris.fundingarbitrage.model.exchange.constantdata.SpotConstantData;
-import com.boris.fundingarbitrage.model.exchange.exchangedata.FuturesExchangeData;
-import com.boris.fundingarbitrage.model.exchange.exchangedata.SpotExchangeData;
-import com.boris.fundingarbitrage.model.exchange.snapshot.FuturesSnapshot;
-import com.boris.fundingarbitrage.model.exchange.snapshot.SpotSnapshot;
 import com.boris.fundingarbitrage.monitor.CoinMonitor;
-import com.boris.fundingarbitrage.scheduler.ModifiableScheduler;
-import com.boris.fundingarbitrage.scheduler.ModifiableSchedulerBuilder;
+import com.boris.fundingarbitrage.scheduler.IModifiableScheduler;
+import com.boris.fundingarbitrage.scheduler.IModifiableSchedulerBuilder;
 import com.boris.fundingarbitrage.strategy.intradestrategy.factory.InTradeStrategyFactory;
 import com.boris.fundingarbitrage.strategy.pretradestrategy.PreTradeStrategy;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
@@ -30,18 +23,17 @@ import java.util.concurrent.CompletableFuture;
 
 public abstract class ArbitrageLogic {
 	private static final Logger log = LoggerFactory.getLogger(ArbitrageLogic.class);
-	protected final ModifiableSchedulerBuilder schedulerBuilder;
+	protected final IModifiableSchedulerBuilder schedulerBuilder;
 	protected final PreTradeStrategy preTradeStrategy;
 	protected final InTradeStrategyFactory inTradeStrategyFactory;
 	protected final CoinAvailabilityRecord coinAvailability;
-	protected final ConstantDataRecord constantDataRecord;
 	protected final ArbitrageBotConfig config;
 	protected final CoinMonitor monitor;
 	protected final IOpportunityAnalyzer opportunityAnalyzer;
 	private final IBalancesPolicy balancesPolicy;
 	protected CompletableFuture<Void> initFuture;
-	private ModifiableScheduler logScheduler;
-	private ModifiableScheduler opportunitiesProcessingTask;
+	private IModifiableScheduler logScheduler;
+	private IModifiableScheduler opportunitiesProcessingTask;
 	private volatile boolean shuttingDown = false;
 	private volatile boolean logOnThisCycle = false;
 
@@ -51,23 +43,27 @@ public abstract class ArbitrageLogic {
 					PreTradeStrategy preTradeStrategy,
 					InTradeStrategyFactory inTradeStrategyFactory,
 					CoinAvailabilityRecord coinAvailability,
-					ConstantDataRecord constantDataRecord,
 					ArbitrageBotConfig arbConfig,
 					IBalancesPolicy balancesPolicy,
-					ModifiableSchedulerBuilder schedulerBuilder
+					IModifiableSchedulerBuilder schedulerBuilder
 	) {
 		this.monitor = monitor;
 		this.opportunityAnalyzer = opportunityAnalyzer;
 		this.preTradeStrategy = preTradeStrategy;
 		this.inTradeStrategyFactory = inTradeStrategyFactory;
 		this.coinAvailability = coinAvailability;
-		this.constantDataRecord = constantDataRecord;
 		this.config = arbConfig;
 		this.balancesPolicy = balancesPolicy;
 		this.schedulerBuilder = schedulerBuilder;
 	}
 
 	public CompletableFuture<Void> init(IBalanceProvider balanceProvider) {
+		if (coinAvailability.coinCount() == 0) {
+			log.info("No coins available in CoinAvailabilityRecord. Shutting down.");
+			shutdown();
+			return CompletableFuture.completedFuture(null);
+		}
+
 		CompletableFuture<Void> balancesFuture = balanceProvider.loadBalances()
 						.thenAccept((balances) -> {
 							balancesPolicy.validateBalancesMap(balances);
@@ -81,17 +77,27 @@ public abstract class ArbitrageLogic {
 		initFuture.thenRun(this::startProcessingOpportunities);
 	}
 
-	void startProcessingOpportunities() {
+	private void startProcessingOpportunities() {
 		log.info("Starting arbitrage logic...");
 
 		int logInterval = config.loggingIntervalMs();
-		if (logInterval > 0) logScheduler = schedulerBuilder.create(() -> this.logOnThisCycle = true, logInterval);
+		if (logInterval > 0) {
+			logScheduler = schedulerBuilder.create(() -> this.logOnThisCycle = true, logInterval);
+			logScheduler.start();
+		}
+
 		opportunitiesProcessingTask = schedulerBuilder.create(this::doTick, 50);
+		opportunitiesProcessingTask.start();
 	}
 
-	void doTick() {
-		var bestOpportunities = opportunityAnalyzer.processCoins(this::getFuturesExchangeData, this::getSpotExchangeData)
+	private void doTick() {
+		var bestOpportunities = opportunityAnalyzer.processCoins(monitor::getSnapshot)
 						.join();
+		if (bestOpportunities == null || bestOpportunities.isEmpty()) {
+			log.error("Opportunity analyzer returned null. Shutting down.");
+			shutdown();
+			return;
+		}
 
 		try {
 			processTick(bestOpportunities);
@@ -112,27 +118,7 @@ public abstract class ArbitrageLogic {
 		log.info("Adjusted frequency to {}ms", newFrequencyMs);
 	}
 
-	FuturesExchangeData getFuturesExchangeData(
-					BaseExchange ex,
-					String coin
-	) {
-		if (!coinAvailability.isFutures(ex, coin)) return null;
-		FuturesSnapshot snapshot = monitor.getFuturesSnapshot(ex, coin);
-		FuturesConstantData constantData = constantDataRecord.getFuturesConstantData(ex, coin);
-		return new FuturesExchangeData(constantData, snapshot);
-	}
-
-	SpotExchangeData getSpotExchangeData(
-					BaseExchange ex,
-					String coin
-	) {
-		if (!coinAvailability.isSpot(ex, coin)) return null;
-		SpotSnapshot snapshot = monitor.getSpotSnapshot(ex, coin);
-		SpotConstantData constantData = constantDataRecord.getSpotConstantData(ex, coin);
-		return new SpotExchangeData(constantData, snapshot);
-	}
-
-	void logData(@NonNull CoinVector<CoinOpportunity> bestOpportunities) {
+	private void logData(@NonNull CoinVector<CoinOpportunity> bestOpportunities) {
 		List<Map.Entry<String, CoinOpportunity>> bestOps = bestOpportunities.sortDesc(Comparator.comparing(CoinOpportunity::expectedGain))
 						.subList(0, Math.min(config.logBestArbSnapshotsAmount(), bestOpportunities.size()));
 
@@ -141,11 +127,6 @@ public abstract class ArbitrageLogic {
 			CoinOpportunity op = entry.getValue();
 			log.info("{}: {}", entry.getKey(), preTradeStrategy.getDescription(op.longData(), op.shortData()));
 		});
-	}
-
-	protected void forgetCoin(String coin) {
-		coinAvailability.removeByCoin(coin);
-		constantDataRecord.removeByCoin(coin);
 	}
 
 	protected void stopCalculatingBestOptions() {
@@ -159,13 +140,13 @@ public abstract class ArbitrageLogic {
 	public void shutdown() {
 		if (shuttingDown) return;
 		shuttingDown = true;
+		if (logScheduler != null) logScheduler.cancelNow();
+		opportunityAnalyzer.shutdown();
+		if (opportunitiesProcessingTask != null) opportunitiesProcessingTask.cancelNow();
 		if (monitor != null) {
 			monitor.shutdown();
 			if (!monitor.getInitFuture().isDone()) monitor.getInitFuture().cancel(true);
 		}
-		logScheduler.cancelNow();
-		opportunityAnalyzer.shutdown();
-		if (opportunitiesProcessingTask != null) opportunitiesProcessingTask.cancelNow();
 		log.info("Arbitrage logic stopped.");
 	}
 }

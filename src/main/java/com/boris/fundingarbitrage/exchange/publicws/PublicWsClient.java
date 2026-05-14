@@ -7,8 +7,8 @@ import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
 import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
 import com.boris.fundingarbitrage.model.websocket.patch.GenericPublicWsPatch;
 import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
-import com.boris.fundingarbitrage.scheduler.ModifiableScheduler;
-import com.boris.fundingarbitrage.scheduler.ModifiableSchedulerBuilder;
+import com.boris.fundingarbitrage.scheduler.IModifiableScheduler;
+import com.boris.fundingarbitrage.scheduler.IModifiableSchedulerBuilder;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import com.boris.fundingarbitrage.util.wss.prettyclient.PrettyWsClient;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -36,7 +36,7 @@ public abstract class PublicWsClient implements PublicMarketDataStream {
 	protected final CoinVector<Set<Consumer<BookTickerPatch>>> futuresBookTickerHandlers = new CoinVector<>();
 	protected final CoinVector<Set<Consumer<MarkPricePatch>>> futuresMarkPriceHandlers = new CoinVector<>();
 	protected final CoinVector<Set<Consumer<BookTickerPatch>>> spotBookTickerHandlers = new CoinVector<>();
-	protected final ModifiableScheduler pingScheduler;
+	protected final IModifiableScheduler pingScheduler;
 	private final CompletableFuture<PrettyWsClient> prettyWsClientFuture; // protected for custom tweaks in subclasses
 	private final long pingFrequency = 20 * 1000L;
 
@@ -45,7 +45,7 @@ public abstract class PublicWsClient implements PublicMarketDataStream {
 					URI endpoint,
 					PublicMessageHandler messageHandler,
 					PublicHttpClient publicHttp,
-					ModifiableSchedulerBuilder schedulerBuilder
+					IModifiableSchedulerBuilder schedulerBuilder
 	) {
 		this(context, CompletableFuture.completedFuture(endpoint), messageHandler, publicHttp, schedulerBuilder);
 	}
@@ -55,7 +55,7 @@ public abstract class PublicWsClient implements PublicMarketDataStream {
 					CompletableFuture<URI> endpointFuture,
 					PublicMessageHandler messageHandler,
 					PublicHttpClient publicHttpClient,
-					ModifiableSchedulerBuilder schedulerBuilder
+					IModifiableSchedulerBuilder schedulerBuilder
 	) {
 		this.context = context;
 		this.messageHandler = messageHandler;

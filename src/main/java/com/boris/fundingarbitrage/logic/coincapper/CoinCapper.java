@@ -6,11 +6,11 @@ import com.boris.fundingarbitrage.coinfilter.ConstantDataRecord;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.logic.CoinOpportunity;
 import com.boris.fundingarbitrage.logic.opportunityanalyzer.IOpportunityAnalyzer;
-import com.boris.fundingarbitrage.model.exchange.exchangedata.FuturesExchangeData;
-import com.boris.fundingarbitrage.model.exchange.exchangedata.SpotExchangeData;
 import com.boris.fundingarbitrage.model.exchange.snapshot.FuturesSnapshot;
+import com.boris.fundingarbitrage.model.exchange.snapshot.Snapshot;
 import com.boris.fundingarbitrage.model.exchange.snapshot.SpotSnapshot;
 import com.boris.fundingarbitrage.monitor.ExchangeCoinMap;
+import com.boris.fundingarbitrage.strategy.TradeMarket;
 
 import java.util.Comparator;
 import java.util.Map;
@@ -38,23 +38,16 @@ public class CoinCapper {
 		this.maxCoinAmount = maxCoinAmount;
 	}
 
-	FuturesExchangeData getFuturesData(BaseExchange ex, String coin) {
-		return new FuturesExchangeData(
-						constantDataRecord.getFuturesConstantData(ex, coin),
-						initialFuturesSnapshots.get(ex, coin)
-		);
-	}
-
-	SpotExchangeData getSpot(BaseExchange ex, String coin) {
-		return new SpotExchangeData(
-						constantDataRecord.getSpotConstantData(ex, coin),
-						initialSpotSnapshots.get(ex, coin)
-		);
+	Snapshot getSnapshot(BaseExchange ex, String coin, TradeMarket market) {
+		return switch (market) {
+			case SPOT -> initialSpotSnapshots.get(ex, coin);
+			case FUTURES -> initialFuturesSnapshots.get(ex, coin);
+		};
 	}
 
 	public CompletableFuture<Void> capCoins() {
 		if (maxCoinAmount <= coinAvailability.coinCount()) return CompletableFuture.completedFuture(null);
-		return opportunityAnalyzer.processCoins(this::getFuturesData, this::getSpot)
+		return opportunityAnalyzer.processCoins(this::getSnapshot)
 						.thenApply(opps -> opps.sortDesc(Comparator.comparing(CoinOpportunity::expectedGain)))
 						.thenApply(sortedOpps -> sortedOpps.stream()
 										.skip(maxCoinAmount)

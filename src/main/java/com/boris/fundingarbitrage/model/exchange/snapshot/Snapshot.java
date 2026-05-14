@@ -1,6 +1,7 @@
 package com.boris.fundingarbitrage.model.exchange.snapshot;
 
 import com.boris.fundingarbitrage.model.contract.BookTicker;
+import com.boris.fundingarbitrage.strategy.TradeMarket;
 
 import java.math.BigDecimal;
 
@@ -14,4 +15,6 @@ public sealed interface Snapshot permits FuturesSnapshot, SpotSnapshot {
 	default BigDecimal askPrice() {
 		return bookTicker().askPrice();
 	}
+
+	TradeMarket market();
 }

@@ -1,9 +1,12 @@
-package com.boris.fundingarbitrage.logic;
+package com.boris.fundingarbitrage.logic.implementations;
 
 import com.boris.fundingarbitrage.coinfilter.CoinAvailabilityRecord;
-import com.boris.fundingarbitrage.coinfilter.ConstantDataRecord;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.execution.factory.CoinExecutionFactory;
+import com.boris.fundingarbitrage.logic.ArbitrageBotConfig;
+import com.boris.fundingarbitrage.logic.ArbitrageLogic;
+import com.boris.fundingarbitrage.logic.CoinOpportunity;
+import com.boris.fundingarbitrage.logic.InTradeCoinLogic;
 import com.boris.fundingarbitrage.logic.balancespolicy.IBalancesPolicy;
 import com.boris.fundingarbitrage.logic.opportunityanalyzer.IOpportunityAnalyzer;
 import com.boris.fundingarbitrage.model.assetops.InternalAccount;
@@ -11,8 +14,8 @@ import com.boris.fundingarbitrage.model.assetops.InternalTransfer;
 import com.boris.fundingarbitrage.model.exchange.ExchangeBalance;
 import com.boris.fundingarbitrage.model.exchange.ExchangePair;
 import com.boris.fundingarbitrage.monitor.CoinMonitor;
-import com.boris.fundingarbitrage.scheduler.ModifiableScheduler;
-import com.boris.fundingarbitrage.scheduler.ModifiableSchedulerBuilder;
+import com.boris.fundingarbitrage.scheduler.IModifiableScheduler;
+import com.boris.fundingarbitrage.scheduler.IModifiableSchedulerBuilder;
 import com.boris.fundingarbitrage.strategy.TradeMarket;
 import com.boris.fundingarbitrage.strategy.intradestrategy.factory.InTradeStrategyFactory;
 import com.boris.fundingarbitrage.strategy.pretradestrategy.PreTradeStrategy;
@@ -38,8 +41,8 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 	private final int maxFuturesUsedTimes = this.config.leverage();
 	private final List<InTradeCoinLogic> inTradeLogicList = new ArrayList<>();
 	private final CoinExecutionFactory executionFactory;
-	private final ModifiableSchedulerBuilder schedulerBuilder;
-	private final ModifiableScheduler exitScheduler;
+	private final IModifiableSchedulerBuilder schedulerBuilder;
+	private final IModifiableScheduler exitScheduler;
 	private CompletableFuture<Void> exitFuture;
 	private CompletableFuture<Void> internalTransfersFuture;
 
@@ -49,11 +52,10 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 					PreTradeStrategy preTradeStrategy,
 					InTradeStrategyFactory inTradeStrategyFactory,
 					CoinAvailabilityRecord coinAvailability,
-					ConstantDataRecord constantDataRecord,
 					ArbitrageBotConfig arbConfig,
 					IBalancesPolicy balancesPolicy,
 					CoinExecutionFactory executionFactory,
-					ModifiableSchedulerBuilder schedulerBuilder
+					IModifiableSchedulerBuilder schedulerBuilder
 	) {
 		super(
 						monitor,
@@ -61,7 +63,6 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 						preTradeStrategy,
 						inTradeStrategyFactory,
 						coinAvailability,
-						constantDataRecord,
 						arbConfig,
 						balancesPolicy,
 						schedulerBuilder
@@ -168,7 +169,7 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 		} catch (Exception e) {
 			log.error("Failed to initialize InTradeSingleCoinLogic: {}", e.getMessage());
 			mergeUsageMap(op.directions(), op.exchanges(), -1);
-			forgetCoin(coin);
+			coinAvailability.removeByCoin(coin);
 		}
 	}
 

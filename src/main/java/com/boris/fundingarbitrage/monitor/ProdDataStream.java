@@ -1,6 +1,7 @@
 package com.boris.fundingarbitrage.monitor;
 
 import com.boris.fundingarbitrage.exchange.BaseExchange;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,11 +15,13 @@ public class ProdDataStream implements IDataStream {
 	public ProdDataStream() {
 	}
 
+	@NotNull
 	@Override
 	public CompletableFuture<Void> initFuture() {
 		return timeoutFuture;
 	}
 
+	@NotNull
 	public CompletableFuture<Void> openWsConnections(Set<BaseExchange> exchanges) {
 		int timeoutSeconds = 60;
 		this.timeoutFuture = CompletableFuture.runAsync(

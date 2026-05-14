@@ -14,6 +14,7 @@ import com.boris.fundingarbitrage.model.exchange.snapshot.SpotSnapshot;
 import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
 import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
 import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
+import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -125,12 +126,12 @@ class CoinMonitorTest {
 
 	private static final class ImmediateDataStream implements IDataStream {
 		@Override
-		public CompletableFuture<Void> initFuture() {
+		public @NonNull CompletableFuture<Void> initFuture() {
 			return CompletableFuture.completedFuture(null);
 		}
 
 		@Override
-		public CompletableFuture<Void> openWsConnections(Set<BaseExchange> exchanges) {
+		public @NonNull CompletableFuture<Void> openWsConnections(Set<BaseExchange> exchanges) {
 			return CompletableFuture.completedFuture(null);
 		}
 
