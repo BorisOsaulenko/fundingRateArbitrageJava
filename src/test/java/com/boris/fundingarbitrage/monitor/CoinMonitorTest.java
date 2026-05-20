@@ -7,7 +7,7 @@ import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.exchange.privatehttp.PrivateHttpClient;
 import com.boris.fundingarbitrage.exchange.privatews.PrivateWsClient;
 import com.boris.fundingarbitrage.exchange.publichttp.PublicHttpClient;
-import com.boris.fundingarbitrage.exchange.publicws.PublicMarketDataStream;
+import com.boris.fundingarbitrage.exchange.publicws.IPublicMarketDataStream;
 import com.boris.fundingarbitrage.model.exchange.ExchangeName;
 import com.boris.fundingarbitrage.model.exchange.snapshot.FuturesSnapshot;
 import com.boris.fundingarbitrage.model.exchange.snapshot.SpotSnapshot;
@@ -52,7 +52,7 @@ class CoinMonitorTest {
 		);
 	}
 
-	private static BaseExchange fakeExchange(ExchangeName name, PublicMarketDataStream publicWsClient) {
+	private static BaseExchange fakeExchange(ExchangeName name, IPublicMarketDataStream publicWsClient) {
 		return new BaseExchange(
 						name,
 						publicWsClient,
@@ -141,7 +141,7 @@ class CoinMonitorTest {
 		}
 	}
 
-	private static final class FakePublicMarketDataStream implements PublicMarketDataStream {
+	private static final class FakePublicMarketDataStream implements IPublicMarketDataStream {
 		private final ConcurrentHashMap<String, Consumer<BookTickerPatch>> futuresBookTickerHandlers = new ConcurrentHashMap<>();
 		private final ConcurrentHashMap<String, Consumer<FundingRatePatch>> futuresFundingHandlers = new ConcurrentHashMap<>();
 		private final ConcurrentHashMap<String, Consumer<MarkPricePatch>> futuresMarkHandlers = new ConcurrentHashMap<>();

@@ -3,12 +3,12 @@ package com.boris.fundingarbitrage.exchange.impl.gate.publicws;
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.impl.gate.publicrest.GatePublicHttpClient;
 import com.boris.fundingarbitrage.scheduler.ProdModifiableSchedulerBuilder;
-import com.boris.fundingarbitrage.util.wss.publicws.PublicWsFundingSettlementViaRest;
+import com.boris.fundingarbitrage.util.wss.publicws.FundingSettlementViaRest;
 
 import java.net.URI;
 import java.util.Set;
 
-public class GatePublicWsClient extends PublicWsFundingSettlementViaRest {
+public class GatePublicWsClient extends FundingSettlementViaRest {
 	private static final URI endpoint = URI.create("wss://fx-ws.gateio.ws/v4/ws/usdt");
 
 	public GatePublicWsClient(ExchangeContext context, GatePublicHttpClient publicHttp) {

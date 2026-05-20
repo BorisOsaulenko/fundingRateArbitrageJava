@@ -8,7 +8,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
-public interface PublicMarketDataStream {
+public interface IPublicMarketDataStream {
 	CompletableFuture<Void> connect();
 
 	void close();

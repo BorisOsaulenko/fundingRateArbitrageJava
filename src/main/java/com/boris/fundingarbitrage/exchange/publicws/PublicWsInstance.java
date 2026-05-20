@@ -25,21 +25,22 @@ import java.util.stream.Collectors;
 public class PublicWsInstance {
 	private static final ObjectMapper JSON_MAPPER = ObjectMapperSingleton.getInstance();
 	private final ExchangeContext context;
-	private final MessageHandler messageHandler;
+	private final IMessageHandler messageHandler;
 	private final TradeMarket market;
+	private final IPublicWsFrames wsFrames;
+	private final PrettyWsClient client; // protected for custom tweaks in subclasses
+	private final int chunkSize;
+
 	private final CoinVector<Set<Consumer<FundingRatePatch>>> futuresFundingRateHandlers = new CoinVector<>();
 	private final CoinVector<Set<Consumer<BookTickerPatch>>> futuresBookTickerHandlers = new CoinVector<>();
 	private final CoinVector<Set<Consumer<MarkPricePatch>>> futuresMarkPriceHandlers = new CoinVector<>();
 	private final CoinVector<Set<Consumer<BookTickerPatch>>> spotBookTickerHandlers = new CoinVector<>();
-	private final PublicWsFrames wsFrames;
-	private final PrettyWsClient client; // protected for custom tweaks in subclasses
-	private final int chunkSize;
 
 	public PublicWsInstance(
 					ExchangeContext context,
 					URI endpoint,
-					MessageHandler messageHandler,
-					PublicWsFrames wsFrames,
+					IMessageHandler messageHandler,
+					IPublicWsFrames wsFrames,
 					int chunkSize,
 					TradeMarket market
 	) {

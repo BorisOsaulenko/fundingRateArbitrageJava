@@ -2,7 +2,7 @@ package com.boris.fundingarbitrage.exchange.publicws;
 
 import java.util.Set;
 
-public interface PublicWsFrames {
+public interface IPublicWsFrames {
 	String getSpotPingFrame();
 
 	String getFuturesPingFrame();

@@ -11,7 +11,6 @@ import java.util.ArrayList;
 import java.util.Set;
 
 public class BitgetPublicWsClient extends FullFundingViaRest {
-	private static final URI endpoint = URI.create("wss://ws.bitget.com/v2/ws/public");
 	private static final String instType = "USDT-FUTURES";
 	private static final String tickerChannel = "ticker";
 
@@ -22,13 +21,13 @@ public class BitgetPublicWsClient extends FullFundingViaRest {
 					5,
 					50,
 					50,
-
-
+					30,
+					30
 	);
 
 	public BitgetPublicWsClient(BitgetContext context, BitgetPublicHttpClient publicHttp) {
 		BitgetPublicMessageHandler messageHandler = new BitgetPublicMessageHandler(context);
-		super(context, endpoint, messageHandler, publicHttp, new ProdModifiableSchedulerBuilder());
+		super(context, config, messageHandler, publicHttp, new ProdModifiableSchedulerBuilder());
 	}
 
 	private String getSubscribeFrame(Set<String> symbols) {
