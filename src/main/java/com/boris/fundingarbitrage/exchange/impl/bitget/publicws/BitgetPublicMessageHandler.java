@@ -1,7 +1,6 @@
 package com.boris.fundingarbitrage.exchange.impl.bitget.publicws;
 
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
-import com.boris.fundingarbitrage.exchange.publicws.PublicMessageHandler;
 import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
 import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
 import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
@@ -11,7 +10,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.function.Function;
 
-class BitgetPublicMessageHandler implements PublicMessageHandler {
+class BitgetPublicMessageHandler implements SpotPublicMessageHandler {
 	private final ExchangeContext context;
 
 	public BitgetPublicMessageHandler(ExchangeContext context) {
@@ -83,7 +82,7 @@ class BitgetPublicMessageHandler implements PublicMessageHandler {
 	}
 
 	@Override
-	public String getResponseToPingMessage(String message) {
+	public String getResponseToSpotPingMessage(String message) {
 		if (message == null) return null;
 		String trimmed = message.trim();
 		if ("ping".equalsIgnoreCase(trimmed)) return "pong";

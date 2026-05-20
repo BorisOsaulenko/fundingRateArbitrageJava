@@ -13,6 +13,7 @@ import java.net.URI;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class PrettyWsClient {
@@ -45,12 +46,17 @@ public class PrettyWsClient {
 		this.endpoint = new PrettyWsEndpoint(processMessage, getOnOpenHook(), getOnCloseHook(), getOnErrorHook());
 	}
 
-	public PrettyWsClient(URI endpointUri, String endpointName, Consumer<String> processMessage) {
+	public PrettyWsClient(URI endpointUri, String endpointName, BiConsumer<String, PrettyWsClient> processMessage) {
 		this.endpointUri = endpointUri;
 		this.endpointName = endpointName;
 		this.client = ClientManager.createClient();
 		this.reconnectScheduler = new OneTimeScheduler();
-		this.endpoint = new PrettyWsEndpoint(processMessage, getOnOpenHook(), getOnCloseHook(), getOnErrorHook());
+		this.endpoint = new PrettyWsEndpoint(
+						(msg) -> processMessage.accept(msg, this),
+						getOnOpenHook(),
+						getOnCloseHook(),
+						getOnErrorHook()
+		);
 	}
 
 	public void onOpen(Consumer<Session> hook) {
@@ -61,8 +67,11 @@ public class PrettyWsClient {
 		this.customOnCloseHook = hook;
 	}
 
-	public void onUnhandledDisconnect(Runnable hook) {
-		this.customOnUnhandledDisconnectHook = hook;
+	public void warnOnUnhandledDisconnect() {
+		this.customOnUnhandledDisconnectHook = () -> log.warn(
+						"[{}] WebSocket disconnected and will not reconnect.",
+						endpointName
+		);
 	}
 
 	public void connect() {

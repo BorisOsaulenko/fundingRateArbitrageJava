@@ -1,7 +1,6 @@
 package com.boris.fundingarbitrage.exchange.impl.binance.publicws;
 
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
-import com.boris.fundingarbitrage.exchange.publicws.PublicMessageHandler;
 import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
 import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
 import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
@@ -11,7 +10,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.function.Function;
 
-class BinancePublicMessageHandler implements PublicMessageHandler {
+class BinancePublicMessageHandler implements SpotPublicMessageHandler {
 	private final ExchangeContext context;
 
 	public BinancePublicMessageHandler(ExchangeContext exchangeContext) {
@@ -85,7 +84,7 @@ class BinancePublicMessageHandler implements PublicMessageHandler {
 	}
 
 	@Override
-	public String getResponseToPingMessage(String message) {
+	public String getResponseToSpotPingMessage(String message) {
 		return null; // Binance ping/pong handled at WebSocket client level
 	}
 }

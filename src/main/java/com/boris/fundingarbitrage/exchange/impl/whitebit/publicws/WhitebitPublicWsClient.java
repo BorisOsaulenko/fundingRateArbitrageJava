@@ -96,7 +96,7 @@ public class WhitebitPublicWsClient extends FullFundingViaRest {
 	}
 
 	@Override
-	protected String getPingFrame() {
+	protected String getSpotPingFrame() {
 		WsRequest ping = new WsRequest(System.currentTimeMillis(), "ping", new ArrayList<>());
 		return ping.toJson();
 	}

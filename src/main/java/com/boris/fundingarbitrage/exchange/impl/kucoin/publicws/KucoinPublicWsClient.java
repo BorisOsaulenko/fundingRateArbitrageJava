@@ -69,7 +69,7 @@ public class KucoinPublicWsClient extends FullFundingViaRest {
 	) {
 		List<Set<String>> adjustedToLimits = split(coins);
 		for (Set<String> chunk : adjustedToLimits) {
-			super.subscribe(chunk, handlersMap, handler, symbolGetter, subscribeMessage, messageSender);
+			super.addHandlers(chunk, handlersMap, handler, symbolGetter, subscribeMessage, messageSender);
 		}
 	}
 
@@ -83,7 +83,7 @@ public class KucoinPublicWsClient extends FullFundingViaRest {
 	) {
 		List<Set<String>> adjustedToLimits = split(coins);
 		for (Set<String> chunk : adjustedToLimits) {
-			super.unsubscribe(chunk, handlersMap, symbolGetter, unsubscribeMessage, messageSender);
+			super.removeHandlers(chunk, handlersMap, symbolGetter, unsubscribeMessage, messageSender);
 		}
 	}
 
@@ -174,8 +174,8 @@ public class KucoinPublicWsClient extends FullFundingViaRest {
 	}
 
 	@Override
-	public void subscribeFuturesFundingRates(Set<String> coins, Consumer<FundingRatePatch> handler) {
-		subscribeFundingAndMark(coins, handler, futuresFundingRateHandlers);
+	public void subscribeFuturesFundingRates(Set<String> coinsToSub, Consumer<FundingRatePatch> handler) {
+		subscribeFundingAndMark(coinsToSub, handler, futuresFundingRateHandlers);
 	}
 
 	@Override
@@ -193,7 +193,7 @@ public class KucoinPublicWsClient extends FullFundingViaRest {
 		unsubscribeFundingAndMark(coins, futuresMarkPriceHandlers);
 	}
 
-	protected String getPingFrame() {
+	protected String getSpotPingFrame() {
 		return new PingFrame().toJson();
 	}
 }

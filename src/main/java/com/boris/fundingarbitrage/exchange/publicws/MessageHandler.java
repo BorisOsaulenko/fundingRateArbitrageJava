@@ -5,7 +5,7 @@ import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
 import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
 import com.fasterxml.jackson.databind.JsonNode;
 
-public interface PublicMessageHandler {
+public interface MessageHandler {
 	FundingRatePatch parseFundingRateMessageSymbol(JsonNode root);
 
 	BookTickerPatch parseFuturesBookTickerMessageSymbol(JsonNode root);
@@ -14,5 +14,7 @@ public interface PublicMessageHandler {
 
 	BookTickerPatch parseSpotBookTickerMessageSymbol(JsonNode root);
 
-	String getResponseToPingMessage(String message);
+	String getResponseToFuturesPingMessage(String message);
+
+	String getResponseToSpotPingMessage(String message);
 }

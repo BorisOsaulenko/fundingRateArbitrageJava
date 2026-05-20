@@ -127,7 +127,7 @@ public class BybitPublicWsClient extends FullFundingViaRest {
 		System.out.println("Subscribing to spot book ticker for coins: " + coins);
 		int idx = 0;
 		for (Set<String> coinSet : splitCoins(coins)) {
-			super.subscribe(
+			super.addHandlers(
 							coinSet,
 							spotBookTickerHandlers,
 							handler,
@@ -142,7 +142,7 @@ public class BybitPublicWsClient extends FullFundingViaRest {
 	public void unsubscribeSpotBookTicker(Set<String> coins) {
 		int idx = 0;
 		for (Set<String> coinSet : splitCoins(coins))
-			super.unsubscribe(
+			super.removeHandlers(
 							coinSet,
 							spotBookTickerHandlers,
 							context::getSpotSymbol,
@@ -173,7 +173,7 @@ public class BybitPublicWsClient extends FullFundingViaRest {
 	}
 
 	@Override
-	protected String getPingFrame() {
+	protected String getSpotPingFrame() {
 		return null;
 	}
 }

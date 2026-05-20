@@ -9,8 +9,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 public interface PublicMarketDataStream {
-	void onUnhandledDisconnect(Runnable hook);
-
 	CompletableFuture<Void> connect();
 
 	void close();

@@ -65,7 +65,7 @@ public class GatePublicWsClient extends PublicWsFundingSettlementViaRest {
 	}
 
 	@Override
-	protected String getPingFrame() {
+	protected String getSpotPingFrame() {
 		return null;
 	}
 }

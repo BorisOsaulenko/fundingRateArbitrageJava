@@ -74,7 +74,7 @@ public class OkxPublicWsClient extends FullFundingViaRest {
 	}
 
 	@Override
-	protected String getPingFrame() {
+	protected String getSpotPingFrame() {
 		return null;
 	}
 }

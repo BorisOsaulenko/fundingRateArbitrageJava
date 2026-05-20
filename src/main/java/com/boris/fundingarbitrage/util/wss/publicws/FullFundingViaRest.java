@@ -2,40 +2,34 @@ package com.boris.fundingarbitrage.util.wss.publicws;
 
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.publichttp.PublicHttpClient;
-import com.boris.fundingarbitrage.exchange.publicws.PublicMessageHandler;
+import com.boris.fundingarbitrage.exchange.publicws.ClientsConfig;
+import com.boris.fundingarbitrage.exchange.publicws.MessageHandler;
 import com.boris.fundingarbitrage.exchange.publicws.PublicWsClient;
+import com.boris.fundingarbitrage.exchange.publicws.PublicWsInstance;
 import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
 import com.boris.fundingarbitrage.scheduler.IModifiableScheduler;
 import com.boris.fundingarbitrage.scheduler.IModifiableSchedulerBuilder;
 import org.jetbrains.annotations.NotNull;
 
-import java.net.URI;
-import java.util.concurrent.CompletableFuture;
+import java.util.List;
 
 public abstract class FullFundingViaRest extends PublicWsClient {
 	private static final long POLL_INTERVAL_MS = 10_000;
 	private final IModifiableScheduler fundingRateScheduler;
+	private final PublicHttpClient httpClient;
 
 	public FullFundingViaRest(
 					ExchangeContext context,
-					URI endpoint,
-					PublicMessageHandler messageHandler,
+					ClientsConfig config,
+					MessageHandler messageHandler,
+					List<PublicWsInstance> spotClients,
+					List<PublicWsInstance> futuresClients,
 					PublicHttpClient publicHttp,
 					IModifiableSchedulerBuilder schedulerBuilder
 	) {
-		super(context, endpoint, messageHandler, publicHttp, schedulerBuilder);
+		super(context, config, messageHandler, spotClients, futuresClients, schedulerBuilder);
+		this.httpClient = publicHttp;
 		fundingRateScheduler = schedulerBuilder.create(this::pollFundingRates, POLL_INTERVAL_MS);
-	}
-
-	public FullFundingViaRest(
-					ExchangeContext context,
-					CompletableFuture<URI> endpointFuture,
-					PublicMessageHandler messageHandler,
-					PublicHttpClient publicHttp,
-					IModifiableSchedulerBuilder schedulerBuilder
-	) {
-		super(context, endpointFuture, messageHandler, publicHttp, schedulerBuilder);
-		fundingRateScheduler = schedulerBuilder.create(this::pollFundingRates, POLL_INTERVAL_MS * 1000L);
 	}
 
 	private void pollFundingRates() {

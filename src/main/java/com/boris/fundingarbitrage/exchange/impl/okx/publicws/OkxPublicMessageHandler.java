@@ -1,7 +1,6 @@
 package com.boris.fundingarbitrage.exchange.impl.okx.publicws;
 
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
-import com.boris.fundingarbitrage.exchange.publicws.PublicMessageHandler;
 import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
 import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
 import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
@@ -11,7 +10,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.function.Function;
 
-class OkxPublicMessageHandler implements PublicMessageHandler {
+class OkxPublicMessageHandler implements SpotPublicMessageHandler {
 	private final ExchangeContext context;
 
 	public OkxPublicMessageHandler(ExchangeContext context) {
@@ -81,7 +80,7 @@ class OkxPublicMessageHandler implements PublicMessageHandler {
 	}
 
 	@Override
-	public String getResponseToPingMessage(String message) {
+	public String getResponseToSpotPingMessage(String message) {
 		if (message == null) return null;
 		String trimmed = message.trim();
 		if ("ping".equalsIgnoreCase(trimmed)) return "pong";

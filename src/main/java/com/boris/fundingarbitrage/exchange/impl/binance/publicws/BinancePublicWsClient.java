@@ -194,8 +194,8 @@ public class BinancePublicWsClient extends PublicWsClient {
 	}
 
 	@Override
-	public void subscribeFuturesFundingRates(Set<String> coins, Consumer<FundingRatePatch> handler) {
-		subscribeFundingAndMark(coins, handler, futuresFundingRateHandlers);
+	public void subscribeFuturesFundingRates(Set<String> coinsToSub, Consumer<FundingRatePatch> handler) {
+		subscribeFundingAndMark(coinsToSub, handler, futuresFundingRateHandlers);
 	}
 
 	@Override
@@ -327,7 +327,7 @@ public class BinancePublicWsClient extends PublicWsClient {
 	}
 
 	@Override
-	protected String getPingFrame() {
+	protected String getSpotPingFrame() {
 		return null;
 	}
 }

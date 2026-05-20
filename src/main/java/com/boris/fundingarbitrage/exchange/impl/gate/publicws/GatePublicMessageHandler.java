@@ -1,7 +1,6 @@
 package com.boris.fundingarbitrage.exchange.impl.gate.publicws;
 
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
-import com.boris.fundingarbitrage.exchange.publicws.PublicMessageHandler;
 import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
 import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
 import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
@@ -11,7 +10,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.function.Function;
 
-class GatePublicMessageHandler implements PublicMessageHandler {
+class GatePublicMessageHandler implements SpotPublicMessageHandler {
 	private final ExchangeContext context;
 
 	public GatePublicMessageHandler(ExchangeContext context) {
@@ -106,7 +105,7 @@ class GatePublicMessageHandler implements PublicMessageHandler {
 	}
 
 	@Override
-	public String getResponseToPingMessage(String message) {
+	public String getResponseToSpotPingMessage(String message) {
 		return null;
 	}
 }

@@ -2,6 +2,7 @@ package com.boris.fundingarbitrage.exchange.impl.bitget.publicws;
 
 import com.boris.fundingarbitrage.exchange.impl.bitget.BitgetContext;
 import com.boris.fundingarbitrage.exchange.impl.bitget.publicrest.BitgetPublicHttpClient;
+import com.boris.fundingarbitrage.exchange.publicws.ClientsConfig;
 import com.boris.fundingarbitrage.scheduler.ProdModifiableSchedulerBuilder;
 import com.boris.fundingarbitrage.util.wss.publicws.FullFundingViaRest;
 
@@ -13,6 +14,17 @@ public class BitgetPublicWsClient extends FullFundingViaRest {
 	private static final URI endpoint = URI.create("wss://ws.bitget.com/v2/ws/public");
 	private static final String instType = "USDT-FUTURES";
 	private static final String tickerChannel = "ticker";
+
+	private static final ClientsConfig config = new ClientsConfig(
+					URI.create("wss://ws.bitget.com/v2/ws/public"),
+					URI.create("wss://ws.bitget.com/v2/ws/public"),
+					5,
+					5,
+					50,
+					50,
+
+
+	);
 
 	public BitgetPublicWsClient(BitgetContext context, BitgetPublicHttpClient publicHttp) {
 		BitgetPublicMessageHandler messageHandler = new BitgetPublicMessageHandler(context);
@@ -36,47 +48,47 @@ public class BitgetPublicWsClient extends FullFundingViaRest {
 	}
 
 	@Override
-	protected String getSubscribeFuturesFundingRateFrame(Set<String> symbols) {
+	public String getSubscribeFuturesFundingRateFrame(Set<String> symbols) {
 		return getSubscribeFrame(symbols);
 	}
 
 	@Override
-	protected String getUnsubscribeFuturesFundingRateFrame(Set<String> symbols) {
+	public String getUnsubscribeFuturesFundingRateFrame(Set<String> symbols) {
 		return null;
 	}
 
 	@Override
-	protected String getSubscribeFuturesBookTickerFrame(Set<String> symbols) {
+	public String getSubscribeFuturesBookTickerFrame(Set<String> symbols) {
 		return getSubscribeFrame(symbols);
 	}
 
 	@Override
-	protected String getUnsubscribeFuturesBookTickerFrame(Set<String> symbols) {
+	public String getUnsubscribeFuturesBookTickerFrame(Set<String> symbols) {
 		return getUnsubscribeFrame(symbols);
 	}
 
 	@Override
-	protected String getSubscribeFuturesMarkPriceFrame(Set<String> symbols) {
+	public String getSubscribeFuturesMarkPriceFrame(Set<String> symbols) {
 		return getSubscribeFrame(symbols);
 	}
 
 	@Override
-	protected String getUnsubscribeFuturesMarkPriceFrame(Set<String> symbols) {
+	public String getUnsubscribeFuturesMarkPriceFrame(Set<String> symbols) {
 		return getUnsubscribeFrame(symbols);
 	}
 
 	@Override
-	protected String getSubscribeSpotBookTickerFrame(Set<String> symbols) {
+	public String getSubscribeSpotBookTickerFrame(Set<String> symbols) {
 		return getSubscribeFrame(symbols);
 	}
 
 	@Override
-	protected String getUnsubscribeSpotBookTickerFrame(Set<String> symbols) {
+	public String getUnsubscribeSpotBookTickerFrame(Set<String> symbols) {
 		return getUnsubscribeFrame(symbols);
 	}
 
 	@Override
-	protected String getPingFrame() {
+	public String getSpotPingFrame() {
 		return "ping";
 	}
 }
