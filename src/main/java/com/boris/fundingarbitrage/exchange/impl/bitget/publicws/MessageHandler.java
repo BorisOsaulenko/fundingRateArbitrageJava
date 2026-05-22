@@ -11,10 +11,10 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.function.Function;
 
-class BitgetPublicMessageHandler implements IMessageHandler {
+class MessageHandler implements IMessageHandler {
 	private final ExchangeContext context;
 
-	public BitgetPublicMessageHandler(ExchangeContext context) {
+	public MessageHandler(ExchangeContext context) {
 		this.context = context;
 	}
 

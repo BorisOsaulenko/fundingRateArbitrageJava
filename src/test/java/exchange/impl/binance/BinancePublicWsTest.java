@@ -10,7 +10,7 @@ import exchange.PublicWsTest;
 public class BinancePublicWsTest extends PublicWsTest {
 	private static final ExchangeContext context = new BinanceContext();
 	private static final BinancePublicHttpClient publicHttp = new BinancePublicHttpClient(context);
-	private static final PublicWsClient publicWsClient = new BinancePublicWsClient(context, publicHttp);
+	private static final PublicWsClient publicWsClient = new BinancePublicWsClient(context);
 
 	@Override
 	protected PublicWsClient publicWsClient() {

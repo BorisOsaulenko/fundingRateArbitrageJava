@@ -3,7 +3,6 @@ package com.boris.fundingarbitrage.coinfilter;
 import com.boris.fundingarbitrage.coinparser.ICoinSupplier;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.exchange.privatehttp.PrivateHttpClient;
-import com.boris.fundingarbitrage.exchange.privatews.PrivateWsClient;
 import com.boris.fundingarbitrage.exchange.publichttp.FuturesPublicOnePullData;
 import com.boris.fundingarbitrage.exchange.publichttp.FuturesTradingState;
 import com.boris.fundingarbitrage.exchange.publichttp.PublicHttpClient;
@@ -38,7 +37,6 @@ class CoinFilterTest {
 		BaseExchange exchange = new BaseExchange(
 						ExchangeName.BINANCE,
 						mock(PublicWsClient.class),
-						mock(PrivateWsClient.class),
 						publicHttpClient,
 						privateHttpClient
 		);

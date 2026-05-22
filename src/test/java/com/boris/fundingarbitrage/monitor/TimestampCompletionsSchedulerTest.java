@@ -2,7 +2,6 @@ package com.boris.fundingarbitrage.monitor;
 
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.exchange.privatehttp.PrivateHttpClient;
-import com.boris.fundingarbitrage.exchange.privatews.PrivateWsClient;
 import com.boris.fundingarbitrage.exchange.publichttp.PublicHttpClient;
 import com.boris.fundingarbitrage.exchange.publicws.PublicWsClient;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
@@ -80,7 +79,6 @@ class TimestampCompletionsSchedulerTest {
 		return new BaseExchange(
 						ExchangeName.BINANCE,
 						mock(PublicWsClient.class),
-						mock(PrivateWsClient.class),
 						mock(PublicHttpClient.class),
 						mock(PrivateHttpClient.class)
 		);

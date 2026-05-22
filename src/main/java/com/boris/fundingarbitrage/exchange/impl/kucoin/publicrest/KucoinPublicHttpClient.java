@@ -9,6 +9,7 @@ import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.Funding;
 import com.boris.fundingarbitrage.util.https.PrettyHttpClient;
 import com.boris.fundingarbitrage.util.https.RequestProcessingClientWrapper;
+import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
 
 import java.math.BigDecimal;
 import java.net.URI;
@@ -116,13 +117,21 @@ public class KucoinPublicHttpClient extends PublicHttpClient {
 		);
 	}
 
-	public CompletableFuture<URI> fetchPublicWsEndpoint() {
-		return requestWrapper.getResponse(PublicEndpoints.publicWsToken(), PublicResponses.PublicWsTokenResponse.class)
+	private CompletableFuture<URI> fetchPublicToken(SimpleHttpRequest req) {
+		return requestWrapper.getResponse(req, PublicResponses.PublicWsTokenResponse.class)
 						.thenApply(resp -> {
 							String token = resp.token();
 							String endpoint = resp.endpoint();
 							String connectId = UUID.randomUUID().toString();
 							return URI.create(endpoint + "?token=" + token + "&connectId=" + connectId);
 						});
+	}
+
+	public CompletableFuture<URI> fetchPublicSpotToken() {
+		return fetchPublicToken(PublicEndpoints.publicSpotToken());
+	}
+
+	public CompletableFuture<URI> fetchPublicFuturesToken() {
+		return fetchPublicToken(PublicEndpoints.publicFuturesToken());
 	}
 }

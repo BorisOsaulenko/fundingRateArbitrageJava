@@ -1,17 +1,22 @@
 package com.boris.fundingarbitrage.exchange.impl.kucoin.publicws;
 
 import com.boris.fundingarbitrage.ObjectMapperSingleton;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.SneakyThrows;
 
-import java.time.Instant;
+record PingFrame(
+				String id,
+				String type
+) {
+	private static final ObjectMapper mapper = ObjectMapperSingleton.getInstance();
+	private static int IdIncrement = 0;
 
-record PingFrame(String id, String type) {
-	public PingFrame() {
-		this(String.valueOf(Instant.now().toEpochMilli()), "ping");
+	PingFrame() {
+		this(String.valueOf(IdIncrement++), "ping");
 	}
 
 	@SneakyThrows
 	public String toJson() {
-		return ObjectMapperSingleton.getInstance().writeValueAsString(this);
+		return mapper.writeValueAsString(this);
 	}
 }

@@ -1,6 +1,7 @@
 package com.boris.fundingarbitrage.exchange.impl.kucoin.publicws;
 
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
+import com.boris.fundingarbitrage.exchange.publicws.IMessageHandler;
 import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
 import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
 import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
@@ -10,12 +11,12 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.function.Function;
 
-class KucoinPublicMessageHandler implements SpotPublicMessageHandler {
+class MessageHandler implements IMessageHandler {
 	private static final String TICKER_TOPIC = "/contractMarket/tickerV2";
 	private static final String INSTRUMENT_TOPIC = "/contract/instrument";
 	private final ExchangeContext context;
 
-	public KucoinPublicMessageHandler(ExchangeContext context) {
+	public MessageHandler(ExchangeContext context) {
 		this.context = context;
 	}
 
@@ -112,5 +113,10 @@ class KucoinPublicMessageHandler implements SpotPublicMessageHandler {
 	@Override
 	public String getResponseToSpotPingMessage(String message) {
 		return null; // Client sends ping, server does not expect any response
+	}
+
+	@Override
+	public String getResponseToFuturesPingMessage(String message) {
+		return null;
 	}
 }

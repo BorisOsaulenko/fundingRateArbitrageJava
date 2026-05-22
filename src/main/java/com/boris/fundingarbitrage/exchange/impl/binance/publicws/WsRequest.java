@@ -4,8 +4,10 @@ import com.boris.fundingarbitrage.ObjectMapperSingleton;
 import lombok.SneakyThrows;
 
 record WsRequest(String method, String[] params, int id) {
+	private static int idIncrement = 0;
+
 	public WsRequest(String method, String[] params) {
-		this(method, params, BinancePublicWsClient.getNextId());
+		this(method, params, idIncrement++);
 	}
 
 	public WsRequest {

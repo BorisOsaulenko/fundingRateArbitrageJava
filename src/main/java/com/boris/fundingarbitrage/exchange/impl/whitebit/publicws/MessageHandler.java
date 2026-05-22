@@ -1,23 +1,20 @@
 package com.boris.fundingarbitrage.exchange.impl.whitebit.publicws;
 
-import com.boris.fundingarbitrage.ObjectMapperSingleton;
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
+import com.boris.fundingarbitrage.exchange.publicws.IMessageHandler;
 import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
 import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
 import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.function.Function;
 
-class WhitebitPublicMessageHandler implements SpotPublicMessageHandler {
+class MessageHandler implements IMessageHandler {
 	private final ExchangeContext context;
-	private final ObjectMapper mapper = ObjectMapperSingleton.getInstance();
 
-	public WhitebitPublicMessageHandler(ExchangeContext context) {
+	public MessageHandler(ExchangeContext context) {
 		this.context = context;
 	}
 
@@ -85,17 +82,11 @@ class WhitebitPublicMessageHandler implements SpotPublicMessageHandler {
 
 	@Override
 	public String getResponseToSpotPingMessage(String message) {
-		if (message == null) return null;
-		String trimmed = message.trim();
-		if ("ping".equalsIgnoreCase(trimmed)) return "pong";
-		try {
-			JsonNode root = mapper.readTree(trimmed);
-			String method = root.path("method").asText();
-			if (!"ping".equalsIgnoreCase(method)) return null;
-			long id = root.path("id").asLong();
-			return String.format("{\"id\":%d,\"result\":\"pong\",\"error\":null}", id);
-		} catch (JsonProcessingException ignored) {
-			return null;
-		}
+		return null;
+	}
+
+	@Override
+	public String getResponseToFuturesPingMessage(String message) {
+		return null;
 	}
 }

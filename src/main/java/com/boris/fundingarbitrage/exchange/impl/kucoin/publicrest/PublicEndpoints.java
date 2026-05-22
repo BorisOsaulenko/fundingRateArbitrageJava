@@ -8,26 +8,33 @@ import org.apache.hc.core5.net.URIBuilder;
 import java.net.URI;
 
 class PublicEndpoints {
-	private static final String baseUrl = "https://api-futures.kucoin.com";
+	private static final String futuresBaseUrl = "https://api-futures.kucoin.com";
 	private static final String spotBaseUrl = "https://api.kucoin.com";
 
-	private PublicEndpoints() {}
+	private PublicEndpoints() {
+	}
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest activeContractsRequest() {
-		URI uri = new URIBuilder(baseUrl).setPath("/api/v1/contracts/active").build();
+		URI uri = new URIBuilder(futuresBaseUrl).setPath("/api/v1/contracts/active").build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
 	@SneakyThrows
 	public static @NonNull SimpleHttpRequest allTickersRequestSymbols() {
-		URI uri = new URIBuilder(baseUrl).setPath("/api/v1/allTickers").build();
+		URI uri = new URIBuilder(futuresBaseUrl).setPath("/api/v1/allTickers").build();
 		return new SimpleHttpRequest("GET", uri);
 	}
 
 	@SneakyThrows
-	public static @NonNull SimpleHttpRequest publicWsToken() {
-		URI uri = new URIBuilder(baseUrl).setPath("/api/v1/bullet-public").build();
+	public static @NonNull SimpleHttpRequest publicSpotToken() {
+		URI uri = new URIBuilder(spotBaseUrl).setPath("/api/v1/bullet-public").build();
+		return new SimpleHttpRequest("POST", uri);
+	}
+
+	@SneakyThrows
+	public static @NonNull SimpleHttpRequest publicFuturesToken() {
+		URI uri = new URIBuilder(futuresBaseUrl).setPath("/api/v1/bullet-public").build();
 		return new SimpleHttpRequest("POST", uri);
 	}
 

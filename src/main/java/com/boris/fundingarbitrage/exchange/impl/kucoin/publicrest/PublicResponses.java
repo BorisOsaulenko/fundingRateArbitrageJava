@@ -112,7 +112,7 @@ class PublicResponses {
 		}
 
 		public String endpoint() {
-			return data.instanceServers().get(0).endpoint();
+			return data.instanceServers().getFirst().endpoint();
 		}
 	}
 

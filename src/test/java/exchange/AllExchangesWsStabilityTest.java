@@ -26,18 +26,13 @@ public class AllExchangesWsStabilityTest {
 							testCoin, (_) -> {
 							}
 			);
-			exchange.privateWsClient().subscribeDeposits((_) -> {
-			});
 		}
 		log.info("Starting websocket stability test for {} exchanges.", exchanges.size());
 
 		try {
 			TimeUnit.MILLISECONDS.sleep(WAIT_DURATION.toMillis());
 		} finally {
-			for (BaseExchange exchange : exchanges) {
-				exchange.publicWsClient().close();
-				exchange.privateWsClient().close();
-			}
+			for (BaseExchange exchange : exchanges) exchange.publicWsClient().close();
 			log.info("Websocket stability test finished. Closed all exchange clients.");
 		}
 	}

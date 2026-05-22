@@ -13,6 +13,8 @@ import org.apache.commons.lang3.function.TriConsumer;
 import java.net.URI;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.Future;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -50,9 +52,9 @@ public abstract class PublicWsClient implements IPublicMarketDataStream {
 		this.spotReadyFuture = config.spotEndpointFuture().thenAccept((uri) -> initClients(uri, TradeMarket.SPOT));
 		this.futuresReadyFuture = config.futuresEndpointFuture().thenAccept((uri) -> initClients(uri, TradeMarket.FUTURES));
 
-		if (config.spotPingIntervalMs() != 0)
+		if (config.spotPingIntervalSeconds() != 0)
 			this.spotPingScheduler = schedulerBuilder.create(this::sendSpotPings, config.spotPingIntervalMs());
-		if (config.futuresPingIntervalMs() != 0)
+		if (config.futuresPingIntervalSeconds() != 0)
 			this.futuresPingScheduler = schedulerBuilder.create(this::sendFuturesPings, config.futuresPingIntervalMs());
 	}
 
@@ -89,11 +91,11 @@ public abstract class PublicWsClient implements IPublicMarketDataStream {
 	public CompletableFuture<Void> connect() {
 		List<CompletableFuture<Void>> connectFutures = new ArrayList<>();
 		connectFutures.add(spotReadyFuture.thenRun(() -> {
-			spotClients.forEach(PublicWsInstance::connect);
+			spotClients.parallelStream().forEach(PublicWsInstance::connect);
 			if (spotPingScheduler != null) spotPingScheduler.start();
 		}));
 		connectFutures.add(futuresReadyFuture.thenRun(() -> {
-			futuresClients.forEach(PublicWsInstance::connect);
+			futuresClients.parallelStream().forEach(PublicWsInstance::connect);
 			if (futuresPingScheduler != null) futuresPingScheduler.start();
 		}));
 		return CompletableFuture.allOf(connectFutures.toArray(new CompletableFuture[0]));
@@ -126,7 +128,7 @@ public abstract class PublicWsClient implements IPublicMarketDataStream {
 	) {
 		Map<PublicWsInstance, Set<String>> coinMap = new HashMap<>();
 		for (String coin : coinsToSub) {
-			handlersMap.computeIfAbsent(coin, _ -> new HashSet<>()).add(handler);
+			handlersMap.computeIfAbsent(coin, _ -> new CopyOnWriteArraySet<>()).add(handler);
 
 			PublicWsInstance existing = coinToInstanceMap.get(coin);
 			if (existing != null) {
@@ -151,7 +153,7 @@ public abstract class PublicWsClient implements IPublicMarketDataStream {
 					Consumer<T> handler,
 					TriConsumer<PublicWsInstance, Set<String>, Consumer<T>> subscribeFun
 	) {
-		if (!futuresReadyFuture.isDone())
+		if (futuresReadyFuture.state() != Future.State.SUCCESS)
 			throw new RuntimeException("Futures clients are not yet initialized. Call .connect().join() first");
 		futuresClientIndex =
 						subscribe(
@@ -171,7 +173,7 @@ public abstract class PublicWsClient implements IPublicMarketDataStream {
 					Consumer<T> handler,
 					TriConsumer<PublicWsInstance, Set<String>, Consumer<T>> subscribeFun
 	) {
-		if (!spotReadyFuture.isDone())
+		if (spotReadyFuture.state() != Future.State.SUCCESS)
 			throw new RuntimeException("Spot clients are not yet initialized. Call .connect().join() first");
 		spotClientIndex =
 						subscribe(
@@ -213,6 +215,7 @@ public abstract class PublicWsClient implements IPublicMarketDataStream {
 		Map<PublicWsInstance, Set<String>> coinMap = new HashMap<>();
 		for (String coin : coins) {
 			PublicWsInstance instance = coinToInstanceMap.remove(coin);
+			if (instance == null) continue;
 			coinMap.computeIfAbsent(instance, _ -> new HashSet<>()).add(coin);
 		}
 

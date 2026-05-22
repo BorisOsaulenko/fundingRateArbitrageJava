@@ -107,29 +107,29 @@ public abstract class PublicWsTest {
 	}
 
 	private void subscribeToStreams() {
-		//		publicWsClient().subscribeFuturesBookTicker(
-		//						COINS, (patch) -> {
-		//							updateBookTickerPatch(patch);
-		//							bookTickerMessageCounts.merge(patch.coin(), 1, Integer::sum);
-		//							checkMessages();
-		//						}
-		//		);
-		//
-		//		publicWsClient().subscribeFuturesFundingRates(
-		//						COINS, (patch) -> {
-		//							updateFundingRatePatch(patch);
-		//							fundingRateMessageCounts.merge(patch.coin(), 1, Integer::sum);
-		//							checkMessages();
-		//						}
-		//		);
-		//
-		//		publicWsClient().subscribeFuturesMarkPrice(
-		//						COINS, (patch) -> {
-		//							updateMarkPricePatch(patch);
-		//							markPriceMessageCounts.merge(patch.coin(), 1, Integer::sum);
-		//							checkMessages();
-		//						}
-		//		);
+		publicWsClient().subscribeFuturesBookTicker(
+						COINS, (patch) -> {
+							updateBookTickerPatch(patch);
+							bookTickerMessageCounts.merge(patch.coin(), 1, Integer::sum);
+							checkMessages();
+						}
+		);
+
+		publicWsClient().subscribeFuturesFundingRates(
+						COINS, (patch) -> {
+							updateFundingRatePatch(patch);
+							fundingRateMessageCounts.merge(patch.coin(), 1, Integer::sum);
+							checkMessages();
+						}
+		);
+
+		publicWsClient().subscribeFuturesMarkPrice(
+						COINS, (patch) -> {
+							updateMarkPricePatch(patch);
+							markPriceMessageCounts.merge(patch.coin(), 1, Integer::sum);
+							checkMessages();
+						}
+		);
 
 		publicWsClient().subscribeSpotBookTicker(
 						COINS, (patch) -> {

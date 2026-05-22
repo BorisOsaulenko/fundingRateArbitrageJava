@@ -196,7 +196,7 @@ public class PrettyWsClient {
 
 	private synchronized void resetReconnectState() {
 		reconnectAttempts = 0;
-		reconnectScheduler.shutdown();
+		reconnectScheduler.cancelAll();
 		reconnecting = false;
 	}
 

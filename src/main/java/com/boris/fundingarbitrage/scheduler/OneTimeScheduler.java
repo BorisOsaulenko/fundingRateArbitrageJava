@@ -35,9 +35,13 @@ public class OneTimeScheduler {
 		schedule(work, unit.toMillis(delayMs));
 	}
 
+	public void cancelAll() {
+		runningTasks.forEach(t -> t.cancel(true));
+	}
+
 	public void shutdown() {
 		shutdown = true;
-		runningTasks.forEach(t -> t.cancel(true));
+		cancelAll();
 		scheduler.shutdown();
 	}
 }

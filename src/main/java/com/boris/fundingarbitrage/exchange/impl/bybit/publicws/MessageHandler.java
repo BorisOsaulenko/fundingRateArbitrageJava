@@ -1,6 +1,7 @@
 package com.boris.fundingarbitrage.exchange.impl.bybit.publicws;
 
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
+import com.boris.fundingarbitrage.exchange.publicws.IMessageHandler;
 import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
 import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
 import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
@@ -10,10 +11,10 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.function.Function;
 
-class BybitPublicMessageHandler implements SpotPublicMessageHandler {
+class MessageHandler implements IMessageHandler {
 	private final ExchangeContext context;
 
-	public BybitPublicMessageHandler(ExchangeContext context) {
+	public MessageHandler(ExchangeContext context) {
 		this.context = context;
 	}
 
@@ -90,9 +91,11 @@ class BybitPublicMessageHandler implements SpotPublicMessageHandler {
 
 	@Override
 	public String getResponseToSpotPingMessage(String message) {
-		if (message == null) return null;
-		String trimmed = message.trim();
-		if ("ping".equalsIgnoreCase(trimmed)) return "pong";
+		return null;
+	}
+
+	@Override
+	public String getResponseToFuturesPingMessage(String message) {
 		return null;
 	}
 }

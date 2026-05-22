@@ -1,7 +1,6 @@
 package com.boris.fundingarbitrage.exchange;
 
 import com.boris.fundingarbitrage.exchange.privatehttp.PrivateHttpClient;
-import com.boris.fundingarbitrage.exchange.privatews.PrivateWsClient;
 import com.boris.fundingarbitrage.exchange.publichttp.PublicHttpClient;
 import com.boris.fundingarbitrage.exchange.publicws.IPublicMarketDataStream;
 import com.boris.fundingarbitrage.model.exchange.ExchangeName;
@@ -11,7 +10,6 @@ import org.jetbrains.annotations.NotNull;
 public record BaseExchange(
 				@NonNull ExchangeName name,
 				@NonNull IPublicMarketDataStream publicWsClient,
-				@NotNull PrivateWsClient privateWsClient,
 				@NotNull PublicHttpClient publicHttpClient,
 				@NotNull PrivateHttpClient privateHttpClient
 ) {

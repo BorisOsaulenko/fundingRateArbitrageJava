@@ -9,6 +9,10 @@ application {
     mainClass.set("com.boris.fundingarbitrage.App")
 }
 
+tasks.named<JavaExec>("run") {
+    systemProperty("logback.configurationFile", file("src/main/resources/logback.xml").absolutePath)
+}
+
 // Apply to all Jar tasks (covers jar plus any additional Jar-producing tasks).
 tasks.withType<Jar>().configureEach {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
@@ -48,15 +52,13 @@ tasks.test {
     useJUnitPlatform()
     systemProperty("logback.configurationFile", file("src/test/resources/logback-test.xml").absolutePath)
     jvmArgs.add("-javaagent:${mockitoAgent.asPath}")
-}
-kotlin {
-    jvmToolchain(25)
-}
-
-tasks.test {
     useJUnitPlatform {
         excludeTags("manual")
     }
+}
+
+kotlin {
+    jvmToolchain(25)
 }
 
 tasks.register<Test>("testWebsocket") {

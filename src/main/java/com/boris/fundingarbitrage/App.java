@@ -7,7 +7,6 @@ import com.boris.fundingarbitrage.coinparser.AllExchangeCoinsParser;
 import com.boris.fundingarbitrage.coinparser.ICoinSupplier;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.exchange.Instances;
-import com.boris.fundingarbitrage.exchange.impl.bybit.BybitExchange;
 import com.boris.fundingarbitrage.execution.factory.TestCoinExecutionFactory;
 import com.boris.fundingarbitrage.logic.ArbitrageBotConfig;
 import com.boris.fundingarbitrage.logic.ArbitrageLogic;
@@ -19,6 +18,7 @@ import com.boris.fundingarbitrage.logic.coincapper.CoinCapper;
 import com.boris.fundingarbitrage.logic.implementations.RebalancingArbitrageLogic;
 import com.boris.fundingarbitrage.logic.opportunityanalyzer.IOpportunityAnalyzer;
 import com.boris.fundingarbitrage.logic.opportunityanalyzer.ParallelOpportunityAnalyzer;
+import com.boris.fundingarbitrage.model.exchange.ExchangeName;
 import com.boris.fundingarbitrage.monitor.CoinMonitor;
 import com.boris.fundingarbitrage.monitor.IDataStream;
 import com.boris.fundingarbitrage.monitor.ProdDataStream;
@@ -36,7 +36,7 @@ import java.util.Set;
 
 @Slf4j
 public class App {
-	static void main(String[] args) {
+	static void main2(String[] args) {
 		Set<BaseExchange> exchanges = Instances.getExchangesSet();
 
 		ICoinSupplier coinSupplier = new AllExchangeCoinsParser();
@@ -102,8 +102,8 @@ public class App {
 
 	static void main() throws Exception {
 		Logger log = LoggerFactory.getLogger(App.class);
-		BaseExchange ex = BybitExchange.create();
-		ex.publicWsClient().connect().get();
-		ex.publicWsClient().subscribeSpotBookTicker(Set.of("PUMPBTC"), (tickerPatch) -> log.info("{}", tickerPatch));
+		BaseExchange ex = Instances.getExchange(ExchangeName.BINANCE);
+		ex.publicWsClient().connect().join();
+		//		ex.publicWsClient().subscribeFuturesBookTicker("BTC", patch -> log.info("{}", patch));
 	}
 }

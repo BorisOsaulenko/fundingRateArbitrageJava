@@ -5,7 +5,6 @@ import com.boris.fundingarbitrage.coinfilter.CoinFilterResult;
 import com.boris.fundingarbitrage.coinfilter.ConstantDataRecord;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.exchange.privatehttp.PrivateHttpClient;
-import com.boris.fundingarbitrage.exchange.privatews.PrivateWsClient;
 import com.boris.fundingarbitrage.exchange.publichttp.PublicHttpClient;
 import com.boris.fundingarbitrage.exchange.publicws.IPublicMarketDataStream;
 import com.boris.fundingarbitrage.model.exchange.ExchangeName;
@@ -56,7 +55,6 @@ class CoinMonitorTest {
 		return new BaseExchange(
 						name,
 						publicWsClient,
-						mock(PrivateWsClient.class),
 						mock(PublicHttpClient.class),
 						mock(PrivateHttpClient.class)
 		);
@@ -146,10 +144,6 @@ class CoinMonitorTest {
 		private final ConcurrentHashMap<String, Consumer<FundingRatePatch>> futuresFundingHandlers = new ConcurrentHashMap<>();
 		private final ConcurrentHashMap<String, Consumer<MarkPricePatch>> futuresMarkHandlers = new ConcurrentHashMap<>();
 		private final ConcurrentHashMap<String, Consumer<BookTickerPatch>> spotBookTickerHandlers = new ConcurrentHashMap<>();
-
-		@Override
-		public void onUnhandledDisconnect(Runnable hook) {
-		}
 
 		@Override
 		public CompletableFuture<Void> connect() {

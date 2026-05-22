@@ -10,8 +10,8 @@ public record ClientsConfig(
 				int futuresClientsAmount,
 				int spotRequestMaxCoinSize,
 				int futuresRequestMaxCoinSize,
-				long spotPingIntervalMs,
-				long futuresPingIntervalMs
+				long spotPingIntervalSeconds,
+				long futuresPingIntervalSeconds
 ) {
 	public ClientsConfig {
 		if (spotClientsAmount <= 0 || futuresClientsAmount <= 0)
@@ -21,12 +21,12 @@ public record ClientsConfig(
 	public ClientsConfig(
 					URI spotEndpoint,
 					URI futuresEndpoint,
+					int spotClientsAmount,
 					int futuresClientsAmount,
 					int spotRequestMaxCoinSize,
 					int futuresRequestMaxCoinSize,
-					long spotPingIntervalMs,
-					long futuresPingIntervalMs,
-					int spotClientsAmount
+					long spotPingIntervalSeconds,
+					long futuresPingIntervalSeconds
 	) {
 		this(
 						CompletableFuture.completedFuture(spotEndpoint),
@@ -35,8 +35,16 @@ public record ClientsConfig(
 						futuresClientsAmount,
 						spotRequestMaxCoinSize,
 						futuresRequestMaxCoinSize,
-						spotPingIntervalMs,
-						futuresPingIntervalMs
+						spotPingIntervalSeconds,
+						futuresPingIntervalSeconds
 		);
+	}
+
+	public long spotPingIntervalMs() {
+		return spotPingIntervalSeconds() * 1000L;
+	}
+
+	public long futuresPingIntervalMs() {
+		return futuresPingIntervalSeconds() * 1000L;
 	}
 }
