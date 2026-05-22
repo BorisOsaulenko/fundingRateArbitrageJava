@@ -1,10 +1,9 @@
 package com.boris.fundingarbitrage.exchange.impl.binance.publicws;
 
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
-import com.boris.fundingarbitrage.exchange.publicws.IMessageHandler;
 import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
-import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
-import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
+import com.boris.fundingarbitrage.model.websocket.patch.FundingPatch;
+import com.boris.fundingarbitrage.model.websocket.patch.MarkPatch;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import java.math.BigDecimal;
@@ -19,7 +18,7 @@ class MessageHandler implements IMessageHandler {
 	}
 
 	@Override
-	public FundingRatePatch parseFundingRateMessageSymbol(JsonNode root) {
+	public FundingPatch parseFundingRateMessageSymbol(JsonNode root) {
 		String symbol = root.path("s").asText();
 		if (symbol.isEmpty()) return null;
 
@@ -35,11 +34,11 @@ class MessageHandler implements IMessageHandler {
 
 		String coin = context.getFuturesSymbolInverse(symbol);
 
-		return new FundingRatePatch(coin, rate, Instant.ofEpochMilli(settlementTime), Instant.ofEpochMilli(eventTime));
+		return new FundingPatch(coin, rate, Instant.ofEpochMilli(settlementTime), Instant.ofEpochMilli(eventTime));
 	}
 
 	@Override
-	public MarkPricePatch parseMarkPriceMessageSymbol(JsonNode root) {
+	public MarkPatch parseMarkPriceMessageSymbol(JsonNode root) {
 		String symbol = root.path("s").asText();
 		if (symbol.isEmpty()) return null;
 
@@ -51,7 +50,7 @@ class MessageHandler implements IMessageHandler {
 		BigDecimal markPrice = new BigDecimal(markPriceNode);
 
 		String coin = context.getFuturesSymbolInverse(symbol);
-		return new MarkPricePatch(coin, markPrice, Instant.ofEpochMilli(eventTime));
+		return new MarkPatch(coin, markPrice, Instant.ofEpochMilli(eventTime));
 	}
 
 	public BookTickerPatch parseBookTickerInternal(JsonNode root, Function<String, String> symbolInverse) {
@@ -82,15 +81,5 @@ class MessageHandler implements IMessageHandler {
 	@Override
 	public BookTickerPatch parseSpotBookTickerMessageSymbol(JsonNode root) {
 		return parseBookTickerInternal(root, context::getSpotSymbolInverse);
-	}
-
-	@Override
-	public String getResponseToSpotPingMessage(String message) {
-		return null; // Binance ping/pong handled at WebSocket client level
-	}
-
-	@Override
-	public String getResponseToFuturesPingMessage(String message) {
-		return null;
 	}
 }

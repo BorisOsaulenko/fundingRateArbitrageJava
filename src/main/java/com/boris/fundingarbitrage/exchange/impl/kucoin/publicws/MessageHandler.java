@@ -1,10 +1,9 @@
 package com.boris.fundingarbitrage.exchange.impl.kucoin.publicws;
 
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
-import com.boris.fundingarbitrage.exchange.publicws.IMessageHandler;
 import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
-import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
-import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
+import com.boris.fundingarbitrage.model.websocket.patch.FundingPatch;
+import com.boris.fundingarbitrage.model.websocket.patch.MarkPatch;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import java.math.BigDecimal;
@@ -55,7 +54,7 @@ class MessageHandler implements IMessageHandler {
 	}
 
 	@Override
-	public MarkPricePatch parseMarkPriceMessageSymbol(JsonNode root) {
+	public MarkPatch parseMarkPriceMessageSymbol(JsonNode root) {
 		String topic = root.path("topic").asText();
 		if (topic == null || !topic.startsWith(INSTRUMENT_TOPIC)) return null;
 		String subject = root.path("subject").asText();
@@ -74,11 +73,11 @@ class MessageHandler implements IMessageHandler {
 		if (ts == 0) return null;
 
 		Instant timestamp = Instant.ofEpochMilli(ts);
-		return new MarkPricePatch(context.getFuturesSymbolInverse(symbol), markPrice, timestamp);
+		return new MarkPatch(context.getFuturesSymbolInverse(symbol), markPrice, timestamp);
 	}
 
 	@Override
-	public FundingRatePatch parseFundingRateMessageSymbol(JsonNode root) {
+	public FundingPatch parseFundingRateMessageSymbol(JsonNode root) {
 		String topic = root.path("topic").asText();
 		if (topic == null || !topic.startsWith(INSTRUMENT_TOPIC)) return null;
 		String subject = root.path("subject").asText();
@@ -97,7 +96,7 @@ class MessageHandler implements IMessageHandler {
 		if (ts == 0) return null;
 
 		Instant timestamp = Instant.ofEpochMilli(ts);
-		return new FundingRatePatch(context.getFuturesSymbolInverse(symbol), rate, null, timestamp);
+		return new FundingPatch(context.getFuturesSymbolInverse(symbol), rate, null, timestamp);
 	}
 
 	@Override
@@ -108,15 +107,5 @@ class MessageHandler implements IMessageHandler {
 	@Override
 	public BookTickerPatch parseSpotBookTickerMessageSymbol(JsonNode root) {
 		return this.parseBookTickerInternal(root, context::getSpotSymbolInverse);
-	}
-
-	@Override
-	public String getResponseToSpotPingMessage(String message) {
-		return null; // Client sends ping, server does not expect any response
-	}
-
-	@Override
-	public String getResponseToFuturesPingMessage(String message) {
-		return null;
 	}
 }

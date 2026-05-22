@@ -6,9 +6,8 @@ import java.util.Set;
 import java.util.UUID;
 
 class WsFrames implements IPublicWsFrames {
-	private final String instrumentTopic = "/contract/instrument:";
 	private final String tickerTopic = "/contractMarket/tickerV2:";
-	
+
 	private String getSubscribeFrame(String topic) {
 		WsRequest request = new WsRequest(UUID.randomUUID().toString(), "subscribe", topic, false, true);
 		return request.toJson();
@@ -21,12 +20,12 @@ class WsFrames implements IPublicWsFrames {
 
 	@Override
 	public String getSubscribeFuturesFundingRateFrame(Set<String> symbols) {
-		return getSubscribeFrame(instrumentTopic + String.join(",", symbols));
+		return null;
 	}
 
 	@Override
 	public String getUnsubscribeFuturesFundingRateFrame(Set<String> symbols) {
-		return getUnsubscribeFrame(instrumentTopic + String.join(",", symbols));
+		return null;
 	}
 
 	@Override
@@ -60,12 +59,7 @@ class WsFrames implements IPublicWsFrames {
 	}
 
 	@Override
-	public String getSpotPingFrame() {
-		return new PingFrame().toJson();
-	}
-
-	@Override
-	public String getFuturesPingFrame() {
+	public String getPingFrame() {
 		return new PingFrame().toJson();
 	}
 }

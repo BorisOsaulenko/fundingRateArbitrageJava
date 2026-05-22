@@ -58,13 +58,8 @@ class WsFrames implements IPublicWsFrames {
 	}
 
 	@Override
-	public String getSpotPingFrame() {
+	public String getPingFrame() {
 		WsRequest ping = new WsRequest(System.currentTimeMillis(), "ping", new ArrayList<>());
 		return ping.toJson();
-	}
-
-	@Override
-	public String getFuturesPingFrame() {
-		return getSpotPingFrame();
 	}
 }

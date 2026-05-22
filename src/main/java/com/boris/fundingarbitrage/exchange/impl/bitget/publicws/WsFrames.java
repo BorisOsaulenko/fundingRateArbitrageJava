@@ -27,7 +27,7 @@ class WsFrames implements IPublicWsFrames {
 
 	@Override
 	public String getSubscribeFuturesFundingRateFrame(Set<String> symbols) {
-		return getSubscribeFrame(symbols);
+		return null;
 	}
 
 	@Override
@@ -66,12 +66,7 @@ class WsFrames implements IPublicWsFrames {
 	}
 
 	@Override
-	public String getSpotPingFrame() {
-		return "ping";
-	}
-
-	@Override
-	public String getFuturesPingFrame() {
+	public String getPingFrame() {
 		return "ping";
 	}
 }

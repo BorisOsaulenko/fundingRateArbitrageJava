@@ -2,12 +2,13 @@ package exchange;
 
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.exchange.Instances;
+import com.boris.fundingarbitrage.exchange.publicws.FuturesHandler;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.Funding;
 import com.boris.fundingarbitrage.model.contract.Mark;
 import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
-import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
-import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
+import com.boris.fundingarbitrage.model.websocket.patch.FundingPatch;
+import com.boris.fundingarbitrage.model.websocket.patch.MarkPatch;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -51,9 +52,12 @@ public class WsNotStaleDataTest {
 
 			for (BaseExchange exchange : exchanges) {
 				ExchangeStats stats = statsByExchange.get(exchange);
-				exchange.publicWsClient().subscribeFuturesBookTicker(COIN, stats::updateBookTicker);
-				exchange.publicWsClient().subscribeFuturesFundingRates(COIN, stats::updateFundingRate);
-				exchange.publicWsClient().subscribeFuturesMarkPrice(COIN, stats::updateMarkPrice);
+				FuturesHandler handler = new FuturesHandler(
+								stats::updateBookTicker,
+								stats::updateMarkPrice,
+								stats::updateFundingRate
+				);
+				exchange.publicWsClient().subscribeFutures(COIN, handler);
 			}
 
 			TimeUnit.MILLISECONDS.sleep(WAIT_DURATION.toMillis());
@@ -134,7 +138,7 @@ public class WsNotStaleDataTest {
 			bookTimestamp.update(updated.timestamp());
 		}
 
-		private void updateFundingRate(FundingRatePatch patch) {
+		private void updateFundingRate(FundingPatch patch) {
 			Funding previous = latestFundingRate.get();
 			Funding updated = new Funding(
 							patch.rate() != null ? patch.rate() : previous.rate(),
@@ -147,7 +151,7 @@ public class WsNotStaleDataTest {
 			fundingTimestamp.update(updated.timestamp());
 		}
 
-		private void updateMarkPrice(MarkPricePatch patch) {
+		private void updateMarkPrice(MarkPatch patch) {
 			Mark updated = new Mark(patch.price(), patch.timestamp());
 			latestMarkPrice.set(updated);
 			markPrice.update(updated.price());

@@ -84,6 +84,7 @@ public class PrettyWsClient {
 	}
 
 	public void sendMessage(String message) {
+		log.info("Sent: {}", message);
 		if (message == null || message.isEmpty()) return;
 		if (lastSession != null && lastSession.isOpen()) {
 			lastSession.getAsyncRemote().sendText(

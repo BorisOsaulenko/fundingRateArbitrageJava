@@ -1,10 +1,9 @@
 package com.boris.fundingarbitrage.exchange.impl.bybit.publicws;
 
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
-import com.boris.fundingarbitrage.exchange.publicws.IMessageHandler;
 import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
-import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
-import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
+import com.boris.fundingarbitrage.model.websocket.patch.FundingPatch;
+import com.boris.fundingarbitrage.model.websocket.patch.MarkPatch;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import java.math.BigDecimal;
@@ -25,7 +24,7 @@ class MessageHandler implements IMessageHandler {
 	}
 
 	@Override
-	public MarkPricePatch parseMarkPriceMessageSymbol(JsonNode root) {
+	public MarkPatch parseMarkPriceMessageSymbol(JsonNode root) {
 		JsonNode data = root.get("data");
 		if (data == null) return null;
 
@@ -37,7 +36,7 @@ class MessageHandler implements IMessageHandler {
 		if (markPrice == null) return null;
 
 		String coin = context.getFuturesSymbolInverse(symbol);
-		return new MarkPricePatch(coin, markPrice, parseTimestamp(root));
+		return new MarkPatch(coin, markPrice, parseTimestamp(root));
 	}
 
 	private BookTickerPatch parseBookTickerInternal(JsonNode root, Function<String, String> symbolInverse) {
@@ -75,7 +74,7 @@ class MessageHandler implements IMessageHandler {
 	}
 
 	@Override
-	public FundingRatePatch parseFundingRateMessageSymbol(JsonNode root) {
+	public FundingPatch parseFundingRateMessageSymbol(JsonNode root) {
 		return null;
 	} // Full funding via rest api
 
@@ -87,15 +86,5 @@ class MessageHandler implements IMessageHandler {
 	@Override
 	public BookTickerPatch parseSpotBookTickerMessageSymbol(JsonNode root) {
 		return parseBookTickerInternal(root, context::getSpotSymbolInverse);
-	}
-
-	@Override
-	public String getResponseToSpotPingMessage(String message) {
-		return null;
-	}
-
-	@Override
-	public String getResponseToFuturesPingMessage(String message) {
-		return null;
 	}
 }

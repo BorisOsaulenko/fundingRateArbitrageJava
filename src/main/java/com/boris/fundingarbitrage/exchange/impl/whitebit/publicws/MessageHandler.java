@@ -1,10 +1,9 @@
 package com.boris.fundingarbitrage.exchange.impl.whitebit.publicws;
 
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
-import com.boris.fundingarbitrage.exchange.publicws.IMessageHandler;
 import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
-import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
-import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
+import com.boris.fundingarbitrage.model.websocket.patch.FundingPatch;
+import com.boris.fundingarbitrage.model.websocket.patch.MarkPatch;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import java.math.BigDecimal;
@@ -48,7 +47,7 @@ class MessageHandler implements IMessageHandler {
 	}
 
 	@Override
-	public MarkPricePatch parseMarkPriceMessageSymbol(JsonNode root) {
+	public MarkPatch parseMarkPriceMessageSymbol(JsonNode root) {
 		String method = root.path("method").asText();
 		if (!"lastprice_update".equalsIgnoreCase(method)) return null;
 		JsonNode params = root.get("params");
@@ -62,11 +61,11 @@ class MessageHandler implements IMessageHandler {
 		BigDecimal lastPrice = lastPriceNode.isEmpty() ? null : new BigDecimal(lastPriceNode);
 		if (lastPrice == null) return null;
 
-		return new MarkPricePatch(coin, lastPrice, Instant.now());
+		return new MarkPatch(coin, lastPrice, Instant.now());
 	}
 
 	@Override
-	public FundingRatePatch parseFundingRateMessageSymbol(JsonNode root) {
+	public FundingPatch parseFundingRateMessageSymbol(JsonNode root) {
 		return null;
 	}
 
@@ -78,15 +77,5 @@ class MessageHandler implements IMessageHandler {
 	@Override
 	public BookTickerPatch parseSpotBookTickerMessageSymbol(JsonNode root) {
 		return this.parseBookTickerInternal(root, context::getFuturesSymbolInverse);
-	}
-
-	@Override
-	public String getResponseToSpotPingMessage(String message) {
-		return null;
-	}
-
-	@Override
-	public String getResponseToFuturesPingMessage(String message) {
-		return null;
 	}
 }

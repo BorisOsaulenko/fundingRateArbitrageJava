@@ -20,7 +20,7 @@ class WsFrames implements IPublicWsFrames {
 	}
 
 	private String getFundingRateStream(@NotNull String symbol) {
-		return String.format("%s@mark@1s", symbol.toLowerCase());
+		return String.format("%s@markPrice@1s", symbol.toLowerCase());
 	}
 
 	private String getBookTickerStream(@NotNull String symbol) {
@@ -68,12 +68,7 @@ class WsFrames implements IPublicWsFrames {
 	}
 
 	@Override
-	public String getSpotPingFrame() {
-		return null;
-	}
-
-	@Override
-	public String getFuturesPingFrame() {
+	public String getPingFrame() {
 		return null;
 	}
 }

@@ -3,16 +3,13 @@ package com.boris.fundingarbitrage.util.wss.publicws;
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.publichttp.PublicHttpClient;
 import com.boris.fundingarbitrage.exchange.publicws.ClientsConfig;
-import com.boris.fundingarbitrage.exchange.publicws.IMessageHandler;
-import com.boris.fundingarbitrage.exchange.publicws.IPublicWsFrames;
 import com.boris.fundingarbitrage.exchange.publicws.PublicWsClient;
-import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
+import com.boris.fundingarbitrage.model.websocket.patch.FundingPatch;
 import com.boris.fundingarbitrage.scheduler.IModifiableScheduler;
 import com.boris.fundingarbitrage.scheduler.IModifiableSchedulerBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -25,26 +22,25 @@ public abstract class FullFundingViaRest extends PublicWsClient {
 	public FullFundingViaRest(
 					ExchangeContext context,
 					ClientsConfig config,
-					IPublicWsFrames wsFrames,
-					IMessageHandler messageHandler,
 					PublicHttpClient publicHttp,
 					IModifiableSchedulerBuilder schedulerBuilder
 	) {
-		super(context, config, wsFrames, messageHandler, schedulerBuilder);
+		super(context, config, schedulerBuilder);
 		this.httpClient = publicHttp;
 		fundingRateScheduler = schedulerBuilder.create(this::pollFundingRates, POLL_INTERVAL_MS);
 		fundingRateScheduler.start();
 	}
 
 	private void pollFundingRates() {
-		if (futuresFundingRateHandlers.isEmpty()) return;
+		var handlers = futuresFundingState.handlers();
+		if (handlers.isEmpty()) return;
 
-		httpClient.getFundingRate(futuresFundingRateHandlers.keySet()).thenAccept((rates) -> {
+		httpClient.getFundingRate(handlers.keySet()).thenAccept((rates) -> {
 			rates.forEach((coin, rate) -> {
-				FundingRatePatch patch = new FundingRatePatch(coin, rate.rate(), rate.settlement(), rate.timestamp());
+				FundingPatch patch = new FundingPatch(coin, rate.rate(), rate.settlement(), rate.timestamp());
 
-				Set<Consumer<FundingRatePatch>> handlers = futuresFundingRateHandlers.get(patch.coin());
-				if (handlers != null) handlers.forEach(h -> h.accept(patch));
+				Consumer<FundingPatch> handler = handlers.get(patch.coin());
+				if (handler != null) handler.accept(patch);
 			});
 		}).exceptionally(_ -> {
 			log.warn("Funding rates update failed on this cycle");
@@ -53,9 +49,13 @@ public abstract class FullFundingViaRest extends PublicWsClient {
 	}
 
 	@Override
-	public void subscribeFuturesFundingRates(Set<String> coinsToSub, Consumer<FundingRatePatch> handler) {
-		coinsToSub.forEach(coin -> futuresFundingRateHandlers.computeIfAbsent(coin, _ -> new HashSet<>())
-						.add(handler));
+	public void subscribeFuturesFundingRates(Set<String> coins, Consumer<FundingPatch> handler) {
+		var handlers = futuresFundingState.handlers();
+		for (String coin : coins) {
+			if (handlers.containsKey(coin))
+				throw new RuntimeException("Already subscribed to funding rates for " + coin);
+			handlers.put(coin, handler);
+		}
 	}
 
 	@Override

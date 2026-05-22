@@ -5,14 +5,16 @@ import com.boris.fundingarbitrage.coinfilter.CoinFilterResult;
 import com.boris.fundingarbitrage.coinfilter.ConstantDataRecord;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.exchange.privatehttp.PrivateHttpClient;
+import com.boris.fundingarbitrage.exchange.publicws.FuturesHandler;
 import com.boris.fundingarbitrage.exchange.publichttp.PublicHttpClient;
 import com.boris.fundingarbitrage.exchange.publicws.IPublicMarketDataStream;
+import com.boris.fundingarbitrage.exchange.publicws.SpotHandler;
 import com.boris.fundingarbitrage.model.exchange.ExchangeName;
 import com.boris.fundingarbitrage.model.exchange.snapshot.FuturesSnapshot;
 import com.boris.fundingarbitrage.model.exchange.snapshot.SpotSnapshot;
 import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
-import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
-import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
+import com.boris.fundingarbitrage.model.websocket.patch.FundingPatch;
+import com.boris.fundingarbitrage.model.websocket.patch.MarkPatch;
 import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.Test;
 
@@ -21,7 +23,6 @@ import java.time.Instant;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Consumer;
 
 import static com.boris.fundingarbitrage.strategy.TradeMarket.FUTURES;
 import static com.boris.fundingarbitrage.strategy.TradeMarket.SPOT;
@@ -78,13 +79,13 @@ class CoinMonitorTest {
 						new BigDecimal("2.22"),
 						updatedAt
 		));
-		binanceWs.emitFuturesFundingRate(new FundingRatePatch(
+		binanceWs.emitFuturesFundingRate(new FundingPatch(
 						COIN,
 						new BigDecimal("0.00042"),
 						settlement,
 						updatedAt
 		));
-		binanceWs.emitFuturesMarkPrice(new MarkPricePatch(COIN, new BigDecimal("101.15"), updatedAt));
+		binanceWs.emitFuturesMarkPrice(new MarkPatch(COIN, new BigDecimal("101.15"), updatedAt));
 		binanceWs.emitSpotBookTicker(new BookTickerPatch(
 						COIN,
 						new BigDecimal("100.90"),
@@ -95,7 +96,7 @@ class CoinMonitorTest {
 		));
 
 		Instant bybitUpdatedAt = Instant.parse("2026-05-05T10:16:00Z");
-		bybitWs.emitFuturesMarkPrice(new MarkPricePatch(COIN, new BigDecimal("202.25"), bybitUpdatedAt));
+		bybitWs.emitFuturesMarkPrice(new MarkPatch(COIN, new BigDecimal("202.25"), bybitUpdatedAt));
 
 		FuturesSnapshot futures = monitor.getFuturesSnapshot(binance, COIN);
 		assertEquals(new BigDecimal("101.10"), futures.bookTicker().bidPrice());
@@ -140,10 +141,8 @@ class CoinMonitorTest {
 	}
 
 	private static final class FakePublicMarketDataStream implements IPublicMarketDataStream {
-		private final ConcurrentHashMap<String, Consumer<BookTickerPatch>> futuresBookTickerHandlers = new ConcurrentHashMap<>();
-		private final ConcurrentHashMap<String, Consumer<FundingRatePatch>> futuresFundingHandlers = new ConcurrentHashMap<>();
-		private final ConcurrentHashMap<String, Consumer<MarkPricePatch>> futuresMarkHandlers = new ConcurrentHashMap<>();
-		private final ConcurrentHashMap<String, Consumer<BookTickerPatch>> spotBookTickerHandlers = new ConcurrentHashMap<>();
+		private final ConcurrentHashMap<String, FuturesHandler> futuresHandlers = new ConcurrentHashMap<>();
+		private final ConcurrentHashMap<String, SpotHandler> spotHandlers = new ConcurrentHashMap<>();
 
 		@Override
 		public CompletableFuture<Void> connect() {
@@ -155,22 +154,9 @@ class CoinMonitorTest {
 		}
 
 		@Override
-		public void subscribeFuturesFundingRates(Set<String> coins, Consumer<FundingRatePatch> handler) {
+		public void subscribeFutures(Set<String> coins, FuturesHandler handler) {
 			coins.forEach(coin -> {
-				futuresFundingHandlers.put(coin, handler);
-				emitFuturesFundingRate(new FundingRatePatch(
-								coin,
-								new BigDecimal("0.0001"),
-								Instant.parse("2026-05-05T08:00:00Z"),
-								Instant.parse("2026-05-05T00:00:00Z")
-				));
-			});
-		}
-
-		@Override
-		public void subscribeFuturesBookTicker(Set<String> coins, Consumer<BookTickerPatch> handler) {
-			coins.forEach(coin -> {
-				futuresBookTickerHandlers.put(coin, handler);
+				futuresHandlers.put(coin, handler);
 				emitFuturesBookTicker(new BookTickerPatch(
 								coin,
 								new BigDecimal("99.90"),
@@ -179,14 +165,13 @@ class CoinMonitorTest {
 								new BigDecimal("1"),
 								Instant.parse("2026-05-05T00:00:00Z")
 				));
-			});
-		}
-
-		@Override
-		public void subscribeFuturesMarkPrice(Set<String> coins, Consumer<MarkPricePatch> handler) {
-			coins.forEach(coin -> {
-				futuresMarkHandlers.put(coin, handler);
-				emitFuturesMarkPrice(new MarkPricePatch(
+				emitFuturesFundingRate(new FundingPatch(
+								coin,
+								new BigDecimal("0.0001"),
+								Instant.parse("2026-05-05T08:00:00Z"),
+								Instant.parse("2026-05-05T00:00:00Z")
+				));
+				emitFuturesMarkPrice(new MarkPatch(
 								coin,
 								new BigDecimal("100"),
 								Instant.parse("2026-05-05T00:00:00Z")
@@ -195,9 +180,9 @@ class CoinMonitorTest {
 		}
 
 		@Override
-		public void subscribeSpotBookTicker(Set<String> coins, Consumer<BookTickerPatch> handler) {
+		public void subscribeSpot(Set<String> coins, SpotHandler handler) {
 			coins.forEach(coin -> {
-				spotBookTickerHandlers.put(coin, handler);
+				spotHandlers.put(coin, handler);
 				emitSpotBookTicker(new BookTickerPatch(
 								coin,
 								new BigDecimal("99.80"),
@@ -211,36 +196,32 @@ class CoinMonitorTest {
 
 		@Override
 		public void unsubscribeCoinsFutures(Set<String> coins) {
-			coins.forEach(coin -> {
-				futuresBookTickerHandlers.remove(coin);
-				futuresFundingHandlers.remove(coin);
-				futuresMarkHandlers.remove(coin);
-			});
+			coins.forEach(futuresHandlers::remove);
 		}
 
 		@Override
 		public void unsubscribeCoinsSpot(Set<String> coins) {
-			coins.forEach(spotBookTickerHandlers::remove);
+			coins.forEach(spotHandlers::remove);
 		}
 
 		private void emitFuturesBookTicker(BookTickerPatch patch) {
-			Consumer<BookTickerPatch> handler = futuresBookTickerHandlers.get(patch.coin());
-			if (handler != null) handler.accept(patch);
+			FuturesHandler handler = futuresHandlers.get(patch.coin());
+			if (handler != null) handler.bookTickerHandler().accept(patch);
 		}
 
-		private void emitFuturesFundingRate(FundingRatePatch patch) {
-			Consumer<FundingRatePatch> handler = futuresFundingHandlers.get(patch.coin());
-			if (handler != null) handler.accept(patch);
+		private void emitFuturesFundingRate(FundingPatch patch) {
+			FuturesHandler handler = futuresHandlers.get(patch.coin());
+			if (handler != null) handler.fundingRateHandler().accept(patch);
 		}
 
-		private void emitFuturesMarkPrice(MarkPricePatch patch) {
-			Consumer<MarkPricePatch> handler = futuresMarkHandlers.get(patch.coin());
-			if (handler != null) handler.accept(patch);
+		private void emitFuturesMarkPrice(MarkPatch patch) {
+			FuturesHandler handler = futuresHandlers.get(patch.coin());
+			if (handler != null) handler.markPriceHandler().accept(patch);
 		}
 
 		private void emitSpotBookTicker(BookTickerPatch patch) {
-			Consumer<BookTickerPatch> handler = spotBookTickerHandlers.get(patch.coin());
-			if (handler != null) handler.accept(patch);
+			SpotHandler handler = spotHandlers.get(patch.coin());
+			if (handler != null) handler.bookTickerHandler().accept(patch);
 		}
 	}
 }

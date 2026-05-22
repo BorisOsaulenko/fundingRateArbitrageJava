@@ -3,23 +3,21 @@ package com.boris.fundingarbitrage.exchange.publicws;
 import java.util.Set;
 
 public interface IPublicWsFrames {
-	String getSpotPingFrame();
+	String getPingFrame();
 
-	String getFuturesPingFrame();
+	String getSubscribeFuturesFundingRateFrame(Set<String> coins);
 
-	String getSubscribeFuturesFundingRateFrame(Set<String> symbols);
+	String getUnsubscribeFuturesFundingRateFrame(Set<String> coins);
 
-	String getUnsubscribeFuturesFundingRateFrame(Set<String> symbols);
+	String getSubscribeFuturesBookTickerFrame(Set<String> coins);
 
-	String getSubscribeFuturesBookTickerFrame(Set<String> symbols);
+	String getUnsubscribeFuturesBookTickerFrame(Set<String> coins);
 
-	String getUnsubscribeFuturesBookTickerFrame(Set<String> symbols);
+	String getSubscribeFuturesMarkPriceFrame(Set<String> coins);
 
-	String getSubscribeFuturesMarkPriceFrame(Set<String> symbols);
+	String getUnsubscribeFuturesMarkPriceFrame(Set<String> coins);
 
-	String getUnsubscribeFuturesMarkPriceFrame(Set<String> symbols);
+	String getSubscribeSpotBookTickerFrame(Set<String> coins);
 
-	String getSubscribeSpotBookTickerFrame(Set<String> symbols);
-
-	String getUnsubscribeSpotBookTickerFrame(Set<String> symbols);
+	String getUnsubscribeSpotBookTickerFrame(Set<String> coins);
 }

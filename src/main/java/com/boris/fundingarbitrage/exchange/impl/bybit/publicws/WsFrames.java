@@ -67,12 +67,7 @@ class WsFrames implements IPublicWsFrames {
 	}
 
 	@Override
-	public String getSpotPingFrame() {
-		return null;
-	}
-
-	@Override
-	public String getFuturesPingFrame() {
+	public String getPingFrame() {
 		return null;
 	}
 }

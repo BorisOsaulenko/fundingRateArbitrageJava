@@ -3,10 +3,9 @@ package com.boris.fundingarbitrage.util.wss.publicws;
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.publichttp.PublicHttpClient;
 import com.boris.fundingarbitrage.exchange.publicws.ClientsConfig;
-import com.boris.fundingarbitrage.exchange.publicws.IMessageHandler;
 import com.boris.fundingarbitrage.exchange.publicws.IPublicWsFrames;
 import com.boris.fundingarbitrage.exchange.publicws.PublicWsClient;
-import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
+import com.boris.fundingarbitrage.model.websocket.patch.FundingPatch;
 import com.boris.fundingarbitrage.scheduler.IModifiableScheduler;
 import com.boris.fundingarbitrage.scheduler.IModifiableSchedulerBuilder;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
@@ -49,14 +48,14 @@ public abstract class FundingSettlementViaRest extends PublicWsClient {
 	}
 
 	@Override
-	public void subscribeFuturesFundingRates(Set<String> coinsToSub, Consumer<FundingRatePatch> handler) {
-		Consumer<FundingRatePatch> handlerWithSettlement = (patch) -> handler.accept(new FundingRatePatch(
+	public void subscribeFuturesFundingRates(Set<String> coins, Consumer<FundingPatch> handler) {
+		Consumer<FundingPatch> handlerWithSettlement = (patch) -> handler.accept(new FundingPatch(
 						patch.coin(),
 						patch.rate(),
 						settlementVector.get(patch.coin()),
 						patch.timestamp()
 		));
-		super.subscribeFuturesFundingRates(coinsToSub, handlerWithSettlement);
+		super.subscribeFuturesFundingRates(coins, handlerWithSettlement);
 	}
 
 	@Override

@@ -7,6 +7,7 @@ import com.boris.fundingarbitrage.coinparser.AllExchangeCoinsParser;
 import com.boris.fundingarbitrage.coinparser.ICoinSupplier;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.exchange.Instances;
+import com.boris.fundingarbitrage.exchange.publicws.FuturesHandler;
 import com.boris.fundingarbitrage.execution.factory.TestCoinExecutionFactory;
 import com.boris.fundingarbitrage.logic.ArbitrageBotConfig;
 import com.boris.fundingarbitrage.logic.ArbitrageLogic;
@@ -104,6 +105,16 @@ public class App {
 		Logger log = LoggerFactory.getLogger(App.class);
 		BaseExchange ex = Instances.getExchange(ExchangeName.BINANCE);
 		ex.publicWsClient().connect().join();
-		//		ex.publicWsClient().subscribeFuturesBookTicker("BTC", patch -> log.info("{}", patch));
+		ex.publicWsClient()
+						.subscribeFutures(
+										Set.of("BTC"),
+										new FuturesHandler(
+														patch -> {
+														},
+														patch -> {
+														},
+														patch -> log.info("{}", patch)
+										)
+						);
 	}
 }

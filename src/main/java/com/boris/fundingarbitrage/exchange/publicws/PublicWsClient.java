@@ -1,240 +1,211 @@
 package com.boris.fundingarbitrage.exchange.publicws;
 
-import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
-import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
-import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
+import com.boris.fundingarbitrage.model.websocket.patch.FundingPatch;
+import com.boris.fundingarbitrage.model.websocket.patch.GenericPublicWsPatch;
+import com.boris.fundingarbitrage.model.websocket.patch.MarkPatch;
 import com.boris.fundingarbitrage.scheduler.IModifiableScheduler;
 import com.boris.fundingarbitrage.scheduler.IModifiableSchedulerBuilder;
-import com.boris.fundingarbitrage.strategy.TradeMarket;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
-import org.apache.commons.lang3.function.TriConsumer;
+import lombok.extern.slf4j.Slf4j;
 
 import java.net.URI;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.concurrent.Future;
-import java.util.function.BiConsumer;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
+@Slf4j
 public abstract class PublicWsClient implements IPublicMarketDataStream {
-	protected final CoinVector<PublicWsInstance> spotCoinToInstanceMap = new CoinVector<>();
-	protected final CoinVector<PublicWsInstance> futuresCoinToInstanceMap = new CoinVector<>();
-	protected final CoinVector<Set<Consumer<FundingRatePatch>>> futuresFundingRateHandlers = new CoinVector<>();
-	protected final CoinVector<Set<Consumer<BookTickerPatch>>> futuresBookTickerHandlers = new CoinVector<>();
-	protected final CoinVector<Set<Consumer<MarkPricePatch>>> futuresMarkPriceHandlers = new CoinVector<>();
-	protected final CoinVector<Set<Consumer<BookTickerPatch>>> spotBookTickerHandlers = new CoinVector<>();
-	private final ExchangeContext context;
+	private final IModifiableSchedulerBuilder schedulerBuilder;
 	private final ClientsConfig config;
-	private final IMessageHandler messageHandler;
-	private final IPublicWsFrames wsFrames;
-	private final CompletableFuture<Void> spotReadyFuture;
-	private final CompletableFuture<Void> futuresReadyFuture;
-	private final List<PublicWsInstance> spotClients = new ArrayList<>();
-	private final List<PublicWsInstance> futuresClients = new ArrayList<>();
-	private IModifiableScheduler futuresPingScheduler = null;
-	private IModifiableScheduler spotPingScheduler = null;
-	private int spotClientIndex = 0;
-	private int futuresClientIndex = 0;
+	protected ChannelState<BookTickerPatch> spotBookTickerState;
+	protected ChannelState<BookTickerPatch> futuresBookTickerState;
+	protected ChannelState<FundingPatch> futuresFundingState;
+	protected ChannelState<MarkPatch> futuresMarkState;
 
 	public PublicWsClient(
-					ExchangeContext context,
 					ClientsConfig config,
-					IPublicWsFrames wsFrames,
-					IMessageHandler messageHandler,
 					IModifiableSchedulerBuilder schedulerBuilder
 	) {
-		this.context = context;
+		this.schedulerBuilder = schedulerBuilder;
 		this.config = config;
-		this.wsFrames = wsFrames;
-		this.messageHandler = messageHandler;
-		this.spotReadyFuture = config.spotEndpointFuture().thenAccept((uri) -> initClients(uri, TradeMarket.SPOT));
-		this.futuresReadyFuture = config.futuresEndpointFuture().thenAccept((uri) -> initClients(uri, TradeMarket.FUTURES));
 
-		if (config.spotPingIntervalSeconds() != 0)
-			this.spotPingScheduler = schedulerBuilder.create(this::sendSpotPings, config.spotPingIntervalMs());
-		if (config.futuresPingIntervalSeconds() != 0)
-			this.futuresPingScheduler = schedulerBuilder.create(this::sendFuturesPings, config.futuresPingIntervalMs());
+		spotBookTickerState = new ChannelState<>(
+						new CoinVector<>(),
+						getPingScheduler(config.spotBookTicker(), () -> this.spotBookTickerState),
+						new CoinVector<>(),
+						new ArrayList<>(),
+						new AtomicInteger(0)
+		);
+
+		futuresBookTickerState = new ChannelState<>(
+						new CoinVector<>(),
+						getPingScheduler(config.futuresBookTicker(), () -> this.futuresBookTickerState),
+						new CoinVector<>(),
+						new ArrayList<>(),
+						new AtomicInteger(0)
+		);
+
+		futuresFundingState = new ChannelState<>(
+						new CoinVector<>(),
+						getPingScheduler(config.futuresFunding(), () -> this.futuresFundingState),
+						new CoinVector<>(),
+						new ArrayList<>(),
+						new AtomicInteger(0)
+		);
+
+		futuresMarkState = new ChannelState<>(
+						new CoinVector<>(),
+						getPingScheduler(config.futuresMark(), () -> this.futuresMarkState),
+						new CoinVector<>(),
+						new ArrayList<>(),
+						new AtomicInteger(0)
+		);
+
+		initDomainClients(config.spotBookTicker(), spotBookTickerState);
+		initDomainClients(config.futuresBookTicker(), futuresBookTickerState);
+		initDomainClients(config.futuresFunding(), futuresFundingState);
+		initDomainClients(config.futuresMark(), futuresMarkState);
 	}
 
-	private void initClients(URI endpoint, TradeMarket market) {
-		int clientsAmount = switch (market) {
-			case SPOT -> config.spotClientsAmount();
-			case FUTURES -> config.futuresClientsAmount();
-		};
+	private <T extends GenericPublicWsPatch> IModifiableScheduler getPingScheduler(
+					DomainClientConfig<T> config,
+					Supplier<ChannelState<T>> state
+	) {
+		long pingInterval = config.orchestratorConfig().pingIntervalMs();
+		if (pingInterval == 0) return null;
+		return schedulerBuilder.create(() -> state.get().clients().forEach(PublicWsInstance::sendPing), pingInterval);
+	}
 
-		int maxCoinRequest = switch (market) {
-			case SPOT -> config.spotRequestMaxCoinSize();
-			case FUTURES -> config.futuresRequestMaxCoinSize();
-		};
+	private <T extends GenericPublicWsPatch> void initDomainClients(
+					DomainClientConfig<T> domainClientConfig,
+					ChannelState<T> channelState
+	) {
+		domainClientConfig.endpoint().thenAccept(endpoint -> {
+			for (int i = 0; i < domainClientConfig.orchestratorConfig().clientsAmount(); i++) {
+				PublicWsInstance<T> instance = new PublicWsInstance<>(endpoint, domainClientConfig.instanceConfig());
+				channelState.clients().add(instance);
+			}
 
-		List<PublicWsInstance> clients = switch (market) {
-			case SPOT -> spotClients;
-			case FUTURES -> futuresClients;
-		};
-
-		for (int i = 0; i < clientsAmount; i++) {
-			PublicWsInstance instance = new PublicWsInstance(
-							context,
-							endpoint,
-							messageHandler,
-							wsFrames,
-							maxCoinRequest,
-							market
-			);
-			clients.add(instance);
-		}
+			channelState.clients().parallelStream().forEach(PublicWsInstance::connect);
+			if (channelState.pingScheduler() != null) channelState.pingScheduler().start();
+		});
 	}
 
 	@Override
 	public CompletableFuture<Void> connect() {
-		List<CompletableFuture<Void>> connectFutures = new ArrayList<>();
-		connectFutures.add(spotReadyFuture.thenRun(() -> {
-			spotClients.parallelStream().forEach(PublicWsInstance::connect);
-			if (spotPingScheduler != null) spotPingScheduler.start();
-		}));
-		connectFutures.add(futuresReadyFuture.thenRun(() -> {
-			futuresClients.parallelStream().forEach(PublicWsInstance::connect);
-			if (futuresPingScheduler != null) futuresPingScheduler.start();
-		}));
+		List<CompletableFuture<URI>> connectFutures = new ArrayList<>();
+		connectFutures.add(config.spotBookTicker().endpoint());
+		connectFutures.add(config.futuresBookTicker().endpoint());
+		connectFutures.add(config.futuresFunding().endpoint());
+		connectFutures.add(config.futuresMark().endpoint());
 		return CompletableFuture.allOf(connectFutures.toArray(new CompletableFuture[0]));
 	}
 
 	@Override
 	public void close() {
-		spotClients.forEach(PublicWsInstance::close);
-		futuresClients.forEach(PublicWsInstance::close);
-		if (spotPingScheduler != null) spotPingScheduler.cancelNow();
-		if (futuresPingScheduler != null) futuresPingScheduler.cancelNow();
+		spotBookTickerState.clients().forEach(PublicWsInstance::close);
+		futuresBookTickerState.clients().forEach(PublicWsInstance::close);
+		futuresFundingState.clients().forEach(PublicWsInstance::close);
+		futuresMarkState.clients().forEach(PublicWsInstance::close);
 	}
 
-	private void sendSpotPings() {
-		spotClients.forEach(PublicWsInstance::sendPing);
-	}
-
-	private void sendFuturesPings() {
-		futuresClients.forEach(PublicWsInstance::sendPing);
-	}
-
-	private <T> int subscribe(
+	private <T extends GenericPublicWsPatch> void subscribe(
 					Set<String> coinsToSub,
-					CoinVector<Set<Consumer<T>>> handlersMap,
 					Consumer<T> handler,
-					CoinVector<PublicWsInstance> coinToInstanceMap,
-					List<PublicWsInstance> clients,
-					int index,
-					TriConsumer<PublicWsInstance, Set<String>, Consumer<T>> subscribeFunction
+					ChannelState<T> channelState
 	) {
-		Map<PublicWsInstance, Set<String>> coinMap = new HashMap<>();
+		var handlers = channelState.handlers();
+		var clients = channelState.clients();
+		var index = channelState.index().get();
+
+		Map<PublicWsInstance<T>, Set<String>> coinMap = new HashMap<>();
 		for (String coin : coinsToSub) {
-			handlersMap.computeIfAbsent(coin, _ -> new CopyOnWriteArraySet<>()).add(handler);
+			if (handlers.containsKey(coin)) throw new RuntimeException("Coin " + coin + " is already subscribed.");
+			handlers.put(coin, handler);
 
-			PublicWsInstance existing = coinToInstanceMap.get(coin);
-			if (existing != null) {
-				coinMap.computeIfAbsent(existing, _ -> new HashSet<>()).add(coin);
-			} else {
-				PublicWsInstance client = clients.get(index++ % clients.size());
-				coinMap.computeIfAbsent(client, _ -> new HashSet<>()).add(coin);
-				coinToInstanceMap.put(coin, client);
-			}
+			PublicWsInstance<T> client = clients.get(index++ % clients.size());
+			coinMap.computeIfAbsent(client, _ -> new HashSet<>()).add(coin);
 		}
 
-		for (Map.Entry<PublicWsInstance, Set<String>> e : coinMap.entrySet()) {
-			subscribeFunction.accept(e.getKey(), e.getValue(), handler);
+		for (Map.Entry<PublicWsInstance<T>, Set<String>> e : coinMap.entrySet()) {
+			e.getKey().subscribe(e.getValue(), handler);
 		}
 
-		return index;
+		channelState.index().set(index);
 	}
 
-	private <T> void subscribeFutures(
-					Set<String> coinsToSub,
-					CoinVector<Set<Consumer<T>>> handlersMap,
-					Consumer<T> handler,
-					TriConsumer<PublicWsInstance, Set<String>, Consumer<T>> subscribeFun
-	) {
-		if (futuresReadyFuture.state() != Future.State.SUCCESS)
-			throw new RuntimeException("Futures clients are not yet initialized. Call .connect().join() first");
-		futuresClientIndex =
-						subscribe(
-										coinsToSub,
-										handlersMap,
-										handler,
-										futuresCoinToInstanceMap,
-										futuresClients,
-										futuresClientIndex,
-										subscribeFun
-						);
+	protected void subscribeFuturesFundingRates(Set<String> coins, Consumer<FundingPatch> handler) {
+		subscribe(coins, handler, futuresFundingState);
 	}
 
-	private <T> void subscribeSpot(
-					Set<String> coinsToSub,
-					CoinVector<Set<Consumer<T>>> handlersMap,
-					Consumer<T> handler,
-					TriConsumer<PublicWsInstance, Set<String>, Consumer<T>> subscribeFun
-	) {
-		if (spotReadyFuture.state() != Future.State.SUCCESS)
-			throw new RuntimeException("Spot clients are not yet initialized. Call .connect().join() first");
-		spotClientIndex =
-						subscribe(
-										coinsToSub,
-										handlersMap,
-										handler,
-										spotCoinToInstanceMap,
-										spotClients,
-										spotClientIndex,
-										subscribeFun
-						);
+	protected void subscribeFuturesBookTicker(Set<String> coins, Consumer<BookTickerPatch> handler) {
+		subscribe(coins, handler, futuresBookTickerState);
+	}
+
+	protected void subscribeFuturesMarkPrice(Set<String> coins, Consumer<MarkPatch> handler) {
+		subscribe(coins, handler, futuresMarkState);
+	}
+
+	protected void subscribeSpotBookTicker(Set<String> coins, Consumer<BookTickerPatch> handler) {
+		subscribe(coins, handler, spotBookTickerState);
+	}
+
+	private boolean presentOnFutures(String coin) {
+		return futuresFundingState.handlers().containsKey(coin);
+	}
+
+	private boolean presentOnSpot(String coin) {
+		return spotBookTickerState.handlers().containsKey(coin);
 	}
 
 	@Override
-	public void subscribeFuturesFundingRates(Set<String> coinsToSub, Consumer<FundingRatePatch> handler) {
-		subscribeFutures(coinsToSub, futuresFundingRateHandlers, handler, PublicWsInstance::subscribeFuturesFundingRates);
+	public void subscribeFutures(Set<String> coins, FuturesHandler handler) {
+		Optional<String> alreadySubscribed = coins.stream().filter(this::presentOnFutures).findFirst();
+		if (alreadySubscribed.isPresent())
+			throw new RuntimeException("Coin " + alreadySubscribed.get() + " is already subscribed to futures.");
+		subscribeFuturesFundingRates(coins, handler.fundingRateHandler());
+		subscribeFuturesMarkPrice(coins, handler.markPriceHandler());
+		subscribeFuturesBookTicker(coins, handler.bookTickerHandler());
 	}
 
 	@Override
-	public void subscribeFuturesBookTicker(Set<String> coins, Consumer<BookTickerPatch> handler) {
-		subscribeFutures(coins, futuresBookTickerHandlers, handler, PublicWsInstance::subscribeFuturesBookTicker);
+	public void subscribeSpot(Set<String> coins, SpotHandler handler) {
+		Optional<String> alreadySubscribed = coins.stream().filter(this::presentOnSpot).findFirst();
+		if (alreadySubscribed.isPresent())
+			throw new RuntimeException("Coin " + alreadySubscribed.get() + " is already subscribed to spot.");
+		subscribeSpotBookTicker(coins, handler.bookTickerHandler());
 	}
 
-	@Override
-	public void subscribeFuturesMarkPrice(Set<String> coins, Consumer<MarkPricePatch> handler) {
-		subscribeFutures(coins, futuresMarkPriceHandlers, handler, PublicWsInstance::subscribeFuturesMarkPrice);
-	}
-
-	@Override
-	public void subscribeSpotBookTicker(Set<String> coins, Consumer<BookTickerPatch> handler) {
-		subscribeSpot(coins, spotBookTickerHandlers, handler, PublicWsInstance::subscribeSpotBookTicker);
-	}
-
-	private void unsubscribeCoins(
+	private <T extends GenericPublicWsPatch> void unsubscribeCoins(
 					Set<String> coins,
-					CoinVector<PublicWsInstance> coinToInstanceMap,
-					BiConsumer<PublicWsInstance, Set<String>> unsubscribeFun
+					ChannelState<T> channelState
 	) {
-		Map<PublicWsInstance, Set<String>> coinMap = new HashMap<>();
+		var coinToInstanceMap = channelState.coinToInstanceMap();
+
+		Map<PublicWsInstance<T>, Set<String>> coinMap = new HashMap<>();
 		for (String coin : coins) {
-			PublicWsInstance instance = coinToInstanceMap.remove(coin);
+			PublicWsInstance<T> instance = coinToInstanceMap.remove(coin);
 			if (instance == null) continue;
 			coinMap.computeIfAbsent(instance, _ -> new HashSet<>()).add(coin);
 		}
 
-		for (Map.Entry<PublicWsInstance, Set<String>> e : coinMap.entrySet()) {
-			unsubscribeFun.accept(e.getKey(), e.getValue());
+		for (Map.Entry<PublicWsInstance<T>, Set<String>> e : coinMap.entrySet()) {
+			e.getKey().unsubscribe(e.getValue());
 		}
 	}
 
 	@Override
 	public void unsubscribeCoinsFutures(Set<String> coins) {
-		unsubscribeCoins(coins, futuresCoinToInstanceMap, PublicWsInstance::unsubscribeCoinsFutures);
-		futuresMarkPriceHandlers.removeAll(coins);
-		futuresBookTickerHandlers.removeAll(coins);
-		futuresFundingRateHandlers.removeAll(coins);
+		unsubscribeCoins(coins, futuresFundingState);
+		unsubscribeCoins(coins, futuresMarkState);
+		unsubscribeCoins(coins, futuresBookTickerState);
 	}
 
 	@Override
 	public void unsubscribeCoinsSpot(Set<String> coins) {
-		unsubscribeCoins(coins, spotCoinToInstanceMap, PublicWsInstance::unsubscribeCoinsSpot);
-		spotBookTickerHandlers.removeAll(coins);
+		unsubscribeCoins(coins, spotBookTickerState);
 	}
 }

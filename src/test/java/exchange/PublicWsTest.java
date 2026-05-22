@@ -1,9 +1,12 @@
 package exchange;
 
+import com.boris.fundingarbitrage.exchange.publicws.FuturesHandler;
 import com.boris.fundingarbitrage.exchange.publicws.PublicWsClient;
+import com.boris.fundingarbitrage.exchange.publicws.SpotHandler;
 import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
-import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
-import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
+import com.boris.fundingarbitrage.model.websocket.patch.FundingPatch;
+import com.boris.fundingarbitrage.model.websocket.patch.GenericPublicWsPatch;
+import com.boris.fundingarbitrage.model.websocket.patch.MarkPatch;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import com.boris.fundingarbitrage.util.logger.CoinVectorLogger;
 import org.apache.commons.lang3.math.NumberUtils;
@@ -16,23 +19,19 @@ import java.time.Duration;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 @Tag("integration")
 public abstract class PublicWsTest {
 	private static final Logger log = LoggerFactory.getLogger(PublicWsTest.class);
 	private static final Set<String> COINS = Set.of(
-					"BR",
 					"PARTI",
-					"FHE",
-					"PIEVERSE",
-					"RATS",
-					"PUMPBTC",
 					"USTC",
 					"ZBT",
-					"LUNC"
+					"SOL"
 	);
 
-	private static final Duration WAIT_TIMEOUT = Duration.ofSeconds(240);
+	private static final Duration WAIT_TIMEOUT = Duration.ofSeconds(20);
 	private static final int MIN_MESSAGES_PER_STREAM = 3;
 	private final CoinVector<Integer> bookTickerMessageCounts = new CoinVector<>();
 	private final CoinVector<Integer> spotBookTickerMessageCounts = new CoinVector<>();
@@ -40,8 +39,8 @@ public abstract class PublicWsTest {
 	private final CoinVector<Integer> markPriceMessageCounts = new CoinVector<>();
 	private final CoinVector<BookTickerPatch> latestBookTickerPatches = new CoinVector<>();
 	private final CoinVector<BookTickerPatch> latestSpotBookTickerPatches = new CoinVector<>();
-	private final CoinVector<FundingRatePatch> latestFundingRatePatches = new CoinVector<>();
-	private final CoinVector<MarkPricePatch> latestMarkPricePatches = new CoinVector<>();
+	private final CoinVector<FundingPatch> latestFundingRatePatches = new CoinVector<>();
+	private final CoinVector<MarkPatch> latestMarkPricePatches = new CoinVector<>();
 
 	private CompletableFuture<Void> waitingFuture;
 
@@ -91,9 +90,9 @@ public abstract class PublicWsTest {
 		);
 	}
 
-	private void updateFundingRatePatch(FundingRatePatch patch) {
+	private void updateFundingRatePatch(FundingPatch patch) {
 		latestFundingRatePatches.merge(
-						patch.coin(), patch, (existing, incoming) -> new FundingRatePatch(
+						patch.coin(), patch, (existing, incoming) -> new FundingPatch(
 										incoming.coin(),
 										incoming.rate() != null ? incoming.rate() : existing.rate(),
 										incoming.settlement() != null ? incoming.settlement() : existing.settlement(),
@@ -102,42 +101,35 @@ public abstract class PublicWsTest {
 		);
 	}
 
-	private void updateMarkPricePatch(MarkPricePatch patch) {
+	private void updateMarkPricePatch(MarkPatch patch) {
 		latestMarkPricePatches.put(patch.coin(), patch);
 	}
 
+	private <T extends GenericPublicWsPatch> Consumer<T> createHandler(
+					Consumer<T> patchConsumer,
+					CoinVector<Integer> messageCounts
+	) {
+		return (T patch) -> {
+			patchConsumer.accept(patch);
+			messageCounts.merge(patch.coin(), 1, Integer::sum);
+			checkMessages();
+		};
+	}
+
 	private void subscribeToStreams() {
-		publicWsClient().subscribeFuturesBookTicker(
-						COINS, (patch) -> {
-							updateBookTickerPatch(patch);
-							bookTickerMessageCounts.merge(patch.coin(), 1, Integer::sum);
-							checkMessages();
-						}
+		FuturesHandler futuresHandler = new FuturesHandler(
+						createHandler(this::updateBookTickerPatch, bookTickerMessageCounts),
+						createHandler(this::updateMarkPricePatch, markPriceMessageCounts),
+						createHandler(this::updateFundingRatePatch, fundingRateMessageCounts)
 		);
 
-		publicWsClient().subscribeFuturesFundingRates(
-						COINS, (patch) -> {
-							updateFundingRatePatch(patch);
-							fundingRateMessageCounts.merge(patch.coin(), 1, Integer::sum);
-							checkMessages();
-						}
-		);
+		SpotHandler spotHandler = new SpotHandler(createHandler(
+						this::updateSpotBookTickerPatch,
+						spotBookTickerMessageCounts
+		));
 
-		publicWsClient().subscribeFuturesMarkPrice(
-						COINS, (patch) -> {
-							updateMarkPricePatch(patch);
-							markPriceMessageCounts.merge(patch.coin(), 1, Integer::sum);
-							checkMessages();
-						}
-		);
-
-		publicWsClient().subscribeSpotBookTicker(
-						COINS, (patch) -> {
-							updateSpotBookTickerPatch(patch);
-							spotBookTickerMessageCounts.merge(patch.coin(), 1, Integer::sum);
-							checkMessages();
-						}
-		);
+		publicWsClient().subscribeFutures(COINS, futuresHandler);
+		publicWsClient().subscribeSpot(COINS, spotHandler);
 	}
 
 	@Test
@@ -161,8 +153,8 @@ public abstract class PublicWsTest {
 			Integer markPriceCount = markPriceMessageCounts.get(coin);
 			BookTickerPatch bookTickerPatch = latestBookTickerPatches.get(coin);
 			BookTickerPatch spotBookTickerPatch = latestSpotBookTickerPatches.get(coin);
-			FundingRatePatch fundingRatePatch = latestFundingRatePatches.get(coin);
-			MarkPricePatch markPricePatch = latestMarkPricePatches.get(coin);
+			FundingPatch fundingRatePatch = latestFundingRatePatches.get(coin);
+			MarkPatch markPricePatch = latestMarkPricePatches.get(coin);
 
 			if (NumberUtils.min(
 							bookTickerCount == null ? 0 : bookTickerCount,

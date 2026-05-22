@@ -1,10 +1,9 @@
 package com.boris.fundingarbitrage.exchange.impl.okx.publicws;
 
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
-import com.boris.fundingarbitrage.exchange.publicws.IMessageHandler;
 import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
-import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
-import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
+import com.boris.fundingarbitrage.model.websocket.patch.FundingPatch;
+import com.boris.fundingarbitrage.model.websocket.patch.MarkPatch;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import java.math.BigDecimal;
@@ -19,7 +18,7 @@ class MessageHandler implements IMessageHandler {
 	}
 
 	@Override
-	public MarkPricePatch parseMarkPriceMessageSymbol(JsonNode root) {
+	public MarkPatch parseMarkPriceMessageSymbol(JsonNode root) {
 		String channel = root.path("arg").path("channel").asText();
 		if (!"mark-price".equalsIgnoreCase(channel)) return null;
 		String symbol = root.path("arg").path("instId").asText();
@@ -35,7 +34,7 @@ class MessageHandler implements IMessageHandler {
 		Instant ts = tsNode == 0 ? null : Instant.ofEpochMilli(tsNode);
 		if (markPx == null || ts == null) return null;
 
-		return new MarkPricePatch(coin, markPx, ts);
+		return new MarkPatch(coin, markPx, ts);
 	}
 
 	private BookTickerPatch parseBookTickerInternal(JsonNode root, Function<String, String> symbolInverse) {
@@ -66,7 +65,7 @@ class MessageHandler implements IMessageHandler {
 	}
 
 	@Override
-	public FundingRatePatch parseFundingRateMessageSymbol(JsonNode root) {
+	public FundingPatch parseFundingRateMessageSymbol(JsonNode root) {
 		return null;
 	}
 
@@ -78,15 +77,5 @@ class MessageHandler implements IMessageHandler {
 	@Override
 	public BookTickerPatch parseSpotBookTickerMessageSymbol(JsonNode root) {
 		return this.parseBookTickerInternal(root, context::getSpotSymbolInverse);
-	}
-
-	@Override
-	public String getResponseToSpotPingMessage(String message) {
-		return null;
-	}
-
-	@Override
-	public String getResponseToFuturesPingMessage(String message) {
-		return null;
 	}
 }

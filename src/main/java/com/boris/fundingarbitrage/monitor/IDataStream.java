@@ -1,14 +1,12 @@
 package com.boris.fundingarbitrage.monitor;
 
 import com.boris.fundingarbitrage.exchange.BaseExchange;
-import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
-import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
-import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
+import com.boris.fundingarbitrage.exchange.publicws.FuturesHandler;
+import com.boris.fundingarbitrage.exchange.publicws.SpotHandler;
 import lombok.NonNull;
 
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
 
 public interface IDataStream {
 	@NonNull
@@ -19,20 +17,12 @@ public interface IDataStream {
 
 	void onSteadyData(Runnable onSteadyData);
 
-	default void subscribeFuturesBookTicker(BaseExchange ex, Set<String> coins, Consumer<BookTickerPatch> handler) {
-		ex.publicWsClient().subscribeFuturesBookTicker(coins, handler);
+	default void subscribeFutures(BaseExchange ex, Set<String> coins, FuturesHandler handler) {
+		ex.publicWsClient().subscribeFutures(coins, handler);
 	}
 
-	default void subscribeFuturesFundingRates(BaseExchange ex, Set<String> coins, Consumer<FundingRatePatch> handler) {
-		ex.publicWsClient().subscribeFuturesFundingRates(coins, handler);
-	}
-
-	default void subscribeFuturesMarkPrice(BaseExchange ex, Set<String> coins, Consumer<MarkPricePatch> handler) {
-		ex.publicWsClient().subscribeFuturesMarkPrice(coins, handler);
-	}
-
-	default void subscribeSpotBookTicker(BaseExchange ex, Set<String> coins, Consumer<BookTickerPatch> handler) {
-		ex.publicWsClient().subscribeSpotBookTicker(coins, handler);
+	default void subscribeSpot(BaseExchange ex, Set<String> coins, SpotHandler handler) {
+		ex.publicWsClient().subscribeSpot(coins, handler);
 	}
 
 	default void unsubscribeFutures(BaseExchange ex, Set<String> coins) {

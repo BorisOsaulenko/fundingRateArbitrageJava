@@ -3,6 +3,8 @@ package com.boris.fundingarbitrage.monitor;
 import com.boris.fundingarbitrage.coinfilter.CoinAvailabilityRecord;
 import com.boris.fundingarbitrage.coinfilter.CoinFilterResult;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
+import com.boris.fundingarbitrage.exchange.publicws.FuturesHandler;
+import com.boris.fundingarbitrage.exchange.publicws.SpotHandler;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.Funding;
 import com.boris.fundingarbitrage.model.contract.Mark;
@@ -10,8 +12,8 @@ import com.boris.fundingarbitrage.model.exchange.snapshot.FuturesSnapshot;
 import com.boris.fundingarbitrage.model.exchange.snapshot.Snapshot;
 import com.boris.fundingarbitrage.model.exchange.snapshot.SpotSnapshot;
 import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
-import com.boris.fundingarbitrage.model.websocket.patch.FundingRatePatch;
-import com.boris.fundingarbitrage.model.websocket.patch.MarkPricePatch;
+import com.boris.fundingarbitrage.model.websocket.patch.FundingPatch;
+import com.boris.fundingarbitrage.model.websocket.patch.MarkPatch;
 import com.boris.fundingarbitrage.strategy.TradeMarket;
 import com.boris.fundingarbitrage.util.logger.CoinVectorLogger;
 import org.slf4j.Logger;
@@ -159,18 +161,17 @@ public class CoinMonitor {
 							.collect(Collectors.toSet());
 
 			if (!supportedOnFutures.isEmpty()) {
-				Consumer<BookTickerPatch> bookHandler = createFuturesTickerHandler(ex);
-				Consumer<FundingRatePatch> fundingHandler = createFuturesFundingHandler(ex);
-				Consumer<MarkPricePatch> markHandler = createFuturesMarkHandler(ex);
-
-				dataStream.subscribeFuturesBookTicker(ex, supportedOnFutures, bookHandler);
-				dataStream.subscribeFuturesFundingRates(ex, supportedOnFutures, fundingHandler);
-				dataStream.subscribeFuturesMarkPrice(ex, supportedOnFutures, markHandler);
+				FuturesHandler handler = new FuturesHandler(
+								createFuturesTickerHandler(ex),
+								createFuturesMarkHandler(ex),
+								createFuturesFundingHandler(ex)
+				);
+				dataStream.subscribeFutures(ex, supportedOnFutures, handler);
 			}
 
 			if (!supportedOnSpot.isEmpty()) {
-				Consumer<BookTickerPatch> spotBookHandler = createSpotBookHandler(ex);
-				dataStream.subscribeSpotBookTicker(ex, supportedOnSpot, spotBookHandler);
+				SpotHandler handler = new SpotHandler(createSpotBookHandler(ex));
+				dataStream.subscribeSpot(ex, supportedOnSpot, handler);
 			}
 		}
 
@@ -211,7 +212,7 @@ public class CoinMonitor {
 		);
 	}
 
-	Consumer<FundingRatePatch> createFuturesFundingHandler(BaseExchange ex) {
+	Consumer<FundingPatch> createFuturesFundingHandler(BaseExchange ex) {
 		return ratePatch -> futuresFundingRates.compute(
 						ex, ratePatch.coin(), (k, v) -> {
 							if (v == null) return null;
@@ -226,7 +227,7 @@ public class CoinMonitor {
 		);
 	}
 
-	Consumer<MarkPricePatch> createFuturesMarkHandler(BaseExchange ex) {
+	Consumer<MarkPatch> createFuturesMarkHandler(BaseExchange ex) {
 		return markPricePatch -> futuresMarkPrices.compute(
 						ex, markPricePatch.coin(), (k, v) -> {
 							if (v == null) return null;

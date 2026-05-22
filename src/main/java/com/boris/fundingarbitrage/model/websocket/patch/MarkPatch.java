@@ -6,10 +6,10 @@ import lombok.NonNull;
 import java.math.BigDecimal;
 import java.time.Instant;
 
-public record MarkPricePatch(
+public record MarkPatch(
 				@NonNull String coin, @NonNull BigDecimal price, @NonNull Instant timestamp
 ) implements GenericPublicWsPatch {
-	public MarkPricePatch {
+	public MarkPatch {
 		Validations.requirePositive(price, "Price");
 	}
 }
