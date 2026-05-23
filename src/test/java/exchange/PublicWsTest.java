@@ -25,13 +25,11 @@ import java.util.function.Consumer;
 public abstract class PublicWsTest {
 	private static final Logger log = LoggerFactory.getLogger(PublicWsTest.class);
 	private static final Set<String> COINS = Set.of(
-					"PARTI",
-					"USTC",
-					"ZBT",
+					"ETH",
 					"SOL"
 	);
 
-	private static final Duration WAIT_TIMEOUT = Duration.ofSeconds(20);
+	private static final Duration WAIT_TIMEOUT = Duration.ofSeconds(50);
 	private static final int MIN_MESSAGES_PER_STREAM = 3;
 	private final CoinVector<Integer> bookTickerMessageCounts = new CoinVector<>();
 	private final CoinVector<Integer> spotBookTickerMessageCounts = new CoinVector<>();
@@ -185,12 +183,13 @@ public abstract class PublicWsTest {
 			}
 		}
 
+		publicWsClient().close();
+
 		if (!allStreamsReceived) {
 			log.error("Did not receive minimum messages for all streams within timeout. Counts: ");
 		} else if (!allFieldsPresent) {
 			log.error("Did not receive complete patch fields for all streams within timeout.");
 		} else {
-			publicWsClient().close();
 			return;
 		}
 

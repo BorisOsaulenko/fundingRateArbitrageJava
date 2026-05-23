@@ -5,8 +5,8 @@ import com.boris.fundingarbitrage.coinfilter.CoinFilterResult;
 import com.boris.fundingarbitrage.coinfilter.ConstantDataRecord;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.exchange.privatehttp.PrivateHttpClient;
-import com.boris.fundingarbitrage.exchange.publicws.FuturesHandler;
 import com.boris.fundingarbitrage.exchange.publichttp.PublicHttpClient;
+import com.boris.fundingarbitrage.exchange.publicws.FuturesHandler;
 import com.boris.fundingarbitrage.exchange.publicws.IPublicMarketDataStream;
 import com.boris.fundingarbitrage.exchange.publicws.SpotHandler;
 import com.boris.fundingarbitrage.model.exchange.ExchangeName;
@@ -195,12 +195,12 @@ class CoinMonitorTest {
 		}
 
 		@Override
-		public void unsubscribeCoinsFutures(Set<String> coins) {
+		public void unsubscribeFutures(Set<String> coins) {
 			coins.forEach(futuresHandlers::remove);
 		}
 
 		@Override
-		public void unsubscribeCoinsSpot(Set<String> coins) {
+		public void unsubscribeSpot(Set<String> coins) {
 			coins.forEach(spotHandlers::remove);
 		}
 

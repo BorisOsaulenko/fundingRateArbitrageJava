@@ -6,6 +6,12 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import java.util.List;
 
 record WsRequest(long id, String method, List<Object> params) {
+	private static int idIncrement = 0;
+
+	WsRequest(String method, List<Object> params) {
+		this(idIncrement++, method, params);
+	}
+
 	public String toJson() {
 		try {
 			return ObjectMapperSingleton.getInstance().writeValueAsString(this);

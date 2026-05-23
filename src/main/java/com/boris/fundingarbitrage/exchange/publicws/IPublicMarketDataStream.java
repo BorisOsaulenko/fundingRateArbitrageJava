@@ -20,7 +20,15 @@ public interface IPublicMarketDataStream {
 		subscribeSpot(Set.of(coin), handler);
 	}
 
-	void unsubscribeCoinsFutures(Set<String> coins);
+	void unsubscribeFutures(Set<String> coins);
 
-	void unsubscribeCoinsSpot(Set<String> coins);
+	void unsubscribeSpot(Set<String> coins);
+
+	default void unsubscribeFutures(String coin) {
+		unsubscribeFutures(Set.of(coin));
+	}
+
+	default void unsubscribeSpot(String coin) {
+		unsubscribeSpot(Set.of(coin));
+	}
 }

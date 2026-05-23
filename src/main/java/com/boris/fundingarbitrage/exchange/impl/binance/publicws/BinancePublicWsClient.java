@@ -13,10 +13,10 @@ import java.net.URI;
 
 public class BinancePublicWsClient extends PublicWsClient {
 	public BinancePublicWsClient(ExchangeContext context) {
-		URI futuresFundingAndMarkEndpoint = URI.create("wss://fstream.binance.com/market");
+		URI futuresFundingAndMarkEndpoint = URI.create("wss://fstream.binance.com/market/ws");
 		URI futuresBookTickerEndpoint = URI.create("wss://fstream.binance.com/public/ws");
 		URI spotEndpoint = URI.create("wss://stream.binance.com:9443/ws");
-		WsFrames frames = new WsFrames();
+		WsFrames frames = new WsFrames(context);
 		MessageHandler messageHandler = new MessageHandler(context);
 		ClientsConfig config = new ClientsConfig(
 						new DomainClientConfigBuilder<BookTickerPatch>(futuresBookTickerEndpoint)

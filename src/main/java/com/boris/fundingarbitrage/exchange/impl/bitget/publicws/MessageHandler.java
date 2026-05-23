@@ -2,7 +2,6 @@ package com.boris.fundingarbitrage.exchange.impl.bitget.publicws;
 
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
-import com.boris.fundingarbitrage.model.websocket.patch.FundingPatch;
 import com.boris.fundingarbitrage.model.websocket.patch.MarkPatch;
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -10,14 +9,13 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.function.Function;
 
-class MessageHandler implements IMessageHandler {
+class MessageHandler {
 	private final ExchangeContext context;
 
 	public MessageHandler(ExchangeContext context) {
 		this.context = context;
 	}
 
-	@Override
 	public MarkPatch parseMarkPriceMessageSymbol(JsonNode root) {
 		String symbol = root.get("arg").path("instId").asText();
 		String channel = root.get("arg").path("channel").asText();
@@ -28,9 +26,9 @@ class MessageHandler implements IMessageHandler {
 		JsonNode data = dataArray.get(0);
 
 		String coin = context.getFuturesSymbolInverse(symbol);
-		String markPriceText = data.path("mark").asText();
-		BigDecimal markPrice = markPriceText.isEmpty() ? null : new BigDecimal(markPriceText);
-		if (markPrice == null) return null;
+		String markPriceText = data.path("markPrice").asText();
+		if (markPriceText.isBlank()) return null;
+		BigDecimal markPrice = new BigDecimal(markPriceText);
 
 		long ts = data.path("ts").asLong();
 		if (ts == 0) return null;
@@ -66,18 +64,11 @@ class MessageHandler implements IMessageHandler {
 		return new BookTickerPatch(coin, bidPr, bidSz, askPr, askSz, timestamp);
 	}
 
-	@Override
 	public BookTickerPatch parseFuturesBookTickerMessageSymbol(JsonNode root) {
 		return parseBookTickerInternal(root, context::getFuturesSymbolInverse);
 	}
 
-	@Override
 	public BookTickerPatch parseSpotBookTickerMessageSymbol(JsonNode root) {
 		return parseBookTickerInternal(root, context::getSpotSymbolInverse);
-	}
-
-	@Override
-	public FundingPatch parseFundingRateMessageSymbol(JsonNode root) {
-		return null; // Full funding via rest api
 	}
 }

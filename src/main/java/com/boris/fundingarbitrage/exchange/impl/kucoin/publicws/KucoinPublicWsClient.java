@@ -2,8 +2,11 @@ package com.boris.fundingarbitrage.exchange.impl.kucoin.publicws;
 
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.impl.kucoin.publicrest.KucoinPublicHttpClient;
-import com.boris.fundingarbitrage.exchange.publicws.ClientsConfig;
+import com.boris.fundingarbitrage.exchange.publicws.DomainClientConfigBuilder;
+import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
+import com.boris.fundingarbitrage.model.websocket.patch.MarkPatch;
 import com.boris.fundingarbitrage.scheduler.ProdModifiableSchedulerBuilder;
+import com.boris.fundingarbitrage.util.wss.publicws.ClientsConfigNoFunding;
 import com.boris.fundingarbitrage.util.wss.publicws.FullFundingViaRest;
 
 import java.net.URI;
@@ -14,19 +17,38 @@ public class KucoinPublicWsClient extends FullFundingViaRest {
 		MessageHandler messageHandler = new MessageHandler(context);
 		CompletableFuture<URI> spotEndpointFuture = publicHttp.fetchPublicSpotToken();
 		CompletableFuture<URI> futuresEndpointFuture = publicHttp.fetchPublicFuturesToken();
-		IPublicWsFrames wsFrames = new WsFrames();
+		WsFrames frames = new WsFrames(context);
 
-		ClientsConfig config = new ClientsConfig(
-						spotEndpointFuture,
-						futuresEndpointFuture,
-						5,
-						5,
-						90,
-						90,
-						18,
-						18
+		ClientsConfigNoFunding config = new ClientsConfigNoFunding(
+						new DomainClientConfigBuilder<BookTickerPatch>(futuresEndpointFuture)
+										.orchestrator(5, 18)
+										.instanceConfig(90, messageHandler::parseFuturesBookTickerMessageSymbol)
+										.frames(
+														frames::getPingFrame,
+														frames::getSubscribeFuturesBookTickerFrame,
+														frames::getUnsubscribeFuturesBookTickerFrame
+										)
+										.build(),
+						new DomainClientConfigBuilder<MarkPatch>(futuresEndpointFuture)
+										.orchestrator(5, 18)
+										.instanceConfig(90, messageHandler::parseMarkPriceMessageSymbol)
+										.frames(
+														frames::getPingFrame,
+														frames::getSubscribeFuturesMarkPriceFrame,
+														frames::getUnsubscribeFuturesMarkPriceFrame
+										)
+										.build(),
+						new DomainClientConfigBuilder<BookTickerPatch>(spotEndpointFuture)
+										.orchestrator(5, 18)
+										.instanceConfig(90, messageHandler::parseSpotBookTickerMessageSymbol)
+										.frames(
+														frames::getPingFrame,
+														frames::getSubscribeSpotBookTickerFrame,
+														frames::getUnsubscribeSpotBookTickerFrame
+										)
+										.build()
 		);
 
-		super(context, config, wsFrames, messageHandler, publicHttp, new ProdModifiableSchedulerBuilder());
+		super(config, publicHttp, new ProdModifiableSchedulerBuilder());
 	}
 }

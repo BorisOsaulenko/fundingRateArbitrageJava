@@ -26,11 +26,11 @@ public interface IDataStream {
 	}
 
 	default void unsubscribeFutures(BaseExchange ex, Set<String> coins) {
-		ex.publicWsClient().unsubscribeCoinsFutures(coins);
+		ex.publicWsClient().unsubscribeFutures(coins);
 	}
 
 	default void unsubscribeSpot(BaseExchange ex, Set<String> coins) {
-		ex.publicWsClient().unsubscribeCoinsSpot(coins);
+		ex.publicWsClient().unsubscribeSpot(coins);
 	}
 
 	default void unsubscribeAll(BaseExchange ex, Set<String> coins) {

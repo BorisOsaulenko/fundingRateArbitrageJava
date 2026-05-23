@@ -10,8 +10,8 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 class ModifiableScheduler implements IModifiableScheduler {
-	private static final Logger log = LoggerFactory.getLogger(ModifiableScheduler.class);
-	private static final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+	private final Logger log = LoggerFactory.getLogger(ModifiableScheduler.class);
+	private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 	private final Runnable work;
 	private volatile ScheduledFuture<?> runningTask;
 	@Getter private volatile long currentFrequencyMs; // Can be updated mid-fly
@@ -54,7 +54,9 @@ class ModifiableScheduler implements IModifiableScheduler {
 			log.error("Exception during processing internal tick: {}", e.getMessage());
 			throw new RuntimeException(e);
 		} finally {
-			runningTask = scheduler.schedule(this::start, currentFrequencyMs, TimeUnit.MILLISECONDS);
+			if (!shutdown) {
+				runningTask = scheduler.schedule(this::start, currentFrequencyMs, TimeUnit.MILLISECONDS);
+			}
 		}
 	}
 }

@@ -9,12 +9,15 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.websocket.Session;
 import lombok.NonNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -23,27 +26,34 @@ class PublicWsInstance<T extends GenericPublicWsPatch> {
 	private final CoinVector<Consumer<T>> handlersMap = new CoinVector<>();
 	private final PrettyWsClient client; // protected for custom tweaks in subclasses
 	private final InstanceConfig<T> config;
+	private final String name;
+	private final Logger log = LoggerFactory.getLogger(PublicWsInstance.class);
 
 	public PublicWsInstance(
-					URI endpoint,
-					InstanceConfig<T> config
+					@NonNull URI endpoint,
+					@NonNull InstanceConfig<T> config,
+					@NonNull String name
 	) {
-		this.client = getClient(endpoint);
+		this.name = name;
 		this.config = config;
+		this.client = getClient(endpoint);
 	}
 
 	private PrettyWsClient getClient(URI endpoint) {
 		var client = new PrettyWsClient(
 						endpoint,
-						this.getClass().getSimpleName(),
+						"Public Ws Instance: " + this.name,
 						this::handleMessage
 		);
 		client.onOpen(this::onConnect);
 		return client;
 	}
 
-	public void connect() {
-		client.connect();
+	public CompletableFuture<Void> connect() {
+		return client.connect().exceptionally(ex -> {
+			log.error("Failed to connect to {}: {}", name, ex.getMessage());
+			throw new RuntimeException("Failed to connect to " + name, ex);
+		});
 	}
 
 	public void close() {
@@ -51,7 +61,7 @@ class PublicWsInstance<T extends GenericPublicWsPatch> {
 	}
 
 	public void sendPing() {
-		client.sendMessage(config.wsFrames().getPingFrame());
+		client.sendMessage(config.getPingFrame().get());
 	}
 
 	private void sendChunks(Set<String> elems, int cap, Function<Set<String>, String> getMessage) {
@@ -75,7 +85,11 @@ class PublicWsInstance<T extends GenericPublicWsPatch> {
 					Consumer<T> handler
 	) {
 		Set<String> addedCoins = new HashSet<>();
-		for (String coin : coins) handlersMap.put(coin, handler);
+		for (String coin : coins) {
+			if (!handlersMap.containsKey(coin)) addedCoins.add(coin);
+			handlersMap.put(coin, handler);
+		}
+
 		return addedCoins;
 	}
 
@@ -99,12 +113,12 @@ class PublicWsInstance<T extends GenericPublicWsPatch> {
 
 	public void subscribe(Set<String> coins, Consumer<@NonNull T> handler) {
 		Set<String> addedCoins = addHandlers(coins, handler);
-		sendDataFrame(addedCoins, config.wsFrames()::getSubscribeFrame);
+		sendDataFrame(addedCoins, config.getSubscribeFrame());
 	}
 
 	public void unsubscribe(Set<String> coins) {
 		Set<String> removedCoins = removeHandlers(coins);
-		sendDataFrame(removedCoins, config.wsFrames()::getUnsubscribeFrame);
+		sendDataFrame(removedCoins, config.getUnsubscribeFrame());
 	}
 
 	protected void handleMessage(String message, PrettyWsClient client) {
@@ -123,7 +137,7 @@ class PublicWsInstance<T extends GenericPublicWsPatch> {
 	public void onConnect(Session session) {
 		sendDataFrame(
 						handlersMap.keySet(),
-						config.wsFrames()::getSubscribeFrame
+						config.getSubscribeFrame()
 		);
 	}
 }

@@ -7,7 +7,7 @@ import com.boris.fundingarbitrage.coinparser.AllExchangeCoinsParser;
 import com.boris.fundingarbitrage.coinparser.ICoinSupplier;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.exchange.Instances;
-import com.boris.fundingarbitrage.exchange.publicws.FuturesHandler;
+import com.boris.fundingarbitrage.exchange.publicws.SpotHandler;
 import com.boris.fundingarbitrage.execution.factory.TestCoinExecutionFactory;
 import com.boris.fundingarbitrage.logic.ArbitrageBotConfig;
 import com.boris.fundingarbitrage.logic.ArbitrageLogic;
@@ -103,18 +103,22 @@ public class App {
 
 	static void main() throws Exception {
 		Logger log = LoggerFactory.getLogger(App.class);
-		BaseExchange ex = Instances.getExchange(ExchangeName.BINANCE);
+		BaseExchange ex = Instances.getExchange(ExchangeName.WHITEBIT);
 		ex.publicWsClient().connect().join();
-		ex.publicWsClient()
-						.subscribeFutures(
-										Set.of("BTC"),
-										new FuturesHandler(
-														patch -> {
-														},
-														patch -> {
-														},
-														patch -> log.info("{}", patch)
-										)
-						);
+		//		ex.publicWsClient()
+		//						.subscribeFutures(
+		//										Set.of("SOL", "KAITO"),
+		//										new FuturesHandler(
+		//														patch -> {
+		//														},
+		//														patch -> log.info("{}", patch),
+		//														patch -> log.info("{}", patch)
+		//										)
+		//						);
+
+		ex.publicWsClient().subscribeSpot(
+						Set.of("SOL", "KAITO"),
+						new SpotHandler(patch -> log.info("{}", patch))
+		);
 	}
 }

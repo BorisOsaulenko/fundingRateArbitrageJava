@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -46,7 +47,11 @@ public class PrettyWsClient {
 		this.endpoint = new PrettyWsEndpoint(processMessage, getOnOpenHook(), getOnCloseHook(), getOnErrorHook());
 	}
 
-	public PrettyWsClient(URI endpointUri, String endpointName, BiConsumer<String, PrettyWsClient> processMessage) {
+	public PrettyWsClient(
+					@NonNull URI endpointUri,
+					@NonNull String endpointName,
+					@NonNull BiConsumer<String, PrettyWsClient> processMessage
+	) {
 		this.endpointUri = endpointUri;
 		this.endpointName = endpointName;
 		this.client = ClientManager.createClient();
@@ -74,17 +79,18 @@ public class PrettyWsClient {
 		);
 	}
 
-	public void connect() {
-		try {
-			client.connectToServer(this.endpoint, endpointUri);
-		} catch (Exception e) {
-			log.error("Error while connecting to WebSocket: {}", e.getMessage());
-			throw new RuntimeException(e);
-		}
+	public CompletableFuture<Void> connect() {
+		connecting = CompletableFuture.supplyAsync(() -> {
+			try {
+				return client.asyncConnectToServer(endpoint, endpointUri).get();
+			} catch (Exception e) {
+				throw new CompletionException(e);
+			}
+		});
+		return connecting.thenApply(_ -> null);
 	}
 
 	public void sendMessage(String message) {
-		log.info("Sent: {}", message);
 		if (message == null || message.isEmpty()) return;
 		if (lastSession != null && lastSession.isOpen()) {
 			lastSession.getAsyncRemote().sendText(

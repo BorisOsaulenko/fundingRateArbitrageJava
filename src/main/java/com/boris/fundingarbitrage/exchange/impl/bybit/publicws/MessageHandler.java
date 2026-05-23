@@ -2,7 +2,6 @@ package com.boris.fundingarbitrage.exchange.impl.bybit.publicws;
 
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
-import com.boris.fundingarbitrage.model.websocket.patch.FundingPatch;
 import com.boris.fundingarbitrage.model.websocket.patch.MarkPatch;
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -10,7 +9,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.function.Function;
 
-class MessageHandler implements IMessageHandler {
+class MessageHandler {
 	private final ExchangeContext context;
 
 	public MessageHandler(ExchangeContext context) {
@@ -23,7 +22,6 @@ class MessageHandler implements IMessageHandler {
 		return Instant.ofEpochMilli(ts);
 	}
 
-	@Override
 	public MarkPatch parseMarkPriceMessageSymbol(JsonNode root) {
 		JsonNode data = root.get("data");
 		if (data == null) return null;
@@ -31,9 +29,9 @@ class MessageHandler implements IMessageHandler {
 		String symbol = data.path("symbol").asText();
 		if (symbol.isEmpty()) return null;
 
-		String markPriceNode = data.path("mark").asText();
-		BigDecimal markPrice = markPriceNode.isEmpty() ? null : new BigDecimal(markPriceNode);
-		if (markPrice == null) return null;
+		String markPriceNode = data.path("markPrice").asText();
+		if (markPriceNode.isBlank()) return null;
+		BigDecimal markPrice = new BigDecimal(markPriceNode);
 
 		String coin = context.getFuturesSymbolInverse(symbol);
 		return new MarkPatch(coin, markPrice, parseTimestamp(root));
@@ -73,17 +71,10 @@ class MessageHandler implements IMessageHandler {
 		);
 	}
 
-	@Override
-	public FundingPatch parseFundingRateMessageSymbol(JsonNode root) {
-		return null;
-	} // Full funding via rest api
-
-	@Override
 	public BookTickerPatch parseFuturesBookTickerMessageSymbol(JsonNode root) {
 		return parseBookTickerInternal(root, context::getFuturesSymbolInverse);
 	}
 
-	@Override
 	public BookTickerPatch parseSpotBookTickerMessageSymbol(JsonNode root) {
 		return parseBookTickerInternal(root, context::getSpotSymbolInverse);
 	}

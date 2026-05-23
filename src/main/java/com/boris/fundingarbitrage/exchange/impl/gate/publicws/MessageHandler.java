@@ -10,14 +10,13 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.function.Function;
 
-class MessageHandler implements IMessageHandler {
+class MessageHandler {
 	private final ExchangeContext context;
 
 	public MessageHandler(ExchangeContext context) {
 		this.context = context;
 	}
 
-	@Override
 	public FundingPatch parseFundingRateMessageSymbol(JsonNode root) {
 		String channel = root.path("channel").asText();
 		String event = root.path("event").asText();
@@ -43,7 +42,6 @@ class MessageHandler implements IMessageHandler {
 		return new FundingPatch(coin, rate, null, Instant.ofEpochSecond(time));
 	}
 
-	@Override
 	public MarkPatch parseMarkPriceMessageSymbol(JsonNode root) {
 		String channel = root.path("channel").asText();
 		String event = root.path("event").asText();
@@ -66,10 +64,14 @@ class MessageHandler implements IMessageHandler {
 		return new MarkPatch(coin, mark, Instant.ofEpochSecond(time));
 	}
 
-	public BookTickerPatch parseBookTickerInternal(JsonNode root, Function<String, String> symbolInverse) {
+	public BookTickerPatch parseBookTickerInternal(
+					JsonNode root,
+					Function<String, String> symbolInverse,
+					String expectedChannel
+	) {
 		String channel = root.path("channel").asText();
 		String event = root.path("event").asText();
-		if (!"futures.book_ticker".equalsIgnoreCase(channel) || !"update".equalsIgnoreCase(event)) return null;
+		if (!expectedChannel.equalsIgnoreCase(channel) || !"update".equalsIgnoreCase(event)) return null;
 
 		JsonNode result = root.get("result");
 		if (result == null || !result.isObject()) return null;
@@ -94,13 +96,11 @@ class MessageHandler implements IMessageHandler {
 		return new BookTickerPatch(coin, bidPrice, bidSize, askPrice, askSize, ts);
 	}
 
-	@Override
 	public BookTickerPatch parseFuturesBookTickerMessageSymbol(JsonNode root) {
-		return parseBookTickerInternal(root, context::getFuturesSymbolInverse);
+		return parseBookTickerInternal(root, context::getFuturesSymbolInverse, "futures.book_ticker");
 	}
 
-	@Override
 	public BookTickerPatch parseSpotBookTickerMessageSymbol(JsonNode root) {
-		return parseBookTickerInternal(root, context::getSpotSymbolInverse);
+		return parseBookTickerInternal(root, context::getSpotSymbolInverse, "spot.book_ticker");
 	}
 }

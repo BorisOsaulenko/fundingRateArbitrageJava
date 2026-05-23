@@ -1,10 +1,21 @@
 package com.boris.fundingarbitrage.exchange.impl.kucoin.publicws;
 
+import com.boris.fundingarbitrage.exchange.ExchangeContext;
+
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
-class WsFrames implements IPublicWsFrames {
+class WsFrames {
+	private final ExchangeContext context;
 	private final String tickerTopic = "/contractMarket/tickerV2:";
+	private final String spotBookTickerTopic = "/spotMarket/level1:";
+	private final String markPriceTopic = "/contract/instrument:";
+
+	public WsFrames(ExchangeContext context) {
+		this.context = context;
+	}
 
 	private String getSubscribeFrame(String topic) {
 		WsRequest request = new WsRequest(UUID.randomUUID().toString(), "subscribe", topic, false, true);
@@ -16,47 +27,34 @@ class WsFrames implements IPublicWsFrames {
 		return request.toJson();
 	}
 
-	@Override
-	public String getSubscribeFuturesFundingRateFrame(Set<String> symbols) {
-		return null;
+	private String joinSymbols(Set<String> coins, Function<String, String> toSymbol) {
+		return coins.stream().map(toSymbol).collect(Collectors.joining(","));
 	}
 
-	@Override
-	public String getUnsubscribeFuturesFundingRateFrame(Set<String> symbols) {
-		return null;
+	public String getSubscribeFuturesBookTickerFrame(Set<String> coins) {
+		return getSubscribeFrame(tickerTopic + joinSymbols(coins, context::getFuturesSymbol));
 	}
 
-	@Override
-	public String getSubscribeFuturesBookTickerFrame(Set<String> symbols) {
-		return getSubscribeFrame(tickerTopic + String.join(",", symbols));
+	public String getUnsubscribeFuturesBookTickerFrame(Set<String> coins) {
+		return getUnsubscribeFrame(tickerTopic + joinSymbols(coins, context::getFuturesSymbol));
 	}
 
-	@Override
-	public String getUnsubscribeFuturesBookTickerFrame(Set<String> symbols) {
-		return getUnsubscribeFrame(tickerTopic + String.join(",", symbols));
-	}
-
-	@Override
 	public String getSubscribeFuturesMarkPriceFrame(Set<String> symbols) {
-		return null;
+		return getSubscribeFrame(markPriceTopic + joinSymbols(symbols, context::getFuturesSymbol));
 	}
 
-	@Override
 	public String getUnsubscribeFuturesMarkPriceFrame(Set<String> symbols) {
-		return null;
+		return getUnsubscribeFrame(markPriceTopic + joinSymbols(symbols, context::getFuturesSymbol));
 	}
 
-	@Override
-	public String getSubscribeSpotBookTickerFrame(Set<String> symbols) {
-		return getSubscribeFrame(tickerTopic + String.join(",", symbols));
+	public String getSubscribeSpotBookTickerFrame(Set<String> coins) {
+		return getSubscribeFrame(spotBookTickerTopic + joinSymbols(coins, context::getSpotSymbol));
 	}
 
-	@Override
-	public String getUnsubscribeSpotBookTickerFrame(Set<String> symbols) {
-		return getUnsubscribeFrame(tickerTopic + String.join(",", symbols));
+	public String getUnsubscribeSpotBookTickerFrame(Set<String> coins) {
+		return getUnsubscribeFrame(spotBookTickerTopic + joinSymbols(coins, context::getSpotSymbol));
 	}
 
-	@Override
 	public String getPingFrame() {
 		return new PingFrame().toJson();
 	}

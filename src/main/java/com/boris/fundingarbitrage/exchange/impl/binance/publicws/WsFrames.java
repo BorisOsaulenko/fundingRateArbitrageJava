@@ -1,18 +1,36 @@
 package com.boris.fundingarbitrage.exchange.impl.binance.publicws;
 
+import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
-class WsFrames implements IPublicWsFrames {
-	private String getSubscribeFrame(Set<String> symbols, Function<String, String> toStreamMapper) {
+class WsFrames {
+	private final ExchangeContext context;
+
+	public WsFrames(ExchangeContext context) {
+		this.context = context;
+	}
+
+	private String getSubscribeFrame(
+					Set<String> coins,
+					Function<String, String> toSymbol,
+					Function<String, String> toStreamMapper
+	) {
+		Set<String> symbols = coins.stream().map(toSymbol).collect(Collectors.toSet());
 		String[] streams = symbols.stream().map(toStreamMapper).toArray(String[]::new);
 		WsRequest sub = new WsRequest("SUBSCRIBE", streams);
 		return sub.toJson();
 	}
 
-	private String getUnsubscribeFrame(Set<String> symbols, Function<String, String> toStreamMapper) {
+	private String getUnsubscribeFrame(
+					Set<String> coins,
+					Function<String, String> toSymbol,
+					Function<String, String> toStreamMapper
+	) {
+		Set<String> symbols = coins.stream().map(toSymbol).collect(Collectors.toSet());
 		String[] streams = symbols.stream().map(toStreamMapper).toArray(String[]::new);
 		WsRequest unsub = new WsRequest("UNSUBSCRIBE", streams);
 		return unsub.toJson();
@@ -26,48 +44,35 @@ class WsFrames implements IPublicWsFrames {
 		return String.format("%s@bookTicker", symbol.toLowerCase());
 	}
 
-	@Override
-	public String getSubscribeFuturesFundingRateFrame(Set<String> symbols) {
-		return this.getSubscribeFrame(symbols, this::getFundingRateStream);
+	public String getSubscribeFuturesFundingRateFrame(Set<String> coins) {
+		return this.getSubscribeFrame(coins, context::getFuturesSymbol, this::getFundingRateStream);
 	}
 
-	@Override
-	public String getUnsubscribeFuturesFundingRateFrame(Set<String> symbols) {
-		return this.getUnsubscribeFrame(symbols, this::getFundingRateStream);
+	public String getUnsubscribeFuturesFundingRateFrame(Set<String> coins) {
+		return this.getUnsubscribeFrame(coins, context::getFuturesSymbol, this::getFundingRateStream);
 	}
 
-	@Override
-	public String getSubscribeFuturesBookTickerFrame(Set<String> symbols) {
-		return this.getSubscribeFrame(symbols, this::getBookTickerStream);
+	public String getSubscribeFuturesBookTickerFrame(Set<String> coins) {
+		return this.getSubscribeFrame(coins, context::getFuturesSymbol, this::getBookTickerStream);
 	}
 
-	@Override
-	public String getUnsubscribeFuturesBookTickerFrame(Set<String> symbols) {
-		return this.getUnsubscribeFrame(symbols, this::getBookTickerStream);
+	public String getUnsubscribeFuturesBookTickerFrame(Set<String> coins) {
+		return this.getUnsubscribeFrame(coins, context::getFuturesSymbol, this::getBookTickerStream);
 	}
 
-	@Override
-	public String getSubscribeFuturesMarkPriceFrame(Set<String> symbols) {
-		return null;
+	public String getSubscribeFuturesMarkPriceFrame(Set<String> coins) {
+		return this.getSubscribeFrame(coins, context::getFuturesSymbol, this::getFundingRateStream);
 	}
 
-	@Override
-	public String getUnsubscribeFuturesMarkPriceFrame(Set<String> symbols) {
-		return null;
+	public String getUnsubscribeFuturesMarkPriceFrame(Set<String> coins) {
+		return this.getUnsubscribeFrame(coins, context::getFuturesSymbol, this::getFundingRateStream);
 	}
 
-	@Override
-	public String getSubscribeSpotBookTickerFrame(Set<String> symbols) {
-		return this.getSubscribeFrame(symbols, this::getBookTickerStream);
+	public String getSubscribeSpotBookTickerFrame(Set<String> coins) {
+		return this.getSubscribeFrame(coins, context::getSpotSymbol, this::getBookTickerStream);
 	}
 
-	@Override
-	public String getUnsubscribeSpotBookTickerFrame(Set<String> symbols) {
-		return this.getUnsubscribeFrame(symbols, this::getBookTickerStream);
-	}
-
-	@Override
-	public String getPingFrame() {
-		return null;
+	public String getUnsubscribeSpotBookTickerFrame(Set<String> coins) {
+		return this.getUnsubscribeFrame(coins, context::getSpotSymbol, this::getBookTickerStream);
 	}
 }
