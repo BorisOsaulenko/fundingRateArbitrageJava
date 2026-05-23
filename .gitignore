@@ -44,5 +44,9 @@ bin/
 ### Mac OS ###
 .DS_Store
 
+### Intelij IDEA ###
+.idea/
+.ai/mcp
+
 app.log
 /logs/
