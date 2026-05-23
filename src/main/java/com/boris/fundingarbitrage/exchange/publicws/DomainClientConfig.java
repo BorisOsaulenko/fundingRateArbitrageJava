@@ -17,5 +17,13 @@ public record DomainClientConfig<T extends GenericPublicWsPatch>(
 		if (orchestratorConfig.pingIntervalSeconds() < 0)
 			throw new RuntimeException("Ping interval should be non-negative. Set to 0 for no ping.");
 	}
+
+	public DomainClientConfig(
+					@NonNull URI endpoint,
+					@NonNull OrchestratorConfig orchestratorConfig,
+					@NonNull InstanceConfig<T> instanceConfig
+	) {
+		this(CompletableFuture.completedFuture(endpoint), orchestratorConfig, instanceConfig);
+	}
 }
 

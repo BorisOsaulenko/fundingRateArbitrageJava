@@ -3,7 +3,6 @@ package com.boris.fundingarbitrage.exchange.impl.kucoin.publicws;
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.impl.kucoin.publicrest.KucoinPublicHttpClient;
 import com.boris.fundingarbitrage.exchange.publicws.ClientsConfig;
-import com.boris.fundingarbitrage.exchange.publicws.IPublicWsFrames;
 import com.boris.fundingarbitrage.scheduler.ProdModifiableSchedulerBuilder;
 import com.boris.fundingarbitrage.util.wss.publicws.FullFundingViaRest;
 

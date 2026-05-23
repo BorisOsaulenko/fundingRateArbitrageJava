@@ -10,14 +10,13 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.function.Function;
 
-class MessageHandler implements IMessageHandler {
+class MessageHandler {
 	private final ExchangeContext context;
 
 	public MessageHandler(ExchangeContext exchangeContext) {
 		this.context = exchangeContext;
 	}
 
-	@Override
 	public FundingPatch parseFundingRateMessageSymbol(JsonNode root) {
 		String symbol = root.path("s").asText();
 		if (symbol.isEmpty()) return null;
@@ -37,7 +36,6 @@ class MessageHandler implements IMessageHandler {
 		return new FundingPatch(coin, rate, Instant.ofEpochMilli(settlementTime), Instant.ofEpochMilli(eventTime));
 	}
 
-	@Override
 	public MarkPatch parseMarkPriceMessageSymbol(JsonNode root) {
 		String symbol = root.path("s").asText();
 		if (symbol.isEmpty()) return null;
@@ -73,12 +71,10 @@ class MessageHandler implements IMessageHandler {
 		return new BookTickerPatch(coin, bbPrice, bbQty, baPrice, baQty, Instant.ofEpochMilli(eventTime));
 	}
 
-	@Override
 	public BookTickerPatch parseFuturesBookTickerMessageSymbol(JsonNode root) {
 		return parseBookTickerInternal(root, context::getFuturesSymbolInverse);
 	}
 
-	@Override
 	public BookTickerPatch parseSpotBookTickerMessageSymbol(JsonNode root) {
 		return parseBookTickerInternal(root, context::getSpotSymbolInverse);
 	}

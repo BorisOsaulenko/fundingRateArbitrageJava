@@ -1,6 +1,5 @@
 package com.boris.fundingarbitrage.exchange.impl.binance.publicws;
 
-import com.boris.fundingarbitrage.exchange.publicws.IPublicWsFrames;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Set;

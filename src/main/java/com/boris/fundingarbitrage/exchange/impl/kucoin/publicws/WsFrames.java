@@ -1,7 +1,5 @@
 package com.boris.fundingarbitrage.exchange.impl.kucoin.publicws;
 
-import com.boris.fundingarbitrage.exchange.publicws.IPublicWsFrames;
-
 import java.util.Set;
 import java.util.UUID;
 

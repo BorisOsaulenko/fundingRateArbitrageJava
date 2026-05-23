@@ -1,6 +1,5 @@
 package com.boris.fundingarbitrage.util.wss.publicws;
 
-import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.publichttp.PublicHttpClient;
 import com.boris.fundingarbitrage.exchange.publicws.ClientsConfig;
 import com.boris.fundingarbitrage.exchange.publicws.PublicWsClient;
@@ -20,19 +19,18 @@ public abstract class FullFundingViaRest extends PublicWsClient {
 	private final Logger log = LoggerFactory.getLogger(FullFundingViaRest.class);
 
 	public FullFundingViaRest(
-					ExchangeContext context,
 					ClientsConfig config,
 					PublicHttpClient publicHttp,
 					IModifiableSchedulerBuilder schedulerBuilder
 	) {
-		super(context, config, schedulerBuilder);
+		super(config, schedulerBuilder);
 		this.httpClient = publicHttp;
 		fundingRateScheduler = schedulerBuilder.create(this::pollFundingRates, POLL_INTERVAL_MS);
 		fundingRateScheduler.start();
 	}
 
 	private void pollFundingRates() {
-		var handlers = futuresFundingState.handlers();
+		var handlers = futures.funding().handlers();
 		if (handlers.isEmpty()) return;
 
 		httpClient.getFundingRate(handlers.keySet()).thenAccept((rates) -> {
@@ -49,13 +47,19 @@ public abstract class FullFundingViaRest extends PublicWsClient {
 	}
 
 	@Override
-	public void subscribeFuturesFundingRates(Set<String> coins, Consumer<FundingPatch> handler) {
-		var handlers = futuresFundingState.handlers();
+	protected void subscribeFuturesFundingRates(Set<String> coins, Consumer<FundingPatch> handler) {
+		var handlers = futures.funding().handlers();
 		for (String coin : coins) {
 			if (handlers.containsKey(coin))
 				throw new RuntimeException("Already subscribed to funding rates for " + coin);
 			handlers.put(coin, handler);
 		}
+	}
+
+	@Override
+	protected void unsubscribeFuturesFunding(Set<String> coins) {
+		var handlers = futures.funding().handlers();
+		handlers.removeAll(coins);
 	}
 
 	@Override

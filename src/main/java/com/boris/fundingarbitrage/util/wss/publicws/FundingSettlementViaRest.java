@@ -1,9 +1,7 @@
 package com.boris.fundingarbitrage.util.wss.publicws;
 
-import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.publichttp.PublicHttpClient;
 import com.boris.fundingarbitrage.exchange.publicws.ClientsConfig;
-import com.boris.fundingarbitrage.exchange.publicws.IPublicWsFrames;
 import com.boris.fundingarbitrage.exchange.publicws.PublicWsClient;
 import com.boris.fundingarbitrage.model.websocket.patch.FundingPatch;
 import com.boris.fundingarbitrage.scheduler.IModifiableScheduler;
@@ -23,23 +21,21 @@ public abstract class FundingSettlementViaRest extends PublicWsClient {
 	private final Logger log = LoggerFactory.getLogger(FundingSettlementViaRest.class);
 
 	public FundingSettlementViaRest(
-					ExchangeContext context,
 					ClientsConfig config,
-					IPublicWsFrames wsFrames,
-					IMessageHandler messageHandler,
 					PublicHttpClient publicHttp,
 					IModifiableSchedulerBuilder schedulerBuilder
 	) {
-		super(context, config, wsFrames, messageHandler, schedulerBuilder);
+		super(config, schedulerBuilder);
 		this.publicHttp = publicHttp;
 		this.fundingSettlementScheduler = schedulerBuilder.create(this::updateFundingSettlementForCoins, 10_000);
 		this.fundingSettlementScheduler.start();
 	}
 
 	private void updateFundingSettlementForCoins() {
-		if (futuresFundingRateHandlers.isEmpty()) return;
+		var handlers = futures.funding().handlers();
+		if (handlers.isEmpty()) return;
 
-		publicHttp.getFundingRate(futuresFundingRateHandlers.keySet())
+		publicHttp.getFundingRate(handlers.keySet())
 						.thenAccept((rates) -> rates.forEach((coin, rate) -> settlementVector.put(coin, rate.settlement())))
 						.exceptionally(_ -> {
 							log.warn("Funding settlements update failed on this cycle");

@@ -1,7 +1,5 @@
 package com.boris.fundingarbitrage.exchange.impl.bitget.publicws;
 
-import com.boris.fundingarbitrage.exchange.publicws.IPublicWsFrames;
-
 import java.util.ArrayList;
 import java.util.Set;
 

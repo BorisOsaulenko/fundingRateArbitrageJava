@@ -3,7 +3,6 @@ package com.boris.fundingarbitrage.exchange.impl.bybit.publicws;
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.impl.bybit.publicrest.BybitPublicHttpClient;
 import com.boris.fundingarbitrage.exchange.publicws.ClientsConfig;
-import com.boris.fundingarbitrage.exchange.publicws.IPublicWsFrames;
 import com.boris.fundingarbitrage.scheduler.ProdModifiableSchedulerBuilder;
 import com.boris.fundingarbitrage.util.wss.publicws.FullFundingViaRest;
 

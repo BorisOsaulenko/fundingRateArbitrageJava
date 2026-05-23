@@ -1,7 +1,5 @@
 package com.boris.fundingarbitrage.exchange.impl.whitebit.publicws;
 
-import com.boris.fundingarbitrage.exchange.publicws.IPublicWsFrames;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;

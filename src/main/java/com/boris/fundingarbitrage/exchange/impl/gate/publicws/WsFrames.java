@@ -1,7 +1,5 @@
 package com.boris.fundingarbitrage.exchange.impl.gate.publicws;
 
-import com.boris.fundingarbitrage.exchange.publicws.IPublicWsFrames;
-
 import java.util.Set;
 
 class WsFrames implements IPublicWsFrames {

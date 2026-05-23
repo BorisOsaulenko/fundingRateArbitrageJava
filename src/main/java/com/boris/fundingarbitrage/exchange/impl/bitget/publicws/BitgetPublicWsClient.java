@@ -3,7 +3,6 @@ package com.boris.fundingarbitrage.exchange.impl.bitget.publicws;
 import com.boris.fundingarbitrage.exchange.impl.bitget.BitgetContext;
 import com.boris.fundingarbitrage.exchange.impl.bitget.publicrest.BitgetPublicHttpClient;
 import com.boris.fundingarbitrage.exchange.publicws.ClientsConfig;
-import com.boris.fundingarbitrage.exchange.publicws.IPublicWsFrames;
 import com.boris.fundingarbitrage.scheduler.ProdModifiableSchedulerBuilder;
 import com.boris.fundingarbitrage.util.wss.publicws.FullFundingViaRest;
 

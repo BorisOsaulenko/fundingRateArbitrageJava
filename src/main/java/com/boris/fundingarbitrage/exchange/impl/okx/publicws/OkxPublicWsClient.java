@@ -3,7 +3,6 @@ package com.boris.fundingarbitrage.exchange.impl.okx.publicws;
 import com.boris.fundingarbitrage.exchange.ExchangeContext;
 import com.boris.fundingarbitrage.exchange.impl.okx.publicrest.OkxPublicHttpClient;
 import com.boris.fundingarbitrage.exchange.publicws.ClientsConfig;
-import com.boris.fundingarbitrage.exchange.publicws.IPublicWsFrames;
 import com.boris.fundingarbitrage.scheduler.ProdModifiableSchedulerBuilder;
 import com.boris.fundingarbitrage.util.wss.publicws.FullFundingViaRest;
 
