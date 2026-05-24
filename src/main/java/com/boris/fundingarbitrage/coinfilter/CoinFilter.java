@@ -177,7 +177,7 @@ public class CoinFilter {
 	private void forgetSpotCoinExchange(String coin, BaseExchange exchange) {
 		spotTradingVolumeMap.remove(exchange, coin);
 		spotSnapshotsMap.remove(exchange, coin);
-		cdRecord.removeFutures(exchange, coin);
+		cdRecord.removeSpot(exchange, coin);
 		availabilityRecord.removeSupportSpot(exchange, coin);
 		if (!availabilityRecord.isFutures(exchange, coin)) forgetCoinExchange(coin, exchange);
 	}
@@ -219,7 +219,7 @@ public class CoinFilter {
 						coin,
 						spotTradingVolumeMap,
 						spotSnapshotsMap,
-						cdRecord.getFuturesConstantData(ex, coin)
+						cdRecord.getSpotConstantData(ex, coin)
 		);
 	}
 }

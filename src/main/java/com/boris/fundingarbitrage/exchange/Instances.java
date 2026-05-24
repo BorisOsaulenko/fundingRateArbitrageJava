@@ -1,12 +1,10 @@
 package com.boris.fundingarbitrage.exchange;
 
 import com.boris.fundingarbitrage.exchange.impl.binance.BinanceExchange;
-import com.boris.fundingarbitrage.exchange.impl.bitget.BitgetExchange;
 import com.boris.fundingarbitrage.exchange.impl.bybit.BybitExchange;
 import com.boris.fundingarbitrage.exchange.impl.gate.GateExchange;
 import com.boris.fundingarbitrage.exchange.impl.kucoin.KucoinExchange;
 import com.boris.fundingarbitrage.exchange.impl.okx.OkxExchange;
-import com.boris.fundingarbitrage.exchange.impl.whitebit.WhitebitExchange;
 import com.boris.fundingarbitrage.model.exchange.ExchangeName;
 import lombok.Getter;
 
@@ -22,12 +20,12 @@ public class Instances {
 
 	static {
 		exchanges.put(ExchangeName.BINANCE, BinanceExchange.create());
-		exchanges.put(ExchangeName.BITGET, BitgetExchange.create());
+		//		exchanges.put(ExchangeName.BITGET, BitgetExchange.create());
 		exchanges.put(ExchangeName.BYBIT, BybitExchange.create());
 		exchanges.put(ExchangeName.GATE, GateExchange.create());
 		exchanges.put(ExchangeName.KUCOIN, KucoinExchange.create());
 		exchanges.put(ExchangeName.OKX, OkxExchange.create());
-		exchanges.put(ExchangeName.WHITEBIT, WhitebitExchange.create());
+		//		exchanges.put(ExchangeName.WHITEBIT, WhitebitExchange.create());
 
 		exchangeArray.addAll(exchanges.values());
 	}

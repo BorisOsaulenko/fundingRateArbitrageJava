@@ -3,7 +3,6 @@ package com.boris.fundingarbitrage;
 import com.boris.fundingarbitrage.coinfilter.CoinFilter;
 import com.boris.fundingarbitrage.coinfilter.CoinFilterConfig;
 import com.boris.fundingarbitrage.coinfilter.CoinFilterResult;
-import com.boris.fundingarbitrage.coinparser.AllExchangeCoinsParser;
 import com.boris.fundingarbitrage.coinparser.ICoinSupplier;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.exchange.Instances;
@@ -34,13 +33,19 @@ import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 public class App {
-	static void main2(String[] args) {
+	static void main(String[] args) {
 		Set<BaseExchange> exchanges = Instances.getExchangesSet();
 
-		ICoinSupplier coinSupplier = new AllExchangeCoinsParser();
+		ICoinSupplier coinSupplier = new ICoinSupplier() {
+			@Override
+			public CompletableFuture<Set<String>> getCoinsAsync() {
+				return CompletableFuture.completedFuture(Set.of("SOL", "ETH"));
+			}
+		};
 		PreTradeStrategy preTradeStrategy = new FuturesPreTradeStrategy();
 
 		ArbitrageBotConfig botConfig = new ArbitrageBotConfig(
@@ -101,7 +106,7 @@ public class App {
 		}
 	}
 
-	static void main() throws Exception {
+	static void main2() throws Exception {
 		Logger log = LoggerFactory.getLogger(App.class);
 		BaseExchange ex = Instances.getExchange(ExchangeName.WHITEBIT);
 		ex.publicWsClient().connect().join();
