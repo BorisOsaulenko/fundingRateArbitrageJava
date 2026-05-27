@@ -178,12 +178,13 @@ public final class TradeExecution implements ITradeExecution {
 		return successEnter.thenCompose(_ ->
 						successExit.get()
 										.exceptionally(t2 -> {
-											tradeLogger.logEnterCompensationFailure(longFailed);
+											tradeLogger.logEnterCompensationFailure(!longFailed);
 											throw new RuntimeException(commonError +
-																								 "compensation failed. Exit manually. %s".formatted(t2.getMessage()));
+																								 "compensation failed. Exit manually. " +
+																								 t2.getMessage());
 										})
 										.thenApply(_ -> {
-											tradeLogger.logEnterCompensationSuccess(longFailed);
+											tradeLogger.logEnterCompensationSuccess(!longFailed);
 											throw new RuntimeException(commonError + "was compensated.");
 										})
 		);
