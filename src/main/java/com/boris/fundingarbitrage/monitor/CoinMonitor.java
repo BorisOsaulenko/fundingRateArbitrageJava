@@ -38,7 +38,6 @@ public class CoinMonitor {
 					spotBookTickers
 	);
 
-	private final CoinFilterResult filterData;
 	private final CoinAvailabilityRecord coinAvailability;
 	private final IDataStream dataStream;
 
@@ -46,7 +45,6 @@ public class CoinMonitor {
 					CoinFilterResult filterData,
 					IDataStream dataStream
 	) {
-		this.filterData = filterData;
 		this.coinAvailability = filterData.coinAvailability();
 		this.dataStream = dataStream;
 	}
@@ -320,6 +318,8 @@ public class CoinMonitor {
 
 	public FuturesSnapshot getFuturesSnapshot(BaseExchange ex, String coin) {
 		BookTicker ticker = futuresBookTickers.get(ex, coin);
+		if (ticker == null) return null;
+
 		Mark markPrice = futuresMarkPrices.get(ex, coin);
 		Funding fundingRate = futuresFundingRates.get(ex, coin);
 
@@ -328,6 +328,7 @@ public class CoinMonitor {
 
 	public SpotSnapshot getSpotSnapshot(BaseExchange ex, String coin) {
 		BookTicker ticker = spotBookTickers.get(ex, coin);
+		if (ticker == null) return null;
 		return new SpotSnapshot(ticker);
 	}
 

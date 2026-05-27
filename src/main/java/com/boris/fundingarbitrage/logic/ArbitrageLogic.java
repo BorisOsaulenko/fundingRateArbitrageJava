@@ -32,8 +32,8 @@ public abstract class ArbitrageLogic {
 	protected final IOpportunityAnalyzer opportunityAnalyzer;
 	private final IBalancesPolicy balancesPolicy;
 	protected CompletableFuture<Void> initFuture;
+	protected IModifiableScheduler opportunitiesProcessingTask;
 	private IModifiableScheduler logScheduler;
-	private IModifiableScheduler opportunitiesProcessingTask;
 	private volatile boolean shuttingDown = false;
 	private volatile boolean logOnThisCycle = false;
 
@@ -57,7 +57,7 @@ public abstract class ArbitrageLogic {
 		this.schedulerBuilder = schedulerBuilder;
 	}
 
-	public CompletableFuture<Void> init(IBalanceProvider balanceProvider) {
+	public final CompletableFuture<Void> init(IBalanceProvider balanceProvider) {
 		if (coinAvailability.coinCount() == 0) {
 			log.info("No coins available in CoinAvailabilityRecord. Shutting down.");
 			shutdown();
@@ -72,7 +72,7 @@ public abstract class ArbitrageLogic {
 		return initFuture = CompletableFuture.allOf(monitor.getInitFuture(), balancesFuture);
 	}
 
-	public void start() {
+	public final void start() {
 		if (initFuture == null) throw new IllegalStateException("Call ArbitrageLogic.init() before calling start().");
 		initFuture.thenRun(this::startProcessingOpportunities);
 	}
@@ -80,7 +80,7 @@ public abstract class ArbitrageLogic {
 	private void startProcessingOpportunities() {
 		log.info("Starting arbitrage logic...");
 
-		int logInterval = config.loggingIntervalMs();
+		long logInterval = config.loggingIntervalSeconds() * 1000L;
 		if (logInterval > 0) {
 			logScheduler = schedulerBuilder.create(() -> this.logOnThisCycle = true, logInterval);
 			logScheduler.start();
@@ -91,8 +91,7 @@ public abstract class ArbitrageLogic {
 	}
 
 	private void doTick() {
-		var bestOpportunities = opportunityAnalyzer.processCoins(monitor::getSnapshot)
-						.join();
+		var bestOpportunities = opportunityAnalyzer.processCoins(monitor::getSnapshot).join();
 		if (bestOpportunities == null || bestOpportunities.isEmpty()) {
 			log.error("Opportunity analyzer returned null. Shutting down.");
 			shutdown();
@@ -113,11 +112,6 @@ public abstract class ArbitrageLogic {
 		}
 	}
 
-	protected void adjustFrequency(int newFrequencyMs) {
-		opportunitiesProcessingTask.setFrequency(newFrequencyMs);
-		log.info("Adjusted frequency to {}ms", newFrequencyMs);
-	}
-
 	private void logData(@NonNull CoinVector<CoinOpportunity> bestOpportunities) {
 		List<Map.Entry<String, CoinOpportunity>> bestOps = bestOpportunities.sortDesc(Comparator.comparing(CoinOpportunity::expectedGain))
 						.subList(0, Math.min(config.logBestArbSnapshotsAmount(), bestOpportunities.size()));
@@ -129,7 +123,7 @@ public abstract class ArbitrageLogic {
 		});
 	}
 
-	protected void stopCalculatingBestOptions() {
+	protected final void stopCalculatingBestOptions() {
 		opportunitiesProcessingTask.cancelNow();
 	}
 

@@ -1,7 +1,4 @@
 - monitor: if no coins on exchange, do not open ws connections
-- bitget and kucoin can not subscribe too much coins at a time
-- private ws: You will know when you see it, but it is not a priority for now
-- PublicWsClient abstract base class: allow multiple websocket connections in one instance.
 
 getOrderRecord works: bitget, kucoin
 placeFuturesOrder works on: kucoin, gate, binance

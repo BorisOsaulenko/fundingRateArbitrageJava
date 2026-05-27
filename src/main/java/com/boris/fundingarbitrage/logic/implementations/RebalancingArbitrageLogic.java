@@ -12,38 +12,31 @@ import com.boris.fundingarbitrage.logic.opportunityanalyzer.IOpportunityAnalyzer
 import com.boris.fundingarbitrage.model.assetops.InternalAccount;
 import com.boris.fundingarbitrage.model.assetops.InternalTransfer;
 import com.boris.fundingarbitrage.model.exchange.ExchangeBalance;
-import com.boris.fundingarbitrage.model.exchange.ExchangePair;
 import com.boris.fundingarbitrage.monitor.CoinMonitor;
 import com.boris.fundingarbitrage.scheduler.IModifiableScheduler;
 import com.boris.fundingarbitrage.scheduler.IModifiableSchedulerBuilder;
-import com.boris.fundingarbitrage.strategy.TradeMarket;
 import com.boris.fundingarbitrage.strategy.intradestrategy.factory.InTradeStrategyFactory;
 import com.boris.fundingarbitrage.strategy.pretradestrategy.PreTradeStrategy;
-import com.boris.fundingarbitrage.strategy.pretradestrategy.TradeDirections;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
+import lombok.NonNull;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 public class RebalancingArbitrageLogic extends ArbitrageLogic {
 	private final static Logger log = LoggerFactory.getLogger(RebalancingArbitrageLogic.class);
-	private final Map<BaseExchange, Integer> spotUsedTimes = new ConcurrentHashMap<>();
-	private final Map<BaseExchange, Integer> futuresUsedTimes = new ConcurrentHashMap<>();
-	private final int maxSpotUsedTimes = 1;
-	private final int maxFuturesUsedTimes = this.config.leverage();
-	private final List<InTradeCoinLogic> inTradeLogicList = new ArrayList<>();
 	private final CoinExecutionFactory executionFactory;
 	private final IModifiableSchedulerBuilder schedulerBuilder;
+	private final Set<BaseExchange> usedExchanges = new CopyOnWriteArraySet<>();
+	private final Map<String, InTradeCoinLogic> enteredCoins = new ConcurrentHashMap<>();
 	private final IModifiableScheduler exitScheduler;
-	private CompletableFuture<Void> exitFuture;
+	private final Set<CompletableFuture<Void>> exitFutures = new CopyOnWriteArraySet<>();
 	private CompletableFuture<Void> internalTransfersFuture;
 
 	public RebalancingArbitrageLogic(
@@ -69,8 +62,8 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 		);
 		this.schedulerBuilder = schedulerBuilder;
 		this.executionFactory = executionFactory;
-		int checkExitFreqMs = 10;
-		this.exitScheduler = schedulerBuilder.create(this::processExits, checkExitFreqMs);
+		this.exitScheduler = schedulerBuilder.create(this::processExits, 10);
+		this.exitScheduler.start();
 	}
 
 	@Override
@@ -103,80 +96,72 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 						});
 	}
 
-	private boolean allowEnter(ExchangePair exchanges, TradeDirections directions) {
-		BaseExchange longEx = exchanges.longEx();
-		BaseExchange shortEx = exchanges.shortEx();
-
-		var longUsageMap = directions.longMarket() == TradeMarket.SPOT ? spotUsedTimes : futuresUsedTimes;
-		var shortUsageMap = directions.shortMarket() == TradeMarket.SPOT ? spotUsedTimes : futuresUsedTimes;
-
-		return longUsageMap.getOrDefault(longEx, 0) < maxSpotUsedTimes &&
-					 shortUsageMap.getOrDefault(shortEx, 0) < maxFuturesUsedTimes;
+	@Override
+	protected void processTick(@NonNull CoinVector<CoinOpportunity> bestOpportunities) {
+		bestOpportunities
+						.filter(CoinOpportunity::goodEnough)
+						.sortDesc(Comparator.comparing(CoinOpportunity::expectedGain))
+						.forEach(this::attemptEnter);
 	}
 
-	@Override
-	protected void processTick(@NotNull CoinVector<CoinOpportunity> bestOpportunities) {
+	private void attemptEnter(Map.Entry<String, CoinOpportunity> opEntry) {
+		String coin = opEntry.getKey();
+		CoinOpportunity op = opEntry.getValue();
+
 		if (!internalTransfersFuture.isDone()) return;
-		List<Map.Entry<String, CoinOpportunity>> tickBestOps = bestOpportunities.sortDesc(Comparator.comparing(
-						CoinOpportunity::expectedGain));
+		if (enteredCoins.containsKey(coin)) throw new RuntimeException("Coin " + coin + " is already entered.");
+		if (usedExchanges.contains(op.exchanges().longEx())) return;
+		if (usedExchanges.contains(op.exchanges().shortEx())) return;
 
-		for (Map.Entry<String, CoinOpportunity> entry : tickBestOps) {
-			String coin = entry.getKey();
-			CoinOpportunity opportunity = entry.getValue();
+		usedExchanges.add(op.exchanges().longEx());
+		usedExchanges.add(op.exchanges().shortEx());
 
-			if (!allowEnter(opportunity.exchanges(), opportunity.directions())) continue;
-			if (!preTradeStrategy.goodToEnter(opportunity.longData(), opportunity.shortData())) continue;
-			enterCrossCoin(coin, opportunity);
+		try {
+			enteredCoins.put(
+							coin, new InTradeCoinLogic(
+											coin,
+											op,
+											config.legUsdtAmount(),
+											monitor,
+											inTradeStrategyFactory.create(op),
+											executionFactory.create(coin, op, config),
+											schedulerBuilder
+							)
+			);
+		} catch (Exception e) {
+			usedExchanges.remove(op.exchanges().longEx());
+			usedExchanges.remove(op.exchanges().shortEx());
+			log.error("Failed to enter coin {}: {}", coin, e.getMessage());
 		}
 	}
 
 	private void processExits() {
-		for (InTradeCoinLogic logic : inTradeLogicList) {
-			CompletableFuture<Void> exiting = logic.exitTradeIfShould();
-			if (exiting == null) return;
+		for (Map.Entry<String, InTradeCoinLogic> entry : enteredCoins.entrySet()) {
+			String coin = entry.getKey();
+			InTradeCoinLogic logic = entry.getValue();
 
-			exitFuture = exiting.exceptionally(t -> {
-				log.error("Exiting trade for {} failed. Exit manually. {}", logic.getCoin(), t.getMessage());
+			CompletableFuture<Void> exitFuture = logic.exitTradeIfShould();
+			if (exitFuture == null) continue;
+
+			enteredCoins.remove(coin, logic);
+
+			CompletableFuture<Void> handledExitFuture = exitFuture.handleAsync((ignored, throwable) -> {
+				if (throwable != null) log.error("Failed to exit coin {}", coin, throwable);
+				else {
+					usedExchanges.remove(logic.opportunity().exchanges().longEx());
+					usedExchanges.remove(logic.opportunity().exchanges().shortEx());
+				}
 				return null;
 			});
-		}
-	}
-
-	private void mergeUsageMap(TradeDirections directions, ExchangePair exchanges, int value) {
-		BaseExchange longEx = exchanges.longEx();
-		BaseExchange shortEx = exchanges.shortEx();
-
-		var longUsageMap = directions.longMarket() == TradeMarket.SPOT ? spotUsedTimes : futuresUsedTimes;
-		var shortUsageMap = directions.shortMarket() == TradeMarket.SPOT ? spotUsedTimes : futuresUsedTimes;
-
-		longUsageMap.merge(longEx, value, Integer::sum);
-		shortUsageMap.merge(shortEx, value, Integer::sum);
-	}
-
-	private void enterCrossCoin(String coin, CoinOpportunity op) {
-		mergeUsageMap(op.directions(), op.exchanges(), 1);
-		try {
-			InTradeCoinLogic logic = new InTradeCoinLogic(
-							coin,
-							op,
-							config,
-							monitor,
-							inTradeStrategyFactory.create(op.longData(), op.shortData()),
-							executionFactory.create(coin, op, config),
-							schedulerBuilder
-			);
-			inTradeLogicList.add(logic);
-		} catch (Exception e) {
-			log.error("Failed to initialize InTradeSingleCoinLogic: {}", e.getMessage());
-			mergeUsageMap(op.directions(), op.exchanges(), -1);
-			coinAvailability.removeByCoin(coin);
+			exitFutures.add(handledExitFuture);
+			handledExitFuture.whenComplete((ignored, throwable) -> exitFutures.remove(handledExitFuture));
 		}
 	}
 
 	@Override
 	public void shutdown() {
 		super.shutdown();
-		exitScheduler.cancelNow();
-		exitFuture.join();
+		this.exitScheduler.cancelNow();
+		this.exitFutures.parallelStream().forEach(CompletableFuture::join);
 	}
 }

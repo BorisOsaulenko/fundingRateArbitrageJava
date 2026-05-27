@@ -12,12 +12,12 @@ import com.boris.fundingarbitrage.strategy.intradestrategy.InTradeStrategy;
 import com.boris.fundingarbitrage.tradelogger.TradeLogger;
 import lombok.Getter;
 
+import java.math.BigDecimal;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class InTradeCoinLogic {
-	protected final ArbitrageBotConfig config;
 	private final CoinOpportunity op;
 	@Getter private final String coin;
 	private final CoinMonitor monitor;
@@ -33,7 +33,7 @@ public class InTradeCoinLogic {
 	public InTradeCoinLogic(
 					String coin,
 					CoinOpportunity op,
-					ArbitrageBotConfig config,
+					BigDecimal legUsdtAmount,
 					CoinMonitor monitor,
 					InTradeStrategy strategy,
 					CoinExecution execution,
@@ -41,10 +41,9 @@ public class InTradeCoinLogic {
 	) {
 		this.coin = coin;
 		this.op = op;
-		this.config = config;
 		this.monitor = monitor;
 		this.strategy = strategy;
-		this.tradeLogger = new TradeLogger(coin, op, config.legUsdtAmount());
+		this.tradeLogger = new TradeLogger(coin, op, legUsdtAmount);
 
 		this.execution = execution;
 		this.enterFuture = execution.enterTrade()
@@ -55,6 +54,10 @@ public class InTradeCoinLogic {
 		this.shouldRegisterShortFunding = new AtomicBoolean(op.shortData().market() == TradeMarket.FUTURES);
 		this.fundingRegisterScheduler = schedulerBuilder.create(this::registerFunding, 30, TimeUnit.MINUTES);
 		this.fundingRegisterScheduler.start();
+	}
+
+	public CoinOpportunity opportunity() {
+		return op;
 	}
 
 	private void logEnterSuccess() {
@@ -93,7 +96,7 @@ public class InTradeCoinLogic {
 						null,
 						5,
 						TimeUnit.SECONDS
-		).thenCompose(v -> {
+		).thenCompose(_ -> {
 			tradeLogger.logExit(currLong, currShort);
 			fundingRegisterScheduler.cancelNow();
 			return tradeLogger.finish(execution.getEnterIds(), execution.getExitIds());
@@ -107,6 +110,6 @@ public class InTradeCoinLogic {
 		Snapshot currShort = monitor.getSnapshot(op.exchanges().shortEx(), coin, op.shortData().market());
 		if (!strategy.shouldExitTrade(currLong, currShort)) return null;
 
-		return execution.exitTrade().thenCompose(v -> shutdown(currLong, currShort));
+		return execution.exitTrade().thenCompose(_ -> shutdown(currLong, currShort));
 	}
 }

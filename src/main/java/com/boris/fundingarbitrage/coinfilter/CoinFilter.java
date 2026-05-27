@@ -53,20 +53,18 @@ public class CoinFilter {
 	}
 
 	private CompletableFuture<Void> fetchData(BaseExchange exchange, Set<String> coins) {
+		String exName = exchange.name().name();
 		CompletableFuture<CoinVector<FuturesPublicOnePullData>> futuresOnePullDataFuture =
-						withTimeOut(
-										exchange.publicHttpClient().getFuturesOnePullData(coins),
-										"futures one pull " + exchange.name()
-						);
+						withTimeOut(exchange.publicHttpClient().getFuturesOnePullData(coins), "futures one pull " + exName);
 
 		CompletableFuture<CoinVector<SpotPublicOnePullData>> spotOnePullDataFuture =
-						withTimeOut(exchange.publicHttpClient().getSpotOnePullData(coins), "spot one pull " + exchange.name());
+						withTimeOut(exchange.publicHttpClient().getSpotOnePullData(coins), "spot one pull " + exName);
 
 		CompletableFuture<CoinVector<Fees>> futuresFeesFuture =
-						withTimeOut(exchange.privateHttpClient().getFutureTradingFees(coins), "futures fees " + exchange.name());
+						withTimeOut(exchange.privateHttpClient().getFutureTradingFees(coins), "futures fees " + exName);
 
 		CompletableFuture<CoinVector<Fees>> spotFeesFuture =
-						withTimeOut(exchange.privateHttpClient().getSpotTradingFees(coins), "spot fees " + exchange.name());
+						withTimeOut(exchange.privateHttpClient().getSpotTradingFees(coins), "spot fees " + exName);
 
 		return CompletableFuture.allOf(futuresOnePullDataFuture, futuresFeesFuture, spotOnePullDataFuture, spotFeesFuture)
 						.thenRun(() -> {
