@@ -2,6 +2,7 @@ package com.boris.fundingarbitrage.logic;
 
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.execution.CoinExecution;
+import com.boris.fundingarbitrage.execution.factory.CoinExecutionFactory;
 import com.boris.fundingarbitrage.model.exchange.snapshot.FuturesSnapshot;
 import com.boris.fundingarbitrage.model.exchange.snapshot.Snapshot;
 import com.boris.fundingarbitrage.monitor.CoinMonitor;
@@ -9,10 +10,9 @@ import com.boris.fundingarbitrage.scheduler.IModifiableScheduler;
 import com.boris.fundingarbitrage.scheduler.IModifiableSchedulerBuilder;
 import com.boris.fundingarbitrage.strategy.TradeMarket;
 import com.boris.fundingarbitrage.strategy.intradestrategy.InTradeStrategy;
-import com.boris.fundingarbitrage.tradelogger.TradeLogger;
+import com.boris.fundingarbitrage.tradelogger.TradeSessionLogger;
 import lombok.Getter;
 
-import java.math.BigDecimal;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -24,28 +24,27 @@ public class TradeSession {
 	private final CoinMonitor monitor;
 	private final InTradeStrategy strategy;
 	private final CoinExecution execution;
-	private CompletableFuture<Void> enterFuture;
-	private final TradeLogger tradeLogger;
-
+	private final TradeSessionLogger tradeLogger;
 	private final IModifiableScheduler fundingRegisterScheduler;
 	private final AtomicBoolean shouldRegisterShortFunding;
 	private final AtomicBoolean shouldRegisterLongFunding;
+	private CompletableFuture<Void> enterFuture;
 
 	public TradeSession(
 					String coin,
 					CoinOpportunity op,
-					BigDecimal legUsdtAmount,
+					ArbitrageBotConfig config,
 					CoinMonitor monitor,
 					InTradeStrategy strategy,
-					CoinExecution execution,
+					CoinExecutionFactory executionFactory,
 					IModifiableSchedulerBuilder schedulerBuilder
 	) {
 		this.coin = coin;
 		this.op = op;
 		this.monitor = monitor;
 		this.strategy = strategy;
-		this.tradeLogger = new TradeLogger(coin, op, legUsdtAmount);
-		this.execution = execution;
+		this.tradeLogger = new TradeSessionLogger(coin, op, config.legUsdtAmount());
+		this.execution = executionFactory.create(coin, op, config, tradeLogger);
 
 		this.shouldRegisterLongFunding = new AtomicBoolean(op.longData().market() == TradeMarket.FUTURES);
 		this.shouldRegisterShortFunding = new AtomicBoolean(op.shortData().market() == TradeMarket.FUTURES);
@@ -135,11 +134,7 @@ public class TradeSession {
 		return execution.exitTrade()
 						.thenCompose(_ -> shutdown(currLong, currShort))
 						.whenComplete((ignored, throwable) -> {
-							if (throwable != null) {
-								tradeLogger.logExitFailure(throwable, op.exchanges().longEx());
-								tradeLogger.logExitFailure(throwable, op.exchanges().shortEx());
-								return;
-							}
+							if (throwable != null) return;
 							if (onSuccess != null) onSuccess.run();
 						});
 	}

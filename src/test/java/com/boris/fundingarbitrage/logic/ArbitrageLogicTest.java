@@ -119,7 +119,6 @@ class ArbitrageLogicTest {
 							mockedMonitor,
 							mockedOpportunityAnalyzer,
 							mockedPreTradeStrategy,
-							mockedInTradeStrategyFactory,
 							availability,
 							mockedConfig,
 							mockedBalancesPolicy,

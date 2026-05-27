@@ -1,5 +1,10 @@
 package com.boris.fundingarbitrage.tradelogger;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.PatternLayout;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.FileAppender;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.execution.TradeIds;
 import com.boris.fundingarbitrage.logic.CoinOpportunity;
@@ -12,10 +17,9 @@ import com.boris.fundingarbitrage.model.exchange.snapshot.Snapshot;
 import com.boris.fundingarbitrage.strategy.TradeMarket;
 import com.boris.fundingarbitrage.strategy.pretradestrategy.TradeDirections;
 import kotlin.jvm.functions.Function3;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.io.BufferedWriter;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.file.Files;
@@ -27,11 +31,12 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class TradeLogger {
+public class TradeSessionLogger {
+	private static final Logger bootstrapLog = LoggerFactory.getLogger(TradeSessionLogger.class);
 	private static final DateTimeFormatter fmt = DateTimeFormatter
 					.ofPattern("yyyy_MM_dd-HH:mm:ss")
 					.withZone(ZoneId.of("UTC"));
-	private final BufferedWriter writer;
+	private final Logger logger;
 	private final String coin;
 	private final AtomicBoolean fillsFetchSuccess = new AtomicBoolean(true);
 	private final ExchangePair exchanges;
@@ -45,7 +50,7 @@ public class TradeLogger {
 	private Snapshot shortExitSn;
 	private BigDecimal totalFundingGain = BigDecimal.ZERO;
 
-	public TradeLogger(
+	public TradeSessionLogger(
 					String coin,
 					CoinOpportunity op,
 					BigDecimal baseAssetQty
@@ -56,54 +61,55 @@ public class TradeLogger {
 		this.baseAssetQty = baseAssetQty;
 		this.longCd = op.longData().constantData();
 		this.shortCd = op.shortData().constantData();
-
-		String path = String.format("logs/%s_%s.log", coin, fmt.format(Instant.now()));
-		Path logFilePath = Path.of(path);
-		OutputStream out;
-		try {
-			Path parent = logFilePath.getParent();
-			if (parent != null) {
-				Files.createDirectories(parent);
-			}
-			out = Files.newOutputStream(logFilePath);
-		} catch (Exception e) {
-			out = System.out;
-		}
-		this.writer = new BufferedWriter(new OutputStreamWriter(out));
+		this.logger = createTradeLogger(coin);
 	}
 
-	String getPrefix(String type) {
-		return "[" + type.toUpperCase() + "] [" + fmt.format(Instant.now()) + "] ";
+	private Logger createTradeLogger(String coin) {
+		String timestamp = fmt.format(Instant.now());
+		String loggerName = "com.boris.fundingarbitrage.tradelogger." + coin + "." + timestamp + "." + System.nanoTime();
+		String path = String.format("logs/trades/%s_%s.log", coin, timestamp);
+		Path logFilePath = Path.of(path);
+		try {
+			Path parent = logFilePath.getParent();
+			if (parent != null) Files.createDirectories(parent);
+
+			LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
+			PatternLayout layout = new PatternLayout();
+			layout.setContext(context);
+			layout.setPattern("%d{yyyy_MM_dd-HH:mm:ss,UTC} [%level] %msg%n");
+			layout.start();
+
+			FileAppender<ILoggingEvent> appender = new FileAppender<>();
+			appender.setContext(context);
+			appender.setName("trade-" + coin + "-" + timestamp + "-" + System.nanoTime());
+			appender.setFile(logFilePath.toString());
+			appender.setAppend(true);
+			appender.setImmediateFlush(true);
+			appender.setLayout(layout);
+			appender.start();
+
+			ch.qos.logback.classic.Logger tradeLogger = context.getLogger(loggerName);
+			tradeLogger.setAdditive(false);
+			tradeLogger.setLevel(Level.INFO);
+			tradeLogger.detachAndStopAllAppenders();
+			tradeLogger.addAppender(appender);
+			return tradeLogger;
+		} catch (Exception e) {
+			bootstrapLog.error("Failed to initialize dedicated trade logger for {}", coin, e);
+			return bootstrapLog;
+		}
 	}
 
 	private void log(Object message) {
-		try {
-			writer.write(getPrefix("LOG") + message.toString() + "\n");
-			writer.flush();
-		} catch (Exception e) {
-			System.out.println("Failed to log trade message: " + e.getMessage());
-			e.printStackTrace();
-		}
+		logger.info("{}", message);
 	}
 
 	private void warn(Object message) {
-		try {
-			writer.write(getPrefix("WARN") + message.toString() + "\n");
-			writer.flush();
-		} catch (Exception e) {
-			System.out.println("Failed to log trade message: " + e.getMessage());
-			e.printStackTrace();
-		}
+		logger.warn("{}", message);
 	}
 
 	private void error(Object message) {
-		try {
-			writer.write(getPrefix("ERROR") + message.toString() + "\n");
-			writer.flush();
-		} catch (Exception e) {
-			System.out.println("Failed to log trade message: " + e.getMessage());
-			e.printStackTrace();
-		}
+		logger.error("{}", message);
 	}
 
 	private void log(String message, Object... args) {

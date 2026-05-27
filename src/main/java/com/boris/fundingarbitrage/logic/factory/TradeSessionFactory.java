@@ -33,10 +33,10 @@ public class TradeSessionFactory {
 		return new TradeSession(
 						coin,
 						opportunity,
-						config.legUsdtAmount(),
+						config,
 						monitor,
 						inTradeStrategyFactory.create(opportunity),
-						executionFactory.create(coin, opportunity, config),
+						executionFactory,
 						schedulerBuilder
 		);
 	}
