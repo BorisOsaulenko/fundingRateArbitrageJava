@@ -16,21 +16,22 @@ import java.math.BigDecimal;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
-public class InTradeCoinLogic {
+public class TradeSession {
 	private final CoinOpportunity op;
 	@Getter private final String coin;
 	private final CoinMonitor monitor;
 	private final InTradeStrategy strategy;
 	private final CoinExecution execution;
-	private final CompletableFuture<Void> enterFuture;
+	private CompletableFuture<Void> enterFuture;
 	private final TradeLogger tradeLogger;
 
 	private final IModifiableScheduler fundingRegisterScheduler;
 	private final AtomicBoolean shouldRegisterShortFunding;
 	private final AtomicBoolean shouldRegisterLongFunding;
 
-	public InTradeCoinLogic(
+	public TradeSession(
 					String coin,
 					CoinOpportunity op,
 					BigDecimal legUsdtAmount,
@@ -44,16 +45,32 @@ public class InTradeCoinLogic {
 		this.monitor = monitor;
 		this.strategy = strategy;
 		this.tradeLogger = new TradeLogger(coin, op, legUsdtAmount);
-
 		this.execution = execution;
-		this.enterFuture = execution.enterTrade()
-						.thenRun(this::logEnterSuccess)
-						.exceptionally(tradeLogger::logEnterFailure);
 
 		this.shouldRegisterLongFunding = new AtomicBoolean(op.longData().market() == TradeMarket.FUTURES);
 		this.shouldRegisterShortFunding = new AtomicBoolean(op.shortData().market() == TradeMarket.FUTURES);
 		this.fundingRegisterScheduler = schedulerBuilder.create(this::registerFunding, 30, TimeUnit.MINUTES);
-		this.fundingRegisterScheduler.start();
+	}
+
+	public CompletableFuture<Void> enter() {
+		return enter(null);
+	}
+
+	public CompletableFuture<Void> enter(Consumer<Throwable> onError) {
+		if (enterFuture != null) throw new IllegalStateException("Trade session already entered.");
+
+		enterFuture = execution.enterTrade()
+						.thenRun(() -> {
+							logEnterSuccess();
+							fundingRegisterScheduler.start();
+						})
+						.whenComplete((ignored, throwable) -> {
+							if (throwable == null) return;
+
+							tradeLogger.logEnterFailure(throwable);
+							if (onError != null) onError.accept(throwable);
+						});
+		return enterFuture;
 	}
 
 	public CoinOpportunity opportunity() {
@@ -104,12 +121,26 @@ public class InTradeCoinLogic {
 	}
 
 	public CompletableFuture<Void> exitTradeIfShould() {
+		return exitTradeIfShould(null);
+	}
+
+	public CompletableFuture<Void> exitTradeIfShould(Runnable onSuccess) {
+		if (enterFuture == null) return null;
 		if (!enterFuture.isDone()) return null;
 
 		Snapshot currLong = monitor.getSnapshot(op.exchanges().longEx(), coin, op.longData().market());
 		Snapshot currShort = monitor.getSnapshot(op.exchanges().shortEx(), coin, op.shortData().market());
 		if (!strategy.shouldExitTrade(currLong, currShort)) return null;
 
-		return execution.exitTrade().thenCompose(_ -> shutdown(currLong, currShort));
+		return execution.exitTrade()
+						.thenCompose(_ -> shutdown(currLong, currShort))
+						.whenComplete((ignored, throwable) -> {
+							if (throwable != null) {
+								tradeLogger.logExitFailure(throwable, op.exchanges().longEx());
+								tradeLogger.logExitFailure(throwable, op.exchanges().shortEx());
+								return;
+							}
+							if (onSuccess != null) onSuccess.run();
+						});
 	}
 }

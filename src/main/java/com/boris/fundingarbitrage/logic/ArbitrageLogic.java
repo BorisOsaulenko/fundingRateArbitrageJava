@@ -9,7 +9,6 @@ import com.boris.fundingarbitrage.model.exchange.ExchangeBalance;
 import com.boris.fundingarbitrage.monitor.CoinMonitor;
 import com.boris.fundingarbitrage.scheduler.IModifiableScheduler;
 import com.boris.fundingarbitrage.scheduler.IModifiableSchedulerBuilder;
-import com.boris.fundingarbitrage.strategy.intradestrategy.factory.InTradeStrategyFactory;
 import com.boris.fundingarbitrage.strategy.pretradestrategy.PreTradeStrategy;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import lombok.NonNull;
@@ -25,7 +24,6 @@ public abstract class ArbitrageLogic {
 	private static final Logger log = LoggerFactory.getLogger(ArbitrageLogic.class);
 	protected final IModifiableSchedulerBuilder schedulerBuilder;
 	protected final PreTradeStrategy preTradeStrategy;
-	protected final InTradeStrategyFactory inTradeStrategyFactory;
 	protected final CoinAvailabilityRecord coinAvailability;
 	protected final ArbitrageBotConfig config;
 	protected final CoinMonitor monitor;
@@ -41,7 +39,6 @@ public abstract class ArbitrageLogic {
 					CoinMonitor monitor,
 					IOpportunityAnalyzer opportunityAnalyzer,
 					PreTradeStrategy preTradeStrategy,
-					InTradeStrategyFactory inTradeStrategyFactory,
 					CoinAvailabilityRecord coinAvailability,
 					ArbitrageBotConfig arbConfig,
 					IBalancesPolicy balancesPolicy,
@@ -50,7 +47,6 @@ public abstract class ArbitrageLogic {
 		this.monitor = monitor;
 		this.opportunityAnalyzer = opportunityAnalyzer;
 		this.preTradeStrategy = preTradeStrategy;
-		this.inTradeStrategyFactory = inTradeStrategyFactory;
 		this.coinAvailability = coinAvailability;
 		this.config = arbConfig;
 		this.balancesPolicy = balancesPolicy;
