@@ -1,8 +1,8 @@
 package com.boris.fundingarbitrage.logic;
 
 import com.boris.fundingarbitrage.exchange.BaseExchange;
-import com.boris.fundingarbitrage.execution.CoinExecution;
-import com.boris.fundingarbitrage.execution.factory.CoinExecutionFactory;
+import com.boris.fundingarbitrage.execution.ITradeExecution;
+import com.boris.fundingarbitrage.execution.factory.TradeExecutionFactory;
 import com.boris.fundingarbitrage.model.exchange.snapshot.FuturesSnapshot;
 import com.boris.fundingarbitrage.model.exchange.snapshot.Snapshot;
 import com.boris.fundingarbitrage.monitor.CoinMonitor;
@@ -14,6 +14,7 @@ import com.boris.fundingarbitrage.tradelogger.TradeSessionLogger;
 import lombok.Getter;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
@@ -23,7 +24,7 @@ public class TradeSession {
 	@Getter private final String coin;
 	private final CoinMonitor monitor;
 	private final InTradeStrategy strategy;
-	private final CoinExecution execution;
+	private final ITradeExecution execution;
 	private final TradeSessionLogger tradeLogger;
 	private final IModifiableScheduler fundingRegisterScheduler;
 	private final AtomicBoolean shouldRegisterShortFunding;
@@ -36,7 +37,7 @@ public class TradeSession {
 					ArbitrageBotConfig config,
 					CoinMonitor monitor,
 					InTradeStrategy strategy,
-					CoinExecutionFactory executionFactory,
+					TradeExecutionFactory executionFactory,
 					IModifiableSchedulerBuilder schedulerBuilder
 	) {
 		this.coin = coin;
@@ -59,14 +60,10 @@ public class TradeSession {
 		if (enterFuture != null) throw new IllegalStateException("Trade session already entered.");
 
 		enterFuture = execution.enterTrade()
-						.thenRun(() -> {
-							logEnterSuccess();
-							fundingRegisterScheduler.start();
-						})
+						.thenRun(fundingRegisterScheduler::start)
 						.whenComplete((ignored, throwable) -> {
 							if (throwable == null) return;
 
-							tradeLogger.logEnterFailure(throwable);
 							if (onError != null) onError.accept(throwable);
 						});
 		return enterFuture;
@@ -74,16 +71,6 @@ public class TradeSession {
 
 	public CoinOpportunity opportunity() {
 		return op;
-	}
-
-	private void logEnterSuccess() {
-		BaseExchange longEx = op.exchanges().longEx();
-		BaseExchange shortEx = op.exchanges().shortEx();
-
-		Snapshot longSnapshot = monitor.getSnapshot(longEx, coin, op.longData().market());
-		Snapshot shortSnapshot = monitor.getSnapshot(shortEx, coin, op.shortData().market());
-
-		tradeLogger.logEnterSuccess(longSnapshot, shortSnapshot);
 	}
 
 	protected void registerFunding() {
@@ -107,32 +94,27 @@ public class TradeSession {
 		}
 	}
 
-	private CompletableFuture<Void> shutdown(Snapshot currLong, Snapshot currShort) {
+	private CompletableFuture<Void> shutdown() {
 		return new CompletableFuture<>().completeOnTimeout(
 						null,
 						5,
 						TimeUnit.SECONDS
 		).thenCompose(_ -> {
-			tradeLogger.logExit(currLong, currShort);
 			fundingRegisterScheduler.cancelNow();
 			return tradeLogger.finish(execution.getEnterIds(), execution.getExitIds());
 		});
 	}
 
-	public CompletableFuture<Void> exitTradeIfShould() {
-		return exitTradeIfShould(null);
-	}
-
 	public CompletableFuture<Void> exitTradeIfShould(Runnable onSuccess) {
 		if (enterFuture == null) return null;
-		if (!enterFuture.isDone()) return null;
+		if (!enterFuture.state().equals(Future.State.SUCCESS)) return null;
 
 		Snapshot currLong = monitor.getSnapshot(op.exchanges().longEx(), coin, op.longData().market());
 		Snapshot currShort = monitor.getSnapshot(op.exchanges().shortEx(), coin, op.shortData().market());
 		if (!strategy.shouldExitTrade(currLong, currShort)) return null;
 
-		return execution.exitTrade()
-						.thenCompose(_ -> shutdown(currLong, currShort))
+		return execution.exitTrade(currLong, currShort)
+						.thenCompose(_ -> shutdown())
 						.whenComplete((ignored, throwable) -> {
 							if (throwable != null) return;
 							if (onSuccess != null) onSuccess.run();

@@ -1,6 +1,6 @@
 package com.boris.fundingarbitrage.logic.factory;
 
-import com.boris.fundingarbitrage.execution.factory.CoinExecutionFactory;
+import com.boris.fundingarbitrage.execution.factory.TradeExecutionFactory;
 import com.boris.fundingarbitrage.logic.ArbitrageBotConfig;
 import com.boris.fundingarbitrage.logic.CoinOpportunity;
 import com.boris.fundingarbitrage.logic.TradeSession;
@@ -11,14 +11,14 @@ import com.boris.fundingarbitrage.strategy.intradestrategy.factory.InTradeStrate
 public class TradeSessionFactory {
 	private final CoinMonitor monitor;
 	private final InTradeStrategyFactory inTradeStrategyFactory;
-	private final CoinExecutionFactory executionFactory;
+	private final TradeExecutionFactory executionFactory;
 	private final ArbitrageBotConfig config;
 	private final IModifiableSchedulerBuilder schedulerBuilder;
 
 	public TradeSessionFactory(
 					CoinMonitor monitor,
 					InTradeStrategyFactory inTradeStrategyFactory,
-					CoinExecutionFactory executionFactory,
+					TradeExecutionFactory executionFactory,
 					ArbitrageBotConfig config,
 					IModifiableSchedulerBuilder schedulerBuilder
 	) {

@@ -7,7 +7,7 @@ import com.boris.fundingarbitrage.coinparser.ICoinSupplier;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.exchange.Instances;
 import com.boris.fundingarbitrage.exchange.publicws.SpotHandler;
-import com.boris.fundingarbitrage.execution.factory.TestCoinExecutionFactory;
+import com.boris.fundingarbitrage.execution.factory.TestTradeExecutionFactory;
 import com.boris.fundingarbitrage.logic.ArbitrageBotConfig;
 import com.boris.fundingarbitrage.logic.ArbitrageLogic;
 import com.boris.fundingarbitrage.logic.balanceprovider.IBalanceProvider;
@@ -89,7 +89,7 @@ public class App {
 			TradeSessionFactory tradeSessionFactory = new TradeSessionFactory(
 							monitor,
 							new ProductionInTradeStrategyFactory(),
-							new TestCoinExecutionFactory(),
+							new TestTradeExecutionFactory(),
 							botConfig,
 							schedulerBuilder
 			);

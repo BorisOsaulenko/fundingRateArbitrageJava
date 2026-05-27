@@ -124,21 +124,30 @@ public class TradeSessionLogger {
 		error(String.format(message, args));
 	}
 
-	public void logEnterSuccess(Snapshot longSn, Snapshot shortSn) {
-		this.longEnterSn = longSn;
-		this.shortEnterSn = shortSn;
+	public void logEnterSuccess(Snapshot sn, boolean isLong) {
+		if (isLong) this.longEnterSn = sn;
+		else this.shortEnterSn = sn;
 
-		BigDecimal longAsk = longSn.askPrice();
-		BigDecimal shortBid = shortSn.bidPrice();
-		BigDecimal longFee = longAsk.multiply(longCd.openTaker());
-		BigDecimal shortFee = shortBid.multiply(shortCd.openTaker());
-		log("Entered trades: [Long: %s], [Short: %s]", longAsk, shortBid);
-		log("Fees: [Long: %s], [Short: %s]", longFee, shortFee);
+		BigDecimal price = isLong ? sn.askPrice() : sn.bidPrice();
+		ConstantData cd = isLong ? longCd : shortCd;
+		BigDecimal fee = price.multiply(cd.openTaker());
+		String label = isLong ? "long" : "short";
+		log("Entered %s trade at price: %s. Fee: %s", label, price, fee);
 	}
 
-	public Void logEnterFailure(Throwable t) {
-		error("Failed to enter trades: " + t.getMessage());
-		return null;
+	public void logEnterCompensationSuccess(boolean isLong) {
+		BaseExchange ex = isLong ? exchanges.longEx() : exchanges.shortEx();
+		log("Successfully exited %s as compensation for enter failure on opposite leg.", ex.name());
+	}
+
+	public void logEnterCompensationFailure(boolean isLong) {
+		BaseExchange ex = isLong ? exchanges.longEx() : exchanges.shortEx();
+		error("Failed to compensate on %s. There is a dangling entered leg. Exit manually.", ex.name());
+	}
+
+	public void logEnterFailure(Throwable t, boolean isLong) {
+		BaseExchange ex = isLong ? exchanges.longEx() : exchanges.shortEx();
+		error("Failed to enter trade on %s: %s", ex.name(), t.getMessage());
 	}
 
 	public void logFunding(FuturesSnapshot sn, boolean isLong) {
@@ -150,21 +159,20 @@ public class TradeSessionLogger {
 		totalFundingGain = totalFundingGain.add(funding);
 	}
 
-	public void logExit(Snapshot longSn, Snapshot shortSn) {
-		this.longExitSn = longSn;
-		this.shortExitSn = shortSn;
+	public void logExitSuccess(Snapshot sn, boolean isLong) {
+		if (isLong) this.longExitSn = sn;
+		else this.shortExitSn = sn;
 
-		BigDecimal longBid = longSn.bidPrice();
-		BigDecimal shortAsk = shortSn.askPrice();
-		BigDecimal longFee = longBid.multiply(longCd.closeTaker());
-		BigDecimal shortFee = shortAsk.multiply(shortCd.closeTaker());
-		log("Exited trades: [Long: %s], [Short: %s]", longBid, shortAsk);
-		log("Fees: [Long: %s], [Short: %s]", longFee, shortFee);
+		BigDecimal price = isLong ? sn.bidPrice() : sn.askPrice();
+		ConstantData cd = isLong ? longCd : shortCd;
+		BigDecimal fee = price.multiply(cd.closeTaker());
+		String label = isLong ? "long" : "short";
+		log("Exited %s trade at price: %s. Fee: %s", label, price, fee);
 	}
 
-	public Void logExitFailure(Throwable t, BaseExchange exchange) {
-		error("Failed to exit trade on %s: %s", exchange.name(), t.getMessage());
-		return null;
+	public void logExitFailure(Throwable t, boolean isLong) {
+		BaseExchange ex = isLong ? exchanges.longEx() : exchanges.shortEx();
+		error("Failed to exit trade on %s: %s", ex.name(), t.getMessage());
 	}
 
 	public CompletableFuture<Void> finish(TradeIds enterIds, TradeIds exitIds) {
