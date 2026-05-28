@@ -67,7 +67,7 @@ class CoinMonitorTest {
 		FakePublicMarketDataStream bybitWs = new FakePublicMarketDataStream();
 		BaseExchange binance = fakeExchange(ExchangeName.BINANCE, binanceWs);
 		BaseExchange bybit = fakeExchange(ExchangeName.BYBIT, bybitWs);
-		CoinMonitor monitor = new CoinMonitor(filterData(Set.of(binance, bybit)), new ImmediateDataStream());
+		ICoinMonitor monitor = new CoinMonitor(filterData(Set.of(binance, bybit)), new ImmediateDataStream());
 
 		Instant updatedAt = Instant.parse("2026-05-05T10:15:30Z");
 		Instant settlement = Instant.parse("2026-05-05T16:00:00Z");

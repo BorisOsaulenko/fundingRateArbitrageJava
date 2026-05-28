@@ -9,8 +9,7 @@ import com.boris.fundingarbitrage.logic.balanceprovider.IBalanceProvider;
 import com.boris.fundingarbitrage.logic.balancespolicy.IBalancesPolicy;
 import com.boris.fundingarbitrage.logic.opportunityanalyzer.IOpportunityAnalyzer;
 import com.boris.fundingarbitrage.model.exchange.ExchangeBalance;
-import com.boris.fundingarbitrage.monitor.CoinMonitor;
-import com.boris.fundingarbitrage.strategy.intradestrategy.factory.InTradeStrategyFactory;
+import com.boris.fundingarbitrage.monitor.ICoinMonitor;
 import com.boris.fundingarbitrage.strategy.pretradestrategy.PreTradeStrategy;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import lombok.NonNull;
@@ -25,10 +24,9 @@ import java.util.function.Consumer;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ArbitrageLogicTest {
-	private final CoinMonitor mockedMonitor = Mockito.mock(CoinMonitor.class);
+	private final ICoinMonitor mockedMonitor = Mockito.mock(ICoinMonitor.class);
 	private final IOpportunityAnalyzer mockedOpportunityAnalyzer = Mockito.mock(IOpportunityAnalyzer.class);
 	private final PreTradeStrategy mockedPreTradeStrategy = Mockito.mock(PreTradeStrategy.class);
-	private final InTradeStrategyFactory mockedInTradeStrategyFactory = Mockito.mock(InTradeStrategyFactory.class);
 	private final IBalanceProvider mockedBalanceProvider = Mockito.mock(IBalanceProvider.class);
 	private final IBalancesPolicy mockedBalancesPolicy = Mockito.mock(IBalancesPolicy.class);
 	private final ArbitrageBotConfig mockedConfig = Mockito.mock(ArbitrageBotConfig.class);

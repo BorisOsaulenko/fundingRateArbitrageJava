@@ -16,7 +16,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.function.BiConsumer;
 
-public class TimestampCompletionsScheduler {
+class TimestampCompletionsScheduler {
 	private static final long COMPLETION_DELAY_MS = 500;
 	private final ExchangeCoinMap<Funding> futuresFundingRates;
 	private final ExchangeCoinMap<BookTicker> futuresBookTickers;
@@ -75,23 +75,6 @@ public class TimestampCompletionsScheduler {
 
 	public void cancelTimestampExecution(BaseExchange ex, String coin, long timestamp) {
 		timestampHandlers.consumeIfPresent(ex, coin, (_, timestampMap) -> timestampMap.remove(timestamp));
-		timestampsToProcess.consumeIfPresent(ex, coin, (_, timestamps) -> timestamps.remove(timestamp));
-	}
-
-	public void cancelTimestampExecution(
-					BaseExchange ex,
-					String coin,
-					long timestamp,
-					BiConsumer<FuturesSnapshot, SpotSnapshot> handler
-	) {
-		timestampHandlers.consumeIfPresent(
-						ex, coin, (_, timestampMap) -> {
-							var handlers = timestampMap.get(timestamp);
-							if (handlers != null) handlers.remove(handler);
-							if (handlers == null || handlers.isEmpty()) timestampMap.remove(timestamp);
-						}
-		);
-
 		timestampsToProcess.consumeIfPresent(ex, coin, (_, timestamps) -> timestamps.remove(timestamp));
 	}
 

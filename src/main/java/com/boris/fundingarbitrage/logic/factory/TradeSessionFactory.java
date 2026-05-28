@@ -4,19 +4,19 @@ import com.boris.fundingarbitrage.execution.factory.TradeExecutionFactory;
 import com.boris.fundingarbitrage.logic.ArbitrageBotConfig;
 import com.boris.fundingarbitrage.logic.CoinOpportunity;
 import com.boris.fundingarbitrage.logic.TradeSession;
-import com.boris.fundingarbitrage.monitor.CoinMonitor;
+import com.boris.fundingarbitrage.monitor.ICoinMonitor;
 import com.boris.fundingarbitrage.scheduler.IModifiableSchedulerBuilder;
 import com.boris.fundingarbitrage.strategy.intradestrategy.factory.InTradeStrategyFactory;
 
 public class TradeSessionFactory {
-	private final CoinMonitor monitor;
+	private final ICoinMonitor monitor;
 	private final InTradeStrategyFactory inTradeStrategyFactory;
 	private final TradeExecutionFactory executionFactory;
 	private final ArbitrageBotConfig config;
 	private final IModifiableSchedulerBuilder schedulerBuilder;
 
 	public TradeSessionFactory(
-					CoinMonitor monitor,
+					ICoinMonitor monitor,
 					InTradeStrategyFactory inTradeStrategyFactory,
 					TradeExecutionFactory executionFactory,
 					ArbitrageBotConfig config,

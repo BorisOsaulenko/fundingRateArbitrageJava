@@ -5,7 +5,7 @@ import com.boris.fundingarbitrage.execution.ITradeExecution;
 import com.boris.fundingarbitrage.execution.factory.TradeExecutionFactory;
 import com.boris.fundingarbitrage.model.exchange.snapshot.FuturesSnapshot;
 import com.boris.fundingarbitrage.model.exchange.snapshot.Snapshot;
-import com.boris.fundingarbitrage.monitor.CoinMonitor;
+import com.boris.fundingarbitrage.monitor.ICoinMonitor;
 import com.boris.fundingarbitrage.scheduler.IModifiableScheduler;
 import com.boris.fundingarbitrage.scheduler.IModifiableSchedulerBuilder;
 import com.boris.fundingarbitrage.strategy.TradeMarket;
@@ -20,9 +20,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 public class TradeSession {
-	private final CoinOpportunity op;
+	@Getter private final CoinOpportunity op;
 	@Getter private final String coin;
-	private final CoinMonitor monitor;
+	private final ICoinMonitor monitor;
 	private final InTradeStrategy strategy;
 	private final ITradeExecution execution;
 	private final TradeSessionLogger tradeLogger;
@@ -35,7 +35,7 @@ public class TradeSession {
 					String coin,
 					CoinOpportunity op,
 					ArbitrageBotConfig config,
-					CoinMonitor monitor,
+					ICoinMonitor monitor,
 					InTradeStrategy strategy,
 					TradeExecutionFactory executionFactory,
 					IModifiableSchedulerBuilder schedulerBuilder
@@ -52,10 +52,6 @@ public class TradeSession {
 		this.fundingRegisterScheduler = schedulerBuilder.create(this::registerFunding, 30, TimeUnit.MINUTES);
 	}
 
-	public CompletableFuture<Void> enter() {
-		return enter(null);
-	}
-
 	public CompletableFuture<Void> enter(Consumer<Throwable> onError) {
 		if (enterFuture != null) throw new IllegalStateException("Trade session already entered.");
 
@@ -69,10 +65,6 @@ public class TradeSession {
 		return enterFuture;
 	}
 
-	public CoinOpportunity opportunity() {
-		return op;
-	}
-
 	protected void registerFunding() {
 		if (shouldRegisterLongFunding.get()) registerFunding(op.exchanges().longEx(), true);
 		if (shouldRegisterShortFunding.get()) registerFunding(op.exchanges().shortEx(), false);
@@ -84,7 +76,7 @@ public class TradeSession {
 			shouldRegister.set(false);
 			FuturesSnapshot snapshot = monitor.getFuturesSnapshot(ex, coin);
 			long settlement = snapshot.funding().settlement().toEpochMilli();
-			monitor.completionAgent.performOnTimestamp(
+			monitor.performOnTimestamp(
 							settlement, ex, coin, (sn, _) -> {
 								tradeLogger.logFunding(snapshot, isLong);
 								strategy.registerFunding(sn, isLong);

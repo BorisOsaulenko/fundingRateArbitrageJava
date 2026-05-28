@@ -12,7 +12,7 @@ import com.boris.fundingarbitrage.logic.opportunityanalyzer.IOpportunityAnalyzer
 import com.boris.fundingarbitrage.model.assetops.InternalAccount;
 import com.boris.fundingarbitrage.model.assetops.InternalTransfer;
 import com.boris.fundingarbitrage.model.exchange.ExchangeBalance;
-import com.boris.fundingarbitrage.monitor.CoinMonitor;
+import com.boris.fundingarbitrage.monitor.ICoinMonitor;
 import com.boris.fundingarbitrage.scheduler.IModifiableScheduler;
 import com.boris.fundingarbitrage.scheduler.IModifiableSchedulerBuilder;
 import com.boris.fundingarbitrage.strategy.pretradestrategy.PreTradeStrategy;
@@ -38,7 +38,7 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 	private CompletableFuture<Void> internalTransfersFuture;
 
 	public RebalancingArbitrageLogic(
-					CoinMonitor monitor,
+					ICoinMonitor monitor,
 					IOpportunityAnalyzer opportunityAnalyzer,
 					PreTradeStrategy preTradeStrategy,
 					CoinAvailabilityRecord coinAvailability,
@@ -126,8 +126,8 @@ public class RebalancingArbitrageLogic extends ArbitrageLogic {
 			TradeSession logic = entry.getValue();
 
 			CompletableFuture<Void> exitFuture = logic.exitTradeIfShould(() -> {
-				usedExchanges.remove(logic.opportunity().exchanges().longEx());
-				usedExchanges.remove(logic.opportunity().exchanges().shortEx());
+				usedExchanges.remove(logic.getOp().exchanges().longEx());
+				usedExchanges.remove(logic.getOp().exchanges().shortEx());
 			});
 			if (exitFuture == null) continue;
 

@@ -6,7 +6,7 @@ import com.boris.fundingarbitrage.logic.balanceprovider.IBalanceProvider;
 import com.boris.fundingarbitrage.logic.balancespolicy.IBalancesPolicy;
 import com.boris.fundingarbitrage.logic.opportunityanalyzer.IOpportunityAnalyzer;
 import com.boris.fundingarbitrage.model.exchange.ExchangeBalance;
-import com.boris.fundingarbitrage.monitor.CoinMonitor;
+import com.boris.fundingarbitrage.monitor.ICoinMonitor;
 import com.boris.fundingarbitrage.scheduler.IModifiableScheduler;
 import com.boris.fundingarbitrage.scheduler.IModifiableSchedulerBuilder;
 import com.boris.fundingarbitrage.strategy.pretradestrategy.PreTradeStrategy;
@@ -26,7 +26,7 @@ public abstract class ArbitrageLogic {
 	protected final PreTradeStrategy preTradeStrategy;
 	protected final CoinAvailabilityRecord coinAvailability;
 	protected final ArbitrageBotConfig config;
-	protected final CoinMonitor monitor;
+	protected final ICoinMonitor monitor;
 	protected final IOpportunityAnalyzer opportunityAnalyzer;
 	private final IBalancesPolicy balancesPolicy;
 	protected CompletableFuture<Void> initFuture;
@@ -36,7 +36,7 @@ public abstract class ArbitrageLogic {
 	private volatile boolean logOnThisCycle = false;
 
 	public ArbitrageLogic(
-					CoinMonitor monitor,
+					ICoinMonitor monitor,
 					IOpportunityAnalyzer opportunityAnalyzer,
 					PreTradeStrategy preTradeStrategy,
 					CoinAvailabilityRecord coinAvailability,

@@ -21,17 +21,18 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-public class CoinMonitor {
+public class CoinMonitor implements ICoinMonitor {
 	private final static Logger log = LoggerFactory.getLogger(CoinMonitor.class);
 	private final ExchangeCoinMap<Funding> futuresFundingRates = new ExchangeCoinMap<>();
 	private final ExchangeCoinMap<BookTicker> futuresBookTickers = new ExchangeCoinMap<>();
 	private final ExchangeCoinMap<Mark> futuresMarkPrices = new ExchangeCoinMap<>();
 	private final ExchangeCoinMap<BookTicker> spotBookTickers = new ExchangeCoinMap<>();
 
-	public final TimestampCompletionsScheduler completionAgent = new TimestampCompletionsScheduler(
+	private final TimestampCompletionsScheduler completionAgent = new TimestampCompletionsScheduler(
 					futuresFundingRates,
 					futuresBookTickers,
 					futuresMarkPrices,
@@ -71,6 +72,51 @@ public class CoinMonitor {
 															.collect(Collectors.toSet()))
 			);
 		});
+	}
+
+	@Override
+	public void performOnTimestamp(
+					long timestamp,
+					BaseExchange exchange,
+					String coin,
+					BiConsumer<FuturesSnapshot, SpotSnapshot> handler
+	) {
+		completionAgent.performOnTimestamp(timestamp, exchange, coin, handler);
+	}
+
+	@Override
+	public void cancelTimestampExecution(BaseExchange ex, String coin, long timestamp) {
+		completionAgent.cancelTimestampExecution(ex, coin, timestamp);
+	}
+
+	@Override
+	public void shutdown() {
+		for (BaseExchange exchange : coinAvailability.getExchanges()) exchange.publicWsClient().close();
+		completionAgent.shutdown();
+	}
+
+	@Override
+	public FuturesSnapshot getFuturesSnapshot(BaseExchange ex, String coin) {
+		BookTicker ticker = futuresBookTickers.get(ex, coin);
+		if (ticker == null) return null;
+
+		Mark markPrice = futuresMarkPrices.get(ex, coin);
+		Funding fundingRate = futuresFundingRates.get(ex, coin);
+
+		return new FuturesSnapshot(ticker, fundingRate, markPrice);
+	}
+
+	@Override
+	public SpotSnapshot getSpotSnapshot(BaseExchange ex, String coin) {
+		BookTicker ticker = spotBookTickers.get(ex, coin);
+		if (ticker == null) return null;
+		return new SpotSnapshot(ticker);
+	}
+
+	@Override
+	public Snapshot getSnapshot(BaseExchange ex, String coin, TradeMarket market) {
+		if (market == TradeMarket.FUTURES) return getFuturesSnapshot(ex, coin);
+		else return getSpotSnapshot(ex, coin);
 	}
 
 	public CompletableFuture<Void> getInitFuture() {
@@ -309,32 +355,6 @@ public class CoinMonitor {
 	void removeSpotFromState(BaseExchange ex, Set<String> coins) {
 		spotBookTickers.removeAll(ex, coins);
 		coinAvailability.removeSupportSpot(ex, coins);
-	}
-
-	public void shutdown() {
-		for (BaseExchange exchange : coinAvailability.getExchanges()) exchange.publicWsClient().close();
-		completionAgent.shutdown();
-	}
-
-	public FuturesSnapshot getFuturesSnapshot(BaseExchange ex, String coin) {
-		BookTicker ticker = futuresBookTickers.get(ex, coin);
-		if (ticker == null) return null;
-
-		Mark markPrice = futuresMarkPrices.get(ex, coin);
-		Funding fundingRate = futuresFundingRates.get(ex, coin);
-
-		return new FuturesSnapshot(ticker, fundingRate, markPrice);
-	}
-
-	public SpotSnapshot getSpotSnapshot(BaseExchange ex, String coin) {
-		BookTicker ticker = spotBookTickers.get(ex, coin);
-		if (ticker == null) return null;
-		return new SpotSnapshot(ticker);
-	}
-
-	public Snapshot getSnapshot(BaseExchange ex, String coin, TradeMarket market) {
-		if (market == TradeMarket.FUTURES) return getFuturesSnapshot(ex, coin);
-		else return getSpotSnapshot(ex, coin);
 	}
 
 	record ExchangeCoinPair(BaseExchange ex, String coin) {
