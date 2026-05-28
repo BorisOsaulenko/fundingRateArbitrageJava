@@ -6,8 +6,10 @@ import com.boris.fundingarbitrage.execution.factory.TradeExecutionFactory;
 import com.boris.fundingarbitrage.model.exchange.snapshot.FuturesSnapshot;
 import com.boris.fundingarbitrage.model.exchange.snapshot.Snapshot;
 import com.boris.fundingarbitrage.monitor.ICoinMonitor;
-import com.boris.fundingarbitrage.scheduler.IModifiableScheduler;
-import com.boris.fundingarbitrage.scheduler.IModifiableSchedulerBuilder;
+import com.boris.fundingarbitrage.scheduler.modifiable.IModifiableScheduler;
+import com.boris.fundingarbitrage.scheduler.modifiable.IModifiableSchedulerBuilder;
+import com.boris.fundingarbitrage.scheduler.onetime.IOneTimeScheduler;
+import com.boris.fundingarbitrage.scheduler.onetime.IOneTimeSchedulerSupplier;
 import com.boris.fundingarbitrage.strategy.TradeMarket;
 import com.boris.fundingarbitrage.strategy.intradestrategy.InTradeStrategy;
 import com.boris.fundingarbitrage.tradelogger.TradeSessionLogger;
@@ -27,6 +29,7 @@ public class TradeSession {
 	private final ITradeExecution execution;
 	private final TradeSessionLogger tradeLogger;
 	private final IModifiableScheduler fundingRegisterScheduler;
+	private final IOneTimeScheduler oneTimeScheduler;
 	private final AtomicBoolean shouldRegisterShortFunding;
 	private final AtomicBoolean shouldRegisterLongFunding;
 	private CompletableFuture<Void> enterFuture;
@@ -38,7 +41,8 @@ public class TradeSession {
 					ICoinMonitor monitor,
 					InTradeStrategy strategy,
 					TradeExecutionFactory executionFactory,
-					IModifiableSchedulerBuilder schedulerBuilder
+					IModifiableSchedulerBuilder modifiableSchedulerBuilder,
+					IOneTimeSchedulerSupplier oneTimeSchedulerSupplier
 	) {
 		this.coin = coin;
 		this.op = op;
@@ -46,10 +50,11 @@ public class TradeSession {
 		this.strategy = strategy;
 		this.tradeLogger = new TradeSessionLogger(coin, op, config.legUsdtAmount());
 		this.execution = executionFactory.create(coin, op, config, tradeLogger);
+		this.oneTimeScheduler = oneTimeSchedulerSupplier.get();
 
 		this.shouldRegisterLongFunding = new AtomicBoolean(op.longData().market() == TradeMarket.FUTURES);
 		this.shouldRegisterShortFunding = new AtomicBoolean(op.shortData().market() == TradeMarket.FUTURES);
-		this.fundingRegisterScheduler = schedulerBuilder.create(this::registerFunding, 30, TimeUnit.MINUTES);
+		this.fundingRegisterScheduler = modifiableSchedulerBuilder.create(this::registerFunding, 30, TimeUnit.MINUTES);
 	}
 
 	public CompletableFuture<Void> enter(Consumer<Throwable> onError) {
@@ -59,7 +64,6 @@ public class TradeSession {
 						.thenRun(fundingRegisterScheduler::start)
 						.whenComplete((ignored, throwable) -> {
 							if (throwable == null) return;
-
 							if (onError != null) onError.accept(throwable);
 						});
 		return enterFuture;
@@ -86,19 +90,18 @@ public class TradeSession {
 		}
 	}
 
-	private CompletableFuture<Void> shutdown() {
-		return new CompletableFuture<>().completeOnTimeout(
-						null,
-						5,
-						TimeUnit.SECONDS
-		).thenCompose(_ -> {
-			fundingRegisterScheduler.cancelNow();
-			return tradeLogger.finish(execution.getEnterIds(), execution.getExitIds());
-		});
+	private void shutdown() {
+		oneTimeScheduler.schedule(
+						() -> {
+							fundingRegisterScheduler.cancelNow();
+							oneTimeScheduler.shutdown();
+							tradeLogger.finish(execution.getEnterIds(), execution.getExitIds());
+						}, 5, TimeUnit.SECONDS
+		);
 	}
 
 	public CompletableFuture<Void> exitTradeIfShould(Runnable onSuccess) {
-		if (enterFuture == null) return null;
+		if (enterFuture == null) throw new IllegalStateException("Trade session has not been entered.");
 		if (!enterFuture.state().equals(Future.State.SUCCESS)) return null;
 
 		Snapshot currLong = monitor.getSnapshot(op.exchanges().longEx(), coin, op.longData().market());
@@ -106,9 +109,9 @@ public class TradeSession {
 		if (!strategy.shouldExitTrade(currLong, currShort)) return null;
 
 		return execution.exitTrade(currLong, currShort)
-						.thenCompose(_ -> shutdown())
 						.whenComplete((ignored, throwable) -> {
 							if (throwable != null) return;
+							shutdown();
 							if (onSuccess != null) onSuccess.run();
 						});
 	}

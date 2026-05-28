@@ -4,8 +4,8 @@ import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
 import com.boris.fundingarbitrage.model.websocket.patch.FundingPatch;
 import com.boris.fundingarbitrage.model.websocket.patch.GenericPublicWsPatch;
 import com.boris.fundingarbitrage.model.websocket.patch.MarkPatch;
-import com.boris.fundingarbitrage.scheduler.IModifiableScheduler;
-import com.boris.fundingarbitrage.scheduler.IModifiableSchedulerBuilder;
+import com.boris.fundingarbitrage.scheduler.modifiable.IModifiableScheduler;
+import com.boris.fundingarbitrage.scheduler.modifiable.IModifiableSchedulerBuilder;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import lombok.extern.slf4j.Slf4j;
 

@@ -1,6 +1,6 @@
 package com.boris.fundingarbitrage;
 
-import com.boris.fundingarbitrage.scheduler.IModifiableScheduler;
+import com.boris.fundingarbitrage.scheduler.modifiable.IModifiableScheduler;
 import lombok.Getter;
 
 import java.util.ArrayList;

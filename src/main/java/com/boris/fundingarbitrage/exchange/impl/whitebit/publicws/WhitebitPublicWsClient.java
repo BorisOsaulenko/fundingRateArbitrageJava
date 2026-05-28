@@ -5,7 +5,7 @@ import com.boris.fundingarbitrage.exchange.impl.whitebit.publicrest.WhitebitPubl
 import com.boris.fundingarbitrage.exchange.publicws.DomainClientConfigBuilder;
 import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
 import com.boris.fundingarbitrage.model.websocket.patch.MarkPatch;
-import com.boris.fundingarbitrage.scheduler.ProdModifiableSchedulerBuilder;
+import com.boris.fundingarbitrage.scheduler.modifiable.ProdModifiableSchedulerBuilder;
 import com.boris.fundingarbitrage.util.wss.publicws.ClientsConfigNoFunding;
 import com.boris.fundingarbitrage.util.wss.publicws.FullFundingViaRest;
 

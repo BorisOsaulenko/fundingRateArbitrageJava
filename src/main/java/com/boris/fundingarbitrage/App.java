@@ -23,8 +23,10 @@ import com.boris.fundingarbitrage.model.exchange.ExchangeName;
 import com.boris.fundingarbitrage.monitor.CoinMonitor;
 import com.boris.fundingarbitrage.monitor.IDataStream;
 import com.boris.fundingarbitrage.monitor.ProdDataStream;
-import com.boris.fundingarbitrage.scheduler.IModifiableSchedulerBuilder;
-import com.boris.fundingarbitrage.scheduler.ProdModifiableSchedulerBuilder;
+import com.boris.fundingarbitrage.scheduler.modifiable.IModifiableSchedulerBuilder;
+import com.boris.fundingarbitrage.scheduler.modifiable.ProdModifiableSchedulerBuilder;
+import com.boris.fundingarbitrage.scheduler.onetime.IOneTimeSchedulerSupplier;
+import com.boris.fundingarbitrage.scheduler.onetime.ProdOneTimeSchedulerSupplier;
 import com.boris.fundingarbitrage.strategy.intradestrategy.factory.ProductionInTradeStrategyFactory;
 import com.boris.fundingarbitrage.strategy.pretradestrategy.FuturesPreTradeStrategy;
 import com.boris.fundingarbitrage.strategy.pretradestrategy.PreTradeStrategy;
@@ -61,7 +63,8 @@ public class App {
 						new BigDecimal("20")
 		);
 
-		IModifiableSchedulerBuilder schedulerBuilder = new ProdModifiableSchedulerBuilder();
+		IModifiableSchedulerBuilder modifiableSchedulerBuilder = new ProdModifiableSchedulerBuilder();
+		IOneTimeSchedulerSupplier oneTimeSchedulerSupplier = new ProdOneTimeSchedulerSupplier();
 
 		try {
 			CoinFilter coinFilter = new CoinFilter(coinSupplier, filterConfig, exchanges);
@@ -91,7 +94,8 @@ public class App {
 							new ProductionInTradeStrategyFactory(),
 							new TestTradeExecutionFactory(),
 							botConfig,
-							schedulerBuilder
+							modifiableSchedulerBuilder,
+							oneTimeSchedulerSupplier
 			);
 
 			ArbitrageLogic logic = new RebalancingArbitrageLogic(
@@ -102,7 +106,7 @@ public class App {
 							botConfig,
 							balancesPolicy,
 							tradeSessionFactory,
-							schedulerBuilder
+							modifiableSchedulerBuilder
 			);
 
 			logic.init(balanceProvider).join();

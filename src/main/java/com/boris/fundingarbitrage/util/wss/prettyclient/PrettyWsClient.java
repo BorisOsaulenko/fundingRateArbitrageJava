@@ -1,7 +1,8 @@
 package com.boris.fundingarbitrage.util.wss.prettyclient;
 
 import com.boris.fundingarbitrage.ObjectMapperSingleton;
-import com.boris.fundingarbitrage.scheduler.OneTimeScheduler;
+import com.boris.fundingarbitrage.scheduler.onetime.IOneTimeScheduler;
+import com.boris.fundingarbitrage.scheduler.onetime.ProdOneTimeScheduler;
 import jakarta.websocket.Session;
 import lombok.NonNull;
 import org.glassfish.tyrus.client.ClientManager;
@@ -24,7 +25,7 @@ public class PrettyWsClient {
 	private final Queue<String> messageQueue = new ConcurrentLinkedQueue<>();
 	private final PrettyWsEndpoint endpoint;
 	private final ClientManager client;
-	private final OneTimeScheduler reconnectScheduler;
+	private final IOneTimeScheduler reconnectScheduler;
 	private volatile boolean reconnecting = false;
 	private int reconnectAttempts = 0;
 	private boolean closeRequested = false;
@@ -38,7 +39,7 @@ public class PrettyWsClient {
 					@NonNull URI uri,
 					@NonNull String endpointName,
 					@NonNull Consumer<String> processMessage,
-					@NonNull OneTimeScheduler scheduler
+					@NonNull IOneTimeScheduler scheduler
 	) {
 		this.endpointUri = uri;
 		this.endpointName = endpointName;
@@ -55,7 +56,7 @@ public class PrettyWsClient {
 		this.endpointUri = endpointUri;
 		this.endpointName = endpointName;
 		this.client = ClientManager.createClient();
-		this.reconnectScheduler = new OneTimeScheduler();
+		this.reconnectScheduler = new ProdOneTimeScheduler();
 		this.endpoint = new PrettyWsEndpoint(
 						(msg) -> processMessage.accept(msg, this),
 						getOnOpenHook(),

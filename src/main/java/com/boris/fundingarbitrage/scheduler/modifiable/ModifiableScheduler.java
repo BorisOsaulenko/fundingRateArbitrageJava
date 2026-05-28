@@ -1,4 +1,4 @@
-package com.boris.fundingarbitrage.scheduler;
+package com.boris.fundingarbitrage.scheduler.modifiable;
 
 import lombok.Getter;
 import org.slf4j.Logger;

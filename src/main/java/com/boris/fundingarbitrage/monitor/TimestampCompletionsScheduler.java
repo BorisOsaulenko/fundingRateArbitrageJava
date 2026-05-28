@@ -6,7 +6,8 @@ import com.boris.fundingarbitrage.model.contract.Funding;
 import com.boris.fundingarbitrage.model.contract.Mark;
 import com.boris.fundingarbitrage.model.exchange.snapshot.FuturesSnapshot;
 import com.boris.fundingarbitrage.model.exchange.snapshot.SpotSnapshot;
-import com.boris.fundingarbitrage.scheduler.OneTimeScheduler;
+import com.boris.fundingarbitrage.scheduler.onetime.IOneTimeScheduler;
+import com.boris.fundingarbitrage.scheduler.onetime.ProdOneTimeScheduler;
 
 import java.time.Instant;
 import java.util.Map;
@@ -28,14 +29,14 @@ class TimestampCompletionsScheduler {
 	private final ExchangeCoinMap<Mark> futuresMarkCompletions = new ExchangeCoinMap<>();
 	private final ExchangeCoinMap<BookTicker> spotBookTickerCompletions = new ExchangeCoinMap<>();
 	private final ExchangeCoinMap<Map<Long, Set<BiConsumer<FuturesSnapshot, SpotSnapshot>>>> timestampHandlers = new ExchangeCoinMap<>();
-	private final OneTimeScheduler completionScheduler;
+	private final IOneTimeScheduler completionScheduler;
 
 	TimestampCompletionsScheduler(
 					ExchangeCoinMap<Funding> futuresFundingRates,
 					ExchangeCoinMap<BookTicker> futuresBookTickers,
 					ExchangeCoinMap<Mark> futuresMarkPrices,
 					ExchangeCoinMap<BookTicker> spotBookTickers,
-					OneTimeScheduler scheduler
+					IOneTimeScheduler scheduler
 	) {
 		this.futuresFundingRates = futuresFundingRates;
 		this.futuresBookTickers = futuresBookTickers;
@@ -50,7 +51,7 @@ class TimestampCompletionsScheduler {
 					ExchangeCoinMap<Mark> futuresMarkPrices,
 					ExchangeCoinMap<BookTicker> spotBookTickers
 	) {
-		this(futuresFundingRates, futuresBookTickers, futuresMarkPrices, spotBookTickers, new OneTimeScheduler());
+		this(futuresFundingRates, futuresBookTickers, futuresMarkPrices, spotBookTickers, new ProdOneTimeScheduler());
 	}
 
 	public void performOnTimestamp(

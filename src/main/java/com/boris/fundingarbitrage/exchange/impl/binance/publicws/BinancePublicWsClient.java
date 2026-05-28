@@ -7,7 +7,7 @@ import com.boris.fundingarbitrage.exchange.publicws.PublicWsClient;
 import com.boris.fundingarbitrage.model.websocket.patch.BookTickerPatch;
 import com.boris.fundingarbitrage.model.websocket.patch.FundingPatch;
 import com.boris.fundingarbitrage.model.websocket.patch.MarkPatch;
-import com.boris.fundingarbitrage.scheduler.ProdModifiableSchedulerBuilder;
+import com.boris.fundingarbitrage.scheduler.modifiable.ProdModifiableSchedulerBuilder;
 
 import java.net.URI;
 

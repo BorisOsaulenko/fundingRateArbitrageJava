@@ -1,7 +1,7 @@
 package com.boris.fundingarbitrage.exchange.publicws;
 
 import com.boris.fundingarbitrage.model.websocket.patch.GenericPublicWsPatch;
-import com.boris.fundingarbitrage.scheduler.IModifiableScheduler;
+import com.boris.fundingarbitrage.scheduler.modifiable.IModifiableScheduler;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 
 import java.util.List;

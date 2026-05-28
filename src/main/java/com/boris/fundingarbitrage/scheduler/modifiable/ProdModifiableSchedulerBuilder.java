@@ -1,4 +1,4 @@
-package com.boris.fundingarbitrage.scheduler;
+package com.boris.fundingarbitrage.scheduler.modifiable;
 
 import java.util.concurrent.TimeUnit;
 
