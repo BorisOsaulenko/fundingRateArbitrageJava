@@ -1,14 +1,14 @@
 package com.boris.fundingarbitrage.logic;
 
-import com.boris.fundingarbitrage.FakeCoinMonitor;
-import com.boris.fundingarbitrage.FakeModifiableScheduler;
-import com.boris.fundingarbitrage.FakeModifiableSchedulerBuilder;
 import com.boris.fundingarbitrage.coinfilter.CoinAvailabilityRecord;
 import com.boris.fundingarbitrage.coinfilter.TestCoinAvailabilityFactory;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.logic.balanceprovider.IBalanceProvider;
 import com.boris.fundingarbitrage.logic.balancespolicy.IBalancesPolicy;
 import com.boris.fundingarbitrage.logic.opportunityanalyzer.IOpportunityAnalyzer;
+import com.boris.fundingarbitrage.mocks.FakeCoinMonitor;
+import com.boris.fundingarbitrage.mocks.FakeModifiableScheduler;
+import com.boris.fundingarbitrage.mocks.FakeModifiableSchedulerBuilder;
 import com.boris.fundingarbitrage.model.exchange.ExchangeBalance;
 import com.boris.fundingarbitrage.strategy.pretradestrategy.PreTradeStrategy;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;

@@ -1,6 +1,6 @@
 package com.boris.fundingarbitrage.coinfilter;
 
-import com.boris.fundingarbitrage.FakeExchanges;
+import com.boris.fundingarbitrage.mocks.FakeExchanges;
 
 import java.util.Set;
 

@@ -27,6 +27,7 @@ import com.boris.fundingarbitrage.scheduler.modifiable.IModifiableSchedulerBuild
 import com.boris.fundingarbitrage.scheduler.modifiable.ProdModifiableSchedulerBuilder;
 import com.boris.fundingarbitrage.scheduler.onetime.IOneTimeSchedulerSupplier;
 import com.boris.fundingarbitrage.scheduler.onetime.ProdOneTimeSchedulerSupplier;
+import com.boris.fundingarbitrage.tradelogger.TradeSessionLoggerBuilder;
 import com.boris.fundingarbitrage.strategy.intradestrategy.factory.ProductionInTradeStrategyFactory;
 import com.boris.fundingarbitrage.strategy.pretradestrategy.FuturesPreTradeStrategy;
 import com.boris.fundingarbitrage.strategy.pretradestrategy.PreTradeStrategy;
@@ -95,7 +96,8 @@ public class App {
 							new TestTradeExecutionFactory(),
 							botConfig,
 							modifiableSchedulerBuilder,
-							oneTimeSchedulerSupplier
+							oneTimeSchedulerSupplier,
+							new TradeSessionLoggerBuilder()
 			);
 
 			ArbitrageLogic logic = new RebalancingArbitrageLogic(

@@ -1,4 +1,4 @@
-package com.boris.fundingarbitrage;
+package com.boris.fundingarbitrage.mocks;
 
 import com.boris.fundingarbitrage.scheduler.modifiable.IModifiableScheduler;
 import lombok.Getter;

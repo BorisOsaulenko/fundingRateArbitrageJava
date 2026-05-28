@@ -6,7 +6,7 @@ import com.boris.fundingarbitrage.logic.CoinOpportunity;
 import com.boris.fundingarbitrage.model.assetops.*;
 import com.boris.fundingarbitrage.model.exchange.snapshot.Snapshot;
 import com.boris.fundingarbitrage.strategy.TradeMarket;
-import com.boris.fundingarbitrage.tradelogger.TradeSessionLogger;
+import com.boris.fundingarbitrage.tradelogger.ITradeSessionLogger;
 import lombok.Getter;
 import lombok.NonNull;
 
@@ -25,7 +25,7 @@ public final class TradeExecution implements ITradeExecution {
 	private final Leverages leverages;
 	private final CoinOpportunity op;
 	private final ArbitrageBotConfig config;
-	private final TradeSessionLogger tradeLogger;
+	private final ITradeSessionLogger tradeLogger;
 	private CompletableFuture<Void> enterFuture = null;
 	private CompletableFuture<Void> exitFuture = null;
 	@Getter private TradeIds enterIds;
@@ -36,7 +36,7 @@ public final class TradeExecution implements ITradeExecution {
 					@NonNull String coin,
 					@NonNull CoinOpportunity op,
 					@NonNull ArbitrageBotConfig config,
-					@NonNull TradeSessionLogger tradeLogger
+					@NonNull ITradeSessionLogger tradeLogger
 	) {
 		this.coin = coin;
 		this.op = op;

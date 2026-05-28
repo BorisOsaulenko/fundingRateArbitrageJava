@@ -1,6 +1,6 @@
 package com.boris.fundingarbitrage.logic;
 
-import com.boris.fundingarbitrage.*;
+import com.boris.fundingarbitrage.mocks.*;
 import com.boris.fundingarbitrage.model.contract.BookTicker;
 import com.boris.fundingarbitrage.model.contract.Fees;
 import com.boris.fundingarbitrage.model.contract.Funding;
@@ -9,9 +9,7 @@ import com.boris.fundingarbitrage.model.exchange.ExchangePair;
 import com.boris.fundingarbitrage.model.exchange.constantdata.FuturesConstantData;
 import com.boris.fundingarbitrage.model.exchange.exchangedata.ExchangeData;
 import com.boris.fundingarbitrage.model.exchange.snapshot.FuturesSnapshot;
-import com.boris.fundingarbitrage.model.exchange.snapshot.Snapshot;
 import com.boris.fundingarbitrage.strategy.TradeMarket;
-import com.boris.fundingarbitrage.strategy.intradestrategy.InTradeStrategy;
 import com.boris.fundingarbitrage.strategy.pretradestrategy.TradeDirections;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -33,6 +31,8 @@ class TradeSessionTest {
 	private final FakeCoinMonitor monitor = new FakeCoinMonitor();
 	private final FakeModifiableSchedulerBuilder modifiableSchedulerBuilder = new FakeModifiableSchedulerBuilder();
 	private final FakeOneTimeSchedulerSupplier oneTimeSchedulerSupplier = new FakeOneTimeSchedulerSupplier();
+	private final FakeTradeSessionLoggerBuilder tradeLoggerBuilder = new FakeTradeSessionLoggerBuilder();
+	private final FakeInTradeStrategy strategy = new FakeInTradeStrategy();
 
 	private FakeTradeExecution execution;
 	private TradeSession session;
@@ -57,7 +57,9 @@ class TradeSessionTest {
 
 	@BeforeEach
 	void setUp() {
+		strategy.setShouldExitTrade(true);
 		FakeModifiableSchedulerBuilder.refresh();
+		FakeOneTimeSchedulerSupplier.refresh();
 		monitor.reset();
 
 		monitor.setFuturesSnapshot(FakeExchanges.exchange1, COIN, LONG_EXIT_SNAPSHOT);
@@ -69,10 +71,11 @@ class TradeSessionTest {
 						createOpportunity(),
 						createConfig(),
 						monitor,
-						createStrategy(),
+						strategy,
 						FakeTradeExecution.factory(execution),
 						modifiableSchedulerBuilder,
-						oneTimeSchedulerSupplier
+						oneTimeSchedulerSupplier,
+						tradeLoggerBuilder
 		);
 	}
 
@@ -94,6 +97,21 @@ class TradeSessionTest {
 		assertTrue(scheduler.getHistory().stream().anyMatch(item -> item instanceof FakeModifiableScheduler.Start));
 		assertTrue(scheduler.getHistory().stream().anyMatch(item -> item instanceof FakeModifiableScheduler.Stop));
 		assertTrue(FakeOneTimeSchedulerSupplier.allInstancesShutdown());
+	}
+
+	@Test
+	void fundingRegistrationRegistersFundingInStrategy() {
+		CompletableFuture<Void> enterFuture = session.enter(null);
+		assertDoesNotThrow(enterFuture::join);
+		assertTrue(enterFuture.isDone());
+		assertFalse(enterFuture.isCompletedExceptionally());
+
+		FakeModifiableSchedulerBuilder.getCreatedInstances().getFirst().doRun();
+
+		assertEquals(1, strategy.getLongFundingSnapshots().size());
+		assertEquals(1, strategy.getShortFundingSnapshots().size());
+		assertEquals(LONG_EXIT_SNAPSHOT, strategy.getLongFundingSnapshots().getFirst());
+		assertEquals(SHORT_EXIT_SNAPSHOT, strategy.getShortFundingSnapshots().getFirst());
 	}
 
 	@Test
@@ -155,18 +173,5 @@ class TradeSessionTest {
 						0,
 						1
 		);
-	}
-
-	private InTradeStrategy createStrategy() {
-		return new InTradeStrategy() {
-			@Override
-			protected void accountForFundingEvent(FuturesSnapshot sn, boolean isLong) {
-			}
-
-			@Override
-			public boolean shouldExitTrade(Snapshot longCurrent, Snapshot shortCurrent) {
-				return true;
-			}
-		};
 	}
 }

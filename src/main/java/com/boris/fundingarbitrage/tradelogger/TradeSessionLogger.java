@@ -31,7 +31,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class TradeSessionLogger {
+public class TradeSessionLogger implements ITradeSessionLogger {
 	private static final Logger bootstrapLog = LoggerFactory.getLogger(TradeSessionLogger.class);
 	private static final DateTimeFormatter fmt = DateTimeFormatter
 					.ofPattern("yyyy_MM_dd-HH:mm:ss")
@@ -124,6 +124,7 @@ public class TradeSessionLogger {
 		error(String.format(message, args));
 	}
 
+	@Override
 	public void logEnterSuccess(Snapshot sn, boolean isLong) {
 		if (isLong) this.longEnterSn = sn;
 		else this.shortEnterSn = sn;
@@ -135,21 +136,25 @@ public class TradeSessionLogger {
 		log("Entered %s trade at price: %s. Fee: %s", label, price, fee);
 	}
 
+	@Override
 	public void logEnterCompensationSuccess(boolean isLong) {
 		BaseExchange ex = isLong ? exchanges.longEx() : exchanges.shortEx();
 		log("Successfully exited %s as compensation for enter failure on opposite leg.", ex.name());
 	}
 
+	@Override
 	public void logEnterCompensationFailure(boolean isLong) {
 		BaseExchange ex = isLong ? exchanges.longEx() : exchanges.shortEx();
 		error("Failed to compensate on %s. There is a dangling entered leg. Exit manually.", ex.name());
 	}
 
+	@Override
 	public void logEnterFailure(Throwable t, boolean isLong) {
 		BaseExchange ex = isLong ? exchanges.longEx() : exchanges.shortEx();
 		error("Failed to enter trade on %s: %s", ex.name(), t.getMessage());
 	}
 
+	@Override
 	public void logFunding(FuturesSnapshot sn, boolean isLong) {
 		String tag = isLong ? "Long" : "Short";
 		BigDecimal mark = sn.mark().price();
@@ -159,6 +164,7 @@ public class TradeSessionLogger {
 		totalFundingGain = totalFundingGain.add(funding);
 	}
 
+	@Override
 	public void logExitSuccess(Snapshot sn, boolean isLong) {
 		if (isLong) this.longExitSn = sn;
 		else this.shortExitSn = sn;
@@ -170,11 +176,13 @@ public class TradeSessionLogger {
 		log("Exited %s trade at price: %s. Fee: %s", label, price, fee);
 	}
 
+	@Override
 	public void logExitFailure(Throwable t, boolean isLong) {
 		BaseExchange ex = isLong ? exchanges.longEx() : exchanges.shortEx();
 		error("Failed to exit trade on %s: %s", ex.name(), t.getMessage());
 	}
 
+	@Override
 	public CompletableFuture<Void> finish(TradeIds enterIds, TradeIds exitIds) {
 		CompletableFuture<List<PartialFill>> LEnterFuture = errorHandledFillsFetch(
 						exchanges.longEx(),

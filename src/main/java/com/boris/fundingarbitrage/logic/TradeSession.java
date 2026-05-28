@@ -12,7 +12,8 @@ import com.boris.fundingarbitrage.scheduler.onetime.IOneTimeScheduler;
 import com.boris.fundingarbitrage.scheduler.onetime.IOneTimeSchedulerSupplier;
 import com.boris.fundingarbitrage.strategy.TradeMarket;
 import com.boris.fundingarbitrage.strategy.intradestrategy.InTradeStrategy;
-import com.boris.fundingarbitrage.tradelogger.TradeSessionLogger;
+import com.boris.fundingarbitrage.tradelogger.ITradeSessionLogger;
+import com.boris.fundingarbitrage.tradelogger.TradeSessionLoggerBuilder;
 import lombok.Getter;
 
 import java.util.concurrent.CompletableFuture;
@@ -27,7 +28,7 @@ public class TradeSession {
 	private final ICoinMonitor monitor;
 	private final InTradeStrategy strategy;
 	private final ITradeExecution execution;
-	private final TradeSessionLogger tradeLogger;
+	private final ITradeSessionLogger tradeLogger;
 	private final IModifiableScheduler fundingRegisterScheduler;
 	private final IOneTimeScheduler oneTimeScheduler;
 	private final AtomicBoolean shouldRegisterShortFunding;
@@ -42,13 +43,14 @@ public class TradeSession {
 					InTradeStrategy strategy,
 					TradeExecutionFactory executionFactory,
 					IModifiableSchedulerBuilder modifiableSchedulerBuilder,
-					IOneTimeSchedulerSupplier oneTimeSchedulerSupplier
+					IOneTimeSchedulerSupplier oneTimeSchedulerSupplier,
+					TradeSessionLoggerBuilder tradeLoggerBuilder
 	) {
 		this.coin = coin;
 		this.op = op;
 		this.monitor = monitor;
 		this.strategy = strategy;
-		this.tradeLogger = new TradeSessionLogger(coin, op, config.legUsdtAmount());
+		this.tradeLogger = tradeLoggerBuilder.create(coin, op, config.legUsdtAmount());
 		this.execution = executionFactory.create(coin, op, config, tradeLogger);
 		this.oneTimeScheduler = oneTimeSchedulerSupplier.get();
 

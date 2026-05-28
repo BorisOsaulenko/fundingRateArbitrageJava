@@ -1,4 +1,4 @@
-package com.boris.fundingarbitrage;
+package com.boris.fundingarbitrage.mocks;
 
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.model.exchange.snapshot.FuturesSnapshot;
@@ -72,7 +72,7 @@ public class FakeCoinMonitor implements ICoinMonitor {
 					String coin,
 					BiConsumer<FuturesSnapshot, SpotSnapshot> handler
 	) {
-		throw new UnsupportedOperationException("Not implemented in FakeCoinMonitor.");
+		handler.accept(getFuturesSnapshot(exchange, coin), getSpotSnapshot(exchange, coin));
 	}
 
 	@Override

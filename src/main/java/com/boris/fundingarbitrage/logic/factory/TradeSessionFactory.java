@@ -7,6 +7,7 @@ import com.boris.fundingarbitrage.logic.TradeSession;
 import com.boris.fundingarbitrage.monitor.ICoinMonitor;
 import com.boris.fundingarbitrage.scheduler.modifiable.IModifiableSchedulerBuilder;
 import com.boris.fundingarbitrage.scheduler.onetime.IOneTimeSchedulerSupplier;
+import com.boris.fundingarbitrage.tradelogger.TradeSessionLoggerBuilder;
 import com.boris.fundingarbitrage.strategy.intradestrategy.factory.InTradeStrategyFactory;
 
 public class TradeSessionFactory {
@@ -16,6 +17,7 @@ public class TradeSessionFactory {
 	private final ArbitrageBotConfig config;
 	private final IModifiableSchedulerBuilder schedulerBuilder;
 	private final IOneTimeSchedulerSupplier oneTimeSchedulerSupplier;
+	private final TradeSessionLoggerBuilder tradeLoggerBuilder;
 
 	public TradeSessionFactory(
 					ICoinMonitor monitor,
@@ -23,7 +25,8 @@ public class TradeSessionFactory {
 					TradeExecutionFactory executionFactory,
 					ArbitrageBotConfig config,
 					IModifiableSchedulerBuilder modifiableSchedulerBuilder,
-					IOneTimeSchedulerSupplier oneTimeSchedulerSupplier
+					IOneTimeSchedulerSupplier oneTimeSchedulerSupplier,
+					TradeSessionLoggerBuilder tradeLoggerBuilder
 	) {
 		this.monitor = monitor;
 		this.inTradeStrategyFactory = inTradeStrategyFactory;
@@ -31,6 +34,7 @@ public class TradeSessionFactory {
 		this.config = config;
 		this.schedulerBuilder = modifiableSchedulerBuilder;
 		this.oneTimeSchedulerSupplier = oneTimeSchedulerSupplier;
+		this.tradeLoggerBuilder = tradeLoggerBuilder;
 	}
 
 	public TradeSession create(String coin, CoinOpportunity opportunity) {
@@ -42,7 +46,8 @@ public class TradeSessionFactory {
 						inTradeStrategyFactory.create(opportunity),
 						executionFactory,
 						schedulerBuilder,
-						oneTimeSchedulerSupplier
+						oneTimeSchedulerSupplier,
+						tradeLoggerBuilder
 		);
 	}
 }

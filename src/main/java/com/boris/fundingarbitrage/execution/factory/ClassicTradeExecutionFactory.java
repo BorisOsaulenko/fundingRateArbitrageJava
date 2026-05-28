@@ -4,7 +4,7 @@ import com.boris.fundingarbitrage.execution.ITradeExecution;
 import com.boris.fundingarbitrage.execution.TradeExecution;
 import com.boris.fundingarbitrage.logic.ArbitrageBotConfig;
 import com.boris.fundingarbitrage.logic.CoinOpportunity;
-import com.boris.fundingarbitrage.tradelogger.TradeSessionLogger;
+import com.boris.fundingarbitrage.tradelogger.ITradeSessionLogger;
 
 public class ClassicTradeExecutionFactory extends TradeExecutionFactory {
 	@Override
@@ -12,7 +12,7 @@ public class ClassicTradeExecutionFactory extends TradeExecutionFactory {
 					String coin,
 					CoinOpportunity op,
 					ArbitrageBotConfig config,
-					TradeSessionLogger tradeLogger
+					ITradeSessionLogger tradeLogger
 	) {
 		return new TradeExecution(coin, op, config, tradeLogger);
 	}
