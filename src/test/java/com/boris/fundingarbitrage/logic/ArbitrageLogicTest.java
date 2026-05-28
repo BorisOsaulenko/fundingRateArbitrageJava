@@ -1,5 +1,6 @@
 package com.boris.fundingarbitrage.logic;
 
+import com.boris.fundingarbitrage.FakeCoinMonitor;
 import com.boris.fundingarbitrage.FakeModifiableScheduler;
 import com.boris.fundingarbitrage.FakeModifiableSchedulerBuilder;
 import com.boris.fundingarbitrage.coinfilter.CoinAvailabilityRecord;
@@ -9,7 +10,6 @@ import com.boris.fundingarbitrage.logic.balanceprovider.IBalanceProvider;
 import com.boris.fundingarbitrage.logic.balancespolicy.IBalancesPolicy;
 import com.boris.fundingarbitrage.logic.opportunityanalyzer.IOpportunityAnalyzer;
 import com.boris.fundingarbitrage.model.exchange.ExchangeBalance;
-import com.boris.fundingarbitrage.monitor.ICoinMonitor;
 import com.boris.fundingarbitrage.strategy.pretradestrategy.PreTradeStrategy;
 import com.boris.fundingarbitrage.util.coinvector.CoinVector;
 import lombok.NonNull;
@@ -24,7 +24,7 @@ import java.util.function.Consumer;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ArbitrageLogicTest {
-	private final ICoinMonitor mockedMonitor = Mockito.mock(ICoinMonitor.class);
+	private final FakeCoinMonitor mockedMonitor = new FakeCoinMonitor();
 	private final IOpportunityAnalyzer mockedOpportunityAnalyzer = Mockito.mock(IOpportunityAnalyzer.class);
 	private final PreTradeStrategy mockedPreTradeStrategy = Mockito.mock(PreTradeStrategy.class);
 	private final IBalanceProvider mockedBalanceProvider = Mockito.mock(IBalanceProvider.class);
@@ -39,7 +39,6 @@ class ArbitrageLogicTest {
 	private TestArbitrageLogic logic;
 
 	private void initializeLogicSpy(CoinAvailabilityRecord availability) {
-		Mockito.when(mockedMonitor.getInitFuture()).thenReturn(CompletableFuture.completedFuture(null));
 		Mockito.when(mockedBalanceProvider.loadBalances()).thenReturn(CompletableFuture.completedFuture(fakeBalances));
 		Mockito.when(mockedOpportunityAnalyzer.processCoins(Mockito.any()))
 						.thenReturn(CompletableFuture.completedFuture(fakeOpportunities));
@@ -51,7 +50,7 @@ class ArbitrageLogicTest {
 	void emptyCoinAvailabilityShutsDown() {
 		initializeLogicSpy(new CoinAvailabilityRecord());
 		logic.init(mockedBalanceProvider);
-		Mockito.verify(mockedMonitor).shutdown();
+		mockedMonitor.verifyShutdown();
 		Mockito.verify(mockedOpportunityAnalyzer).shutdown();
 	}
 
@@ -61,7 +60,7 @@ class ArbitrageLogicTest {
 		CompletableFuture<Void> initFuture = logic.init(mockedBalanceProvider);
 		assertTrue(initFuture.isDone());
 		assertFalse(initFuture.isCompletedExceptionally());
-		Mockito.verify(mockedMonitor, Mockito.never()).shutdown();
+		mockedMonitor.verifyNotShutdown();
 		Mockito.verify(mockedOpportunityAnalyzer, Mockito.never()).shutdown();
 		Mockito.verify(mockedBalancesPolicy).validateBalancesMap(fakeBalances);
 		Mockito.verify(logic.afterBalancesLoadedConsumer).accept(fakeBalances);
@@ -92,7 +91,7 @@ class ArbitrageLogicTest {
 		logic.start();
 		FakeModifiableSchedulerBuilder.getCreatedInstances().forEach(FakeModifiableScheduler::doRun);
 		Mockito.verify(mockedOpportunityAnalyzer).processCoins(Mockito.any());
-		Mockito.verify(mockedMonitor).shutdown();
+		mockedMonitor.verifyShutdown();
 		Mockito.verify(mockedOpportunityAnalyzer).shutdown();
 	}
 

@@ -1,5 +1,6 @@
 package com.boris.fundingarbitrage.logic;
 
+import com.boris.fundingarbitrage.FakeCoinMonitor;
 import com.boris.fundingarbitrage.FakeExchanges;
 import com.boris.fundingarbitrage.FakeModifiableScheduler;
 import com.boris.fundingarbitrage.FakeModifiableSchedulerBuilder;
@@ -17,7 +18,6 @@ import com.boris.fundingarbitrage.model.exchange.constantdata.FuturesConstantDat
 import com.boris.fundingarbitrage.model.exchange.exchangedata.ExchangeData;
 import com.boris.fundingarbitrage.model.exchange.snapshot.FuturesSnapshot;
 import com.boris.fundingarbitrage.model.exchange.snapshot.Snapshot;
-import com.boris.fundingarbitrage.monitor.ICoinMonitor;
 import com.boris.fundingarbitrage.scheduler.IModifiableSchedulerBuilder;
 import com.boris.fundingarbitrage.strategy.TradeMarket;
 import com.boris.fundingarbitrage.strategy.intradestrategy.InTradeStrategy;
@@ -49,7 +49,7 @@ class TradeSessionTest {
 	private static final FuturesSnapshot LONG_EXIT_SNAPSHOT = snapshot(111.0, 112.0, 113.0, 0.001);
 	private static final FuturesSnapshot SHORT_EXIT_SNAPSHOT = snapshot(211.0, 212.0, 213.0, 0.001);
 
-	private final ICoinMonitor monitor = mock(ICoinMonitor.class);
+	private final FakeCoinMonitor monitor = new FakeCoinMonitor();
 	private final IModifiableSchedulerBuilder schedulerBuilder = new FakeModifiableSchedulerBuilder();
 
 	private static FuturesSnapshot snapshot(double bid, double ask, double markPrice, double fundingRate) {
@@ -73,7 +73,7 @@ class TradeSessionTest {
 	@BeforeEach
 	void setUp() {
 		FakeModifiableSchedulerBuilder.refresh();
-		reset(monitor);
+		monitor.reset();
 		reset(FakeExchanges.exchange1, FakeExchanges.exchange2, FakeExchanges.exchange3);
 		stubExchange(FakeExchanges.exchange1, mock(PrivateHttpClient.class));
 		stubExchange(FakeExchanges.exchange2, mock(PrivateHttpClient.class));
@@ -89,8 +89,7 @@ class TradeSessionTest {
 		assertFalse(enterFuture.isCompletedExceptionally());
 		assertTrue(FakeModifiableSchedulerBuilder.allInstancesStarted());
 
-		CompletableFuture<Void> exitFuture = fixture.session.exitTradeIfShould(() -> {
-		});
+		CompletableFuture<Void> exitFuture = fixture.session.exitTradeIfShould(null);
 		assertDoesNotThrow(exitFuture::join);
 		assertTrue(exitFuture.isDone());
 		assertFalse(exitFuture.isCompletedExceptionally());
@@ -182,8 +181,8 @@ class TradeSessionTest {
 			return CompletableFuture.completedFuture(null);
 		});
 
-		when(monitor.getSnapshot(FakeExchanges.exchange1, COIN, TradeMarket.FUTURES)).thenReturn(LONG_EXIT_SNAPSHOT);
-		when(monitor.getSnapshot(FakeExchanges.exchange2, COIN, TradeMarket.FUTURES)).thenReturn(SHORT_EXIT_SNAPSHOT);
+		monitor.setFuturesSnapshot(FakeExchanges.exchange1, COIN, LONG_EXIT_SNAPSHOT);
+		monitor.setFuturesSnapshot(FakeExchanges.exchange2, COIN, SHORT_EXIT_SNAPSHOT);
 
 		return new Fixture(
 						new TradeSession(
