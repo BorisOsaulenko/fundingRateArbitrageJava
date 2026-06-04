@@ -3,6 +3,7 @@ package com.boris.fundingarbitrage.monitor;
 import com.boris.fundingarbitrage.coinfilter.CoinAvailabilityRecord;
 import com.boris.fundingarbitrage.coinfilter.CoinFilterResult;
 import com.boris.fundingarbitrage.coinfilter.ConstantDataRecord;
+import com.boris.fundingarbitrage.coinfilter.TestCoinAvailabilityFactory;
 import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.exchange.privatehttp.PrivateHttpClient;
 import com.boris.fundingarbitrage.exchange.publichttp.PublicHttpClient;
@@ -33,19 +34,8 @@ class CoinMonitorTest {
 	private static final String COIN = "BTC";
 
 	private static CoinFilterResult filterData(Set<BaseExchange> exchanges) {
-		CoinAvailabilityRecord support = new CoinAvailabilityRecord();
-		ExchangeCoinMap<Boolean> presentOnFutures = new ExchangeCoinMap<>();
-		ExchangeCoinMap<Boolean> presentOnSpot = new ExchangeCoinMap<>();
-
-		for (BaseExchange exchange : exchanges) {
-			support.exchangesByCoin().computeIfAbsent(COIN, _ -> ConcurrentHashMap.newKeySet()).add(exchange);
-			support.coinsByExchange().computeIfAbsent(exchange, _ -> ConcurrentHashMap.newKeySet()).add(COIN);
-			presentOnFutures.put(exchange, COIN, true);
-			presentOnSpot.put(exchange, COIN, true);
-		}
-
 		return new CoinFilterResult(
-						support,
+						new TestCoinAvailabilityFactory().addFullSupport(COIN, exchanges).build(),
 						new ConstantDataRecord(),
 						new ExchangeCoinMap<>(),
 						new ExchangeCoinMap<>()
@@ -67,7 +57,8 @@ class CoinMonitorTest {
 		FakePublicMarketDataStream bybitWs = new FakePublicMarketDataStream();
 		BaseExchange binance = fakeExchange(ExchangeName.BINANCE, binanceWs);
 		BaseExchange bybit = fakeExchange(ExchangeName.BYBIT, bybitWs);
-		ICoinMonitor monitor = new CoinMonitor(filterData(Set.of(binance, bybit)), new ImmediateDataStream());
+		CoinMonitor monitor = new CoinMonitor(filterData(Set.of(binance, bybit)), new ImmediateDataStream());
+		monitor.start();
 
 		Instant updatedAt = Instant.parse("2026-05-05T10:15:30Z");
 		Instant settlement = Instant.parse("2026-05-05T16:00:00Z");

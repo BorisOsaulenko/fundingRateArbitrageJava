@@ -22,6 +22,9 @@ public class ExchangeCoinMap<T> {
 		this.exchangeCoinMap = new ConcurrentHashMap<>();
 	}
 
+	public void clear() {
+		exchangeCoinMap.clear();
+	}
 
 	public T get(BaseExchange exchange, String coin) {
 		return exchangeCoinMap.getOrDefault(exchange, new CoinVector<>()).get(coin);

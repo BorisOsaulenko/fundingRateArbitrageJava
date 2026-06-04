@@ -1,5 +1,6 @@
 package com.boris.fundingarbitrage.coinfilter;
 
+import com.boris.fundingarbitrage.exchange.BaseExchange;
 import com.boris.fundingarbitrage.mocks.FakeExchanges;
 
 import java.util.Set;
@@ -59,6 +60,14 @@ public final class TestCoinAvailabilityFactory {
 
 	public TestCoinAvailabilityFactory addFuturesCoin2Support() {
 		return addFuturesSupport(coin2);
+	}
+
+	public TestCoinAvailabilityFactory addFullSupport(String coin, Set<BaseExchange> exchanges) {
+		for (BaseExchange exchange : exchanges) {
+			availability.addSupportFutures(coin, exchange);
+			availability.addSupportSpot(coin, exchange);
+		}
+		return this;
 	}
 
 	public CoinAvailabilityRecord build() {

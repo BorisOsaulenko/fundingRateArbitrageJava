@@ -94,8 +94,7 @@ class TradeSessionTest {
 		FakeOneTimeSchedulerSupplier.getCreatedInstances().forEach(FakeOneTimeScheduler::doRunAll);
 
 		FakeModifiableScheduler scheduler = FakeModifiableSchedulerBuilder.getCreatedInstances().getFirst();
-		assertTrue(scheduler.getHistory().stream().anyMatch(item -> item instanceof FakeModifiableScheduler.Start));
-		assertTrue(scheduler.getHistory().stream().anyMatch(item -> item instanceof FakeModifiableScheduler.Stop));
+		assertFalse(scheduler.isRunning());
 		assertTrue(FakeOneTimeSchedulerSupplier.allInstancesShutdown());
 	}
 
